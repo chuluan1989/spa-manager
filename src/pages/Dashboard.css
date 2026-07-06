@@ -1,0 +1,23 @@
+.dashboard__header {
+  margin-bottom: 32px;
+}
+
+.dashboard__title {
+  margin: 0 0 4px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.dashboard__subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: #64748b;
+}
+
+.dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}

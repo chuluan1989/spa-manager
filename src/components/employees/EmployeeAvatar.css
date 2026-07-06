@@ -1,0 +1,33 @@
+.employee-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #e8f2fb;
+  color: #1565a8;
+  font-weight: 700;
+}
+
+.employee-avatar--sm {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+
+.employee-avatar--md {
+  width: 72px;
+  height: 72px;
+  font-size: 22px;
+}
+
+.employee-avatar--lg {
+  width: 96px;
+  height: 96px;
+  font-size: 28px;
+}
+
+.employee-avatar--placeholder {
+  border: 2px solid #dbeafe;
+}

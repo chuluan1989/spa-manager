@@ -1,0 +1,22 @@
+.branch-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 0;
+  background: #e8f2fb;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.branch-banner__label {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.branch-banner__value {
+  font-weight: 700;
+  color: #1565a8;
+}

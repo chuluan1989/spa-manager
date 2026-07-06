@@ -1,0 +1,185 @@
+.invoice-list {
+  margin-top: 32px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #e3edf5;
+  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.08);
+}
+
+.invoice-list__title {
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.invoice-list__empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  padding: 24px;
+}
+
+.invoice-list__table-wrap {
+  overflow-x: auto;
+}
+
+.invoice-list__table {
+  width: 100%;
+  min-width: 1300px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.invoice-list__table th {
+  text-align: left;
+  padding: 12px 14px;
+  background: #f0f7ff;
+  color: #0f4c81;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid #dbeafe;
+  vertical-align: top;
+}
+
+.invoice-list__table td {
+  padding: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.invoice-list__table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.invoice-list__index,
+.invoice-list__date {
+  white-space: nowrap;
+}
+
+.invoice-list__branch {
+  min-width: 100px;
+}
+
+.invoice-list__employee {
+  min-width: 90px;
+  white-space: nowrap;
+}
+
+.invoice-list__customer {
+  min-width: 80px;
+}
+
+.invoice-list__services {
+  min-width: 320px;
+  max-width: 420px;
+}
+
+.invoice-list__service-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.invoice-list__service-lines li {
+  padding: 6px 10px;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.invoice-list__muted {
+  color: #94a3b8;
+}
+
+.invoice-list__money {
+  font-weight: 600;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.invoice-list__table th:nth-child(7),
+.invoice-list__table th:nth-child(8),
+.invoice-list__table th:nth-child(9),
+.invoice-list__table th:nth-child(10) {
+  text-align: right;
+}
+
+.invoice-list__total {
+  color: #1565a8;
+}
+
+.invoice-list__commission {
+  color: #16a34a;
+}
+
+.invoice-list__action {
+  white-space: nowrap;
+}
+
+.invoice-list__edit,
+.invoice-list__delete {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+.invoice-list__edit {
+  background: #e8f2fb;
+  color: #1565a8;
+  margin-right: 6px;
+}
+
+.invoice-list__edit:hover {
+  background: #dbeafe;
+}
+
+.invoice-list__delete {
+  padding: 6px 14px;
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.invoice-list__delete:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+@media (max-width: 768px) {
+  .invoice-list {
+    padding: 16px;
+  }
+
+  .invoice-list__table {
+    min-width: 1000px;
+  }
+
+  .invoice-list__table th,
+  .invoice-list__table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .invoice-list__services {
+    min-width: 260px;
+  }
+}
