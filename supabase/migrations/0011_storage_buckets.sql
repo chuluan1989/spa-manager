@@ -1,5 +1,9 @@
 -- Supabase Storage cho ảnh hệ thống (avatar, CCCD, hóa đơn, logo...)
 -- Database chỉ lưu URL public; không lưu Base64.
+--
+-- Apply:
+--   supabase link --project-ref <ref> && supabase db push
+-- Hoặc Supabase Dashboard → SQL Editor → dán và chạy toàn bộ file này.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
@@ -7,7 +11,14 @@ values (
   'spa-images',
   true,
   15728640,
-  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  array[
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/heic',
+    'image/heif'
+  ]
 )
 on conflict (id) do update set
   public = excluded.public,

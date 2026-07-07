@@ -15,12 +15,9 @@ export const IMAGE_CATEGORIES = {
 const COMPRESS_THRESHOLD_BYTES = 2 * 1024 * 1024
 const TARGET_COMPRESSED_BYTES = 1.5 * 1024 * 1024
 const HARD_MAX_UPLOAD_BYTES = 15 * 1024 * 1024
-const RECEIPT_MAX_BYTES = 5 * 1024 * 1024
 const MAX_IMAGE_DIMENSION = 1920
 const MIN_IMAGE_DIMENSION = 640
 const MIN_JPEG_QUALITY = 0.4
-
-let bucketReadyPromise = null
 
 export function isBase64Image(value) {
   return typeof value === 'string' && value.startsWith('data:image/')
@@ -38,6 +35,12 @@ function sanitizePathSegment(value) {
     .replace(/^-|-$/g, '') || 'general'
 }
 
+function isImageFile(file) {
+  if (!file) return false
+  if (file.type?.startsWith('image/')) return true
+  return /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(file.name ?? '')
+}
+
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -47,13 +50,30 @@ function readFileAsDataUrl(file) {
   })
 }
 
-function loadImageElement(dataUrl) {
+function loadImageElementFromUrl(src) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)
     img.onerror = () => reject(new Error('File ảnh bị lỗi hoặc không đúng định dạng'))
-    img.src = dataUrl
+    img.src = src
   })
+}
+
+/** Ưu tiên object URL — nhẹ hơn FileReader trên Safari iOS / Chrome Android. */
+async function loadImageElementFromFile(file) {
+  if (typeof URL !== 'undefined' && URL.createObjectURL) {
+    const objectUrl = URL.createObjectURL(file)
+    try {
+      return await loadImageElementFromUrl(objectUrl)
+    } catch {
+      /* fallback FileReader bên dưới */
+    } finally {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }
+
+  const dataUrl = await readFileAsDataUrl(file)
+  return loadImageElementFromUrl(dataUrl)
 }
 
 function estimateBlobBytes(blob) {
@@ -85,6 +105,10 @@ function drawToCanvas(img, width, height) {
 async function compressImageElementToBlob(img) {
   let width = img.naturalWidth || img.width
   let height = img.naturalHeight || img.height
+
+  if (!width || !height) {
+    throw new Error('Không đọc được kích thước ảnh')
+  }
 
   if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
     if (width >= height) {
@@ -121,15 +145,15 @@ async function compressImageElementToBlob(img) {
 }
 
 /**
- * Chuẩn hoá file ảnh thành Blob (JPEG) trước khi upload Storage.
- * Dùng canvas.toBlob để tương thích Safari iOS / Chrome Android.
+ * Chuẩn hoá file ảnh thành Blob JPEG trước khi upload Storage.
+ * Dùng canvas.toBlob + object URL — tương thích Safari iOS / Chrome Android.
  */
 export async function prepareImageBlob(file, options = {}) {
   if (!file) {
     throw new Error('Không có file ảnh')
   }
-  if (!file.type?.startsWith('image/')) {
-    throw new Error('Vui lòng chọn file ảnh (JPG, PNG...)')
+  if (!isImageFile(file)) {
+    throw new Error('Vui lòng chọn file ảnh (JPG, PNG, HEIC...)')
   }
 
   const maxBytes = options.maxBytes ?? HARD_MAX_UPLOAD_BYTES
@@ -139,7 +163,7 @@ export async function prepareImageBlob(file, options = {}) {
     throw new Error(`Ảnh quá lớn (tối đa ${Math.round(maxBytes / (1024 * 1024))}MB), vui lòng chọn ảnh khác`)
   }
 
-  if (options.skipCompress) {
+  if (options.skipCompress && file.type === 'image/jpeg') {
     return file
   }
 
@@ -147,73 +171,48 @@ export async function prepareImageBlob(file, options = {}) {
     return file
   }
 
-  const dataUrl = await readFileAsDataUrl(file)
-
-  if (file.size <= compressThreshold) {
-    try {
-      const img = await loadImageElement(dataUrl)
-      return await compressImageElementToBlob(img)
-    } catch {
-      const response = await fetch(dataUrl)
-      return await response.blob()
-    }
-  }
-
   try {
-    const img = await loadImageElement(dataUrl)
+    const img = await loadImageElementFromFile(file)
     return await compressImageElementToBlob(img)
   } catch {
+    if (options.skipCompress) {
+      return file
+    }
     throw new Error('Không xử lý được ảnh. Vui lòng chọn JPG/PNG khác.')
   }
 }
 
-async function ensureStorageBucket() {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase chưa cấu hình, không thể upload ảnh.')
+function mapUploadError(message = '') {
+  const text = message.toLowerCase()
+  if (text.includes('bucket not found') || text.includes('does not exist')) {
+    return 'Bucket spa-images chưa được tạo. Vui lòng chạy migration 0011_storage_buckets.sql trên Supabase.'
   }
-
-  if (!bucketReadyPromise) {
-    bucketReadyPromise = (async () => {
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets()
-      if (listError) {
-        console.warn('[Storage] Không liệt kê được bucket:', listError.message)
-      }
-
-      const exists = buckets?.some((bucket) => bucket.id === IMAGE_BUCKET || bucket.name === IMAGE_BUCKET)
-      if (exists) return
-
-      const { error: createError } = await supabase.storage.createBucket(IMAGE_BUCKET, {
-        public: true,
-        fileSizeLimit: HARD_MAX_UPLOAD_BYTES,
-        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-      })
-
-      if (createError && !/already exists/i.test(createError.message ?? '')) {
-        throw new Error(`Không tạo được bucket ảnh: ${createError.message}`)
-      }
-    })()
+  if (text.includes('row-level security') || text.includes('policy')) {
+    return 'Không có quyền upload ảnh. Kiểm tra policy Storage (migration 0011).'
   }
-
-  await bucketReadyPromise
+  if (text.includes('mime') || text.includes('content type')) {
+    return 'Định dạng ảnh không được phép trên Storage.'
+  }
+  return message || 'Upload ảnh thất bại'
 }
 
-function buildObjectPath(category, entityId, blob) {
-  const ext = blob.type === 'image/png' ? 'png' : 'jpg'
+function buildObjectPath(category, entityId) {
   const safeCategory = sanitizePathSegment(category)
   const safeEntityId = sanitizePathSegment(entityId)
   const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-  return `${safeCategory}/${safeEntityId}/${unique}.${ext}`
+  return `${safeCategory}/${safeEntityId}/${unique}.jpg`
 }
 
 export async function uploadImageBlob(blob, { category, entityId = 'general' } = {}) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase chưa cấu hình, không thể upload ảnh.')
+  }
   if (!blob) {
     throw new Error('Không có dữ liệu ảnh để upload')
   }
 
-  await ensureStorageBucket()
-
-  const path = buildObjectPath(category, entityId, blob)
-  const contentType = blob.type || 'image/jpeg'
+  const path = buildObjectPath(category, entityId)
+  const contentType = blob.type?.startsWith('image/') ? blob.type : 'image/jpeg'
 
   const { error: uploadError } = await supabase.storage.from(IMAGE_BUCKET).upload(path, blob, {
     contentType,
@@ -222,7 +221,7 @@ export async function uploadImageBlob(blob, { category, entityId = 'general' } =
   })
 
   if (uploadError) {
-    throw new Error(`Upload ảnh thất bại: ${uploadError.message}`)
+    throw new Error(mapUploadError(uploadError.message))
   }
 
   const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path)
