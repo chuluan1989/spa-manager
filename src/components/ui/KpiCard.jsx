@@ -18,23 +18,42 @@ export default function KpiCard({
   active = false,
   hint = 'Xem chi tiết →',
   delay = 0,
+  trend = null,
+  size = 'default',
 }) {
   const tone = VARIANTS[variant] ?? VARIANTS.gold
   const Tag = onClick ? 'button' : 'div'
 
+  const trendLabel = trend?.direction === 'up'
+    ? `+${trend.percent}%`
+    : trend?.direction === 'down'
+      ? `−${trend.percent}%`
+      : '—'
+
   return (
     <Tag
       type={onClick ? 'button' : undefined}
-      className={`kpi-card ${onClick ? 'kpi-card--clickable' : ''} ${active ? 'kpi-card--active' : ''}`}
+      className={[
+        'kpi-card',
+        onClick ? 'kpi-card--clickable' : '',
+        active ? 'kpi-card--active' : '',
+        size === 'lg' ? 'kpi-card--lg' : '',
+      ].filter(Boolean).join(' ')}
       onClick={onClick}
       style={{ animationDelay: `${delay}ms` }}
     >
       <div className="kpi-card__icon" style={{ background: tone.iconBg, color: tone.iconColor }}>
-        {Icon && <Icon size={20} strokeWidth={2} />}
+        {Icon && <Icon size={size === 'lg' ? 24 : 20} strokeWidth={2} />}
       </div>
       <div className="kpi-card__content">
         <span className="kpi-card__label">{label}</span>
         <strong className="kpi-card__value">{value}</strong>
+        {trend && (
+          <span className={`kpi-card__trend kpi-card__trend--${trend.direction}`}>
+            {trendLabel}
+            <span className="kpi-card__trend-note">so với kỳ trước</span>
+          </span>
+        )}
         {onClick && hint && <span className="kpi-card__hint">{hint}</span>}
       </div>
     </Tag>
