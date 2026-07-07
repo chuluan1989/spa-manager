@@ -62,7 +62,7 @@ export default function ExpenseFormModal({
   const handleReceiptChange = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const result = await readReceiptImage(file)
+    const result = await readReceiptImage(file, initialData?.id || form.branchId || 'expense')
     if (!result.success) {
       setErrors((prev) => ({ ...prev, receiptImage: result.error }))
       return

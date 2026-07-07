@@ -11,6 +11,7 @@ import {
 } from '../utils/employeeStorage'
 import { validateEmployeeSelfProfile } from '../utils/validators'
 import { getCurrentUserEmployeeId } from '../constants/auth'
+import { IMAGE_CATEGORIES } from '../utils/imageStorage'
 import './MyProfile.css'
 
 function Field({ label, children, full = false, hint }) {
@@ -48,13 +49,13 @@ function toFormState(employee) {
   }
 }
 
-function ImageUploadField({ label, value, onChange, onError }) {
+function ImageUploadField({ label, value, onChange, onError, category, entityId }) {
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     try {
-      const dataUrl = await readAvatarFile(file)
-      onChange(dataUrl)
+      const imageUrl = await readAvatarFile(file, { category, entityId })
+      onChange(imageUrl)
     } catch (error) {
       onError?.(error.message)
       e.target.value = ''
@@ -354,7 +355,10 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
                   const file = e.target.files?.[0]
                   if (!file) return
                   try {
-                    const avatar = await readAvatarFile(file)
+                    const avatar = await readAvatarFile(file, {
+                      category: IMAGE_CATEGORIES.AVATAR,
+                      entityId: employeeId,
+                    })
                     updateField('avatar', avatar)
                   } catch (error) {
                     showToast(error.message)
@@ -384,12 +388,16 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             value={form.cccdFrontImage}
             onChange={(value) => updateField('cccdFrontImage', value)}
             onError={showToast}
+            category={IMAGE_CATEGORIES.CCCD_FRONT}
+            entityId={employeeId}
           />
           <ImageUploadField
             label="Ảnh CCCD mặt sau"
             value={form.cccdBackImage}
             onChange={(value) => updateField('cccdBackImage', value)}
             onError={showToast}
+            category={IMAGE_CATEGORIES.CCCD_BACK}
+            entityId={employeeId}
           />
         </div>
       </section>

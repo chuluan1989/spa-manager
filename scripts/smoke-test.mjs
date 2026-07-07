@@ -876,7 +876,16 @@ test('employee self profile: rejects missing name/phone and invalid cccd', () =>
   clearCurrentUser()
 })
 
-test('employee self profile: CCCD/avatar images persist as base64 through save + reload', () => {
+test('imageStorage: phân biệt Base64 cũ và URL Storage', async () => {
+  const { isBase64Image, isStorageImageUrl, IMAGE_CATEGORIES } = await import('../src/utils/imageStorage.js')
+  assert.equal(isBase64Image('data:image/jpeg;base64,abc'), true)
+  assert.equal(isBase64Image('https://example.com/a.jpg'), false)
+  assert.equal(isStorageImageUrl('https://example.com/a.jpg'), true)
+  assert.equal(isStorageImageUrl('data:image/png;base64,x'), false)
+  assert.equal(IMAGE_CATEGORIES.CONTRACT, 'contracts')
+})
+
+test('employee self profile: ảnh legacy Base64 vẫn giữ nguyên sau save + reload', () => {
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
   const fakeBase64Front = 'data:image/jpeg;base64,frontimagedata=='
   const fakeBase64Back = 'data:image/jpeg;base64,backimagedata=='
@@ -900,6 +909,16 @@ test('employee self profile: CCCD/avatar images persist as base64 through save +
   assert.equal(reloaded.avatar, fakeAvatar, 'Ảnh đại diện phải còn sau khi tải lại')
   assert.equal(reloaded.cccdFrontImage, fakeBase64Front, 'Ảnh CCCD mặt trước phải còn sau khi tải lại')
   assert.equal(reloaded.cccdBackImage, fakeBase64Back, 'Ảnh CCCD mặt sau phải còn sau khi tải lại')
+
+  const storageAvatar = 'https://example.supabase.co/storage/v1/object/public/spa-images/avatars/test.jpg'
+  const withUrl = updateOwnEmployeeProfile('vinh-long-linh', {
+    name: 'Linh',
+    phone: '0901234567',
+    cccd: '079123456789',
+    avatar: storageAvatar,
+  })
+  assert.equal(withUrl.success, true)
+  assert.equal(getEmployeeById('vinh-long-linh').avatar, storageAvatar, 'URL Storage phải được lưu thay Base64')
   clearCurrentUser()
 })
 

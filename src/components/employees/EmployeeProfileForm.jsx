@@ -19,6 +19,7 @@ import {
   GENDER_OPTIONS,
   readAvatarFile,
 } from '../../utils/employeeStorage'
+import { IMAGE_CATEGORIES } from '../../utils/imageStorage'
 import EmployeeAvatar from './EmployeeAvatar'
 import './EmployeeProfileForm.css'
 
@@ -117,7 +118,13 @@ export default function EmployeeProfileForm({
     const file = event.target.files?.[0]
     if (!file) return
     try {
-      const image = await readAvatarFile(file)
+      const category = field === 'cccdFrontImage'
+        ? IMAGE_CATEGORIES.CCCD_FRONT
+        : IMAGE_CATEGORIES.CCCD_BACK
+      const image = await readAvatarFile(file, {
+        category,
+        entityId: form.id || 'new-employee',
+      })
       onChange({ ...form, [field]: image })
     } catch (error) {
       onAvatarError?.(error.message)
@@ -129,7 +136,10 @@ export default function EmployeeProfileForm({
     const file = event.target.files?.[0]
     if (!file) return
     try {
-      const avatar = await readAvatarFile(file)
+      const avatar = await readAvatarFile(file, {
+        category: IMAGE_CATEGORIES.AVATAR,
+        entityId: form.id || 'new-employee',
+      })
       onChange({ ...form, avatar })
     } catch (error) {
       onAvatarError?.(error.message)

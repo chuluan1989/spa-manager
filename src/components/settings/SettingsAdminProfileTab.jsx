@@ -4,15 +4,9 @@ import {
   loadAdminProfile,
   saveAdminProfile,
 } from '../../utils/adminProfileStorage'
+import { IMAGE_CATEGORIES, uploadImageFile } from '../../utils/imageStorage'
 import { verifyAdminPassword, updateAdminPassword } from '../../utils/credentialsStorage'
 import { isValidVietnamesePhone } from '../../utils/validators'
-
-function readImageFile(file, onLoad) {
-  const reader = new FileReader()
-  reader.onload = () => onLoad(String(reader.result ?? ''))
-  reader.onerror = () => onLoad('')
-  reader.readAsDataURL(file)
-}
 
 export default function SettingsAdminProfileTab({ showToast }) {
   const avatarInputRef = useRef(null)
@@ -50,19 +44,23 @@ export default function SettingsAdminProfileTab({ showToast }) {
     showToast('Đổi mật khẩu thành công')
   }
 
-  const handleImagePick = (file) => {
+  const handleImagePick = async (file) => {
     if (!file) return
     if (file.size > 2 * 1024 * 1024) {
       showToast('Ảnh tối đa 2MB')
       return
     }
-    readImageFile(file, (dataUrl) => {
-      if (!dataUrl) {
-        showToast('Không đọc được file ảnh')
-        return
-      }
-      setProfile((current) => ({ ...current, avatar: dataUrl }))
-    })
+    try {
+      const avatarUrl = await uploadImageFile(file, {
+        category: IMAGE_CATEGORIES.ADMIN_AVATAR,
+        entityId: 'admin',
+        maxBytes: 2 * 1024 * 1024,
+        skipCompress: true,
+      })
+      setProfile((current) => ({ ...current, avatar: avatarUrl }))
+    } catch (error) {
+      showToast(error?.message ?? 'Upload ảnh thất bại')
+    }
   }
 
   return (

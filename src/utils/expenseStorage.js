@@ -4,6 +4,7 @@ import {
   normalizeExpenseTypeId,
 } from '../constants/expenseTypes'
 import { deriveExpenseTimeFromTimestamp } from '../repositories/expenseSchema'
+import { IMAGE_CATEGORIES, uploadImageFile } from './imageStorage'
 import { getMonthStartDate, getTodayDate } from './invoiceStorage'
 import {
   canAccessSessionBranch,
@@ -329,19 +330,20 @@ export function computeExpenseByBranch(expenses) {
   return [...map.values()].sort((a, b) => b.total - a.total)
 }
 
-export async function readReceiptImage(file) {
+export async function readReceiptImage(file, entityId = 'expense') {
   if (!file) return { success: false, error: 'Không có file.' }
   if (!file.type.startsWith('image/')) {
     return { success: false, error: 'Chỉ chấp nhận file ảnh.' }
   }
-  if (file.size > 5 * 1024 * 1024) {
-    return { success: false, error: 'Ảnh không được vượt quá 5MB.' }
-  }
 
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve({ success: true, dataUrl: reader.result })
-    reader.onerror = () => resolve({ success: false, error: 'Không đọc được ảnh.' })
-    reader.readAsDataURL(file)
-  })
+  try {
+    const dataUrl = await uploadImageFile(file, {
+      category: IMAGE_CATEGORIES.RECEIPT,
+      entityId,
+      maxBytes: 5 * 1024 * 1024,
+    })
+    return { success: true, dataUrl }
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Upload ảnh thất bại.' }
+  }
 }

@@ -15,6 +15,7 @@ import {
   toggleSystemSetting,
 } from '../../utils/systemSettingsStorage'
 import { loadAdminProfile, saveAdminProfile } from '../../utils/adminProfileStorage'
+import { IMAGE_CATEGORIES, uploadImageFile } from '../../utils/imageStorage'
 
 function SettingToggle({ label, hint, checked, onChange }) {
   return (
@@ -70,14 +71,22 @@ export default function SettingsSystemTab({ showToast }) {
     }
   }
 
-  const handleLogoPick = (file) => {
+  const handleLogoPick = async (file) => {
     if (!file || file.size > 2 * 1024 * 1024) {
       showToast('Ảnh logo tối đa 2MB')
       return
     }
-    const reader = new FileReader()
-    reader.onload = () => setSettings({ ...settings, logoUrl: String(reader.result ?? '') })
-    reader.readAsDataURL(file)
+    try {
+      const logoUrl = await uploadImageFile(file, {
+        category: IMAGE_CATEGORIES.BRAND_LOGO,
+        entityId: 'brand',
+        maxBytes: 2 * 1024 * 1024,
+        skipCompress: true,
+      })
+      setSettings({ ...settings, logoUrl })
+    } catch (error) {
+      showToast(error?.message ?? 'Upload logo thất bại')
+    }
   }
 
   return (
