@@ -10,7 +10,6 @@ import {
   getCurrentUserBranchName,
   getCurrentUserName,
   getScopedEmployeeId,
-  isAdmin,
   isEmployee,
 } from '../constants/auth'
 import { getActiveBranches, getBranchById, isSupportBranchEnabled } from '../constants/branches'
@@ -22,14 +21,22 @@ import {
   isSupportEligibleEmployee,
 } from '../utils/employeeStorage'
 import { getActiveServicesForBranch } from '../utils/serviceStorage'
+import InvoiceDetailModal from '../components/invoice/InvoiceDetailModal'
+import InvoiceFilters from '../components/invoice/InvoiceFilters'
 import InvoiceList from '../components/invoice/InvoiceList'
 import InvoiceSummary from '../components/invoice/InvoiceSummary'
 import ServiceDetailTable from '../components/invoice/ServiceDetailTable'
 import {
   calculateInvoiceTotals,
   formatCurrency,
+  getInvoiceServiceDetails,
   getSelectedServiceDetails,
 } from '../utils/invoice'
+import {
+  filterInvoices,
+  hasActiveInvoiceFilters,
+  sortInvoicesDesc,
+} from '../utils/invoiceFilters'
 import {
   createInvoiceId,
   deleteInvoice,
@@ -39,6 +46,16 @@ import {
   updateInvoice,
 } from '../utils/invoiceStorage'
 import './Invoice.css'
+
+const INITIAL_FILTERS = () => ({
+  fromDate: '',
+  toDate: '',
+  branchId: canSelectBranch() ? '' : getCurrentUserBranch(),
+  employeeId: '',
+  serviceId: '',
+  paymentMethod: '',
+  search: '',
+})
 
 const INITIAL_FORM = () => ({
   date: getTodayDate(),
@@ -55,7 +72,7 @@ function getCurrentTime(date = new Date()) {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-function readInvoiceTime(invoice) {
+function readInvoiceTimeForForm(invoice) {
   if (invoice?.invoiceTime) return invoice.invoiceTime
   if (!invoice?.createdAt) return getCurrentTime()
   const parsed = new Date(invoice.createdAt)
@@ -74,6 +91,9 @@ export default function Invoice() {
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [editingId, setEditingId] = useState(null)
   const [invoices, setInvoices] = useState(() => loadInvoices())
+  const [listFilters, setListFilters] = useState(INITIAL_FILTERS)
+  const [listPage, setListPage] = useState(1)
+  const [detailInvoice, setDetailInvoice] = useState(null)
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState('')
 
@@ -86,6 +106,37 @@ export default function Invoice() {
     () => filterByUserBranch(invoices),
     [invoices],
   )
+
+  const effectiveListFilters = useMemo(
+    () => ({
+      ...listFilters,
+      branchId: lockedBranch ? getCurrentUserBranch() : listFilters.branchId,
+    }),
+    [listFilters, lockedBranch],
+  )
+
+  const filteredInvoices = useMemo(
+    () => sortInvoicesDesc(filterInvoices(visibleInvoices, effectiveListFilters)),
+    [visibleInvoices, effectiveListFilters],
+  )
+
+  const filterServiceOptions = useMemo(() => {
+    if (effectiveListFilters.branchId) {
+      return getActiveServicesForBranch(effectiveListFilters.branchId)
+    }
+
+    const serviceMap = new Map()
+    for (const invoice of visibleInvoices) {
+      for (const service of getInvoiceServiceDetails(invoice)) {
+        serviceMap.set(service.id, { id: service.id, name: service.name })
+      }
+    }
+    return [...serviceMap.values()].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+  }, [effectiveListFilters.branchId, visibleInvoices])
+
+  useEffect(() => {
+    setListPage(1)
+  }, [effectiveListFilters])
 
   const activeServices = useMemo(
     () => getActiveServicesForBranch(form.branchId),
@@ -320,11 +371,12 @@ export default function Invoice() {
       return
     }
 
+    setDetailInvoice(null)
     const services = Array.isArray(invoice.services) ? invoice.services : []
     setEditingId(invoice.id)
     setForm({
       date: invoice.date,
-      invoiceTime: readInvoiceTime(invoice),
+      invoiceTime: readInvoiceTimeForForm(invoice),
       branchId: invoice.branchId,
       employeeId: lockedEmployee ? getScopedEmployeeId('') : invoice.employeeId,
       supportEmployeeId: invoice.supportEmployeeId ?? '',
@@ -359,6 +411,19 @@ export default function Invoice() {
     if (editingId === id) resetForm()
     setInvoices(result.invoices)
   }
+
+  const handleViewInvoice = (invoice) => {
+    setDetailInvoice(invoice)
+  }
+
+  const resetListFilters = () => {
+    setListFilters(INITIAL_FILTERS())
+    setListPage(1)
+  }
+
+  const listEmptyMessage = hasActiveInvoiceFilters(effectiveListFilters)
+    ? 'Không có hóa đơn phù hợp với bộ lọc.'
+    : 'Chưa có hóa đơn nào.'
 
   return (
     <div className="invoice">
@@ -610,12 +675,32 @@ export default function Invoice() {
         <InvoiceSummary {...totals} />
       </div>
 
+      <InvoiceFilters
+        filters={effectiveListFilters}
+        onChange={setListFilters}
+        onReset={resetListFilters}
+        lockedBranch={lockedBranch}
+        branchName={activeBranchName}
+        resultCount={filteredInvoices.length}
+        serviceOptions={filterServiceOptions}
+      />
+
       <InvoiceList
-        invoices={visibleInvoices}
+        invoices={filteredInvoices}
+        page={listPage}
+        onPageChange={setListPage}
         onDelete={handleDelete}
         onEdit={handleEdit}
+        onView={handleViewInvoice}
         allowDelete={canDeleteInvoice()}
-        allowEdit={isAdmin()}
+        canEdit={(inv) => canEditInvoice(inv)}
+        emptyMessage={listEmptyMessage}
+      />
+
+      <InvoiceDetailModal
+        invoice={detailInvoice}
+        onClose={() => setDetailInvoice(null)}
+        onEdit={handleEdit}
         canEdit={(inv) => canEditInvoice(inv)}
       />
     </div>

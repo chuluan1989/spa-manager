@@ -251,6 +251,71 @@ test('admin employee report: empty period', () => {
   assert.equal(summary.periodTotals.totalSalary, 0)
 })
 
+test('invoice filters: date, branch, employee, service, payment, search', async () => {
+  const {
+    filterInvoices,
+    computeInvoiceListTotals,
+    paginateInvoices,
+    sortInvoicesDesc,
+  } = await import('../src/utils/invoiceFilters.js')
+
+  const invoices = [
+    {
+      id: '1',
+      date: '2026-07-05',
+      branchId: 'soc-trang',
+      employeeId: 'emp-1',
+      customerName: 'An',
+      customerPhone: '0901234567',
+      paymentMethod: 'cash',
+      serviceIds: ['svc-a'],
+      services: [{ id: 'svc-a', name: 'Massage', price: 200000, commissionAmount: 40000 }],
+      tips: 10000,
+      total: 210000,
+      commission: 50000,
+      createdAt: '2026-07-05T10:00:00.000Z',
+    },
+    {
+      id: '2',
+      date: '2026-07-10',
+      branchId: 'gia-lai-1',
+      employeeId: 'emp-2',
+      customerName: 'Binh',
+      customerPhone: '0912345678',
+      paymentMethod: 'transfer',
+      serviceIds: ['svc-b'],
+      services: [{ id: 'svc-b', name: 'Facial', price: 150000, commissionAmount: 15000 }],
+      tips: 0,
+      total: 150000,
+      commission: 15000,
+      createdAt: '2026-07-10T12:00:00.000Z',
+    },
+  ]
+
+  const filtered = filterInvoices(invoices, {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-08',
+    branchId: 'soc-trang',
+    employeeId: 'emp-1',
+    serviceId: 'svc-a',
+    paymentMethod: 'cash',
+    search: '0901',
+  })
+  assert.equal(filtered.length, 1)
+  assert.equal(filtered[0].id, '1')
+
+  const sorted = sortInvoicesDesc(invoices)
+  assert.equal(sorted[0].id, '2')
+
+  const totals = computeInvoiceListTotals(filtered)
+  assert.equal(totals.count, 1)
+  assert.equal(totals.revenue, 210000)
+
+  const page = paginateInvoices(sorted, 1, 1)
+  assert.equal(page.items.length, 1)
+  assert.equal(page.totalPages, 2)
+})
+
 test('login: admin credentials', async () => {
   await ensureCredentialsHashed()
   const result = await verifyLogin({ role: ROLES.ADMIN, branch: '', password: 'admin123' })

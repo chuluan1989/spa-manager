@@ -1,0 +1,95 @@
+.invoice-filters {
+  margin-top: 32px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #e3edf5;
+  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.08);
+}
+
+.invoice-filters__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.invoice-filters__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.invoice-filters__count {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.invoice-filters__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.invoice-filters__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.invoice-filters__field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.invoice-filters__field input,
+.invoice-filters__field select {
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+}
+
+.invoice-filters__field--banner {
+  grid-column: 1 / -1;
+}
+
+.invoice-filters__field--search {
+  grid-column: span 2;
+}
+
+.invoice-filters__actions {
+  margin-top: 14px;
+}
+
+.invoice-filters__reset {
+  padding: 8px 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #1565a8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.invoice-filters__reset:hover {
+  background: #f0f7ff;
+}
+
+@media (max-width: 768px) {
+  .invoice-filters {
+    padding: 16px;
+  }
+
+  .invoice-filters__field--search {
+    grid-column: span 1;
+  }
+}

@@ -5,6 +5,7 @@ import {
   filterByUserBranch,
   getCurrentUserBranch,
   getCurrentUserEmployeeId,
+  getCurrentUserName,
   isAdmin,
   isEmployee,
 } from '../constants/auth'
@@ -158,6 +159,7 @@ export function saveInvoice(invoice) {
 
   const snapshot = ensureInvoiceSnapshot({
     ...payload,
+    enteredBy: payload.enteredBy ?? getCurrentUserName(),
     createdAt: payload.createdAt ?? new Date().toISOString(),
   })
   const invoices = loadInvoices()

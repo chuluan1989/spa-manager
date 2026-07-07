@@ -2,7 +2,7 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
 const TABLE = 'invoices'
-const OPTIONAL_INVOICE_COLUMNS = ['customer_phone', 'invoice_time']
+const OPTIONAL_INVOICE_COLUMNS = ['customer_phone', 'invoice_time', 'entered_by']
 
 function invoiceToRow(invoice) {
   return objectToSnakeRow({

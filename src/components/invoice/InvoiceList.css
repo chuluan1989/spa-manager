@@ -8,10 +8,24 @@
 }
 
 .invoice-list__title {
-  margin: 0 0 20px;
+  margin: 0;
   font-size: 16px;
   font-weight: 600;
   color: #0f172a;
+}
+
+.invoice-list__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.invoice-list__meta {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
 }
 
 .invoice-list__empty {
@@ -28,7 +42,7 @@
 
 .invoice-list__table {
   width: 100%;
-  min-width: 1300px;
+  min-width: 2200px;
   border-collapse: collapse;
   font-size: 14px;
 }
@@ -57,8 +71,22 @@
 }
 
 .invoice-list__index,
-.invoice-list__date {
+.invoice-list__date,
+.invoice-list__time {
   white-space: nowrap;
+}
+
+.invoice-list__phone,
+.invoice-list__note,
+.invoice-list__entered-by,
+.invoice-list__datetime {
+  min-width: 90px;
+  font-size: 13px;
+}
+
+.invoice-list__note {
+  max-width: 180px;
+  word-break: break-word;
 }
 
 .invoice-list__branch {
@@ -101,17 +129,72 @@
   color: #94a3b8;
 }
 
-.invoice-list__money {
+.invoice-list__service-lines--prices li {
+  text-align: right;
   font-weight: 600;
-  white-space: nowrap;
+}
+
+.invoice-list__service-prices {
+  min-width: 110px;
+}
+
+.invoice-list__table th:nth-child(n+11):not(:last-child),
+.invoice-list__table td.invoice-list__money {
   text-align: right;
 }
 
-.invoice-list__table th:nth-child(7),
-.invoice-list__table th:nth-child(8),
-.invoice-list__table th:nth-child(9),
-.invoice-list__table th:nth-child(10) {
-  text-align: right;
+.invoice-list__totals-row td {
+  background: #f0f7ff;
+  border-top: 2px solid #dbeafe;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.invoice-list__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.invoice-list__page-btn {
+  padding: 8px 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+  color: #1565a8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.invoice-list__page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.invoice-list__page-info {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.invoice-list__view {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  margin-right: 6px;
+}
+
+.invoice-list__view:hover {
+  background: #f1f5f9;
+}
+
+.invoice-list__money {
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .invoice-list__total {
@@ -127,7 +210,8 @@
 }
 
 .invoice-list__edit,
-.invoice-list__delete {
+.invoice-list__delete,
+.invoice-list__view {
   padding: 6px 10px;
   border-radius: 8px;
   font-size: 13px;
