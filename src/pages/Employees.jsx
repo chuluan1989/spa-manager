@@ -19,6 +19,7 @@ import {
 } from '../constants/auth'
 import EmployeeAvatar from '../components/employees/EmployeeAvatar'
 import EmployeeProfileForm from '../components/employees/EmployeeProfileForm'
+import EmployeeProfileDetail from '../components/employees/EmployeeProfileDetail'
 import { redactEmployeeForViewer } from '../utils/employeeVisibility'
 import {
   EMPTY_EMPLOYEE_FORM,
@@ -53,9 +54,23 @@ export default function Employees() {
   const [toast, setToast] = useState('')
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState(EMPTY_EMPLOYEE_FORM)
+  const [viewEmployee, setViewEmployee] = useState(null)
   const [transfer, setTransfer] = useState({ employeeId: '', branchId: '' })
+  const [filters, setFilters] = useState({ status: '', search: '' })
 
-  const grouped = useMemo(() => groupEmployeesByBranch(employees), [employees])
+  const filteredEmployees = useMemo(() => {
+    const search = filters.search.trim().toLowerCase()
+    return employees.filter((emp) => {
+      if (filters.status && emp.status !== filters.status) return false
+      if (search) {
+        const haystack = `${emp.name ?? ''} ${emp.phone ?? ''}`.toLowerCase()
+        if (!haystack.includes(search)) return false
+      }
+      return true
+    })
+  }, [employees, filters])
+
+  const grouped = useMemo(() => groupEmployeesByBranch(filteredEmployees), [filteredEmployees])
 
   if (!canAccessEmployeesPage()) {
     return (
@@ -87,6 +102,7 @@ export default function Employees() {
   const closeModal = () => {
     setModal(null)
     setForm(EMPTY_EMPLOYEE_FORM)
+    setViewEmployee(null)
     setErrors({})
   }
 
@@ -108,7 +124,7 @@ export default function Employees() {
 
   const openViewModal = (employee) => {
     const fresh = getEmployeeById(employee.id) ?? employee
-    setForm(redactEmployeeForViewer(employeeToForm(fresh)))
+    setViewEmployee(redactEmployeeForViewer(fresh))
     setErrors({})
     setModal({ mode: 'view', employeeId: employee.id })
   }
@@ -205,14 +221,21 @@ export default function Employees() {
                 ×
               </button>
             </div>
-            <EmployeeProfileForm
-              form={form}
-              onChange={setForm}
-              errors={errors}
-              mode={modal.mode}
-              showAvatarUpload={modal.mode !== 'view'}
-              onAvatarError={showToast}
-            />
+            {modal.mode === 'view' ? (
+              <EmployeeProfileDetail
+                employee={viewEmployee}
+                onEdit={canEditEmployee(getEmployeeById(modal.employeeId)) ? () => openEditModal(viewEmployee) : null}
+              />
+            ) : (
+              <EmployeeProfileForm
+                form={form}
+                onChange={setForm}
+                errors={errors}
+                mode={modal.mode}
+                showAvatarUpload={modal.mode !== 'view'}
+                onAvatarError={showToast}
+              />
+            )}
             {modal.mode !== 'view' && (
               <div className="employees__modal-actions">
                 <button
@@ -292,6 +315,30 @@ export default function Employees() {
           </form>
         </section>
       )}
+
+      <section className="employees__card employees__filters">
+        <div className="employees__filter-field">
+          <span>Tìm kiếm</span>
+          <input
+            type="text"
+            placeholder="Tìm theo tên hoặc số điện thoại..."
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+          />
+        </div>
+        <div className="employees__filter-field">
+          <span>Trạng thái</span>
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          >
+            <option value="">Tất cả</option>
+            <option value="active">Đang làm</option>
+            <option value="on_leave">Nghỉ phép</option>
+            <option value="resigned">Nghỉ việc</option>
+          </select>
+        </div>
+      </section>
 
       <div className="employees__list">
         {grouped.map((group) => (

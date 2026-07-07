@@ -83,10 +83,13 @@ const {
 const { saveInvoice, updateInvoice, loadInvoices } = await import('../src/utils/invoiceStorage.js')
 const {
   getEmployeeById,
+  getEmployeeProfileStatus,
   isEmployeeProfileComplete,
+  transferEmployee,
   updateEmployee,
   updateOwnEmployeeProfile,
 } = await import('../src/utils/employeeStorage.js')
+const { getEmployeeLifetimeStats } = await import('../src/utils/employeeStats.js')
 const { redactEmployeeForViewer } = await import('../src/utils/employeeVisibility.js')
 const { isValidCccd, isValidVietnamesePhone } = await import('../src/utils/validators.js')
 const { ensureCredentialsHashed, verifyBranchPassword } = await import('../src/utils/credentialsStorage.js')
@@ -648,6 +651,92 @@ test('employee self profile: non-employee roles are denied', () => {
   assert.equal(adminResult.success, true)
   assert.equal(adminResult.employee.position, 'KTV Body')
   clearCurrentUser()
+})
+
+test('getEmployeeProfileStatus: ưu tiên CCCD > ngân hàng > thiếu thông tin > đầy đủ', () => {
+  const base = {
+    name: 'Test',
+    phone: '0901234567',
+    email: 'a@b.com',
+    dateOfBirth: '1990-01-01',
+    gender: 'male',
+    currentAddress: 'Đ/c hiện tại',
+    position: 'KTV',
+    startDate: '2024-01-01',
+    emergencyContactName: 'X',
+    emergencyContactPhone: '0909999999',
+    cccdIssueDate: '2020-01-01',
+    cccdIssuePlace: 'CA',
+    cccdAddress: 'Đ/c CCCD',
+    bankName: 'ACB',
+    bankAccountHolder: 'Test',
+  }
+
+  assert.equal(getEmployeeProfileStatus({ ...base, cccd: '', bankAccount: '123' }).key, 'missing_cccd')
+  assert.equal(getEmployeeProfileStatus({ ...base, cccd: '079123456789', bankAccount: '' }).key, 'missing_bank')
+  assert.equal(
+    getEmployeeProfileStatus({ ...base, cccd: '079123456789', bankAccount: '123', email: '' }).key,
+    'incomplete',
+  )
+  assert.equal(
+    getEmployeeProfileStatus({ ...base, cccd: '079123456789', bankAccount: '123' }).key,
+    'complete',
+  )
+})
+
+test('transferEmployee: ghi lịch sử chi nhánh, không mất dữ liệu hồ sơ cũ', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  const before = getEmployeeById('vinh-long-linh')
+  assert.equal(before.branchHistory.length, 0)
+
+  const result = transferEmployee('vinh-long-linh', 'tra-vinh')
+  assert.equal(result.success, true)
+  assert.equal(result.employee.branchId, 'tra-vinh')
+  assert.equal(result.employee.branchHistory.length, 1)
+  assert.equal(result.employee.branchHistory[0].branchId, 'vinh-long')
+  assert.equal(result.employee.name, before.name, 'Không mất dữ liệu hồ sơ khi chuyển chi nhánh')
+  assert.equal(result.employee.cccd, before.cccd)
+  clearCurrentUser()
+})
+
+test('getEmployeeLifetimeStats: tổng hợp doanh thu/tour/tips/hoa hồng/lương trọn đời', () => {
+  setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
+  localStorage.setItem('spa-manager-invoices', JSON.stringify([]))
+  saveInvoice({
+    id: 'stats-inv-1',
+    branchId: 'vinh-long',
+    employeeId: 'vinh-long-linh',
+    serviceIds: ['svc'],
+    services: [{ id: 'svc', name: 'DV', price: 150000, commissionPercent: 10, commissionAmount: 15000 }],
+    tips: 20000,
+    total: 185000,
+    serviceTotal: 150000,
+    commission: 15000,
+    date: '2026-07-01',
+    createdAt: new Date().toISOString(),
+  })
+  saveInvoice({
+    id: 'stats-inv-2',
+    branchId: 'vinh-long',
+    employeeId: 'vinh-long-linh',
+    serviceIds: ['svc2'],
+    services: [{ id: 'svc2', name: 'DV2', price: 100000, commissionPercent: 10, commissionAmount: 10000 }],
+    tips: 0,
+    total: 100000,
+    serviceTotal: 100000,
+    commission: 10000,
+    date: '2026-07-02',
+    createdAt: new Date().toISOString(),
+  })
+  clearCurrentUser()
+
+  const stats = getEmployeeLifetimeStats('vinh-long-linh')
+  assert.equal(stats.invoiceCount, 2)
+  assert.equal(stats.serviceCount, 2)
+  assert.equal(stats.revenue, 250000)
+  assert.equal(stats.tips, 20000)
+  assert.equal(stats.commission, 25000)
+  assert.equal(stats.totalSalary, 45000)
 })
 
 test('import validation rejects invalid payload', () => {

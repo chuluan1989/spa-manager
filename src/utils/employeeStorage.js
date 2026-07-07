@@ -68,6 +68,14 @@ export const EMPTY_EMPLOYEE_FORM = {
   avatar: '',
   cccdFrontImage: '',
   cccdBackImage: '',
+  branchHistory: [],
+}
+
+export const PROFILE_STATUS = {
+  COMPLETE: 'complete',
+  INCOMPLETE: 'incomplete',
+  MISSING_CCCD: 'missing_cccd',
+  MISSING_BANK: 'missing_bank',
 }
 
 /** Các trường nhân viên được tự cập nhật trong "Hồ sơ cá nhân". */
@@ -134,6 +142,7 @@ export function normalizeEmployee(employee) {
     avatar: employee.avatar ?? '',
     cccdFrontImage: employee.cccdFrontImage ?? '',
     cccdBackImage: employee.cccdBackImage ?? '',
+    branchHistory: Array.isArray(employee.branchHistory) ? employee.branchHistory : [],
   }
 }
 
@@ -252,6 +261,62 @@ export function isEmployeeProfileComplete(employee) {
   )
 }
 
+const RECOMMENDED_PROFILE_FIELDS = [
+  'phone',
+  'email',
+  'dateOfBirth',
+  'gender',
+  'currentAddress',
+  'position',
+  'startDate',
+  'emergencyContactName',
+  'emergencyContactPhone',
+  'cccdIssueDate',
+  'cccdIssuePlace',
+  'cccdAddress',
+  'bankName',
+  'bankAccountHolder',
+]
+
+/**
+ * Trạng thái hồ sơ dùng để hiển thị badge cho Admin trong màn quản lý
+ * nhân viên. Thứ tự ưu tiên: thiếu CCCD > thiếu ngân hàng > thiếu thông
+ * tin khác > đầy đủ.
+ */
+export function getEmployeeProfileStatus(employee) {
+  if (!employee) {
+    return { key: PROFILE_STATUS.INCOMPLETE, label: 'Thiếu thông tin' }
+  }
+
+  if (!employee.cccd?.trim()) {
+    return { key: PROFILE_STATUS.MISSING_CCCD, label: 'Chưa có CCCD' }
+  }
+
+  if (!employee.bankAccount?.trim()) {
+    return { key: PROFILE_STATUS.MISSING_BANK, label: 'Chưa có ngân hàng' }
+  }
+
+  const hasMissingField = RECOMMENDED_PROFILE_FIELDS.some((field) => !employee[field]?.trim?.())
+  if (hasMissingField) {
+    return { key: PROFILE_STATUS.INCOMPLETE, label: 'Thiếu thông tin' }
+  }
+
+  return { key: PROFILE_STATUS.COMPLETE, label: 'Đầy đủ' }
+}
+
+export function getProfileStatusLabel(key) {
+  switch (key) {
+    case PROFILE_STATUS.COMPLETE:
+      return 'Đầy đủ'
+    case PROFILE_STATUS.MISSING_CCCD:
+      return 'Chưa có CCCD'
+    case PROFILE_STATUS.MISSING_BANK:
+      return 'Chưa có ngân hàng'
+    default:
+      return 'Thiếu thông tin'
+  }
+}
+
 function sanitizeEmployeeData(data) {
   return {
     name: data.name?.trim() ?? '',
@@ -277,6 +342,7 @@ function sanitizeEmployeeData(data) {
     avatar: data.avatar ?? '',
     cccdFrontImage: data.cccdFrontImage ?? '',
     cccdBackImage: data.cccdBackImage ?? '',
+    branchHistory: Array.isArray(data.branchHistory) ? data.branchHistory : [],
   }
 }
 
@@ -511,6 +577,19 @@ export function transferEmployee(id, newBranchId) {
   const user = getSessionUser()
   if (user?.role !== ROLES.ADMIN) {
     return denyAccess('Chỉ Admin mới được chuyển chi nhánh nhân viên.')
+  }
+
+  const current = getEmployeeById(id)
+  if (current && current.branchId && current.branchId !== newBranchId) {
+    const historyEntry = {
+      branchId: current.branchId,
+      branchName: resolveBranchName(current.branchId),
+      changedAt: new Date().toISOString(),
+    }
+    return updateEmployee(id, {
+      branchId: newBranchId,
+      branchHistory: [...(current.branchHistory ?? []), historyEntry],
+    })
   }
 
   return updateEmployee(id, { branchId: newBranchId })

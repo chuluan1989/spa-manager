@@ -70,6 +70,80 @@
   background: #fff;
 }
 
+.settings__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e3edf5;
+}
+
+.settings__filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  min-width: 200px;
+  flex: 1;
+}
+
+.settings__filter-field input,
+.settings__filter-field select {
+  padding: 10px 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #fff;
+  font-family: inherit;
+}
+
+.settings__filter-field input:focus,
+.settings__filter-field select:focus {
+  outline: none;
+  border-color: #1565a8;
+  box-shadow: 0 0 0 3px rgba(21, 101, 168, 0.12);
+}
+
+.settings__profile-badge {
+  display: inline-flex;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.settings__profile-badge--success {
+  background: #e2f6ea;
+  color: #15803d;
+}
+
+.settings__profile-badge--warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.settings__profile-badge--danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+@media (max-width: 640px) {
+  .settings__filters {
+    flex-direction: column;
+  }
+
+  .settings__filter-field {
+    min-width: 0;
+  }
+}
+
 .settings__info-box {
   margin-top: 20px;
   padding: 16px;

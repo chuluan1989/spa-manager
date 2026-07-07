@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
 import EmployeeProfileForm from '../employees/EmployeeProfileForm'
+import EmployeeProfileDetail from '../employees/EmployeeProfileDetail'
 import { loadBranches } from '../../utils/branchStorage'
 import {
   addEmployee,
   deleteEmployee,
   EMPTY_EMPLOYEE_FORM,
   getEmployeeById,
+  getEmployeeProfileStatus,
   getStatusLabel,
   groupEmployeesByBranch,
   loadEmployees,
@@ -27,15 +29,46 @@ function employeeToForm(employee) {
   return form
 }
 
+const PROFILE_STATUS_OPTIONS = [
+  { value: '', label: 'Tất cả hồ sơ' },
+  { value: 'complete', label: 'Đầy đủ' },
+  { value: 'incomplete', label: 'Thiếu thông tin' },
+  { value: 'missing_cccd', label: 'Chưa có CCCD' },
+  { value: 'missing_bank', label: 'Chưa có ngân hàng' },
+]
+
+const PROFILE_BADGE_TONE = {
+  complete: 'success',
+  missing_cccd: 'danger',
+  missing_bank: 'warning',
+  incomplete: 'warning',
+}
+
 export default function SettingsEmployeesTab({ showToast }) {
   const [employees, setEmployees] = useState(() => loadEmployees())
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState(EMPTY_EMPLOYEE_FORM)
   const [errors, setErrors] = useState({})
   const [transfer, setTransfer] = useState({ employeeId: '', branchId: '' })
+  const [filters, setFilters] = useState({ branchId: '', status: '', profileStatus: '', search: '' })
 
   const branches = useMemo(() => loadBranches(), [employees])
-  const grouped = useMemo(() => groupEmployeesByBranch(employees), [employees])
+
+  const filteredEmployees = useMemo(() => {
+    const search = filters.search.trim().toLowerCase()
+    return employees.filter((emp) => {
+      if (filters.branchId && emp.branchId !== filters.branchId) return false
+      if (filters.status && emp.status !== filters.status) return false
+      if (filters.profileStatus && getEmployeeProfileStatus(emp).key !== filters.profileStatus) return false
+      if (search) {
+        const haystack = `${emp.name ?? ''} ${emp.phone ?? ''} ${emp.cccd ?? ''}`.toLowerCase()
+        if (!haystack.includes(search)) return false
+      }
+      return true
+    })
+  }, [employees, filters])
+
+  const grouped = useMemo(() => groupEmployeesByBranch(filteredEmployees), [filteredEmployees])
 
   const refresh = () => setEmployees(loadEmployees())
 
@@ -56,6 +89,11 @@ export default function SettingsEmployeesTab({ showToast }) {
     setForm(employeeToForm(employee))
     setErrors({})
     setModal({ mode: 'edit', id: employee.id })
+  }
+
+  const openView = (employee) => {
+    setErrors({})
+    setModal({ mode: 'view', id: employee.id })
   }
 
   const closeModal = () => {
@@ -155,6 +193,57 @@ export default function SettingsEmployeesTab({ showToast }) {
         </div>
       </div>
 
+      <div className="settings__filters">
+        <div className="settings__filter-field">
+          <span>Tìm kiếm</span>
+          <input
+            type="text"
+            placeholder="Tên, SĐT hoặc số CCCD..."
+            value={filters.search}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+          />
+        </div>
+        <div className="settings__filter-field">
+          <span>Chi nhánh</span>
+          <select
+            value={filters.branchId}
+            onChange={(e) => setFilters({ ...filters, branchId: e.target.value })}
+          >
+            <option value="">Tất cả chi nhánh</option>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>{branch.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="settings__filter-field">
+          <span>Trạng thái</span>
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          >
+            <option value="">Tất cả</option>
+            <option value="active">Đang làm</option>
+            <option value="on_leave">Nghỉ phép</option>
+            <option value="resigned">Nghỉ việc</option>
+          </select>
+        </div>
+        <div className="settings__filter-field">
+          <span>Hồ sơ</span>
+          <select
+            value={filters.profileStatus}
+            onChange={(e) => setFilters({ ...filters, profileStatus: e.target.value })}
+          >
+            {PROFILE_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {grouped.length === 0 && (
+        <p className="settings__hint">Không tìm thấy nhân viên phù hợp với bộ lọc.</p>
+      )}
+
       {grouped.map((group) => (
         <div key={group.branchId} className="settings__employee-group">
           <h4 className="settings__subheading">{group.branchName}</h4>
@@ -165,32 +254,59 @@ export default function SettingsEmployeesTab({ showToast }) {
                   <th>Họ tên</th>
                   <th>Chức vụ</th>
                   <th>Trạng thái</th>
+                  <th>Hồ sơ</th>
                   <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {group.employees.map((employee) => (
-                  <tr key={employee.id}>
-                    <td>{employee.name}</td>
-                    <td>{employee.position || '—'}</td>
-                    <td>{getStatusLabel(employee.status)}</td>
-                    <td className="settings__actions-cell">
-                      <button type="button" className="settings__btn settings__btn--small settings__btn--secondary" onClick={() => openEdit(employee)}>
-                        Sửa hồ sơ
-                      </button>
-                      <button type="button" className="settings__btn settings__btn--small settings__btn--danger" onClick={() => handleDelete(employee.id)}>
-                        Xóa
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {group.employees.map((employee) => {
+                  const profileStatus = getEmployeeProfileStatus(employee)
+                  return (
+                    <tr key={employee.id}>
+                      <td>{employee.name}</td>
+                      <td>{employee.position || '—'}</td>
+                      <td>{getStatusLabel(employee.status)}</td>
+                      <td>
+                        <span className={`settings__profile-badge settings__profile-badge--${PROFILE_BADGE_TONE[profileStatus.key]}`}>
+                          {profileStatus.label}
+                        </span>
+                      </td>
+                      <td className="settings__actions-cell">
+                        <button type="button" className="settings__btn settings__btn--small settings__btn--secondary" onClick={() => openView(employee)}>
+                          Hồ sơ
+                        </button>
+                        <button type="button" className="settings__btn settings__btn--small settings__btn--secondary" onClick={() => openEdit(employee)}>
+                          Sửa
+                        </button>
+                        <button type="button" className="settings__btn settings__btn--small settings__btn--danger" onClick={() => handleDelete(employee.id)}>
+                          Xóa
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         </div>
       ))}
 
-      {modal && (
+      {modal?.mode === 'view' && (
+        <div className="settings__modal-backdrop" onClick={closeModal}>
+          <div className="settings__modal settings__modal--wide" onClick={(e) => e.stopPropagation()}>
+            <h3 className="settings__modal-title">Hồ sơ nhân viên</h3>
+            <EmployeeProfileDetail
+              employee={getEmployeeById(modal.id)}
+              forceAdminFields
+              showStats
+              onEdit={() => openEdit(getEmployeeById(modal.id))}
+              onClose={closeModal}
+            />
+          </div>
+        </div>
+      )}
+
+      {(modal?.mode === 'add' || modal?.mode === 'edit') && (
         <div className="settings__modal-backdrop" onClick={closeModal}>
           <div className="settings__modal settings__modal--wide" onClick={(e) => e.stopPropagation()}>
             <h3 className="settings__modal-title">
