@@ -4,7 +4,7 @@ import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
 import { ROLES } from '../constants/auth'
 import { verifyLogin } from '../constants/loginCredentials'
 import { getActiveBranches } from '../constants/branches'
-import { BRANCH_CONTACTS, SYSTEM_HOTLINE } from '../constants/branchContacts'
+import { BRANCH_CONTACTS, BRAND_SLOGAN, SYSTEM_HOTLINE } from '../constants/branchContacts'
 import { getActiveEmployeesByBranch } from '../utils/employeeStorage'
 import './Login.css'
 
@@ -13,8 +13,6 @@ const ROLE_OPTIONS = [
   { value: ROLES.BRANCH_MANAGER, label: 'Quản lý chi nhánh' },
   { value: ROLES.EMPLOYEE, label: 'Nhân viên' },
 ]
-
-const HOTLINE_DISPLAY = '0774 099 777'
 
 export default function Login({ onLogin }) {
   const [role, setRole] = useState('')
@@ -47,13 +45,23 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="login">
+      <div className="login__backdrop" aria-hidden="true">
+        <div className="login__backdrop-glow login__backdrop-glow--left" />
+        <div className="login__backdrop-glow login__backdrop-glow--right" />
+        <div className="login__backdrop-curve login__backdrop-curve--1" />
+        <div className="login__backdrop-curve login__backdrop-curve--2" />
+        <div className="login__backdrop-noise" />
+      </div>
+
       <section className="login__hero">
-        <div className="login__hero-glow" aria-hidden="true" />
         <div className="login__hero-inner">
           <div className="login__brand">
-            <KhoeSpaLogo size={320} className="login__logo" priority />
+            <KhoeSpaLogo size={384} className="login__logo" priority />
+            <p className="login__brand-name">Khoẻ Spa</p>
+            <p className="login__brand-slogan">{BRAND_SLOGAN}</p>
             <a href={`tel:${SYSTEM_HOTLINE.replace(/\./g, '')}`} className="login__hotline">
-              {HOTLINE_DISPLAY}
+              <Phone size={20} strokeWidth={2} className="login__hotline-icon" aria-hidden="true" />
+              <span>{SYSTEM_HOTLINE}</span>
             </a>
           </div>
 
@@ -145,17 +153,18 @@ export default function Login({ onLogin }) {
       </section>
 
       <section className="login__branches">
+        <div className="login__branches-fade" aria-hidden="true" />
         <h2 className="login__branches-title">Hệ thống 8 chi nhánh</h2>
         <div className="login__branches-grid">
           {BRANCH_CONTACTS.map((item) => (
             <article key={item.id} className="login__branch-card">
               <p className="login__branch-label">
-                <MapPin size={14} strokeWidth={2} />
+                <MapPin size={15} strokeWidth={2} aria-hidden="true" />
                 {item.label}
               </p>
               <p className="login__branch-address">{item.address}</p>
               <a href={`tel:${item.phone.replace(/[\s.]/g, '')}`} className="login__branch-phone">
-                <Phone size={13} strokeWidth={2} />
+                <Phone size={14} strokeWidth={2} aria-hidden="true" />
                 {item.phone}
               </a>
             </article>
