@@ -3,8 +3,10 @@ import {
   canChangeEmployeeBranch,
   canEditEmployeeAvatar,
   canViewEmployeeAvatar,
+  canViewEmployeeBankInfo,
   canViewEmployeeCccd,
   canViewEmployeeCurrentAddress,
+  canViewEmployeeEmergencyContact,
   canViewEmployeeNote,
   canViewEmployeePersonalInfo,
   canViewEmployeePosition,
@@ -52,6 +54,31 @@ function AddressTextarea({ value, onChange, placeholder, readOnly }) {
   )
 }
 
+function CccdImageField({ value, readOnly, onChange, onRemove }) {
+  return (
+    <div className="employee-profile__cccd-image">
+      {value ? (
+        <img src={value} alt="Ảnh CCCD" className="employee-profile__cccd-image-preview" />
+      ) : (
+        <div className="employee-profile__cccd-image-placeholder">Chưa có ảnh</div>
+      )}
+      {!readOnly && (
+        <div className="employee-profile__avatar-actions">
+          <label className="employee-profile__upload-btn">
+            Tải ảnh lên
+            <input type="file" accept="image/*" hidden onChange={onChange} />
+          </label>
+          {value && (
+            <button type="button" className="employee-profile__remove-avatar" onClick={onRemove}>
+              Xóa ảnh
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function EmployeeProfileForm({
   form,
   onChange,
@@ -64,7 +91,6 @@ export default function EmployeeProfileForm({
 }) {
   const branches = loadBranches()
   const readOnly = mode === 'view'
-  const isFormMode = mode === 'add' || mode === 'edit'
   const lockedBranchId = getScopedBranchId()
   const branchLocked = isBranchManager() && Boolean(lockedBranchId)
   const selectableBranches = branchLocked
@@ -76,9 +102,24 @@ export default function EmployeeProfileForm({
   const showNote = forceAdminFields || canViewEmployeeNote()
   const showAvatar = forceAdminFields || canViewEmployeeAvatar()
   const showAvatarUpload = (forceAdminFields || canEditEmployeeAvatar()) && showAvatarUploadProp
-  const showCurrentAddress = forceAdminFields || canViewEmployeeCurrentAddress() || isFormMode
+  const showCurrentAddress = forceAdminFields || canViewEmployeeCurrentAddress()
+  const showBankInfo = forceAdminFields || canViewEmployeeBankInfo()
+  const showEmergencyContact = forceAdminFields || canViewEmployeeEmergencyContact()
   const showPosition = forceAdminFields || canViewEmployeePosition()
   const showBranchSelector = canChangeEmployeeBranch() || forceAdminFields
+  const canEditCccdImages = (forceAdminFields || canViewEmployeeCccd()) && !readOnly
+
+  const handleCccdImageChange = (field) => async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    try {
+      const image = await readAvatarFile(file)
+      onChange({ ...form, [field]: image })
+    } catch (error) {
+      onAvatarError?.(error.message)
+      event.target.value = ''
+    }
+  }
 
   const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0]
@@ -252,6 +293,24 @@ export default function EmployeeProfileForm({
                 onChange={(e) => onChange({ ...form, cccdAddress: e.target.value })}
               />
             </Field>
+
+            <Field label="Ảnh CCCD mặt trước">
+              <CccdImageField
+                value={form.cccdFrontImage}
+                readOnly={!canEditCccdImages}
+                onChange={handleCccdImageChange('cccdFrontImage')}
+                onRemove={() => onChange({ ...form, cccdFrontImage: '' })}
+              />
+            </Field>
+
+            <Field label="Ảnh CCCD mặt sau">
+              <CccdImageField
+                value={form.cccdBackImage}
+                readOnly={!canEditCccdImages}
+                onChange={handleCccdImageChange('cccdBackImage')}
+                onRemove={() => onChange({ ...form, cccdBackImage: '' })}
+              />
+            </Field>
           </>
         )}
 
@@ -264,6 +323,74 @@ export default function EmployeeProfileForm({
               onChange={(e) => onChange({ ...form, currentAddress: e.target.value })}
             />
           </Field>
+        )}
+
+        {showEmergencyContact && (
+          <>
+            <Field label="Người liên hệ khẩn cấp">
+              {readOnly ? (
+                <ReadOnlyValue value={form.emergencyContactName} />
+              ) : (
+                <input
+                  value={form.emergencyContactName}
+                  onChange={(e) => onChange({ ...form, emergencyContactName: e.target.value })}
+                  placeholder="Họ tên người liên hệ"
+                />
+              )}
+            </Field>
+
+            <Field label="SĐT người liên hệ">
+              {readOnly ? (
+                <ReadOnlyValue value={form.emergencyContactPhone} />
+              ) : (
+                <input
+                  value={form.emergencyContactPhone}
+                  onChange={(e) => onChange({ ...form, emergencyContactPhone: e.target.value })}
+                  placeholder="Số điện thoại người liên hệ"
+                />
+              )}
+            </Field>
+          </>
+        )}
+
+        {showBankInfo && (
+          <>
+            <Field label="Tên ngân hàng">
+              {readOnly ? (
+                <ReadOnlyValue value={form.bankName} />
+              ) : (
+                <input
+                  value={form.bankName}
+                  onChange={(e) => onChange({ ...form, bankName: e.target.value })}
+                  placeholder="VD: Vietcombank"
+                />
+              )}
+            </Field>
+
+            <Field label="Chủ tài khoản">
+              {readOnly ? (
+                <ReadOnlyValue value={form.bankAccountHolder} />
+              ) : (
+                <input
+                  value={form.bankAccountHolder}
+                  onChange={(e) => onChange({ ...form, bankAccountHolder: e.target.value })}
+                  placeholder="Tên chủ tài khoản"
+                />
+              )}
+            </Field>
+
+            <Field label="Số tài khoản">
+              {readOnly ? (
+                <ReadOnlyValue value={form.bankAccount} />
+              ) : (
+                <input
+                  value={form.bankAccount}
+                  onChange={(e) => onChange({ ...form, bankAccount: e.target.value })}
+                  placeholder="Nhập số tài khoản ngân hàng"
+                />
+              )}
+            </Field>
+          </>
         )}
 
         <Field label="Chi nhánh làm việc">

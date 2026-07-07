@@ -47,6 +47,7 @@ export const EMPTY_EMPLOYEE_FORM = {
   cccdAddress: '',
   currentAddress: '',
   bankName: '',
+  bankAccountHolder: '',
   bankAccount: '',
   emergencyContactName: '',
   emergencyContactPhone: '',
@@ -63,16 +64,20 @@ export const EMPTY_EMPLOYEE_FORM = {
 /** Các trường nhân viên được tự cập nhật trong "Hồ sơ cá nhân". */
 export const EMPLOYEE_SELF_SERVICE_FIELDS = [
   'name',
+  'gender',
+  'dateOfBirth',
   'phone',
+  'email',
   'cccd',
   'cccdIssueDate',
   'cccdIssuePlace',
   'cccdAddress',
   'currentAddress',
-  'bankName',
-  'bankAccount',
   'emergencyContactName',
   'emergencyContactPhone',
+  'bankName',
+  'bankAccountHolder',
+  'bankAccount',
   'avatar',
   'cccdFrontImage',
   'cccdBackImage',
@@ -108,6 +113,7 @@ export function normalizeEmployee(employee) {
     cccdAddress: employee.cccdAddress ?? '',
     currentAddress: employee.currentAddress ?? '',
     bankName: employee.bankName ?? '',
+    bankAccountHolder: employee.bankAccountHolder ?? '',
     bankAccount: employee.bankAccount ?? '',
     emergencyContactName: employee.emergencyContactName ?? '',
     emergencyContactPhone: employee.emergencyContactPhone ?? '',
@@ -218,10 +224,14 @@ export function isEmployeeInBranch(employeeId, branchId) {
   )
 }
 
-/** Hồ sơ được xem là đầy đủ khi có tối thiểu Họ tên và SĐT hợp lệ. */
+/** Hồ sơ được xem là đầy đủ khi có tối thiểu Họ tên, SĐT và CCCD. */
 export function isEmployeeProfileComplete(employee) {
   if (!employee) return false
-  return Boolean(employee.name?.trim()) && Boolean(employee.phone?.trim())
+  return (
+    Boolean(employee.name?.trim())
+    && Boolean(employee.phone?.trim())
+    && Boolean(employee.cccd?.trim())
+  )
 }
 
 function sanitizeEmployeeData(data) {
@@ -237,6 +247,7 @@ function sanitizeEmployeeData(data) {
     cccdAddress: data.cccdAddress ?? '',
     currentAddress: data.currentAddress ?? '',
     bankName: data.bankName?.trim() ?? '',
+    bankAccountHolder: data.bankAccountHolder?.trim() ?? '',
     bankAccount: data.bankAccount?.trim() ?? '',
     emergencyContactName: data.emergencyContactName?.trim() ?? '',
     emergencyContactPhone: data.emergencyContactPhone?.trim() ?? '',

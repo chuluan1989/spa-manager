@@ -69,6 +69,10 @@ const {
   canAddInvoice,
   canDeleteInvoice,
   canEditInvoice,
+  canViewEmployeeBankInfo,
+  canViewEmployeeCccd,
+  canViewEmployeeCurrentAddress,
+  canViewEmployeeEmergencyContact,
   filterByUserScope,
 } = await import('../src/constants/auth.js')
 const { saveInvoice, updateInvoice, loadInvoices } = await import('../src/utils/invoiceStorage.js')
@@ -345,9 +349,17 @@ test('validators: phone format', () => {
   assert.equal(isValidVietnamesePhone(''), false)
 })
 
-test('employee profile: incomplete profile requires phone', () => {
-  assert.equal(isEmployeeProfileComplete({ name: 'Linh', phone: '' }), false)
-  assert.equal(isEmployeeProfileComplete({ name: 'Linh', phone: '0901234567' }), true)
+test('employee profile: incomplete profile requires name, phone and cccd', () => {
+  assert.equal(isEmployeeProfileComplete({ name: 'Linh', phone: '', cccd: '' }), false)
+  assert.equal(
+    isEmployeeProfileComplete({ name: 'Linh', phone: '0901234567', cccd: '' }),
+    false,
+    'Thiếu CCCD vẫn coi là chưa hoàn tất',
+  )
+  assert.equal(
+    isEmployeeProfileComplete({ name: 'Linh', phone: '0901234567', cccd: '079123456789' }),
+    true,
+  )
   assert.equal(isEmployeeProfileComplete(null), false)
 })
 
@@ -380,6 +392,29 @@ test('employee self profile: rejects missing name/phone and invalid cccd', () =>
     cccd: '12345',
   })
   assert.equal(badCccd.success, false)
+
+  const missingCccd = updateOwnEmployeeProfile('vinh-long-linh', {
+    name: 'Linh',
+    phone: '0901234567',
+    cccd: '',
+  })
+  assert.equal(missingCccd.success, false, 'CCCD nay la truong bat buoc')
+  clearCurrentUser()
+})
+
+test('employee profile permissions: manager cannot view sensitive info, admin sees all', () => {
+  setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
+  assert.equal(canViewEmployeeCccd(), false)
+  assert.equal(canViewEmployeeCurrentAddress(), false)
+  assert.equal(canViewEmployeeBankInfo(), false)
+  assert.equal(canViewEmployeeEmergencyContact(), false)
+  clearCurrentUser()
+
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  assert.equal(canViewEmployeeCccd(), true)
+  assert.equal(canViewEmployeeCurrentAddress(), true)
+  assert.equal(canViewEmployeeBankInfo(), true)
+  assert.equal(canViewEmployeeEmergencyContact(), true)
   clearCurrentUser()
 })
 
@@ -396,6 +431,7 @@ test('employee self profile: cannot change role-managed fields via forged payloa
   const result = updateOwnEmployeeProfile('vinh-long-linh', {
     name: 'Linh',
     phone: '0901234567',
+    cccd: '079123456789',
     branchId: 'tra-vinh',
     position: 'Quản lý',
     status: 'resigned',

@@ -18,7 +18,7 @@ export function isValidVietnamesePhone(phone) {
 
 /**
  * Validate dữ liệu hồ sơ cá nhân nhân viên tự cập nhật.
- * Bắt buộc: Họ tên, SĐT (đúng định dạng). CCCD nếu có phải đủ 12 số.
+ * Bắt buộc: Họ tên, SĐT (đúng định dạng), CCCD (đúng 12 số).
  */
 export function validateEmployeeSelfProfile(data) {
   const errors = {}
@@ -33,7 +33,9 @@ export function validateEmployeeSelfProfile(data) {
     errors.phone = 'Số điện thoại không đúng định dạng'
   }
 
-  if (data.cccd?.trim() && !isValidCccd(data.cccd)) {
+  if (!data.cccd?.trim()) {
+    errors.cccd = 'Vui lòng nhập số CCCD'
+  } else if (!isValidCccd(data.cccd)) {
     errors.cccd = 'CCCD phải gồm đúng 12 số'
   }
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import EmployeeAvatar from '../components/employees/EmployeeAvatar'
 import '../components/employees/EmployeeProfileForm.css'
 import {
+  GENDER_OPTIONS,
   getBranchName,
   getEmployeeById,
   getStatusLabel,
@@ -27,16 +28,20 @@ function Field({ label, children, full = false, hint }) {
 function toFormState(employee) {
   return {
     name: employee.name ?? '',
+    gender: employee.gender ?? '',
+    dateOfBirth: employee.dateOfBirth ?? '',
     phone: employee.phone ?? '',
+    email: employee.email ?? '',
     cccd: employee.cccd ?? '',
     cccdIssueDate: employee.cccdIssueDate ?? '',
     cccdIssuePlace: employee.cccdIssuePlace ?? '',
     cccdAddress: employee.cccdAddress ?? '',
     currentAddress: employee.currentAddress ?? '',
-    bankName: employee.bankName ?? '',
-    bankAccount: employee.bankAccount ?? '',
     emergencyContactName: employee.emergencyContactName ?? '',
     emergencyContactPhone: employee.emergencyContactPhone ?? '',
+    bankName: employee.bankName ?? '',
+    bankAccountHolder: employee.bankAccountHolder ?? '',
+    bankAccount: employee.bankAccount ?? '',
     avatar: employee.avatar ?? '',
     cccdFrontImage: employee.cccdFrontImage ?? '',
     cccdBackImage: employee.cccdBackImage ?? '',
@@ -104,7 +109,10 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
   const handleSave = () => {
     const nextErrors = validateEmployeeSelfProfile(form)
     setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) return
+    if (Object.keys(nextErrors).length > 0) {
+      showToast('Vui lòng kiểm tra lại các trường còn thiếu hoặc sai định dạng')
+      return
+    }
 
     const result = updateOwnEmployeeProfile(employeeId, form)
     if (!result.success) {
@@ -140,8 +148,8 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
 
       {mandatory && (
         <div className="myprofile__banner">
-          Vui lòng cập nhật đầy đủ <strong>Họ tên</strong> và <strong>Số điện thoại</strong> để
-          tiếp tục sử dụng hệ thống.
+          Vui lòng cập nhật đầy đủ <strong>Họ tên</strong>, <strong>Số điện thoại</strong> và{' '}
+          <strong>Số CCCD</strong> để tiếp tục sử dụng hệ thống.
         </div>
       )}
 
@@ -170,12 +178,171 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
       </section>
 
       <section className="myprofile__card">
-        <h3 className="myprofile__card-title">Ảnh chân dung</h3>
+        <h3 className="myprofile__card-title">Thông tin cá nhân</h3>
+        <div className="employee-profile__grid">
+          <Field
+            label="Họ và tên"
+            hint="(đổi tên sẽ đổi mật khẩu đăng nhập theo tên mới)"
+          >
+            <input
+              value={form.name}
+              onChange={(e) => updateField('name', e.target.value)}
+              placeholder="Nhập họ và tên"
+              className={errors.name ? 'employee-profile__input--error' : ''}
+            />
+            {errors.name && <span className="employee-profile__error">{errors.name}</span>}
+          </Field>
+
+          <Field label="Giới tính">
+            <select value={form.gender} onChange={(e) => updateField('gender', e.target.value)}>
+              <option value="">Chọn giới tính</option>
+              {GENDER_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Ngày sinh">
+            <input
+              type="date"
+              value={form.dateOfBirth}
+              onChange={(e) => updateField('dateOfBirth', e.target.value)}
+            />
+          </Field>
+
+          <Field label="Số điện thoại">
+            <input
+              value={form.phone}
+              onChange={(e) => updateField('phone', e.target.value)}
+              placeholder="VD: 0901234567"
+              className={errors.phone ? 'employee-profile__input--error' : ''}
+            />
+            {errors.phone && <span className="employee-profile__error">{errors.phone}</span>}
+          </Field>
+
+          <Field label="Email">
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => updateField('email', e.target.value)}
+              placeholder="Nhập email"
+            />
+          </Field>
+        </div>
+      </section>
+
+      <section className="myprofile__card">
+        <h3 className="myprofile__card-title">Thông tin CCCD</h3>
+        <div className="employee-profile__grid">
+          <Field label="Số CCCD">
+            <input
+              value={form.cccd}
+              onChange={(e) => updateField('cccd', e.target.value)}
+              placeholder="Nhập đúng 12 số"
+              className={errors.cccd ? 'employee-profile__input--error' : ''}
+            />
+            {errors.cccd && <span className="employee-profile__error">{errors.cccd}</span>}
+          </Field>
+
+          <Field label="Ngày cấp">
+            <input
+              type="date"
+              value={form.cccdIssueDate}
+              onChange={(e) => updateField('cccdIssueDate', e.target.value)}
+            />
+          </Field>
+
+          <Field label="Nơi cấp">
+            <input
+              value={form.cccdIssuePlace}
+              onChange={(e) => updateField('cccdIssuePlace', e.target.value)}
+              placeholder="Nhập nơi cấp CCCD"
+            />
+          </Field>
+
+          <Field label="Địa chỉ trên CCCD" full>
+            <textarea
+              className="employee-profile__textarea"
+              rows={3}
+              value={form.cccdAddress}
+              onChange={(e) => updateField('cccdAddress', e.target.value)}
+              placeholder="Nhập địa chỉ trên CCCD"
+            />
+          </Field>
+        </div>
+      </section>
+
+      <section className="myprofile__card">
+        <h3 className="myprofile__card-title">Thông tin liên hệ</h3>
+        <div className="employee-profile__grid">
+          <Field label="Địa chỉ hiện tại" full>
+            <textarea
+              className="employee-profile__textarea"
+              rows={3}
+              value={form.currentAddress}
+              onChange={(e) => updateField('currentAddress', e.target.value)}
+              placeholder="Nhập địa chỉ nơi ở hiện tại"
+            />
+          </Field>
+
+          <Field label="Người liên hệ khẩn cấp">
+            <input
+              value={form.emergencyContactName}
+              onChange={(e) => updateField('emergencyContactName', e.target.value)}
+              placeholder="Họ tên người liên hệ"
+            />
+          </Field>
+
+          <Field label="SĐT người liên hệ">
+            <input
+              value={form.emergencyContactPhone}
+              onChange={(e) => updateField('emergencyContactPhone', e.target.value)}
+              placeholder="Số điện thoại người liên hệ"
+              className={errors.emergencyContactPhone ? 'employee-profile__input--error' : ''}
+            />
+            {errors.emergencyContactPhone && (
+              <span className="employee-profile__error">{errors.emergencyContactPhone}</span>
+            )}
+          </Field>
+        </div>
+      </section>
+
+      <section className="myprofile__card">
+        <h3 className="myprofile__card-title">Thông tin ngân hàng</h3>
+        <div className="employee-profile__grid">
+          <Field label="Tên ngân hàng">
+            <input
+              value={form.bankName}
+              onChange={(e) => updateField('bankName', e.target.value)}
+              placeholder="VD: Vietcombank"
+            />
+          </Field>
+
+          <Field label="Chủ tài khoản">
+            <input
+              value={form.bankAccountHolder}
+              onChange={(e) => updateField('bankAccountHolder', e.target.value)}
+              placeholder="Tên chủ tài khoản"
+            />
+          </Field>
+
+          <Field label="Số tài khoản">
+            <input
+              value={form.bankAccount}
+              onChange={(e) => updateField('bankAccount', e.target.value)}
+              placeholder="Nhập số tài khoản ngân hàng"
+            />
+          </Field>
+        </div>
+      </section>
+
+      <section className="myprofile__card">
+        <h3 className="myprofile__card-title">Hình ảnh</h3>
         <div className="employee-profile__avatar-section">
           <EmployeeAvatar name={form.name} avatar={form.avatar} size="lg" />
           <div className="employee-profile__avatar-actions">
             <label className="employee-profile__upload-btn">
-              Tải ảnh lên
+              Tải ảnh đại diện
               <input
                 type="file"
                 accept="image/*"
@@ -204,121 +371,8 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             )}
           </div>
         </div>
-      </section>
 
-      <section className="myprofile__card">
-        <h3 className="myprofile__card-title">Thông tin cá nhân</h3>
-        <div className="employee-profile__grid">
-          <Field
-            label="Họ và tên"
-            hint="(đổi tên sẽ đổi mật khẩu đăng nhập theo tên mới)"
-          >
-            <input
-              value={form.name}
-              onChange={(e) => updateField('name', e.target.value)}
-              placeholder="Nhập họ và tên"
-              className={errors.name ? 'employee-profile__input--error' : ''}
-            />
-            {errors.name && <span className="employee-profile__error">{errors.name}</span>}
-          </Field>
-
-          <Field label="Số điện thoại">
-            <input
-              value={form.phone}
-              onChange={(e) => updateField('phone', e.target.value)}
-              placeholder="VD: 0901234567"
-              className={errors.phone ? 'employee-profile__input--error' : ''}
-            />
-            {errors.phone && <span className="employee-profile__error">{errors.phone}</span>}
-          </Field>
-
-          <Field label="Số CCCD">
-            <input
-              value={form.cccd}
-              onChange={(e) => updateField('cccd', e.target.value)}
-              placeholder="Nhập đúng 12 số"
-              className={errors.cccd ? 'employee-profile__input--error' : ''}
-            />
-            {errors.cccd && <span className="employee-profile__error">{errors.cccd}</span>}
-          </Field>
-
-          <Field label="Ngày cấp CCCD">
-            <input
-              type="date"
-              value={form.cccdIssueDate}
-              onChange={(e) => updateField('cccdIssueDate', e.target.value)}
-            />
-          </Field>
-
-          <Field label="Nơi cấp CCCD">
-            <input
-              value={form.cccdIssuePlace}
-              onChange={(e) => updateField('cccdIssuePlace', e.target.value)}
-              placeholder="Nhập nơi cấp CCCD"
-            />
-          </Field>
-
-          <Field label="Địa chỉ trên CCCD" full>
-            <textarea
-              className="employee-profile__textarea"
-              rows={3}
-              value={form.cccdAddress}
-              onChange={(e) => updateField('cccdAddress', e.target.value)}
-              placeholder="Nhập địa chỉ trên CCCD"
-            />
-          </Field>
-
-          <Field label="Địa chỉ nơi ở hiện tại" full>
-            <textarea
-              className="employee-profile__textarea"
-              rows={3}
-              value={form.currentAddress}
-              onChange={(e) => updateField('currentAddress', e.target.value)}
-              placeholder="Nhập địa chỉ nơi ở hiện tại"
-            />
-          </Field>
-
-          <Field label="Tên ngân hàng">
-            <input
-              value={form.bankName}
-              onChange={(e) => updateField('bankName', e.target.value)}
-              placeholder="VD: Vietcombank"
-            />
-          </Field>
-
-          <Field label="Số tài khoản">
-            <input
-              value={form.bankAccount}
-              onChange={(e) => updateField('bankAccount', e.target.value)}
-              placeholder="Nhập số tài khoản ngân hàng"
-            />
-          </Field>
-
-          <Field label="Người liên hệ khẩn cấp">
-            <input
-              value={form.emergencyContactName}
-              onChange={(e) => updateField('emergencyContactName', e.target.value)}
-              placeholder="Họ tên người liên hệ"
-            />
-          </Field>
-
-          <Field label="SĐT người liên hệ">
-            <input
-              value={form.emergencyContactPhone}
-              onChange={(e) => updateField('emergencyContactPhone', e.target.value)}
-              placeholder="Số điện thoại người liên hệ"
-              className={errors.emergencyContactPhone ? 'employee-profile__input--error' : ''}
-            />
-            {errors.emergencyContactPhone && (
-              <span className="employee-profile__error">{errors.emergencyContactPhone}</span>
-            )}
-          </Field>
-        </div>
-      </section>
-
-      <section className="myprofile__card">
-        <h3 className="myprofile__card-title">Ảnh CCCD</h3>
-        <div className="employee-profile__grid">
+        <div className="employee-profile__grid myprofile__images-grid">
           <ImageUploadField
             label="Ảnh CCCD mặt trước"
             value={form.cccdFrontImage}

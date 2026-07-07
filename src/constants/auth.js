@@ -134,8 +134,19 @@ export function canEditEmployeeAvatar(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
 
+/** Địa chỉ hiện tại là thông tin riêng tư — chỉ Admin được xem. */
 export function canViewEmployeeCurrentAddress(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER
+  return role === ROLES.ADMIN
+}
+
+/** Ngân hàng/số tài khoản là thông tin riêng tư — chỉ Admin được xem. */
+export function canViewEmployeeBankInfo(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
+}
+
+/** Người liên hệ khẩn cấp là thông tin riêng tư — chỉ Admin được xem. */
+export function canViewEmployeeEmergencyContact(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
 }
 
 export function canViewEmployeePosition(role = getCurrentUserRole()) {

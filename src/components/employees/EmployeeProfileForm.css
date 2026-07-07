@@ -99,6 +99,35 @@
   min-height: 120px;
 }
 
+.employee-profile__cccd-image {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.employee-profile__cccd-image-preview {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.employee-profile__cccd-image-placeholder {
+  width: 120px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px dashed #cbd5e1;
+  color: #94a3b8;
+  font-size: 12px;
+  text-align: center;
+  padding: 4px;
+}
+
 .employee-profile__input--error {
   border-color: #fca5a5 !important;
   background: #fef2f2 !important;

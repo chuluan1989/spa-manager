@@ -60,6 +60,12 @@
   font-size: 12px;
 }
 
+.myprofile__images-grid {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
+}
+
 .myprofile__image-upload {
   display: flex;
   align-items: center;
