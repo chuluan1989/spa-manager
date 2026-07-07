@@ -118,6 +118,31 @@ export default function LegacySync() {
         </div>
       </header>
 
+      <div className="legacy-sync__important" role="note">
+        <strong>Lưu ý quan trọng</strong>
+        <p>
+          Dữ liệu đã nhập trước đây đang nằm trên <strong>máy/điện thoại của từng người</strong>,
+          không tự động hiện trên Cloud.
+        </p>
+        <ol>
+          <li>Mở lại <strong>đúng thiết bị</strong> (trình duyệt trên máy/điện thoại) đã từng nhập dữ liệu.</li>
+          <li>
+            Vào{' '}
+            <a href="https://khoespa.net.vn" target="_blank" rel="noopener noreferrer">
+              khoespa.net.vn
+            </a>
+            , đăng nhập tài khoản của mình.
+          </li>
+          <li>
+            Vào màn <strong>Đồng bộ dữ liệu cũ</strong> → bấm <strong>Kiểm tra dữ liệu cũ</strong>,
+            rồi <strong>Đồng bộ lên Cloud</strong> nếu hệ thống phát hiện dữ liệu chưa có trên hệ thống.
+          </li>
+        </ol>
+        <p className="legacy-sync__important-footer">
+          Sau khi đồng bộ xong, Admin và Quản lý mới xem được dữ liệu trên toàn hệ thống.
+        </p>
+      </div>
+
       {importCompleted && (
         <div className="legacy-sync__note">
           Thiết bị này đã từng import dữ liệu cũ (
