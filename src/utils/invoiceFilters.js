@@ -147,14 +147,5 @@ export function paginateInvoices(invoices, page, pageSize = INVOICE_PAGE_SIZE) {
 }
 
 export function hasActiveInvoiceFilters(filters) {
-  return Boolean(
-    filters.fromDate
-    || filters.toDate
-    || filters.branchId
-    || filters.employeeId
-    || filters.serviceId
-    || filters.paymentMethod
-    || filters.discountFilter
-    || filters.search?.trim(),
-  )
+  return Boolean(filters.serviceId)
 }

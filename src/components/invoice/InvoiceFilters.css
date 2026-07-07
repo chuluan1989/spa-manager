@@ -1,10 +1,9 @@
 .invoice-filters {
   margin-top: 20px;
   background: #ffffff;
-  border-radius: 16px;
-  padding: 20px 24px;
+  border-radius: 12px;
+  padding: 16px 20px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 
 .invoice-filters__header {
@@ -12,12 +11,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .invoice-filters__title {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #111827;
 }
@@ -25,65 +24,51 @@
 .invoice-filters__count {
   font-size: 13px;
   color: #6b7280;
-  font-weight: 500;
 }
 
-.invoice-filters__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+.invoice-filters__row {
+  display: flex;
+  align-items: flex-end;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .invoice-filters__field {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 220px;
 }
 
 .invoice-filters__field span {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: #6b7280;
 }
 
-.invoice-filters__field input,
 .invoice-filters__field select {
-  padding: 10px 12px;
+  padding: 9px 12px;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
-  background: #ffffff;
+  background: #fff;
   color: #111827;
 }
 
-.invoice-filters__field input:focus,
 .invoice-filters__field select:focus {
   outline: none;
   border-color: #d4af37;
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
-}
-
-.invoice-filters__field--banner {
-  grid-column: 1 / -1;
-}
-
-.invoice-filters__field--search {
-  grid-column: span 2;
-}
-
-.invoice-filters__actions {
-  margin-top: 12px;
 }
 
 .invoice-filters__reset {
-  padding: 8px 14px;
+  padding: 9px 14px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #f9fafb;
   color: #374151;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   font-family: inherit;
 }
@@ -91,15 +76,4 @@
 .invoice-filters__reset:hover {
   background: #fef3c7;
   border-color: #fde68a;
-  color: #92400e;
-}
-
-@media (max-width: 768px) {
-  .invoice-filters {
-    padding: 16px;
-  }
-
-  .invoice-filters__field--search {
-    grid-column: span 1;
-  }
 }

@@ -401,7 +401,10 @@ export default function Invoice() {
   }
 
   const resetListFilters = () => {
-    setListFilters(INITIAL_FILTERS())
+    setListFilters((prev) => ({
+      ...INITIAL_FILTERS(),
+      branchId: prev.branchId,
+    }))
     setListPage(1)
   }
 
@@ -443,8 +446,6 @@ export default function Invoice() {
             filters={effectiveListFilters}
             onChange={setListFilters}
             onReset={resetListFilters}
-            lockedBranch={lockedBranch}
-            branchName={activeBranchName}
             resultCount={filteredInvoices.length}
             serviceOptions={filterServiceOptions}
           />

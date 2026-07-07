@@ -1,30 +1,12 @@
-import BranchBanner from '../common/BranchBanner'
-import { canSelectBranch } from '../../constants/auth'
-import { loadBranches } from '../../constants/branches'
-import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../../utils/employeeStorage'
 import './InvoiceFilters.css'
 
 export default function InvoiceFilters({
   filters,
   onChange,
   onReset,
-  lockedBranch = false,
-  branchName = '',
   resultCount = 0,
   serviceOptions = [],
 }) {
-  const branchEmployees = filters.branchId
-    ? getActiveEmployeesByBranch(filters.branchId)
-    : getAllActiveEmployees()
-
-  const update = (field, value) => {
-    if (field === 'branchId') {
-      onChange({ ...filters, branchId: value, employeeId: '', serviceId: '' })
-      return
-    }
-    onChange({ ...filters, [field]: value })
-  }
-
   return (
     <section className="invoice-filters">
       <div className="invoice-filters__header">
@@ -32,56 +14,13 @@ export default function InvoiceFilters({
         <span className="invoice-filters__count">{resultCount} hóa đơn</span>
       </div>
 
-      <div className="invoice-filters__grid">
-        {lockedBranch && (
-          <div className="invoice-filters__field invoice-filters__field--banner">
-            <BranchBanner branchName={branchName} />
-          </div>
-        )}
-
-        <label className="invoice-filters__field">
-          <span>Từ ngày</span>
-          <input
-            type="date"
-            value={filters.fromDate}
-            onChange={(e) => update('fromDate', e.target.value)}
-          />
-        </label>
-
-        <label className="invoice-filters__field">
-          <span>Đến ngày</span>
-          <input
-            type="date"
-            value={filters.toDate}
-            onChange={(e) => update('toDate', e.target.value)}
-          />
-        </label>
-
-        {canSelectBranch() && (
-          <label className="invoice-filters__field">
-            <span>Chi nhánh</span>
-            <select value={filters.branchId} onChange={(e) => update('branchId', e.target.value)}>
-              <option value="">Tất cả chi nhánh</option>
-              {loadBranches().map((branch) => (
-                <option key={branch.id} value={branch.id}>{branch.name}</option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        <label className="invoice-filters__field">
-          <span>Nhân viên</span>
-          <select value={filters.employeeId} onChange={(e) => update('employeeId', e.target.value)}>
-            <option value="">Tất cả nhân viên</option>
-            {branchEmployees.map((employee) => (
-              <option key={employee.id} value={employee.id}>{employee.name}</option>
-            ))}
-          </select>
-        </label>
-
+      <div className="invoice-filters__row">
         <label className="invoice-filters__field">
           <span>Dịch vụ</span>
-          <select value={filters.serviceId} onChange={(e) => update('serviceId', e.target.value)}>
+          <select
+            value={filters.serviceId}
+            onChange={(e) => onChange({ ...filters, serviceId: e.target.value })}
+          >
             <option value="">Tất cả dịch vụ</option>
             {serviceOptions.map((service) => (
               <option key={service.id} value={service.id}>{service.name}</option>
@@ -89,30 +28,11 @@ export default function InvoiceFilters({
           </select>
         </label>
 
-        <label className="invoice-filters__field">
-          <span>Trạng thái KM</span>
-          <select value={filters.discountFilter} onChange={(e) => update('discountFilter', e.target.value)}>
-            <option value="">Tất cả</option>
-            <option value="with">Có khuyến mãi</option>
-            <option value="without">Không khuyến mãi</option>
-          </select>
-        </label>
-
-        <label className="invoice-filters__field invoice-filters__field--search">
-          <span>Tìm kiếm</span>
-          <input
-            type="search"
-            placeholder="Mã HĐ, khách, SĐT, NV, dịch vụ..."
-            value={filters.search}
-            onChange={(e) => update('search', e.target.value)}
-          />
-        </label>
-      </div>
-
-      <div className="invoice-filters__actions">
-        <button type="button" className="invoice-filters__reset" onClick={onReset}>
-          Xóa bộ lọc
-        </button>
+        {filters.serviceId && (
+          <button type="button" className="invoice-filters__reset" onClick={onReset}>
+            Xóa bộ lọc
+          </button>
+        )}
       </div>
     </section>
   )
