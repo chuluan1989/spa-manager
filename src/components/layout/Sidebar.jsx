@@ -1,6 +1,5 @@
 import { LogOut } from 'lucide-react'
 import KhoeSpaLogo from '../brand/KhoeSpaLogo'
-import { BRAND_SLOGAN } from '../../constants/branchContacts'
 import {
   getCurrentUser,
   getCurrentUserName,
@@ -55,9 +54,7 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
   return (
     <aside className="sidebar" aria-label="Menu chính">
       <div className="sidebar__brand">
-        <KhoeSpaLogo size={120} className="sidebar__logo-img" priority />
-        <p className="sidebar__brand-name">Khoẻ Spa</p>
-        <p className="sidebar__brand-slogan">{BRAND_SLOGAN}</p>
+        <KhoeSpaLogo size={156} className="sidebar__logo-img" priority />
         <div className="sidebar__brand-line" aria-hidden="true" />
       </div>
 

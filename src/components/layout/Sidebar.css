@@ -28,36 +28,17 @@
 
 .sidebar__logo-img {
   width: auto !important;
-  height: 120px !important;
-  max-width: 160px;
+  height: 156px !important;
+  max-width: 208px;
   object-fit: contain;
   filter: drop-shadow(0 8px 24px rgba(212, 175, 55, 0.35));
-  margin-bottom: 10px;
-}
-
-.sidebar__brand-name {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--ks-gold);
-  line-height: 1.25;
-}
-
-.sidebar__brand-slogan {
-  margin: 4px 0 0;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-  line-height: 1.4;
+  margin-bottom: 14px;
 }
 
 .sidebar__brand-line {
   width: 48px;
   height: 2px;
-  margin-top: 14px;
+  margin-top: 0;
   border-radius: 2px;
   background: linear-gradient(90deg, transparent, var(--ks-gold), transparent);
 }
@@ -322,8 +303,6 @@
     width: var(--ks-sidebar-width-compact);
   }
 
-  .sidebar__brand-name,
-  .sidebar__brand-slogan,
   .sidebar__brand-line {
     display: none;
   }
@@ -333,8 +312,8 @@
   }
 
   .sidebar__logo-img {
-    height: 52px !important;
-    max-width: 64px;
+    height: 68px !important;
+    max-width: 84px;
     margin-bottom: 0;
   }
 
