@@ -13,7 +13,7 @@ import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
 import { ROLES } from '../constants/auth'
 import { verifyLogin } from '../constants/loginCredentials'
 import { getActiveBranches } from '../constants/branches'
-import { BRANCH_CONTACTS, BRAND_SLOGAN, SYSTEM_HOTLINE } from '../constants/branchContacts'
+import { BRANCH_CONTACTS, SYSTEM_HOTLINE } from '../constants/branchContacts'
 import { getActiveEmployeesByBranch } from '../utils/employeeStorage'
 import './Login.css'
 
@@ -97,9 +97,7 @@ export default function Login({ onLogin }) {
       <section className="login__hero">
         <div className="login__hero-inner">
           <div className="login__brand">
-            <KhoeSpaLogo size={400} className="login__logo" priority />
-            <p className="login__brand-name">KHỎE Spa</p>
-            <p className="login__brand-slogan">{BRAND_SLOGAN.toUpperCase()}</p>
+            <KhoeSpaLogo size={480} className="login__logo" priority />
             <a href={`tel:${SYSTEM_HOTLINE.replace(/\./g, '')}`} className="login__hotline">
               <Phone size={22} strokeWidth={2} className="login__hotline-icon" aria-hidden="true" />
               <span>{SYSTEM_HOTLINE}</span>

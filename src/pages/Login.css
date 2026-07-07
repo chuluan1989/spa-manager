@@ -139,60 +139,42 @@
   display: grid;
   grid-template-columns: 1fr 420px;
   align-items: center;
-  gap: 48px;
+  gap: 40px;
   max-width: 1160px;
   margin: 0 auto;
-  padding: 48px 40px 32px;
+  padding: 40px 40px 28px;
 }
 
-/* —— Brand —— */
+/* —— Brand: logo + hotline only —— */
 .login__brand {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
   gap: 0;
+  padding: 0 16px;
 }
 
 .login__logo {
+  width: auto !important;
+  height: 480px !important;
+  max-width: min(100%, 520px) !important;
+  object-fit: contain;
   filter: drop-shadow(0 28px 64px rgba(0, 0, 0, 0.6));
-  margin-bottom: 2px;
-}
-
-.login__brand-name {
-  margin: 0;
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1.15;
-  background: linear-gradient(180deg, #f0d070 0%, #d4af37 45%, #b8942e 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 2px 24px rgba(212, 175, 55, 0.25);
-}
-
-.login__brand-slogan {
-  margin: 8px 0 0;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.22em;
-  color: rgba(212, 175, 55, 0.75);
-  line-height: 1.4;
 }
 
 .login__hotline {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-top: 12px;
-  font-size: 24px;
+  margin-top: 20px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--login-gold-light);
   text-decoration: none;
-  transition: color 0.25s ease, transform 0.25s ease;
+  transition: color 0.25s ease;
 }
 
 .login__hotline-icon {
@@ -200,7 +182,15 @@
   flex-shrink: 0;
 }
 
+.login__hotline span {
+  color: rgba(255, 255, 255, 0.92);
+}
+
 .login__hotline:hover {
+  color: var(--login-gold-light);
+}
+
+.login__hotline:hover span {
   color: var(--login-gold-light);
 }
 
@@ -403,22 +393,26 @@
   position: relative;
   z-index: 1;
   flex: 1;
-  padding: 16px 32px 44px;
+  padding: 8px 32px 40px;
   animation: loginFadeIn 0.65s ease 0.08s both;
 }
 
 .login__branches-fade {
   position: absolute;
-  top: -60px;
+  top: -48px;
   left: 0;
   right: 0;
-  height: 100px;
-  background: linear-gradient(to bottom, transparent 0%, rgba(212, 175, 55, 0.04) 100%);
+  height: 80px;
+  background: linear-gradient(to bottom, transparent 0%, rgba(212, 175, 55, 0.05) 100%);
   pointer-events: none;
 }
 
 .login__branches-title {
-  margin: 0 auto 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 0 auto 28px;
   max-width: 1160px;
   font-size: 11px;
   font-weight: 600;
@@ -426,6 +420,15 @@
   text-transform: uppercase;
   text-align: center;
   color: var(--login-gold);
+}
+
+.login__branches-title::before,
+.login__branches-title::after {
+  content: '';
+  flex: 1;
+  max-width: 120px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.45), transparent);
 }
 
 .login__branches-grid {
@@ -440,13 +443,13 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 20px 18px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(212, 175, 55, 0.28);
+  padding: 18px 16px;
+  background: rgba(18, 18, 18, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.22);
   border-radius: 14px;
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
@@ -537,17 +540,14 @@
 @media (max-width: 1024px) {
   .login__hero-inner {
     grid-template-columns: 1fr;
-    gap: 36px;
+    gap: 32px;
     max-width: 440px;
-    padding: 40px 24px 24px;
+    padding: 36px 24px 20px;
   }
 
   .login__logo {
-    height: 300px !important;
-  }
-
-  .login__brand-name {
-    font-size: 30px;
+    height: 360px !important;
+    max-width: min(100%, 400px) !important;
   }
 
   .login__branches-grid {
@@ -557,19 +557,17 @@
 
 @media (max-width: 640px) {
   .login__hero-inner {
-    padding: 32px 20px 20px;
+    padding: 28px 20px 16px;
   }
 
   .login__logo {
-    height: 240px !important;
-  }
-
-  .login__brand-name {
-    font-size: 26px;
+    height: 280px !important;
+    max-width: min(100%, 320px) !important;
   }
 
   .login__hotline {
-    font-size: 20px;
+    margin-top: 18px;
+    font-size: 19px;
   }
 
   .login__card {
