@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { ArrowLeft, Briefcase, Building2, Lock, Phone, UserRound, Users } from 'lucide-react'
 import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
 import { ROLES } from '../constants/auth'
 import { verifyLogin } from '../constants/loginCredentials'
 import { getActiveBranches } from '../constants/branches'
-import { BRAND_SLOGAN, SYSTEM_HOTLINE } from '../constants/branchContacts'
+import { BRANCH_CONTACTS, BRAND_SLOGAN, SYSTEM_HOTLINE } from '../constants/branchContacts'
 import { getActiveEmployeesByBranch } from '../utils/employeeStorage'
 import './Login.css'
 
@@ -45,7 +44,7 @@ export default function Login({ onLogin, onBack }) {
 
   return (
     <div className="login">
-      <div className="login__layout">
+      <div className="login__stage">
         <aside className="login__hero">
           <div className="login__hero-media" aria-hidden="true">
             <img src="/assets/spa-hero.png" alt="" className="login__hero-image" />
@@ -55,74 +54,60 @@ export default function Login({ onLogin, onBack }) {
           <div className="login__hero-content">
             {onBack && (
               <button type="button" className="login__back" onClick={onBack}>
-                <ArrowLeft size={16} strokeWidth={2.25} />
                 Quay lại
               </button>
             )}
 
             <div className="login__brand">
-              <KhoeSpaLogo size={192} className="login__logo" priority />
-              <h1 className="login__name">Khoẻ Spa</h1>
+              <KhoeSpaLogo size={268} className="login__logo" priority />
               <p className="login__slogan">{BRAND_SLOGAN}</p>
+              <div className="login__hotline">
+                <span className="login__hotline-label">Hotline</span>
+                <a href={`tel:${SYSTEM_HOTLINE.replace(/\./g, '')}`} className="login__hotline-number">
+                  {SYSTEM_HOTLINE}
+                </a>
+              </div>
             </div>
-
-            <a href={`tel:${SYSTEM_HOTLINE.replace(/\./g, '')}`} className="login__hotline">
-              <Phone size={18} />
-              <span>Hotline</span>
-              <strong>{SYSTEM_HOTLINE}</strong>
-            </a>
           </div>
         </aside>
 
         <main className="login__main">
           <div className="login__card">
-            <div className="login__card-brand">
-              <KhoeSpaLogo size={52} />
-              <div>
-                <h2 className="login__card-title">Khoẻ Spa Manager</h2>
-                <p className="login__card-sub">Đăng nhập hệ thống quản trị</p>
-              </div>
-            </div>
+            <h2 className="login__card-title">Đăng nhập</h2>
 
             <form className="login__form app-form" onSubmit={handleSubmit}>
               <label className="login__field">
                 <span>Vai trò</span>
-                <div className="login__control">
-                  <UserRound className="login__control-icon" size={18} aria-hidden />
-                  <select
-                    value={role}
-                    onChange={(e) => handleRoleChange(e.target.value)}
-                    className={errors.role ? 'login__input--error' : ''}
-                  >
-                    <option value="">Chọn vai trò</option>
-                    {ROLE_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                </div>
+                <select
+                  value={role}
+                  onChange={(e) => handleRoleChange(e.target.value)}
+                  className={errors.role ? 'login__input--error' : ''}
+                >
+                  <option value="">Chọn vai trò</option>
+                  {ROLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
                 {errors.role && <span className="login__error">{errors.role}</span>}
               </label>
 
               {(isBranchManager || isEmployeeRole) && (
                 <label className="login__field">
                   <span>Chi nhánh</span>
-                  <div className="login__control">
-                    <Building2 className="login__control-icon" size={18} aria-hidden />
-                    <select
-                      value={branch}
-                      onChange={(e) => {
-                        setBranch(e.target.value)
-                        setEmployeeId('')
-                        setErrors((prev) => ({ ...prev, branch: undefined, employeeId: undefined }))
-                      }}
-                      className={errors.branch ? 'login__input--error' : ''}
-                    >
-                      <option value="">Chọn chi nhánh</option>
-                      {getActiveBranches().map((b) => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    value={branch}
+                    onChange={(e) => {
+                      setBranch(e.target.value)
+                      setEmployeeId('')
+                      setErrors((prev) => ({ ...prev, branch: undefined, employeeId: undefined }))
+                    }}
+                    className={errors.branch ? 'login__input--error' : ''}
+                  >
+                    <option value="">Chọn chi nhánh</option>
+                    {getActiveBranches().map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
                   {errors.branch && <span className="login__error">{errors.branch}</span>}
                 </label>
               )}
@@ -130,23 +115,20 @@ export default function Login({ onLogin, onBack }) {
               {isEmployeeRole && (
                 <label className="login__field">
                   <span>Nhân viên</span>
-                  <div className="login__control">
-                    <Users className="login__control-icon" size={18} aria-hidden />
-                    <select
-                      value={employeeId}
-                      onChange={(e) => {
-                        setEmployeeId(e.target.value)
-                        setErrors((prev) => ({ ...prev, employeeId: undefined }))
-                      }}
-                      className={errors.employeeId ? 'login__input--error' : ''}
-                      disabled={!branch}
-                    >
-                      <option value="">{branch ? 'Chọn nhân viên' : 'Chọn chi nhánh trước'}</option>
-                      {branchEmployees.map((employee) => (
-                        <option key={employee.id} value={employee.id}>{employee.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    value={employeeId}
+                    onChange={(e) => {
+                      setEmployeeId(e.target.value)
+                      setErrors((prev) => ({ ...prev, employeeId: undefined }))
+                    }}
+                    className={errors.employeeId ? 'login__input--error' : ''}
+                    disabled={!branch}
+                  >
+                    <option value="">{branch ? 'Chọn nhân viên' : 'Chọn chi nhánh trước'}</option>
+                    {branchEmployees.map((employee) => (
+                      <option key={employee.id} value={employee.id}>{employee.name}</option>
+                    ))}
+                  </select>
                   {errors.employeeId && <span className="login__error">{errors.employeeId}</span>}
                 </label>
               )}
@@ -154,34 +136,42 @@ export default function Login({ onLogin, onBack }) {
               {role && (
                 <label className="login__field">
                   <span>Mật khẩu</span>
-                  <div className="login__control">
-                    <Lock className="login__control-icon" size={18} aria-hidden />
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value)
-                        setErrors((prev) => ({ ...prev, password: undefined }))
-                      }}
-                      placeholder="Nhập mật khẩu"
-                      className={errors.password ? 'login__input--error' : ''}
-                      autoComplete="current-password"
-                    />
-                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      setErrors((prev) => ({ ...prev, password: undefined }))
+                    }}
+                    placeholder="Nhập mật khẩu"
+                    className={errors.password ? 'login__input--error' : ''}
+                    autoComplete="current-password"
+                  />
                   {errors.password && <span className="login__error">{errors.password}</span>}
                 </label>
               )}
 
-              <button type="submit" className="login__submit ks-btn-primary" disabled={!role}>
-                <Briefcase size={18} strokeWidth={2.25} />
+              <button type="submit" className="login__submit" disabled={!role}>
                 Đăng nhập
               </button>
             </form>
           </div>
-
-          <p className="login__footer-note">© 2026 Khoẻ Spa · {BRAND_SLOGAN}</p>
         </main>
       </div>
+
+      <footer className="login__branches">
+        <div className="login__branches-inner">
+          {BRANCH_CONTACTS.map((item) => (
+            <article key={item.id} className="login__branch-card">
+              <h3 className="login__branch-label">{item.label}</h3>
+              <p className="login__branch-address">{item.address}</p>
+              <a href={`tel:${item.phone.replace(/[\s.]/g, '')}`} className="login__branch-phone">
+                {item.phone}
+              </a>
+            </article>
+          ))}
+        </div>
+      </footer>
     </div>
   )
 }
