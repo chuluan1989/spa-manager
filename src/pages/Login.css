@@ -132,6 +132,9 @@
 .login__hero {
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  min-height: min(72vh, 720px);
   animation: loginFadeIn 0.65s ease both;
 }
 
@@ -139,10 +142,11 @@
   display: grid;
   grid-template-columns: 1fr 420px;
   align-items: center;
-  gap: 40px;
-  max-width: 1160px;
+  gap: 48px;
+  width: 100%;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 40px 40px 28px;
+  padding: 32px clamp(40px, 5vw, 64px) 28px;
 }
 
 /* —— Brand: logo + hotline only —— */
@@ -152,14 +156,14 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 0;
-  padding: 0 16px;
+  gap: 20px;
+  padding: 0 12px;
 }
 
 .login__logo {
   width: auto !important;
-  height: 480px !important;
-  max-width: min(100%, 520px) !important;
+  height: 540px !important;
+  max-width: min(100%, 580px) !important;
   object-fit: contain;
   filter: drop-shadow(0 28px 64px rgba(0, 0, 0, 0.6));
 }
@@ -168,11 +172,11 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-top: 20px;
-  font-size: 22px;
-  font-weight: 700;
+  margin-top: 0;
+  font-size: 26px;
+  font-weight: 600;
   letter-spacing: 0.05em;
-  color: var(--login-gold-light);
+  color: var(--login-gold);
   text-decoration: none;
   transition: color 0.25s ease;
 }
@@ -183,13 +187,10 @@
 }
 
 .login__hotline span {
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--login-gold);
 }
 
-.login__hotline:hover {
-  color: var(--login-gold-light);
-}
-
+.login__hotline:hover,
 .login__hotline:hover span {
   color: var(--login-gold-light);
 }
@@ -393,16 +394,16 @@
   position: relative;
   z-index: 1;
   flex: 1;
-  padding: 8px 32px 40px;
+  padding: 4px clamp(80px, 9vw, 120px) 44px;
   animation: loginFadeIn 0.65s ease 0.08s both;
 }
 
 .login__branches-fade {
   position: absolute;
-  top: -48px;
+  top: -40px;
   left: 0;
   right: 0;
-  height: 80px;
+  height: 72px;
   background: linear-gradient(to bottom, transparent 0%, rgba(212, 175, 55, 0.05) 100%);
   pointer-events: none;
 }
@@ -411,9 +412,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin: 0 auto 28px;
-  max-width: 1160px;
+  gap: 20px;
+  margin: 0 auto 12px;
+  max-width: 1280px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.2em;
@@ -426,24 +427,25 @@
 .login__branches-title::after {
   content: '';
   flex: 1;
-  max-width: 120px;
+  max-width: 220px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.45), transparent);
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.55), transparent);
 }
 
 .login__branches-grid {
-  max-width: 1160px;
+  max-width: 1280px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 24px;
 }
 
 .login__branch-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 18px 16px;
+  min-height: 118px;
+  padding: 22px 20px;
   background: rgba(18, 18, 18, 0.85);
   border: 1px solid rgba(212, 175, 55, 0.22);
   border-radius: 14px;
@@ -492,8 +494,8 @@
   padding-left: 42px;
   font-size: 13px;
   font-weight: 400;
-  line-height: 1.55;
-  color: var(--login-text-muted);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .login__branch-phone {
@@ -538,6 +540,10 @@
 }
 
 @media (max-width: 1024px) {
+  .login__hero {
+    min-height: auto;
+  }
+
   .login__hero-inner {
     grid-template-columns: 1fr;
     gap: 32px;
@@ -546,12 +552,21 @@
   }
 
   .login__logo {
-    height: 360px !important;
-    max-width: min(100%, 400px) !important;
+    height: 400px !important;
+    max-width: min(100%, 440px) !important;
+  }
+
+  .login__hotline {
+    font-size: 22px;
+  }
+
+  .login__branches {
+    padding: 4px clamp(32px, 6vw, 64px) 40px;
   }
 
   .login__branches-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
   }
 }
 
@@ -561,13 +576,16 @@
   }
 
   .login__logo {
-    height: 280px !important;
-    max-width: min(100%, 320px) !important;
+    height: 300px !important;
+    max-width: min(100%, 340px) !important;
+  }
+
+  .login__brand {
+    gap: 18px;
   }
 
   .login__hotline {
-    margin-top: 18px;
-    font-size: 19px;
+    font-size: 20px;
   }
 
   .login__card {
@@ -575,11 +593,17 @@
   }
 
   .login__branches {
-    padding: 12px 20px 36px;
+    padding: 4px 20px 36px;
+  }
+
+  .login__branches-title::before,
+  .login__branches-title::after {
+    max-width: 48px;
   }
 
   .login__branches-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .login__branch-address,
