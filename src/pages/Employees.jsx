@@ -19,6 +19,7 @@ import {
 } from '../constants/auth'
 import EmployeeAvatar from '../components/employees/EmployeeAvatar'
 import EmployeeProfileForm from '../components/employees/EmployeeProfileForm'
+import { redactEmployeeForViewer } from '../utils/employeeVisibility'
 import {
   EMPTY_EMPLOYEE_FORM,
   addEmployee,
@@ -100,14 +101,14 @@ export default function Employees() {
 
   const openEditModal = (employee) => {
     const fresh = getEmployeeById(employee.id) ?? employee
-    setForm(employeeToForm(fresh))
+    setForm(redactEmployeeForViewer(employeeToForm(fresh)))
     setErrors({})
     setModal({ mode: 'edit', employeeId: employee.id })
   }
 
   const openViewModal = (employee) => {
     const fresh = getEmployeeById(employee.id) ?? employee
-    setForm(employeeToForm(fresh))
+    setForm(redactEmployeeForViewer(employeeToForm(fresh)))
     setErrors({})
     setModal({ mode: 'view', employeeId: employee.id })
   }

@@ -69,10 +69,13 @@ const {
   canAddInvoice,
   canDeleteInvoice,
   canEditInvoice,
+  canViewEmployeeAvatar,
   canViewEmployeeBankInfo,
   canViewEmployeeCccd,
   canViewEmployeeCurrentAddress,
   canViewEmployeeEmergencyContact,
+  canViewEmployeeNote,
+  canViewEmployeePersonalInfo,
   filterByUserScope,
 } = await import('../src/constants/auth.js')
 const { saveInvoice, updateInvoice, loadInvoices } = await import('../src/utils/invoiceStorage.js')
@@ -82,6 +85,7 @@ const {
   updateEmployee,
   updateOwnEmployeeProfile,
 } = await import('../src/utils/employeeStorage.js')
+const { redactEmployeeForViewer } = await import('../src/utils/employeeVisibility.js')
 const { isValidCccd, isValidVietnamesePhone } = await import('../src/utils/validators.js')
 const { ensureCredentialsHashed } = await import('../src/utils/credentialsStorage.js')
 const { validateImportPayload } = await import('../src/utils/dataBackup.js')
@@ -408,6 +412,9 @@ test('employee profile permissions: manager cannot view sensitive info, admin se
   assert.equal(canViewEmployeeCurrentAddress(), false)
   assert.equal(canViewEmployeeBankInfo(), false)
   assert.equal(canViewEmployeeEmergencyContact(), false)
+  assert.equal(canViewEmployeeNote(), false)
+  assert.equal(canViewEmployeePersonalInfo(), false)
+  assert.equal(canViewEmployeeAvatar(), false, 'Quản lý không được xem ảnh chân dung')
   clearCurrentUser()
 
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
@@ -415,6 +422,80 @@ test('employee profile permissions: manager cannot view sensitive info, admin se
   assert.equal(canViewEmployeeCurrentAddress(), true)
   assert.equal(canViewEmployeeBankInfo(), true)
   assert.equal(canViewEmployeeEmergencyContact(), true)
+  assert.equal(canViewEmployeeNote(), true)
+  assert.equal(canViewEmployeePersonalInfo(), true)
+  assert.equal(canViewEmployeeAvatar(), true)
+  clearCurrentUser()
+})
+
+test('redactEmployeeForViewer: manager gets no sensitive fields, admin gets all', () => {
+  const employee = {
+    id: 'emp-x',
+    name: 'Nguyễn Văn A',
+    phone: '0901234567',
+    email: 'a@example.com',
+    gender: 'male',
+    dateOfBirth: '1990-01-01',
+    cccd: '079123456789',
+    cccdIssueDate: '2020-01-01',
+    cccdIssuePlace: 'CA Vĩnh Long',
+    cccdAddress: 'Địa chỉ CCCD',
+    cccdFrontImage: 'data:front',
+    cccdBackImage: 'data:back',
+    currentAddress: 'Địa chỉ hiện tại',
+    bankName: 'Vietcombank',
+    bankAccountHolder: 'Nguyen Van A',
+    bankAccount: '00110022',
+    emergencyContactName: 'Chị gái',
+    emergencyContactPhone: '0909876543',
+    note: 'Ghi chú nhạy cảm',
+    avatar: 'data:avatar',
+    position: 'Lễ tân',
+    status: 'active',
+  }
+
+  setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
+  const managerView = redactEmployeeForViewer(employee)
+  for (const field of [
+    'cccd', 'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'cccdFrontImage', 'cccdBackImage',
+    'currentAddress', 'bankName', 'bankAccountHolder', 'bankAccount',
+    'emergencyContactName', 'emergencyContactPhone', 'note', 'email', 'gender', 'dateOfBirth', 'avatar',
+  ]) {
+    assert.equal(field in managerView, false, `Quản lý không được nhận trường: ${field}`)
+  }
+  assert.equal(managerView.name, employee.name)
+  assert.equal(managerView.phone, employee.phone)
+  assert.equal(managerView.position, employee.position)
+  clearCurrentUser()
+
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  const adminView = redactEmployeeForViewer(employee)
+  assert.equal(adminView.cccd, employee.cccd)
+  assert.equal(adminView.bankAccount, employee.bankAccount)
+  assert.equal(adminView.avatar, employee.avatar)
+  clearCurrentUser()
+})
+
+test('redactEmployeeForViewer + updateEmployee: manager editing does not wipe hidden fields', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  updateEmployee('vinh-long-linh', {
+    cccd: '079999999999',
+    bankName: 'ACB',
+    bankAccount: '123123123',
+    currentAddress: 'Địa chỉ gốc',
+  })
+  clearCurrentUser()
+
+  setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
+  const redactedForm = redactEmployeeForViewer(getEmployeeById('vinh-long-linh'))
+  const payload = { ...redactedForm, position: 'KTV Body cấp cao' }
+  const result = updateEmployee('vinh-long-linh', payload)
+  assert.equal(result.success, true)
+  assert.equal(result.employee.position, 'KTV Body cấp cao')
+  assert.equal(result.employee.cccd, '079999999999', 'CCCD không bị mất khi Quản lý sửa hồ sơ')
+  assert.equal(result.employee.bankName, 'ACB')
+  assert.equal(result.employee.bankAccount, '123123123')
+  assert.equal(result.employee.currentAddress, 'Địa chỉ gốc')
   clearCurrentUser()
 })
 

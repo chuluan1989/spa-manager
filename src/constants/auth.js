@@ -126,8 +126,9 @@ export function canViewEmployeeNote(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
 
+/** Ảnh chân dung là thông tin riêng tư — chỉ Admin được xem. */
 export function canViewEmployeeAvatar(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER
+  return role === ROLES.ADMIN
 }
 
 export function canEditEmployeeAvatar(role = getCurrentUserRole()) {
