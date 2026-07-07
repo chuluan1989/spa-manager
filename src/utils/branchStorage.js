@@ -25,6 +25,7 @@ const DEFAULT_BRANCHES = [
   { id: 'song-khoe-spa', name: 'Sống Khoẻ Spa', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.SONG_KHOE_SPA, supportEnabled: true },
   { id: 'gia-lai-1', name: 'Gia Lai 1', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
   { id: 'gia-lai-2', name: 'Gia Lai 2', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+  { id: 'gia-lai-3', name: 'Gia Lai 3', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
 ]
 
 export function normalizeBranch(branch) {

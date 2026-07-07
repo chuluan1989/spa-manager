@@ -68,6 +68,7 @@ const { computeReportSummary, computeReportData } = await import('../src/utils/r
 const { computeSalaryReport, computeAdminEmployeeReports, computeEmployeeDailyReports, getPayPeriodRange, PAY_CYCLES } = await import('../src/utils/salaryReport.js')
 const { verifyLogin, ADMIN_BRANCH } = await import('../src/constants/loginCredentials.js')
 const { getActiveBranches, syncMissingDefaultBranches, BRANCH_STATUS } = await import('../src/utils/branchStorage.js')
+const { BRANCH_CONTACTS } = await import('../src/constants/branchContacts.js')
 const { PRICE_GROUP_IDS } = await import('../src/constants/priceGroupIds.js')
 const { ROLES } = await import('../src/constants/auth.js')
 const { saveCurrentUser, loadCurrentUser, clearCurrentUser } = await import('../src/utils/authStorage.js')
@@ -442,10 +443,11 @@ test('login: admin credentials', async () => {
   assert.equal(result.user.branch, ADMIN_BRANCH)
 })
 
-test('branches: Gia Lai 1 và Gia Lai 2 tồn tại với đúng nhóm bảng giá', () => {
+test('branches: Gia Lai 1, 2 và 3 tồn tại với đúng nhóm bảng giá', () => {
   const active = getActiveBranches()
   const giaLai1 = active.find((b) => b.id === 'gia-lai-1')
   const giaLai2 = active.find((b) => b.id === 'gia-lai-2')
+  const giaLai3 = active.find((b) => b.id === 'gia-lai-3')
 
   assert.ok(giaLai1, 'Phải có chi nhánh Gia Lai 1')
   assert.equal(giaLai1.name, 'Gia Lai 1')
@@ -456,12 +458,26 @@ test('branches: Gia Lai 1 và Gia Lai 2 tồn tại với đúng nhóm bảng gi
   assert.equal(giaLai2.name, 'Gia Lai 2')
   assert.equal(giaLai2.status, BRANCH_STATUS.ACTIVE)
   assert.equal(giaLai2.priceGroupId, PRICE_GROUP_IDS.STANDARD, 'Gia Lai 2 phải dùng nhóm bảng giá Khoẻ Spa')
+
+  assert.ok(giaLai3, 'Phải có chi nhánh Gia Lai 3 (CN8)')
+  assert.equal(giaLai3.name, 'Gia Lai 3')
+  assert.equal(giaLai3.status, BRANCH_STATUS.ACTIVE)
+  assert.equal(giaLai3.priceGroupId, PRICE_GROUP_IDS.STANDARD, 'Gia Lai 3 phải dùng nhóm bảng giá Khoẻ Spa')
 })
 
-test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh Gia Lai 1/2', async () => {
+test('branchContacts: đủ CN1 đến CN8', () => {
+  assert.equal(BRANCH_CONTACTS.length, 8)
+  const cn8 = BRANCH_CONTACTS.find((item) => item.label === 'CN8')
+  assert.ok(cn8, 'Phải có CN8')
+  assert.match(cn8.address, /174 Tạ Quang Bửu/)
+  assert.equal(cn8.phone, '0779.881.388')
+})
+
+test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh Gia Lai 1/2/3', async () => {
   await ensureCredentialsHashed()
   assert.equal(await verifyBranchPassword('gia-lai-1', 'khoespagialai1'), true)
   assert.equal(await verifyBranchPassword('gia-lai-2', 'khoespagialai2'), true)
+  assert.equal(await verifyBranchPassword('gia-lai-3', 'khoespagialai3'), true)
   assert.equal(await verifyBranchPassword('gia-lai-1', 'saipass'), false)
 
   const login1 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-1', password: 'khoespagialai1' })
@@ -471,6 +487,10 @@ test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh G
   const login2 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-2', password: 'khoespagialai2' })
   assert.equal(login2.ok, true)
   assert.equal(login2.user.branch, 'gia-lai-2')
+
+  const login3 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-3', password: 'khoespagialai3' })
+  assert.equal(login3.ok, true)
+  assert.equal(login3.user.branch, 'gia-lai-3')
 })
 
 test('branches: đồng bộ chi nhánh mặc định không làm mất chi nhánh cũ / dữ liệu tuỳ chỉnh', () => {
@@ -488,9 +508,10 @@ test('branches: đồng bộ chi nhánh mặc định không làm mất chi nhá
   assert.equal(vinhLong.name, 'Vĩnh Long (đã đổi tên)', 'Không được ghi đè dữ liệu chi nhánh cũ đã tuỳ chỉnh')
   assert.equal(vinhLong.status, BRANCH_STATUS.LOCKED, 'Không được đổi trạng thái chi nhánh cũ')
 
-  assert.equal(merged.length, 8, 'Phải giữ 2 chi nhánh cũ + bổ sung đủ chi nhánh mặc định còn thiếu')
+  assert.equal(merged.length, 9, 'Phải giữ 2 chi nhánh cũ + bổ sung đủ chi nhánh mặc định còn thiếu')
   assert.ok(merged.some((b) => b.id === 'gia-lai-1'), 'Phải tự bổ sung Gia Lai 1 cho người dùng cũ')
   assert.ok(merged.some((b) => b.id === 'gia-lai-2'), 'Phải tự bổ sung Gia Lai 2 cho người dùng cũ')
+  assert.ok(merged.some((b) => b.id === 'gia-lai-3'), 'Phải tự bổ sung Gia Lai 3 (CN8) cho người dùng cũ')
 })
 
 test('session: reject forged localStorage admin', () => {

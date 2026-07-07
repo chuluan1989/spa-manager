@@ -11,6 +11,7 @@ export const ADMIN_DASHBOARD_BRANCHES = [
   { id: 'bac-lieu', displayName: 'Khoẻ Spa Bạc Liêu' },
   { id: 'gia-lai-1', displayName: 'Gia Lai 1' },
   { id: 'gia-lai-2', displayName: 'Gia Lai 2' },
+  { id: 'gia-lai-3', displayName: 'Gia Lai 3' },
 ]
 
 function getInvoiceServiceCommission(invoice) {

@@ -1,6 +1,7 @@
-import { ArrowRight, BarChart3, Building2, ClipboardList, MapPin, ShieldCheck } from 'lucide-react'
+import { ArrowRight, BarChart3, Building2, ClipboardList, MapPin, Phone, ShieldCheck } from 'lucide-react'
 import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
-import { getActiveBranches } from '../constants/branches'
+import BranchContactsFooter from '../components/common/BranchContactsFooter'
+import { BRANCH_CONTACTS } from '../constants/branchContacts'
 import './Landing.css'
 
 const FEATURE_BLOCKS = [
@@ -27,8 +28,6 @@ const FEATURE_BLOCKS = [
 ]
 
 export default function Landing({ onStart }) {
-  const branches = getActiveBranches()
-
   return (
     <div className="landing">
       <div className="landing__texture" aria-hidden="true" />
@@ -67,20 +66,27 @@ export default function Landing({ onStart }) {
 
         <section className="landing__branches">
           <p className="landing__branches-eyebrow">Hệ thống chi nhánh</p>
-          <h2 className="landing__branches-title">Hiện diện tại</h2>
+          <h2 className="landing__branches-title">CN1 — CN8</h2>
           <div className="landing__branches-grid">
-            {branches.map((branch) => (
-              <div key={branch.id} className="landing__branch-chip">
-                <MapPin size={16} strokeWidth={2} />
-                <span>{branch.name}</span>
-              </div>
+            {BRANCH_CONTACTS.map((item) => (
+              <article key={item.id} className="landing__branch-card">
+                <div className="landing__branch-card-badge">{item.label}</div>
+                <p className="landing__branch-card-address">
+                  <MapPin size={14} aria-hidden />
+                  {item.address}
+                </p>
+                <a href={`tel:${item.phone.replace(/[\s.]/g, '')}`} className="landing__branch-card-phone">
+                  <Phone size={14} aria-hidden />
+                  {item.phone}
+                </a>
+              </article>
             ))}
           </div>
         </section>
 
         <footer className="landing__footer">
           <KhoeSpaLogo size={36} />
-          <p className="landing__footer-text">© 2026 Khoẻ Spa — Massage Y học cổ truyền</p>
+          <BranchContactsFooter variant="dark" showBranches={false} />
         </footer>
       </div>
     </div>

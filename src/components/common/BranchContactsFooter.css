@@ -1,0 +1,79 @@
+.branch-contacts-footer {
+  width: 100%;
+}
+
+.branch-contacts-footer__hotline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.branch-contacts-footer__hotline a {
+  color: var(--gold);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.branch-contacts-footer__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px 16px;
+  text-align: left;
+}
+
+.branch-contacts-footer__list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.branch-contacts-footer__list strong {
+  font-size: 12.5px;
+  color: var(--gold);
+}
+
+.branch-contacts-footer__address {
+  opacity: 0.85;
+}
+
+.branch-contacts-footer__list a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.branch-contacts-footer__list a:hover {
+  color: var(--gold);
+}
+
+.branch-contacts-footer__copy {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.branch-contacts-footer--dark {
+  color: var(--text-secondary);
+}
+
+.branch-contacts-footer--light {
+  color: #666;
+}
+
+.branch-contacts-footer--light .branch-contacts-footer__list strong {
+  color: #8b6914;
+}
+
+.branch-contacts-footer--light .branch-contacts-footer__hotline a {
+  color: #8b6914;
+}

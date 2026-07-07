@@ -24,6 +24,7 @@ export const DEFAULT_BRANCH_PASSWORDS = {
   'song-khoe-spa': 'songkhoespa',
   'gia-lai-1': 'khoespagialai1',
   'gia-lai-2': 'khoespagialai2',
+  'gia-lai-3': 'khoespagialai3',
 }
 
 function buildDefaultCredentials() {

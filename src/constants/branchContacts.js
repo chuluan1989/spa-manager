@@ -45,4 +45,10 @@ export const BRANCH_CONTACTS = [
     address: '286 Trần Hưng Đạo, P. Phú Lợi, TP Cần Thơ',
     phone: '085.4758.777',
   },
+  {
+    id: 'cn8',
+    label: 'CN8',
+    address: '174 Tạ Quang Bửu, P. Pleiku, Gia Lai',
+    phone: '0779.881.388',
+  },
 ]

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { getPriceGroupsWithBranchLabels, PRICE_GROUPS } from '../../constants/priceGroups'
+import { BRANCH_CONTACTS } from '../../constants/branchContacts'
 import {
   addBranch,
   BRANCH_STATUS,
@@ -152,6 +153,17 @@ export default function SettingsBranchesTab({ showToast, onDataChange }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="settings__info-box">
+        <p className="settings__hint">Thông tin liên hệ hệ thống (CN1 — CN8):</p>
+        <ul className="settings__info-list">
+          {BRANCH_CONTACTS.map((item) => (
+            <li key={item.id}>
+              <strong>{item.label}:</strong> {item.address} · {item.phone}
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="settings__info-box">

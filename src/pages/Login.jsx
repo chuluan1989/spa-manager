@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, Briefcase, Building2, Lock, MapPin, Phone, UserRound, Users } from 'lucide-react'
 import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
+import BranchContactsFooter from '../components/common/BranchContactsFooter'
 import { ROLES } from '../constants/auth'
 import { verifyLogin } from '../constants/loginCredentials'
 import { getActiveBranches } from '../constants/branches'
@@ -196,7 +197,7 @@ export default function Login({ onLogin, onBack }) {
             </form>
           </div>
 
-          <p className="login__footer">© 2026 Khoẻ Spa · {BRAND_SLOGAN}</p>
+          <BranchContactsFooter variant="light" />
         </main>
       </div>
     </div>
