@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard'
 import Employees from './pages/Employees'
 import Expenses from './pages/Expenses'
 import Invoice from './pages/Invoice'
+import Landing from './pages/Landing'
 import Login from './pages/Login'
 import MyProfile from './pages/MyProfile'
 import Report from './pages/Report'
@@ -56,6 +57,7 @@ function App() {
   const [activePage, setActivePage] = useState(() => getDefaultPage(loadCurrentUser()))
   const [authReady, setAuthReady] = useState(false)
   const [profileTick, setProfileTick] = useState(0)
+  const [authView, setAuthView] = useState('landing')
 
   useEffect(() => {
     clearLegacySession()
@@ -77,8 +79,13 @@ function App() {
   }
 
   if (!currentUser) {
+    if (authView === 'landing') {
+      return <Landing onStart={() => setAuthView('login')} />
+    }
+
     return (
       <Login
+        onBack={() => setAuthView('landing')}
         onLogin={(user) => {
           saveCurrentUser(user)
           setCurrentUser(user)
@@ -111,6 +118,7 @@ function App() {
   const handleLogout = () => {
     clearCurrentUser()
     setCurrentUser(null)
+    setAuthView('landing')
   }
 
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)
