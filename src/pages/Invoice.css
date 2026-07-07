@@ -375,6 +375,76 @@
   background: #fef2f2 !important;
 }
 
+.invoice__form-section {
+  margin-bottom: 0;
+}
+
+.invoice__section-title {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.invoice__fields--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.invoice__field--full {
+  grid-column: 1 / -1;
+}
+
+.invoice__money-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.invoice__calc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.invoice__calc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.invoice__calc-row strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.invoice__calc-row strong.is-discount {
+  color: #b45309;
+}
+
+.invoice__calc-row--total {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed #e5e7eb;
+  font-size: 15px;
+}
+
+.invoice__calc-row--total strong {
+  color: #92400e;
+  font-size: 16px;
+}
+
 @media (max-width: 1100px) {
   .invoice__body {
     grid-template-columns: 1fr;

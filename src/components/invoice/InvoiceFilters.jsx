@@ -2,7 +2,6 @@ import BranchBanner from '../common/BranchBanner'
 import { canSelectBranch } from '../../constants/auth'
 import { loadBranches } from '../../constants/branches'
 import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../../utils/employeeStorage'
-import { PAYMENT_METHOD_OPTIONS } from '../../utils/invoiceFilters'
 import './InvoiceFilters.css'
 
 export default function InvoiceFilters({
@@ -29,8 +28,8 @@ export default function InvoiceFilters({
   return (
     <section className="invoice-filters">
       <div className="invoice-filters__header">
-        <h3 className="invoice-filters__title">Bộ lọc hóa đơn</h3>
-        <span className="invoice-filters__count">{resultCount} hóa đơn phù hợp</span>
+        <h3 className="invoice-filters__title">Bộ lọc</h3>
+        <span className="invoice-filters__count">{resultCount} hóa đơn</span>
       </div>
 
       <div className="invoice-filters__grid">
@@ -91,28 +90,19 @@ export default function InvoiceFilters({
         </label>
 
         <label className="invoice-filters__field">
-          <span>Phương thức thanh toán</span>
-          <select value={filters.paymentMethod} onChange={(e) => update('paymentMethod', e.target.value)}>
-            {PAYMENT_METHOD_OPTIONS.map((option) => (
-              <option key={option.value || 'all'} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="invoice-filters__field">
-          <span>Khuyến mãi</span>
+          <span>Trạng thái KM</span>
           <select value={filters.discountFilter} onChange={(e) => update('discountFilter', e.target.value)}>
-            <option value="">Tất cả hóa đơn</option>
-            <option value="with">Chỉ có giảm giá</option>
-            <option value="without">Không giảm giá</option>
+            <option value="">Tất cả</option>
+            <option value="with">Có khuyến mãi</option>
+            <option value="without">Không khuyến mãi</option>
           </select>
         </label>
 
         <label className="invoice-filters__field invoice-filters__field--search">
-          <span>Tìm tên khách / SĐT</span>
+          <span>Tìm kiếm</span>
           <input
             type="search"
-            placeholder="Nhập tên hoặc số điện thoại..."
+            placeholder="Mã HĐ, khách, SĐT, NV, dịch vụ..."
             value={filters.search}
             onChange={(e) => update('search', e.target.value)}
           />

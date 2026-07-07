@@ -12,13 +12,11 @@ import {
   getScopedEmployeeId,
   isEmployee,
 } from '../constants/auth'
-import { getActiveBranches, getBranchById, isSupportBranchEnabled } from '../constants/branches'
+import { getActiveBranches, getBranchById } from '../constants/branches'
 import {
   getActiveEmployeesByBranch,
   getEmployeeById,
-  getSupportEligibleEmployees,
   isEmployeeInBranch,
-  isSupportEligibleEmployee,
 } from '../utils/employeeStorage'
 import { getActiveServicesForBranch } from '../utils/serviceStorage'
 import InvoiceDetailModal from '../components/invoice/InvoiceDetailModal'
@@ -65,7 +63,6 @@ const INITIAL_FORM = () => ({
   invoiceTime: getCurrentTime(),
   branchId: canSelectBranch() ? '' : getCurrentUserBranch(),
   employeeId: getScopedEmployeeId(''),
-  supportEmployeeId: '',
   customerName: '',
   customerPhone: '',
   note: '',
@@ -196,13 +193,6 @@ export default function Invoice() {
     [form.branchId],
   )
 
-  const showSupportField = !lockedEmployee && isSupportBranchEnabled(form.branchId)
-
-  const supportEmployees = useMemo(
-    () => (showSupportField ? getSupportEligibleEmployees(form.employeeId) : []),
-    [showSupportField, form.employeeId],
-  )
-
   const updateForm = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
     setErrors((prev) => ({ ...prev, [field]: undefined }))
@@ -213,20 +203,15 @@ export default function Invoice() {
       ...prev,
       branchId,
       employeeId: lockedEmployee ? prev.employeeId : '',
-      supportEmployeeId: '',
     }))
     setSelectedIds([])
     setFallbackServices([])
-    setErrors((prev) => ({ ...prev, branchId: undefined, employeeId: undefined, supportEmployeeId: undefined }))
+    setErrors((prev) => ({ ...prev, branchId: undefined, employeeId: undefined }))
   }
 
   const handleEmployeeChange = (employeeId) => {
-    setForm((prev) => ({
-      ...prev,
-      employeeId,
-      supportEmployeeId: prev.supportEmployeeId === employeeId ? '' : prev.supportEmployeeId,
-    }))
-    setErrors((prev) => ({ ...prev, employeeId: undefined, supportEmployeeId: undefined }))
+    setForm((prev) => ({ ...prev, employeeId }))
+    setErrors((prev) => ({ ...prev, employeeId: undefined }))
   }
 
   const handleTipsChange = (e) => {
@@ -257,15 +242,8 @@ export default function Invoice() {
     if (!branchId) next.branchId = 'Vui lòng chọn chi nhánh'
     if (!form.employeeId) {
       next.employeeId = 'Vui lòng chọn nhân viên'
-    } else if (!isEmployeeInBranch(form.employeeId, branchId)) {
+    } else     if (!isEmployeeInBranch(form.employeeId, branchId)) {
       next.employeeId = 'Nhân viên không thuộc chi nhánh đã chọn'
-    }
-    if (
-      showSupportField
-      && form.supportEmployeeId
-      && form.supportEmployeeId === form.employeeId
-    ) {
-      next.supportEmployeeId = 'Nhân viên hỗ trợ phải khác nhân viên chính'
     }
     if (selectedIds.length === 0) next.services = 'Vui lòng chọn ít nhất 1 dịch vụ'
     setErrors(next)
@@ -288,22 +266,15 @@ export default function Invoice() {
     setTimeout(() => setToast(''), 3000)
   }
 
-  const buildInvoicePayload = (branchId, branch, employee, supportEmployee) => ({
+  const buildInvoicePayload = (branchId, branch, employee, existingInvoice = null) => ({
     date: form.date,
     invoiceTime: form.invoiceTime,
     branchId,
     branchName: branch.name,
     employeeId: form.employeeId,
     employeeName: employee.name,
-    ...(supportEmployee
-      ? {
-          supportEmployeeId: supportEmployee.id,
-          supportEmployeeName: supportEmployee.name,
-        }
-      : {
-          supportEmployeeId: '',
-          supportEmployeeName: '',
-        }),
+    supportEmployeeId: existingInvoice?.supportEmployeeId ?? '',
+    supportEmployeeName: existingInvoice?.supportEmployeeName ?? '',
     customerName: form.customerName.trim(),
     customerPhone: form.customerPhone.trim(),
     serviceIds: selectedIds,
@@ -327,28 +298,14 @@ export default function Invoice() {
     const branchId = lockedBranch ? getCurrentUserBranch() : form.branchId
     const branch = getBranchById(branchId)
     const employee = getEmployeeById(form.employeeId)
-    const supportEmployee =
-      showSupportField && form.supportEmployeeId
-        ? getEmployeeById(form.supportEmployeeId)
-        : null
+    const existingInvoice = editingId ? getInvoiceById(editingId) : null
 
     if (!branch || !employee || !isEmployeeInBranch(form.employeeId, branchId)) {
       setErrors({ employeeId: 'Nhân viên không thuộc chi nhánh đã chọn' })
       return
     }
 
-    if (supportEmployee) {
-      if (supportEmployee.id === employee.id) {
-        setErrors({ supportEmployeeId: 'Nhân viên hỗ trợ phải khác nhân viên chính' })
-        return
-      }
-      if (!isSupportEligibleEmployee(supportEmployee.id)) {
-        setErrors({ supportEmployeeId: 'Nhân viên hỗ trợ không hợp lệ' })
-        return
-      }
-    }
-
-    const payload = buildInvoicePayload(branchId, branch, employee, supportEmployee)
+    const payload = buildInvoicePayload(branchId, branch, employee, existingInvoice)
 
     if (editingId) {
       const result = updateInvoice(editingId, payload)
@@ -394,7 +351,6 @@ export default function Invoice() {
       invoiceTime: readInvoiceTimeForForm(invoice),
       branchId: invoice.branchId,
       employeeId: lockedEmployee ? getScopedEmployeeId('') : invoice.employeeId,
-      supportEmployeeId: invoice.supportEmployeeId ?? '',
       customerName: invoice.customerName ?? '',
       customerPhone: invoice.customerPhone ?? '',
       note: invoice.note ?? '',
@@ -511,184 +467,117 @@ export default function Invoice() {
         <>
       <div className="invoice__body">
         <div className="invoice__main">
-          <div className="invoice__columns">
-            <section className="invoice__card">
-              <h3 className="invoice__card-title">Thông tin hóa đơn</h3>
-              <div className="invoice__fields">
-                {lockedBranch && <BranchBanner branchName={activeBranchName} />}
+          <section className="invoice__card invoice__form-section">
+            <h3 className="invoice__section-title">A. Thông tin chính</h3>
+            <div className="invoice__fields invoice__fields--grid">
+              {lockedBranch && <BranchBanner branchName={activeBranchName} />}
+              <label className="invoice__field">
+                <span>Ngày</span>
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={(e) => updateForm('date', e.target.value)}
+                  className={errors.date ? 'invoice__input--error' : ''}
+                />
+                {errors.date && <span className="invoice__error">{errors.date}</span>}
+              </label>
+              <label className="invoice__field">
+                <span>Giờ</span>
+                <input
+                  type="time"
+                  value={form.invoiceTime}
+                  onChange={(e) => updateForm('invoiceTime', e.target.value)}
+                />
+              </label>
+              {canSelectBranch() ? (
                 <label className="invoice__field">
-                  <span>Ngày</span>
-                  <input
-                    type="date"
-                    value={form.date}
-                    onChange={(e) => updateForm('date', e.target.value)}
-                    className={errors.date ? 'invoice__input--error' : ''}
-                  />
-                  {errors.date && <span className="invoice__error">{errors.date}</span>}
+                  <span>Chi nhánh</span>
+                  <select
+                    value={form.branchId}
+                    onChange={(e) => handleBranchChange(e.target.value)}
+                    className={errors.branchId ? 'invoice__input--error' : ''}
+                  >
+                    <option value="" disabled>Chọn chi nhánh</option>
+                    {getActiveBranches().map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                  {errors.branchId && <span className="invoice__error">{errors.branchId}</span>}
                 </label>
-                <label className="invoice__field">
-                  <span>Giờ</span>
-                  <input
-                    type="time"
-                    value={form.invoiceTime}
-                    onChange={(e) => updateForm('invoiceTime', e.target.value)}
-                  />
-                </label>
-                {canSelectBranch() ? (
-                  <label className="invoice__field">
-                    <span>Chi nhánh</span>
+              ) : null}
+              <label className="invoice__field">
+                <span>Nhân viên</span>
+                {lockedEmployee ? (
+                  <input type="text" value={getCurrentUserName()} disabled readOnly />
+                ) : (
+                  <>
                     <select
-                      value={form.branchId}
-                      onChange={(e) => handleBranchChange(e.target.value)}
-                      className={errors.branchId ? 'invoice__input--error' : ''}
+                      value={form.employeeId}
+                      onChange={(e) => handleEmployeeChange(e.target.value)}
+                      disabled={!form.branchId}
+                      className={errors.employeeId ? 'invoice__input--error' : ''}
                     >
                       <option value="" disabled>
-                        Chọn chi nhánh
+                        {form.branchId ? 'Chọn nhân viên' : 'Chọn chi nhánh trước'}
                       </option>
-                      {getActiveBranches().map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
+                      {branchEmployees.map((e) => (
+                        <option key={e.id} value={e.id}>{e.name}</option>
                       ))}
                     </select>
-                    {errors.branchId && (
-                      <span className="invoice__error">{errors.branchId}</span>
-                    )}
-                  </label>
-                ) : null}
-                <label className="invoice__field">
-                  <span>Nhân viên chính</span>
-                  {lockedEmployee ? (
-                    <input type="text" value={getCurrentUserName()} disabled readOnly />
-                  ) : (
-                    <>
-                      <select
-                        value={form.employeeId}
-                        onChange={(e) => handleEmployeeChange(e.target.value)}
-                        disabled={!form.branchId}
-                        className={errors.employeeId ? 'invoice__input--error' : ''}
-                      >
-                        <option value="" disabled>
-                          {form.branchId ? 'Chọn nhân viên' : 'Chọn chi nhánh trước'}
-                        </option>
-                        {branchEmployees.map((e) => (
-                          <option key={e.id} value={e.id}>
-                            {e.name}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.employeeId && (
-                        <span className="invoice__error">{errors.employeeId}</span>
-                      )}
-                    </>
-                  )}
-                </label>
-                {showSupportField && (
-                  <label className="invoice__field">
-                    <span>
-                      Nhân viên tư vấn
-                      <em className="invoice__optional"> (không bắt buộc)</em>
-                    </span>
-                    <select
-                      value={form.supportEmployeeId}
-                      onChange={(e) => updateForm('supportEmployeeId', e.target.value)}
-                      className={errors.supportEmployeeId ? 'invoice__input--error' : ''}
-                    >
-                      <option value="">Không chọn</option>
-                      {supportEmployees.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {e.name} — {getBranchById(e.branchId)?.name}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.supportEmployeeId && (
-                      <span className="invoice__error">{errors.supportEmployeeId}</span>
-                    )}
-                  </label>
+                    {errors.employeeId && <span className="invoice__error">{errors.employeeId}</span>}
+                  </>
                 )}
-                <label className="invoice__field">
-                  <span>
-                    Tên khách
-                    <em className="invoice__optional"> (không bắt buộc)</em>
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Nhập tên khách hàng"
-                    value={form.customerName}
-                    onChange={(e) => updateForm('customerName', e.target.value)}
-                  />
-                </label>
-                <label className="invoice__field">
-                  <span>
-                    Số điện thoại khách
-                    <em className="invoice__optional"> (không bắt buộc)</em>
-                  </span>
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    placeholder="Nhập SĐT khách hàng"
-                    value={form.customerPhone}
-                    onChange={(e) => updateForm('customerPhone', e.target.value)}
-                  />
-                </label>
-              </div>
-            </section>
+              </label>
+            </div>
+          </section>
 
-            <section className="invoice__card">
-              <h3 className="invoice__card-title">Danh sách dịch vụ</h3>
-              {errors.services && (
-                <p className="invoice__error invoice__error--block">{errors.services}</p>
-              )}
-              <div className="invoice__services">
-                {activeServices.map((service) => {
-                  const count = getServiceCount(service.id)
-                  return (
-                    <div
-                      key={service.id}
-                      className={`invoice__service${count > 0 ? ' invoice__service--selected' : ''}`}
-                    >
-                      <div className="invoice__service-qty">
-                        <button
-                          type="button"
-                          className="invoice__service-qty-btn"
-                          disabled={count === 0}
-                          onClick={() => removeOneService(service.id)}
-                          aria-label={`Giảm ${service.name}`}
-                        >
-                          −
-                        </button>
-                        <span className="invoice__service-qty-value">{count}</span>
-                        <button
-                          type="button"
-                          className="invoice__service-qty-btn"
-                          onClick={() => addService(service.id)}
-                          aria-label={`Thêm ${service.name}`}
-                        >
-                          +
-                        </button>
-                      </div>
-                      <span className="invoice__service-info">
-                        <span className="invoice__service-name">{service.name}</span>
-                        <span className="invoice__service-price">
-                          {formatCurrency(service.price)}
-                        </span>
-                      </span>
+          <section className="invoice__card invoice__form-section">
+            <h3 className="invoice__section-title">B. Dịch vụ &amp; tiền</h3>
+            {errors.services && (
+              <p className="invoice__error invoice__error--block">{errors.services}</p>
+            )}
+            <div className="invoice__services">
+              {activeServices.map((service) => {
+                const count = getServiceCount(service.id)
+                return (
+                  <div
+                    key={service.id}
+                    className={`invoice__service${count > 0 ? ' invoice__service--selected' : ''}`}
+                  >
+                    <div className="invoice__service-qty">
+                      <button
+                        type="button"
+                        className="invoice__service-qty-btn"
+                        disabled={count === 0}
+                        onClick={() => removeOneService(service.id)}
+                        aria-label={`Giảm ${service.name}`}
+                      >
+                        −
+                      </button>
+                      <span className="invoice__service-qty-value">{count}</span>
+                      <button
+                        type="button"
+                        className="invoice__service-qty-btn"
+                        onClick={() => addService(service.id)}
+                        aria-label={`Thêm ${service.name}`}
+                      >
+                        +
+                      </button>
                     </div>
-                  )
-                })}
-              </div>
+                    <span className="invoice__service-info">
+                      <span className="invoice__service-name">{service.name}</span>
+                      <span className="invoice__service-price">{formatCurrency(service.price)}</span>
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
 
-              <ServiceDetailTable items={totals.services?.length ? totals.services : selectedDetails} totals={totals} />
-            </section>
-          </div>
+            <ServiceDetailTable items={totals.services?.length ? totals.services : selectedDetails} totals={totals} />
 
-          <section className="invoice__card invoice__footer-fields">
-            <div className="invoice__footer-grid">
+            <div className="invoice__money-grid">
               <label className="invoice__field">
-                <span>
-                  Giảm giá / Khuyến mãi
-                  <em className="invoice__optional"> (% hoặc số tiền)</em>
-                </span>
+                <span>Giảm giá / Khuyến mãi</span>
                 <input
                   type="text"
                   placeholder="VD: 10% hoặc 50000"
@@ -696,7 +585,6 @@ export default function Invoice() {
                   onChange={(e) => setDiscountInput(e.target.value)}
                 />
               </label>
-
               <label className="invoice__field">
                 <span>Tips</span>
                 <input
@@ -707,33 +595,53 @@ export default function Invoice() {
                   onChange={handleTipsChange}
                 />
               </label>
-
-              <fieldset className="invoice__payment">
-                <legend>Phương thức thanh toán</legend>
-                <div className="invoice__payment-options">
-                  <label className="invoice__payment-option">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cash"
-                      checked={paymentMethod === 'cash'}
-                      onChange={() => setPaymentMethod('cash')}
-                    />
-                    <span>Tiền mặt</span>
-                  </label>
-                  <label className="invoice__payment-option">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="transfer"
-                      checked={paymentMethod === 'transfer'}
-                      onChange={() => setPaymentMethod('transfer')}
-                    />
-                    <span>Chuyển khoản</span>
-                  </label>
+              <div className="invoice__calc">
+                <div className="invoice__calc-row">
+                  <span>Giá vé</span>
+                  <strong>{formatCurrency(totals.originalServiceTotal)}</strong>
                 </div>
-              </fieldset>
+                <div className="invoice__calc-row">
+                  <span>Khuyến mãi</span>
+                  <strong className="is-discount">−{formatCurrency(totals.discountAmount)}</strong>
+                </div>
+                <div className="invoice__calc-row">
+                  <span>Thanh toán</span>
+                  <strong>{formatCurrency(totals.serviceTotal)}</strong>
+                </div>
+                <div className="invoice__calc-row">
+                  <span>Tips</span>
+                  <strong>{formatCurrency(totals.tips)}</strong>
+                </div>
+                <div className="invoice__calc-row invoice__calc-row--total">
+                  <span>Tổng khách trả</span>
+                  <strong>{formatCurrency(totals.total)}</strong>
+                </div>
+              </div>
+            </div>
+          </section>
 
+          <section className="invoice__card invoice__form-section">
+            <h3 className="invoice__section-title">C. Thông tin khách</h3>
+            <div className="invoice__fields invoice__fields--grid">
+              <label className="invoice__field">
+                <span>Tên khách</span>
+                <input
+                  type="text"
+                  placeholder="Nhập tên khách hàng"
+                  value={form.customerName}
+                  onChange={(e) => updateForm('customerName', e.target.value)}
+                />
+              </label>
+              <label className="invoice__field">
+                <span>SĐT khách</span>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="Nhập SĐT khách hàng"
+                  value={form.customerPhone}
+                  onChange={(e) => updateForm('customerPhone', e.target.value)}
+                />
+              </label>
               <label className="invoice__field invoice__field--full">
                 <span>Ghi chú</span>
                 <textarea

@@ -1,4 +1,11 @@
-import { invoiceHasDiscount, getInvoicePayment, getInvoiceCustomerTotal, getInvoiceServiceDetails } from './invoice'
+import {
+  getInvoiceDiscountAmount,
+  getInvoiceOriginalServiceTotal,
+  invoiceHasDiscount,
+  getInvoicePayment,
+  getInvoiceCustomerTotal,
+  getInvoiceServiceDetails,
+} from './invoice'
 
 export const INVOICE_PAGE_SIZE = 20
 
@@ -43,6 +50,17 @@ export function sortInvoicesDesc(invoices) {
   })
 }
 
+function buildInvoiceSearchHaystack(invoice) {
+  const services = getInvoiceServiceDetails(invoice)
+  return [
+    invoice.id ?? '',
+    invoice.customerName ?? '',
+    invoice.customerPhone ?? '',
+    invoice.employeeName ?? '',
+    ...services.map((service) => service.name ?? ''),
+  ].join(' ').toLowerCase()
+}
+
 export function filterInvoices(invoices, filters) {
   const {
     fromDate = '',
@@ -78,11 +96,7 @@ export function filterInvoices(invoices, filters) {
       if (!serviceIds.includes(serviceId)) return false
     }
 
-    if (query) {
-      const name = (invoice.customerName ?? '').toLowerCase()
-      const phone = (invoice.customerPhone ?? '').toLowerCase()
-      if (!name.includes(query) && !phone.includes(query)) return false
-    }
+    if (query && !buildInvoiceSearchHaystack(invoice).includes(query)) return false
 
     if (discountFilter === 'with' && !invoiceHasDiscount(invoice)) return false
     if (discountFilter === 'without' && invoiceHasDiscount(invoice)) return false
@@ -95,6 +109,8 @@ export function computeInvoiceListTotals(invoices) {
   return invoices.reduce(
     (acc, invoice) => {
       acc.count += 1
+      acc.ticketPrice += getInvoiceOriginalServiceTotal(invoice)
+      acc.discount += getInvoiceDiscountAmount(invoice)
       acc.ticketRevenue += getInvoicePayment(invoice)
       acc.revenue += getInvoicePayment(invoice)
       acc.customerTotal += getInvoiceCustomerTotal(invoice)
@@ -102,7 +118,16 @@ export function computeInvoiceListTotals(invoices) {
       acc.commission += Number.isFinite(invoice.commission) ? invoice.commission : 0
       return acc
     },
-    { count: 0, ticketRevenue: 0, revenue: 0, customerTotal: 0, tips: 0, commission: 0 },
+    {
+      count: 0,
+      ticketPrice: 0,
+      discount: 0,
+      ticketRevenue: 0,
+      revenue: 0,
+      customerTotal: 0,
+      tips: 0,
+      commission: 0,
+    },
   )
 }
 

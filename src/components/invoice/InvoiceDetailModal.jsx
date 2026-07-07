@@ -37,10 +37,9 @@ export default function InvoiceDetailModal({ invoice, onClose, onEdit, canEdit }
 
         <div className="invoice-detail-modal__body">
           <section className="invoice-detail-modal__section">
-            <h4>Nhân viên & khách</h4>
+            <h4>Nhân viên &amp; khách</h4>
             <dl className="invoice-detail-modal__grid">
-              <div><dt>Nhân viên thực hiện</dt><dd>{invoice.employeeName || '—'}</dd></div>
-              <div><dt>Nhân viên hỗ trợ/tư vấn</dt><dd>{invoice.supportEmployeeName || '—'}</dd></div>
+              <div><dt>Nhân viên</dt><dd>{invoice.employeeName || '—'}</dd></div>
               <div><dt>Tên khách</dt><dd>{invoice.customerName || '—'}</dd></div>
               <div><dt>SĐT khách</dt><dd>{invoice.customerPhone || '—'}</dd></div>
             </dl>
