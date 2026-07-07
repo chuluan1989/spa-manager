@@ -166,13 +166,16 @@
   max-width: min(100%, 667px) !important;
   object-fit: contain;
   filter: drop-shadow(0 28px 64px rgba(0, 0, 0, 0.6));
+  position: relative;
+  top: -40px;
+  margin-bottom: -120px;
 }
 
 .login__hotline {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-top: -120px;
+  margin-top: 0;
   font-size: 26px;
   font-weight: 600;
   letter-spacing: 0.05em;
