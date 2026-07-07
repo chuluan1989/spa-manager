@@ -8,8 +8,30 @@ import {
   PERMISSION_KEYS,
 } from './storageAccess'
 import { validateEmployeeSelfProfile } from './validators'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { deleteEmployeeRow, upsertEmployee } from '../repositories/employeesRepository'
 
 import { ROLES } from '../constants/roles'
+
+/**
+ * Ghi kèm lên Supabase (nếu đã cấu hình) mỗi khi có thay đổi — không chặn
+ * (fire-and-forget) để không làm chậm/UI không đổi. Nếu mất mạng hoặc
+ * Supabase chưa cấu hình, chỉ log cảnh báo, dữ liệu LocalStorage vẫn là
+ * nguồn dữ liệu chính cho thiết bị hiện tại.
+ */
+function pushEmployeeToSupabase(employee) {
+  if (!isSupabaseConfigured || !employee) return
+  upsertEmployee(employee).catch((error) => {
+    console.warn('[Supabase] Không thể đồng bộ hồ sơ nhân viên:', error?.message)
+  })
+}
+
+function pushEmployeeDeletionToSupabase(id) {
+  if (!isSupabaseConfigured || !id) return
+  deleteEmployeeRow(id).catch((error) => {
+    console.warn('[Supabase] Không thể xoá nhân viên trên máy chủ:', error?.message)
+  })
+}
 
 export const EMPLOYEE_STATUS = {
   ACTIVE: 'active',
@@ -475,6 +497,7 @@ export function addEmployee(data) {
   } catch (error) {
     return denyAccess(error.message)
   }
+  pushEmployeeToSupabase(employee)
   return { success: true, employee }
 }
 
@@ -511,6 +534,7 @@ export function updateEmployee(id, data) {
   } catch (error) {
     return denyAccess(error.message)
   }
+  pushEmployeeToSupabase(employees[index])
   return { success: true, employee: employees[index] }
 }
 
@@ -550,6 +574,7 @@ export function updateOwnEmployeeProfile(id, data) {
   } catch (error) {
     return { success: false, error: error.message }
   }
+  pushEmployeeToSupabase(updated)
   return { success: true, employee: updated }
 }
 
@@ -566,6 +591,7 @@ export function deleteEmployee(id) {
 
   const next = employees.filter((e) => e.id !== id)
   saveEmployees(next)
+  pushEmployeeDeletionToSupabase(id)
   return { success: true, employees: next }
 }
 

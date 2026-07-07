@@ -1,4 +1,14 @@
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { upsertSettings } from '../repositories/settingsRepository'
+
 const STORAGE_KEY = 'spa-manager-system-settings'
+
+function pushSettingsToSupabase(settings) {
+  if (!isSupabaseConfigured) return
+  upsertSettings(settings).catch((error) => {
+    console.warn('[Supabase] Không thể đồng bộ cài đặt hệ thống:', error?.message)
+  })
+}
 
 export const DEFAULT_SYSTEM_SETTINGS = {
   systemName: 'Spa Manager',
@@ -29,5 +39,6 @@ export function saveSystemSettings(settings) {
     note: settings.note?.trim() ?? '',
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+  pushSettingsToSupabase(normalized)
   return normalized
 }

@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import BranchBanner from '../components/common/BranchBanner'
+import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import {
   canSelectBranch,
   filterByUserBranch,
@@ -49,6 +50,11 @@ export default function Expenses() {
   }
 
   const refresh = () => setAllExpenses(loadExpenses())
+
+  const syncVersion = useDataSyncVersion()
+  useEffect(() => {
+    if (syncVersion > 0) refresh()
+  }, [syncVersion])
 
   const getFormPayload = (data) => ({
     ...data,

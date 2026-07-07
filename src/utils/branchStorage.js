@@ -1,4 +1,13 @@
 import { PRICE_GROUP_IDS } from '../constants/priceGroupIds'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { upsertBranches } from '../repositories/branchesRepository'
+
+function pushBranchesToSupabase(branches) {
+  if (!isSupabaseConfigured) return
+  upsertBranches(branches).catch((error) => {
+    console.warn('[Supabase] Không thể đồng bộ chi nhánh:', error?.message)
+  })
+}
 
 export const BRANCH_STATUS = {
   ACTIVE: 'active',
@@ -53,6 +62,7 @@ export function loadBranches() {
 export function saveBranches(branches) {
   const normalized = branches.map(normalizeBranch)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+  pushBranchesToSupabase(normalized)
   return normalized
 }
 

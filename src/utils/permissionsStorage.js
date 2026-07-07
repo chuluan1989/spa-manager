@@ -1,6 +1,15 @@
 import { ROLES } from '../constants/roles'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { upsertPermissions } from '../repositories/permissionsRepository'
 
 const STORAGE_KEY = 'spa-manager-permissions'
+
+function pushPermissionsToSupabase(permissions) {
+  if (!isSupabaseConfigured) return
+  upsertPermissions(permissions).catch((error) => {
+    console.warn('[Supabase] Không thể đồng bộ phân quyền:', error?.message)
+  })
+}
 
 export const PERMISSION_KEYS = {
   VIEW_REPORT: 'viewReport',
@@ -73,6 +82,7 @@ export function loadPermissions() {
 export function savePermissions(permissions) {
   const normalized = normalizePermissions(permissions)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+  pushPermissionsToSupabase(normalized)
   return normalized
 }
 

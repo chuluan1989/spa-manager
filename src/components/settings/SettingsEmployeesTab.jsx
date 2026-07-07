@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import EmployeeProfileForm from '../employees/EmployeeProfileForm'
 import EmployeeProfileDetail from '../employees/EmployeeProfileDetail'
+import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import { loadBranches } from '../../utils/branchStorage'
 import {
   addEmployee,
@@ -51,6 +52,11 @@ export default function SettingsEmployeesTab({ showToast }) {
   const [errors, setErrors] = useState({})
   const [transfer, setTransfer] = useState({ employeeId: '', branchId: '' })
   const [filters, setFilters] = useState({ branchId: '', status: '', profileStatus: '', search: '' })
+
+  const syncVersion = useDataSyncVersion()
+  useEffect(() => {
+    if (syncVersion > 0) setEmployees(loadEmployees())
+  }, [syncVersion])
 
   const branches = useMemo(() => loadBranches(), [employees])
 

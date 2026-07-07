@@ -1,6 +1,15 @@
 import { DEFAULT_PRICE_GROUPS } from '../constants/defaultPriceGroups'
 import { getAllPriceGroupIds, getPriceGroupIdForBranch } from '../constants/priceGroups'
 import { getServicesForBranch, syncNewServiceToCustomBranchPricing } from './branchPricingStorage'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { upsertServices } from '../repositories/servicesRepository'
+
+function pushServicesToSupabase(services) {
+  if (!isSupabaseConfigured) return
+  upsertServices(services).catch((error) => {
+    console.warn('[Supabase] Không thể đồng bộ dịch vụ:', error?.message)
+  })
+}
 
 export const SERVICE_STATUS = {
   ACTIVE: 'active',
@@ -135,6 +144,7 @@ export function saveServices(services) {
   const normalized = services.map(normalizeService)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   localStorage.setItem(VERSION_KEY, String(DATA_VERSION))
+  pushServicesToSupabase(normalized)
   return normalized
 }
 

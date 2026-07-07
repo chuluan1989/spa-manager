@@ -1,7 +1,16 @@
 import { getBranchById, loadBranches } from './branchStorage'
 import { getServicesForPriceList, loadServices } from './serviceStorage'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { upsertBranchPricingMap } from '../repositories/branchPricingRepository'
 
 const STORAGE_KEY = 'spa-manager-branch-pricing'
+
+function pushBranchPricingToSupabase(map) {
+  if (!isSupabaseConfigured) return
+  upsertBranchPricingMap(map).catch((error) => {
+    console.warn('[Supabase] Không thể đồng bộ bảng giá chi nhánh:', error?.message)
+  })
+}
 
 function normalizeEntry(entry) {
   return {
@@ -43,6 +52,7 @@ export function loadBranchPricingMap() {
 
 export function saveBranchPricingMap(map) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
+  pushBranchPricingToSupabase(map)
   return map
 }
 

@@ -794,5 +794,81 @@ test('report profit subtracts commission and tips', () => {
   assert.equal(report.summary.profit, 239000 - 37800 - 50000)
 })
 
+async function testAsync(name, fn) {
+  try {
+    resetStorage()
+    await fn()
+    passed += 1
+    console.log(`  ✓ ${name}`)
+  } catch (error) {
+    failed += 1
+    console.error(`  ✗ ${name}`)
+    console.error(`    ${error.message}`)
+  }
+}
+
+const { isSupabaseConfigured: supabaseConfigured, supabase: supabaseClientInstance } = await import(
+  '../src/lib/supabaseClient.js'
+)
+const { camelToSnakeKey, snakeToCamelKey, objectToSnakeRow, rowToCamel } = await import(
+  '../src/repositories/caseUtils.js'
+)
+const {
+  pullAllFromSupabase,
+  pushLocalToSupabase,
+  autoMigrateIfNeeded,
+  startAutoSync,
+  subscribeToDataSync,
+} = await import('../src/utils/supabaseSync.js')
+
+await testAsync('supabaseClient: không có biến môi trường -> fallback LocalStorage, không lỗi', async () => {
+  assert.equal(supabaseConfigured, false, 'isSupabaseConfigured phải là false khi thiếu env')
+  assert.equal(supabaseClientInstance, null, 'supabase client phải là null khi chưa cấu hình')
+})
+
+await testAsync('caseUtils: chuyển đổi camelCase <-> snake_case hai chiều', async () => {
+  assert.equal(camelToSnakeKey('branchId'), 'branch_id')
+  assert.equal(camelToSnakeKey('cccdFrontImage'), 'cccd_front_image')
+  assert.equal(snakeToCamelKey('branch_id'), 'branchId')
+  assert.equal(snakeToCamelKey('cccd_front_image'), 'cccdFrontImage')
+
+  const original = { branchId: 'vinh-long', cccdFrontImage: 'data:...', name: 'Linh' }
+  const row = objectToSnakeRow(original)
+  assert.equal(row.branch_id, 'vinh-long')
+  assert.equal(row.cccd_front_image, 'data:...')
+  const roundTrip = rowToCamel(row)
+  assert.deepEqual(roundTrip, original)
+})
+
+await testAsync(
+  'supabaseSync: pull/push/migrate trả về not_configured khi chưa cấu hình, không throw lỗi',
+  async () => {
+    const pullResult = await pullAllFromSupabase()
+    assert.equal(pullResult.success, false)
+    assert.equal(pullResult.reason, 'not_configured')
+
+    const pushResult = await pushLocalToSupabase()
+    assert.equal(pushResult.success, false)
+    assert.equal(pushResult.reason, 'not_configured')
+
+    const migrateResult = await autoMigrateIfNeeded()
+    assert.equal(migrateResult.success, false)
+    assert.equal(migrateResult.reason, 'not_configured')
+  },
+)
+
+await testAsync(
+  'supabaseSync: startAutoSync/subscribeToDataSync an toàn khi chưa cấu hình (no-op)',
+  async () => {
+    const unsubscribe = subscribeToDataSync(() => {})
+    assert.equal(typeof unsubscribe, 'function')
+    unsubscribe()
+
+    const stop = startAutoSync()
+    assert.equal(typeof stop, 'function')
+    stop()
+  },
+)
+
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`)
 process.exit(failed > 0 ? 1 : 0)

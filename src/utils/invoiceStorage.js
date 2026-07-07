@@ -11,6 +11,22 @@ import {
 import { getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
 import { getSelectedServiceDetails } from './invoice'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { deleteInvoiceRow, upsertInvoice } from '../repositories/invoicesRepository'
+
+function pushInvoiceToSupabase(invoice) {
+  if (!isSupabaseConfigured || !invoice) return
+  upsertInvoice(invoice).catch((error) => {
+    console.warn('[Supabase] Không thể đồng bộ hóa đơn:', error?.message)
+  })
+}
+
+function pushInvoiceDeletionToSupabase(id) {
+  if (!isSupabaseConfigured || !id) return
+  deleteInvoiceRow(id).catch((error) => {
+    console.warn('[Supabase] Không thể xoá hóa đơn trên máy chủ:', error?.message)
+  })
+}
 
 const EMPLOYEE_EDITABLE_INVOICE_FIELDS = [
   'date',
@@ -102,6 +118,13 @@ export function getInvoiceById(id) {
   return loadInvoices().find((invoice) => invoice.id === id) ?? null
 }
 
+/** Ghi đè toàn bộ cache LocalStorage — dùng khi kéo dữ liệu mới nhất từ Supabase về. */
+export function replaceAllInvoices(invoices) {
+  const list = Array.isArray(invoices) ? invoices : []
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+  return list
+}
+
 export function saveInvoice(invoice) {
   if (!canAddInvoice()) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn.' }
@@ -130,10 +153,14 @@ export function saveInvoice(invoice) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
   }
 
-  const snapshot = ensureInvoiceSnapshot(payload)
+  const snapshot = ensureInvoiceSnapshot({
+    ...payload,
+    createdAt: payload.createdAt ?? new Date().toISOString(),
+  })
   const invoices = loadInvoices()
   invoices.unshift(snapshot)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+  pushInvoiceToSupabase(snapshot)
   return { success: true, invoice: snapshot, invoices }
 }
 
@@ -180,6 +207,7 @@ export function updateInvoice(id, data) {
 
   invoices[index] = updated
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+  pushInvoiceToSupabase(updated)
   return { success: true, invoice: updated, invoices }
 }
 
@@ -200,6 +228,7 @@ export function deleteInvoice(id) {
 
   const invoices = loadInvoices().filter((inv) => inv.id !== id)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+  pushInvoiceDeletionToSupabase(id)
   return { success: true, invoices }
 }
 

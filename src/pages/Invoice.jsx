@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import BranchBanner from '../components/common/BranchBanner'
+import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import {
   canDeleteInvoice,
   canEditInvoice,
@@ -60,6 +61,11 @@ export default function Invoice() {
   const [invoices, setInvoices] = useState(() => loadInvoices())
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState('')
+
+  const syncVersion = useDataSyncVersion()
+  useEffect(() => {
+    if (syncVersion > 0) setInvoices(loadInvoices())
+  }, [syncVersion])
 
   const visibleInvoices = useMemo(
     () => filterByUserBranch(invoices),

@@ -1,8 +1,17 @@
 import { ADMIN_BRANCH } from '../constants/roles'
 import { loadBranches } from './branchStorage'
 import { hashPassword, isPasswordHash, verifyPassword } from './passwordHash'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { upsertCredentials } from '../repositories/credentialsRepository'
 
 const STORAGE_KEY = 'spa-manager-credentials'
+
+function pushCredentialsToSupabase(credentials) {
+  if (!isSupabaseConfigured) return
+  upsertCredentials(credentials).catch((error) => {
+    console.warn('[Supabase] Không thể đồng bộ tài khoản đăng nhập:', error?.message)
+  })
+}
 
 export const DEFAULT_ADMIN_PASSWORD = 'admin123'
 
@@ -80,6 +89,7 @@ export function saveCredentials(credentials) {
     branches: { ...loadCredentials().branches, ...(credentials.branches ?? {}) },
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+  pushCredentialsToSupabase(normalized)
   return normalized
 }
 
@@ -89,6 +99,7 @@ export async function saveCredentialsHashed(credentials) {
     branches: { ...loadCredentials().branches, ...(credentials.branches ?? {}) },
   })
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+  pushCredentialsToSupabase(normalized)
   return normalized
 }
 

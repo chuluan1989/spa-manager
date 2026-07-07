@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import EmployeeSalaryPanel from '../components/report/EmployeeSalaryPanel'
 import BranchBanner from '../components/common/BranchBanner'
+import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import {
   canSelectBranch,
   canViewOverviewReport,
@@ -117,9 +118,11 @@ export default function Report() {
     [effectiveFilters.branchId],
   )
 
+  const syncVersion = useDataSyncVersion()
+
   const report = useMemo(
     () => computeReportData(loadInvoices(), loadExpenses(), effectiveFilters),
-    [effectiveFilters],
+    [effectiveFilters, syncVersion],
   )
 
   if (!canViewReport()) {

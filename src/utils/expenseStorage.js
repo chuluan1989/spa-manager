@@ -9,8 +9,24 @@ import {
 } from './storageAccess'
 
 import { ROLES } from '../constants/roles'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { deleteExpenseRow, upsertExpense } from '../repositories/expensesRepository'
 
 const STORAGE_KEY = 'spa-manager-expenses'
+
+function pushExpenseToSupabase(expense) {
+  if (!isSupabaseConfigured || !expense) return
+  upsertExpense(expense).catch((error) => {
+    console.warn('[Supabase] Không thể đồng bộ khoản chi:', error?.message)
+  })
+}
+
+function pushExpenseDeletionToSupabase(id) {
+  if (!isSupabaseConfigured || !id) return
+  deleteExpenseRow(id).catch((error) => {
+    console.warn('[Supabase] Không thể xoá khoản chi trên máy chủ:', error?.message)
+  })
+}
 
 export const EMPTY_EXPENSE_FORM = {
   date: getTodayDate(),
@@ -52,7 +68,7 @@ export function saveExpenses(expenses) {
   return expenses
 }
 
-function normalizeExpense(expense) {
+export function normalizeExpense(expense) {
   return {
     id: expense.id,
     date: expense.date ?? '',
@@ -113,6 +129,7 @@ export function addExpense(data) {
   })
   expenses.unshift(expense)
   saveExpenses(expenses)
+  pushExpenseToSupabase(expense)
   return { success: true, expense }
 }
 
@@ -137,6 +154,7 @@ export function updateExpense(id, data) {
     ...merged,
   })
   saveExpenses(expenses)
+  pushExpenseToSupabase(expenses[index])
   return { success: true, expense: expenses[index] }
 }
 
@@ -152,6 +170,7 @@ export function deleteExpense(id) {
 
   const next = expenses.filter((exp) => exp.id !== id)
   saveExpenses(next)
+  pushExpenseDeletionToSupabase(id)
   return { success: true, expenses: next }
 }
 

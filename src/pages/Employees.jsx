@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import BranchBanner from '../components/common/BranchBanner'
+import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import { getBranchById, loadBranches } from '../constants/branches'
 import {
   canAccessEmployeesPage,
@@ -57,6 +58,11 @@ export default function Employees() {
   const [viewEmployee, setViewEmployee] = useState(null)
   const [transfer, setTransfer] = useState({ employeeId: '', branchId: '' })
   const [filters, setFilters] = useState({ status: '', search: '' })
+
+  const syncVersion = useDataSyncVersion()
+  useEffect(() => {
+    if (syncVersion > 0) setAllEmployees(loadEmployees())
+  }, [syncVersion])
 
   const filteredEmployees = useMemo(() => {
     const search = filters.search.trim().toLowerCase()

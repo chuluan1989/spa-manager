@@ -4,9 +4,13 @@ import { loadInvoices } from '../utils/invoiceStorage'
 import { loadExpenses } from '../utils/expenseStorage'
 import { computeDashboardStats } from '../utils/dashboardStats'
 import { getCurrentUserName, isAdmin, isEmployee } from '../constants/auth'
+import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import './Dashboard.css'
 
 export default function Dashboard() {
+  // Chỉ dùng để kích hoạt re-render khi có dữ liệu mới từ Supabase — dữ
+  // liệu hiển thị vẫn luôn đọc trực tiếp từ LocalStorage bên dưới.
+  useDataSyncVersion()
   const invoices = loadInvoices()
   const expenses = loadExpenses()
   const stats = computeDashboardStats(invoices, expenses)

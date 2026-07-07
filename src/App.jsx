@@ -24,6 +24,7 @@ import { ensureCredentialsHashed, syncMissingBranchCredentials } from './utils/c
 import { syncAllCustomBranchPricing } from './utils/branchPricingStorage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { getEmployeeById, isEmployeeProfileComplete } from './utils/employeeStorage'
+import { startAutoSync } from './utils/supabaseSync'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -70,6 +71,15 @@ function App() {
       syncAllCustomBranchPricing()
       setAuthReady(true)
     })
+  }, [])
+
+  // Nếu đã cấu hình VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY: đồng bộ dữ
+  // liệu cũ lên Supabase (chỉ 1 lần, an toàn) rồi kéo dữ liệu chung về định
+  // kỳ. Không cấu hình thì không làm gì — ứng dụng chạy hoàn toàn bằng
+  // LocalStorage như trước, không lỗi.
+  useEffect(() => {
+    const stopSync = startAutoSync()
+    return stopSync
   }, [])
 
   if (!authReady) {
