@@ -83,23 +83,23 @@ export async function ensureCredentialsHashed() {
   return normalized
 }
 
-export function saveCredentials(credentials) {
+export function saveCredentials(credentials, { skipRemoteSync = false } = {}) {
   const normalized = {
     admin: credentials.admin ?? DEFAULT_ADMIN_PASSWORD,
     branches: { ...loadCredentials().branches, ...(credentials.branches ?? {}) },
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-  pushCredentialsToSupabase(normalized)
+  if (!skipRemoteSync) pushCredentialsToSupabase(normalized)
   return normalized
 }
 
-export async function saveCredentialsHashed(credentials) {
+export async function saveCredentialsHashed(credentials, { skipRemoteSync = false } = {}) {
   const normalized = await normalizeCredentials({
     admin: credentials.admin ?? DEFAULT_ADMIN_PASSWORD,
     branches: { ...loadCredentials().branches, ...(credentials.branches ?? {}) },
   })
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-  pushCredentialsToSupabase(normalized)
+  if (!skipRemoteSync) pushCredentialsToSupabase(normalized)
   return normalized
 }
 

@@ -31,7 +31,7 @@ export function loadSystemSettings() {
   }
 }
 
-export function saveSystemSettings(settings) {
+export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
   const normalized = {
     systemName: settings.systemName?.trim() ?? DEFAULT_SYSTEM_SETTINGS.systemName,
     brandName: settings.brandName?.trim() ?? DEFAULT_SYSTEM_SETTINGS.brandName,
@@ -39,6 +39,6 @@ export function saveSystemSettings(settings) {
     note: settings.note?.trim() ?? '',
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-  pushSettingsToSupabase(normalized)
+  if (!skipRemoteSync) pushSettingsToSupabase(normalized)
   return normalized
 }

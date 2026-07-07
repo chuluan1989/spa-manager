@@ -59,10 +59,10 @@ export function loadBranches() {
   }
 }
 
-export function saveBranches(branches) {
+export function saveBranches(branches, { skipRemoteSync = false } = {}) {
   const normalized = branches.map(normalizeBranch)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-  pushBranchesToSupabase(normalized)
+  if (!skipRemoteSync) pushBranchesToSupabase(normalized)
   return normalized
 }
 

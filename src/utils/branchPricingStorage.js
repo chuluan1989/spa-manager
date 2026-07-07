@@ -50,9 +50,9 @@ export function loadBranchPricingMap() {
   }
 }
 
-export function saveBranchPricingMap(map) {
+export function saveBranchPricingMap(map, { skipRemoteSync = false } = {}) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(map))
-  pushBranchPricingToSupabase(map)
+  if (!skipRemoteSync) pushBranchPricingToSupabase(map)
   return map
 }
 

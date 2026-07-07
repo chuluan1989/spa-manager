@@ -28,6 +28,22 @@ import { loadCredentials, saveCredentials } from './credentialsStorage'
 import { loadPermissions, savePermissions } from './permissionsStorage'
 import { loadSystemSettings, saveSystemSettings } from './systemSettingsStorage'
 
+const CACHE_ONLY = { skipRemoteSync: true }
+
+/** Không ghi đè cache local bằng mảng rỗng từ Supabase (tránh xoá nhầm khi migrate/lỗi mạng). */
+function shouldApplyRemoteList(remoteList, localList) {
+  if (!Array.isArray(remoteList)) return false
+  if (remoteList.length > 0) return true
+  return !Array.isArray(localList) || localList.length === 0
+}
+
+/** Không ghi đè cache local bằng object rỗng từ Supabase. */
+function shouldApplyRemoteMap(remoteMap, localMap) {
+  if (!remoteMap || typeof remoteMap !== 'object') return false
+  if (Object.keys(remoteMap).length > 0) return true
+  return !localMap || Object.keys(localMap).length === 0
+}
+
 const MIGRATION_FLAG_KEY = 'spa-manager-supabase-migrated-v1'
 const SYNC_EVENT = 'spa-manager:data-synced'
 // Realtime lo phần "gần như tức thời"; interval này chỉ là lưới an toàn dự
@@ -77,47 +93,89 @@ export async function pullAllFromSupabase() {
     {
       name: 'branches',
       fetch: fetchBranches,
-      apply: (data) => saveBranches(data.map(normalizeBranch)),
+      apply: (data) => {
+        const local = loadBranches()
+        if (!shouldApplyRemoteList(data, local)) {
+          console.warn('[Supabase] Pull branches rỗng — giữ cache local')
+          return
+        }
+        saveBranches(data.map(normalizeBranch), CACHE_ONLY)
+      },
     },
     {
       name: 'employees',
       fetch: fetchEmployees,
-      apply: (data) => saveEmployees(data.map(normalizeEmployee)),
+      apply: (data) => {
+        const local = loadEmployees()
+        if (!shouldApplyRemoteList(data, local)) {
+          console.warn('[Supabase] Pull employees rỗng — giữ cache local')
+          return
+        }
+        saveEmployees(data.map(normalizeEmployee))
+      },
     },
     {
       name: 'services',
       fetch: fetchServices,
-      apply: (data) => saveServices(data.map(normalizeService)),
+      apply: (data) => {
+        const local = loadServices()
+        if (!shouldApplyRemoteList(data, local)) {
+          console.warn('[Supabase] Pull services rỗng — giữ cache local')
+          return
+        }
+        saveServices(data.map(normalizeService), CACHE_ONLY)
+      },
     },
     {
       name: 'branchPricing',
       fetch: fetchBranchPricingMap,
-      apply: (data) => saveBranchPricingMap(data),
+      apply: (data) => {
+        const local = loadBranchPricingMap()
+        if (!shouldApplyRemoteMap(data, local)) {
+          console.warn('[Supabase] Pull branchPricing rỗng — giữ cache local')
+          return
+        }
+        saveBranchPricingMap(data, CACHE_ONLY)
+      },
     },
     {
       name: 'invoices',
       fetch: fetchInvoices,
-      apply: (data) => replaceAllInvoices(data),
+      apply: (data) => {
+        const local = loadInvoices()
+        if (!shouldApplyRemoteList(data, local)) {
+          console.warn('[Supabase] Pull invoices rỗng — giữ cache local')
+          return
+        }
+        replaceAllInvoices(data)
+      },
     },
     {
       name: 'expenses',
       fetch: fetchExpenses,
-      apply: (data) => saveExpenses(data.map(normalizeExpense)),
+      apply: (data) => {
+        const local = loadExpenses()
+        if (!shouldApplyRemoteList(data, local)) {
+          console.warn('[Supabase] Pull expenses rỗng — giữ cache local')
+          return
+        }
+        saveExpenses(data.map(normalizeExpense))
+      },
     },
     {
       name: 'credentials',
       fetch: fetchCredentials,
-      apply: (data) => saveCredentials(data),
+      apply: (data) => saveCredentials(data, CACHE_ONLY),
     },
     {
       name: 'permissions',
       fetch: fetchPermissions,
-      apply: (data) => savePermissions(data),
+      apply: (data) => savePermissions(data, CACHE_ONLY),
     },
     {
       name: 'settings',
       fetch: fetchSettings,
-      apply: (data) => saveSystemSettings(data),
+      apply: (data) => saveSystemSettings(data, CACHE_ONLY),
     },
   ]
 

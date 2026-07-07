@@ -79,10 +79,10 @@ export function loadPermissions() {
   }
 }
 
-export function savePermissions(permissions) {
+export function savePermissions(permissions, { skipRemoteSync = false } = {}) {
   const normalized = normalizePermissions(permissions)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-  pushPermissionsToSupabase(normalized)
+  if (!skipRemoteSync) pushPermissionsToSupabase(normalized)
   return normalized
 }
 

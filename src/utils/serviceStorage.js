@@ -140,11 +140,11 @@ export function loadServices() {
   }
 }
 
-export function saveServices(services) {
+export function saveServices(services, { skipRemoteSync = false } = {}) {
   const normalized = services.map(normalizeService)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   localStorage.setItem(VERSION_KEY, String(DATA_VERSION))
-  pushServicesToSupabase(normalized)
+  if (!skipRemoteSync) pushServicesToSupabase(normalized)
   return normalized
 }
 
