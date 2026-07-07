@@ -97,7 +97,7 @@ function mergeBranchReports(revenueRows, expenseRows) {
   }
 
   for (const row of map.values()) {
-    row.profit = row.revenue - (row.expenses ?? 0)
+    row.profit = row.revenue - (row.expenses ?? 0) - row.commission - row.tips
   }
 
   return [...map.values()].sort((a, b) => b.revenue - a.revenue)
@@ -206,7 +206,7 @@ export function computeReportData(invoices, expenses, filters) {
     summary: {
       ...summary,
       expenses: expenseTotal,
-      profit: summary.revenue - expenseTotal,
+      profit: summary.revenue - expenseTotal - summary.commission - summary.tips,
     },
     byBranch: mergeBranchReports(
       computeBranchReport(filtered),

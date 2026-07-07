@@ -46,6 +46,16 @@ export default function Dashboard() {
       ),
     },
     {
+      title: 'Hoa hồng tháng',
+      value: formatCurrency(stats.monthCommission),
+      variant: 'purple',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      ),
+    },
+    {
       title: 'Lợi nhuận tháng',
       value: formatCurrency(stats.monthProfit),
       variant: 'purple',
@@ -53,6 +63,17 @@ export default function Dashboard() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
           <polyline points="17 6 23 6 23 12" />
+        </svg>
+      ),
+    },
+    {
+      title: 'Hóa đơn hôm nay',
+      value: String(stats.todayInvoiceCount),
+      variant: 'slate',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
         </svg>
       ),
     },
@@ -80,6 +101,35 @@ export default function Dashboard() {
           <StatCard key={stat.title} {...stat} />
         ))}
       </div>
+
+      {!isEmployee() && (stats.topService || stats.topEmployee || stats.topBranch) && (
+        <section className="dashboard__highlights">
+          {stats.topService && (
+            <div className="dashboard__highlight">
+              <p className="dashboard__highlight-label">Dịch vụ bán chạy</p>
+              <p className="dashboard__highlight-value">
+                {stats.topService.serviceName} — {stats.topService.count} lượt
+              </p>
+            </div>
+          )}
+          {stats.topEmployee && (
+            <div className="dashboard__highlight">
+              <p className="dashboard__highlight-label">Nhân viên doanh thu cao nhất</p>
+              <p className="dashboard__highlight-value">
+                {stats.topEmployee.employeeName} — {formatCurrency(stats.topEmployee.revenue)}
+              </p>
+            </div>
+          )}
+          {isAdmin() && stats.topBranch && (
+            <div className="dashboard__highlight">
+              <p className="dashboard__highlight-label">Chi nhánh doanh thu cao nhất</p>
+              <p className="dashboard__highlight-value">
+                {stats.topBranch.branchName} — {formatCurrency(stats.topBranch.revenue)}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   )
 }

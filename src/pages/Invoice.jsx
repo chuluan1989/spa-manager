@@ -67,14 +67,45 @@ export default function Invoice() {
     [form.branchId],
   )
 
+  const currentBranch = useMemo(
+    () => getBranchById(form.branchId),
+    [form.branchId],
+  )
+
+  const currentBranchName = currentBranch?.name ?? ''
+
   const totals = useMemo(
-    () => calculateInvoiceTotals(selectedIds, tipsInput, form.branchId, fallbackServices),
-    [selectedIds, tipsInput, form.branchId, fallbackServices],
+    () =>
+      calculateInvoiceTotals(
+        selectedIds,
+        tipsInput,
+        form.branchId,
+        fallbackServices,
+        currentBranchName,
+      ),
+    [
+      selectedIds,
+      tipsInput,
+      form.branchId,
+      currentBranchName,
+      fallbackServices,
+    ],
   )
 
   const selectedDetails = useMemo(
-    () => getSelectedServiceDetails(selectedIds, form.branchId, fallbackServices),
-    [selectedIds, form.branchId, fallbackServices],
+    () =>
+      getSelectedServiceDetails(
+        selectedIds,
+        form.branchId,
+        fallbackServices,
+        currentBranchName,
+      ),
+    [
+      selectedIds,
+      form.branchId,
+      currentBranchName,
+      fallbackServices,
+    ],
   )
 
   const branchEmployees = useMemo(
@@ -185,7 +216,7 @@ export default function Invoice() {
         }),
     customerName: form.customerName.trim(),
     serviceIds: selectedIds,
-    services: totals.services ?? getSelectedServiceDetails(selectedIds, branchId, fallbackServices),
+    services: totals.services ?? getSelectedServiceDetails(selectedIds, branchId, fallbackServices, branch.name),
     tips: totals.tips,
     paymentMethod,
     note: form.note.trim(),

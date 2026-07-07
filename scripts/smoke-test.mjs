@@ -58,7 +58,7 @@ function test(name, fn) {
 }
 
 const { calculateInvoiceTotals, calculateServiceCommissionFromDetails } = await import('../src/utils/invoice.js')
-const { computeReportSummary } = await import('../src/utils/report.js')
+const { computeReportSummary, computeReportData } = await import('../src/utils/report.js')
 const { computeSalaryReport, getPayPeriodRange, PAY_CYCLES } = await import('../src/utils/salaryReport.js')
 const { verifyLogin, ADMIN_BRANCH } = await import('../src/constants/loginCredentials.js')
 const { ROLES } = await import('../src/constants/auth.js')
@@ -232,6 +232,47 @@ test('service commission helper consistency', () => {
     { commissionAmount: 30000 },
   ]
   assert.equal(calculateServiceCommissionFromDetails(services), 50000)
+})
+
+test('flat 20% commission: Vĩnh Long Body 60', () => {
+  const fallback = [
+    { id: 'body-60', name: 'Body 60', price: 189000, commissionPercent: 0 },
+  ]
+  const totals = calculateInvoiceTotals(['body-60'], 0, 'vinh-long', fallback, 'Vĩnh Long')
+  assert.equal(totals.serviceCommission, 37800)
+  assert.equal(totals.commission, 37800)
+  assert.equal(totals.services[0].commissionPercent, 20)
+})
+
+test('flat 20% commission: Trà Vinh Body 90', () => {
+  const fallback = [
+    { id: 'body-90', name: 'Body 90', price: 249000, commissionPercent: 0 },
+  ]
+  const totals = calculateInvoiceTotals(['body-90'], 0, 'tra-vinh', fallback, 'Trà Vinh')
+  assert.equal(totals.serviceCommission, 49800)
+})
+
+test('tips count 100% toward employee pay', () => {
+  const fallback = [
+    { id: 'body-60', name: 'Body 60', price: 189000, commissionPercent: 20, commissionAmount: 37800 },
+  ]
+  const totals = calculateInvoiceTotals(['body-60'], 50000, 'vinh-long', fallback, 'Vĩnh Long')
+  assert.equal(totals.commission, 87800)
+})
+
+test('report profit subtracts commission and tips', () => {
+  const invoices = [{
+    id: '1',
+    branchId: 'vinh-long',
+    total: 239000,
+    tips: 50000,
+    services: [{ id: 'a', price: 189000, commissionAmount: 37800, commissionPercent: 20 }],
+  }]
+  const summary = computeReportSummary(invoices)
+  const report = computeReportData(invoices, [], { fromDate: '', toDate: '', branchId: '', employeeId: '' })
+  assert.equal(summary.commission, 37800)
+  assert.equal(summary.tips, 50000)
+  assert.equal(report.summary.profit, 239000 - 37800 - 50000)
 })
 
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`)

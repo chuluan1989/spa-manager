@@ -28,7 +28,12 @@ function ensureInvoiceSnapshot(invoice) {
 
   return {
     ...invoice,
-    services: getSelectedServiceDetails(invoice.serviceIds, invoice.branchId ?? ''),
+    services: getSelectedServiceDetails(
+      invoice.serviceIds,
+      invoice.branchId ?? '',
+      [],
+      invoice.branchName ?? '',
+    ),
   }
 }
 

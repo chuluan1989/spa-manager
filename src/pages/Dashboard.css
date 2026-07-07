@@ -21,3 +21,30 @@
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
 }
+
+.dashboard__highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.dashboard__highlight {
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.dashboard__highlight-label {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.dashboard__highlight-value {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
