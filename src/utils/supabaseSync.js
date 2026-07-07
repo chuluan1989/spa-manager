@@ -1,4 +1,4 @@
-import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { collectAllData } from './dataBackup'
 
 import { countBranches, fetchBranches, upsertBranches } from '../repositories/branchesRepository'
@@ -30,10 +30,18 @@ import { loadSystemSettings, saveSystemSettings } from './systemSettingsStorage'
 
 const MIGRATION_FLAG_KEY = 'spa-manager-supabase-migrated-v1'
 const SYNC_EVENT = 'spa-manager:data-synced'
-const DEFAULT_SYNC_INTERVAL_MS = 20000
+// Realtime lo phần "gần như tức thời"; interval này chỉ là lưới an toàn dự
+// phòng khi kênh Realtime bị rớt (mất mạng, hết phiên...).
+const DEFAULT_SYNC_INTERVAL_MS = 30000
+// Các bảng bật Realtime — khi có thay đổi (thiết bị khác ghi lên Supabase),
+// kéo lại dữ liệu gần như ngay lập tức thay vì chờ tới vòng polling kế tiếp.
+const REALTIME_TABLES = ['branches', 'employees', 'services', 'branch_pricing', 'invoices', 'expenses']
+const REALTIME_DEBOUNCE_MS = 400
 
 let syncTimerId = null
 let syncInFlight = false
+let realtimeChannel = null
+let realtimeDebounceTimer = null
 
 // -------------------- Event bus (thông báo UI khi có dữ liệu mới) --------------------
 
@@ -242,22 +250,99 @@ export async function autoMigrateIfNeeded() {
   return { success: true, seeded: remoteEmpty }
 }
 
-// -------------------- Auto-sync theo chu kỳ --------------------
+// -------------------- Realtime (postgres_changes) --------------------
+
+function scheduleRealtimePull() {
+  if (realtimeDebounceTimer) clearTimeout(realtimeDebounceTimer)
+  realtimeDebounceTimer = setTimeout(() => {
+    realtimeDebounceTimer = null
+    pullAllFromSupabase()
+  }, REALTIME_DEBOUNCE_MS)
+}
 
 /**
- * Khởi động vòng lặp đồng bộ: migrate lần đầu (nếu cần) -> pull ngay ->
- * pull định kỳ mỗi `intervalMs`. Không làm gì nếu Supabase chưa cấu hình.
- * Trả về hàm dừng đồng bộ (gọi khi unmount).
+ * Lắng nghe thay đổi trực tiếp từ Postgres (Supabase Realtime) trên các
+ * bảng chính. Khi thiết bị khác thêm/sửa/xoá dữ liệu, kéo lại gần như ngay
+ * lập tức thay vì chờ vòng polling kế tiếp. Yêu cầu bảng đã được thêm vào
+ * publication `supabase_realtime` (xem migration 0002).
  */
-export function startAutoSync({ intervalMs = DEFAULT_SYNC_INTERVAL_MS } = {}) {
-  if (!isSupabaseConfigured) return () => {}
-  if (syncTimerId) return stopAutoSync
+function startRealtimeSubscriptions() {
+  if (!isSupabaseConfigured || !supabase || realtimeChannel) return
 
-  autoMigrateIfNeeded()
+  let channel = supabase.channel('spa-manager-realtime')
+  for (const table of REALTIME_TABLES) {
+    channel = channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table },
+      scheduleRealtimePull,
+    )
+  }
+
+  channel.subscribe((status) => {
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      console.warn(
+        '[Supabase] Realtime channel gặp sự cố (có thể do chưa bật Realtime cho bảng trong migration 0002) — vẫn dùng polling định kỳ làm dự phòng.',
+      )
+    }
+  })
+
+  realtimeChannel = channel
+}
+
+function stopRealtimeSubscriptions() {
+  if (realtimeChannel && supabase) {
+    supabase.removeChannel(realtimeChannel)
+  }
+  realtimeChannel = null
+  if (realtimeDebounceTimer) {
+    clearTimeout(realtimeDebounceTimer)
+    realtimeDebounceTimer = null
+  }
+}
+
+// -------------------- Khởi động lần đầu (chặn màn hình loading) --------------------
+
+/**
+ * Gọi 1 lần lúc App khởi động, TRƯỚC khi render trang: migrate dữ liệu cũ
+ * lên Supabase nếu cần, rồi kéo dữ liệu mới nhất về — đảm bảo Supabase luôn
+ * là nguồn dữ liệu "vừa mở app là thấy" trên mọi thiết bị. Có timeout để
+ * mất mạng/Supabase chậm cũng không treo màn hình loading vô hạn — khi đó
+ * ứng dụng chạy tạm bằng cache LocalStorage rồi realtime/polling sẽ tự bù.
+ */
+export async function runInitialSync({ timeoutMs = 8000 } = {}) {
+  if (!isSupabaseConfigured) return { success: false, reason: 'not_configured' }
+
+  const work = autoMigrateIfNeeded()
     .catch((error) => console.warn('[Supabase] autoMigrateIfNeeded lỗi:', error?.message))
-    .finally(() => {
-      pullAllFromSupabase()
-    })
+    .then(() => pullAllFromSupabase())
+
+  const timeout = new Promise((resolve) =>
+    setTimeout(() => resolve({ success: false, reason: 'timeout' }), timeoutMs),
+  )
+
+  return Promise.race([work, timeout])
+}
+
+// -------------------- Auto-sync theo chu kỳ (Realtime + polling dự phòng) --------------------
+
+/**
+ * Khởi động đồng bộ liên tục: Realtime để cập nhật gần như tức thời +
+ * polling định kỳ làm lưới an toàn. Không làm gì nếu Supabase chưa cấu
+ * hình. Trả về hàm dừng đồng bộ (gọi khi unmount).
+ */
+export function startAutoSync({ intervalMs = DEFAULT_SYNC_INTERVAL_MS, skipInitialPull = false } = {}) {
+  if (!isSupabaseConfigured) return () => {}
+  if (syncTimerId || realtimeChannel) return stopAutoSync
+
+  if (!skipInitialPull) {
+    autoMigrateIfNeeded()
+      .catch((error) => console.warn('[Supabase] autoMigrateIfNeeded lỗi:', error?.message))
+      .finally(() => {
+        pullAllFromSupabase()
+      })
+  }
+
+  startRealtimeSubscriptions()
 
   syncTimerId = setInterval(() => {
     pullAllFromSupabase()
@@ -271,6 +356,7 @@ export function stopAutoSync() {
     clearInterval(syncTimerId)
     syncTimerId = null
   }
+  stopRealtimeSubscriptions()
 }
 
 // Re-export tiện dùng khi cần đọc nhanh dữ liệu local hiện có (vd. hiển thị

@@ -24,7 +24,8 @@ import { ensureCredentialsHashed, syncMissingBranchCredentials } from './utils/c
 import { syncAllCustomBranchPricing } from './utils/branchPricingStorage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { getEmployeeById, isEmployeeProfileComplete } from './utils/employeeStorage'
-import { startAutoSync } from './utils/supabaseSync'
+import { isSupabaseConfigured } from './lib/supabaseClient'
+import { runInitialSync, startAutoSync } from './utils/supabaseSync'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -62,24 +63,39 @@ function App() {
   const [authView, setAuthView] = useState('landing')
 
   useEffect(() => {
-    clearLegacySession()
-    syncMissingDefaultBranches()
-    Promise.all([
-      ensureCredentialsHashed(),
-      syncMissingBranchCredentials(),
-    ]).then(() => {
-      syncAllCustomBranchPricing()
-      setAuthReady(true)
-    })
-  }, [])
+    let cancelled = false
+    let stopSync = () => {}
 
-  // Nếu đã cấu hình VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY: đồng bộ dữ
-  // liệu cũ lên Supabase (chỉ 1 lần, an toàn) rồi kéo dữ liệu chung về định
-  // kỳ. Không cấu hình thì không làm gì — ứng dụng chạy hoàn toàn bằng
-  // LocalStorage như trước, không lỗi.
-  useEffect(() => {
-    const stopSync = startAutoSync()
-    return stopSync
+    async function bootstrap() {
+      clearLegacySession()
+      syncMissingDefaultBranches()
+      await Promise.all([ensureCredentialsHashed(), syncMissingBranchCredentials()])
+      syncAllCustomBranchPricing()
+
+      // Nếu đã cấu hình Supabase: CHỜ đồng bộ dữ liệu mới nhất về trước khi
+      // vào app, để Supabase thực sự là nguồn dữ liệu chính mỗi lần mở app
+      // — không phải chờ vòng polling nền mới thấy dữ liệu từ thiết bị
+      // khác. Có timeout để mất mạng không treo màn hình loading mãi (khi
+      // đó tạm dùng cache LocalStorage, Realtime/polling sẽ tự bù sau).
+      if (isSupabaseConfigured) {
+        await runInitialSync()
+      }
+
+      if (cancelled) return
+      setAuthReady(true)
+
+      // Tiếp tục đồng bộ liên tục: Realtime (gần như tức thời) + polling dự
+      // phòng. Không gọi lại migrate/pull lần đầu vì runInitialSync() đã
+      // làm rồi ở trên.
+      stopSync = startAutoSync({ skipInitialPull: true })
+    }
+
+    bootstrap()
+
+    return () => {
+      cancelled = true
+      stopSync()
+    }
   }, [])
 
   if (!authReady) {

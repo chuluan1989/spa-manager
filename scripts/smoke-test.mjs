@@ -817,7 +817,9 @@ const {
   pullAllFromSupabase,
   pushLocalToSupabase,
   autoMigrateIfNeeded,
+  runInitialSync,
   startAutoSync,
+  stopAutoSync,
   subscribeToDataSync,
 } = await import('../src/utils/supabaseSync.js')
 
@@ -867,8 +869,17 @@ await testAsync(
     const stop = startAutoSync()
     assert.equal(typeof stop, 'function')
     stop()
+    // Gọi lại nhiều lần không được lỗi (idempotent).
+    stopAutoSync()
+    stopAutoSync()
   },
 )
+
+await testAsync('supabaseSync: runInitialSync trả về not_configured khi chưa cấu hình', async () => {
+  const result = await runInitialSync({ timeoutMs: 500 })
+  assert.equal(result.success, false)
+  assert.equal(result.reason, 'not_configured')
+})
 
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`)
 process.exit(failed > 0 ? 1 : 0)
