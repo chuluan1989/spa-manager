@@ -38,13 +38,13 @@ export default function InvoiceSummary({
           variant={promoAmount > 0 ? 'discount' : ''}
         />
         <div className="invoice-summary__arrow" aria-hidden>↓</div>
-        <SummaryRow label="Thanh toán" value={formatCurrency(paymentAmount)} variant="payment" />
-        <p className="invoice-summary__hint">Tự động tính: Giá vé − Khuyến mãi</p>
+        <SummaryRow label="Doanh thu tiền vé" value={formatCurrency(paymentAmount)} variant="payment" />
+        <p className="invoice-summary__hint">Tự động tính: Giá vé − Khuyến mãi (không gồm Tips)</p>
         <div className="invoice-summary__arrow" aria-hidden>↓</div>
         <SummaryRow label="Tips" value={formatCurrency(tipsAmount)} />
         <div className="invoice-summary__arrow" aria-hidden>↓</div>
         <SummaryRow label="Tổng khách thanh toán" value={formatCurrency(customerPay)} variant="total" />
-        <p className="invoice-summary__hint">Tự động tính: Thanh toán + Tips</p>
+        <p className="invoice-summary__hint">Tự động tính: Doanh thu tiền vé + Tips</p>
       </div>
       <div className="invoice-summary__rows">
         <SummaryRow label="Hoa hồng nhân viên" value={formatCurrency(commission)} variant="commission" />

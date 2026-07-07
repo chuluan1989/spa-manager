@@ -60,9 +60,8 @@ function computeBranchCardStats(branchId, displayName, todayInvoices, monthInvoi
   const monthRevenue = branchMonth.reduce((sum, inv) => sum + getInvoicePayment(inv), 0)
   const monthTips = branchMonth.reduce((sum, inv) => sum + getInvoiceTips(inv), 0)
   const monthCommission = branchMonth.reduce((sum, inv) => sum + getInvoiceServiceCommission(inv), 0)
-  const monthEmployeePay = branchMonth.reduce((sum, inv) => sum + getEmployeePay(inv), 0)
   const monthExpenseTotal = sumExpenseAmount(branchMonthExpenses)
-  const profit = monthRevenue - monthExpenseTotal - monthEmployeePay
+  const profit = monthRevenue - monthExpenseTotal - monthCommission
 
   return {
     branchId,
@@ -92,7 +91,7 @@ export function computeAdminDashboardStats(invoices, expenses) {
   const monthCommission = monthInvoices.reduce((sum, inv) => sum + getInvoiceServiceCommission(inv), 0)
   const monthSalaryDue = monthInvoices.reduce((sum, inv) => sum + getEmployeePay(inv), 0)
   const monthExpenseTotal = sumExpenseAmount(monthExpenses)
-  const monthProfit = monthRevenue - monthExpenseTotal - monthSalaryDue
+  const monthProfit = monthRevenue - monthExpenseTotal - monthCommission
 
   const activeEmployees = getAllActiveEmployees()
   const employeesWorkingToday = countActiveEmployeesToday(todayInvoices)

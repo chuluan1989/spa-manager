@@ -1,4 +1,4 @@
-import { getInvoiceServiceDetails, getInvoiceServiceTotal, getInvoicePayment, getInvoiceTips, invoiceHasDiscount } from './invoice'
+import { getInvoiceServiceDetails, getInvoicePayment, getInvoiceTips, getInvoiceCustomerTotal, invoiceHasDiscount } from './invoice'
 import {
   computeExpenseByBranch,
   computeExpenseSummary,
@@ -26,21 +26,31 @@ function getInvoiceServiceCommission(invoice) {
     .reduce((sum, service) => sum + (service.commissionAmount ?? 0), 0)
 }
 
-function getInvoiceRevenue(invoice) {
+/** Doanh thu tiền vé — tiền dịch vụ sau KM, không gồm Tips. */
+function getInvoiceTicketRevenue(invoice) {
   return getInvoicePayment(invoice)
 }
 
 export function computeReportSummary(invoices) {
   return invoices.reduce(
     (acc, inv) => {
-      acc.revenue += getInvoiceRevenue(inv)
-      acc.serviceTotal += getInvoiceServiceTotal(inv)
+      const ticketRevenue = getInvoiceTicketRevenue(inv)
+      acc.ticketRevenue += ticketRevenue
+      acc.revenue += ticketRevenue
+      acc.customerTotal += getInvoiceCustomerTotal(inv)
       acc.tips += getInvoiceTips(inv)
       acc.commission += getInvoiceServiceCommission(inv)
       acc.invoiceCount += 1
       return acc
     },
-    { revenue: 0, serviceTotal: 0, tips: 0, commission: 0, invoiceCount: 0 },
+    {
+      ticketRevenue: 0,
+      revenue: 0,
+      customerTotal: 0,
+      tips: 0,
+      commission: 0,
+      invoiceCount: 0,
+    },
   )
 }
 
@@ -53,28 +63,33 @@ export function computeBranchReport(invoices) {
       branchId: inv.branchId,
       branchName: inv.branchName || '—',
       invoiceCount: 0,
+      ticketRevenue: 0,
       revenue: 0,
+      customerTotal: 0,
       tips: 0,
       commission: 0,
       expenses: 0,
       profit: 0,
     }
 
+    const ticketRevenue = getInvoiceTicketRevenue(inv)
     current.invoiceCount += 1
-    current.revenue += getInvoiceRevenue(inv)
+    current.ticketRevenue += ticketRevenue
+    current.revenue += ticketRevenue
+    current.customerTotal += getInvoiceCustomerTotal(inv)
     current.tips += getInvoiceTips(inv)
     current.commission += getInvoiceServiceCommission(inv)
     map.set(key, current)
   }
 
-  return [...map.values()].sort((a, b) => b.revenue - a.revenue)
+  return [...map.values()].sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
 function mergeBranchReports(revenueRows, expenseRows) {
   const map = new Map()
 
   for (const row of revenueRows) {
-    map.set(row.branchId || row.branchName, { ...row, expenses: 0, profit: row.revenue })
+    map.set(row.branchId || row.branchName, { ...row, expenses: 0, profit: row.ticketRevenue })
   }
 
   for (const row of expenseRows) {
@@ -83,22 +98,23 @@ function mergeBranchReports(revenueRows, expenseRows) {
       branchId: row.branchId,
       branchName: row.branchName,
       invoiceCount: 0,
+      ticketRevenue: 0,
       revenue: 0,
+      customerTotal: 0,
       tips: 0,
       commission: 0,
       expenses: 0,
       profit: 0,
     }
     current.expenses = row.total
-    current.profit = current.revenue - current.expenses
     map.set(key, current)
   }
 
   for (const row of map.values()) {
-    row.profit = row.revenue - (row.expenses ?? 0) - row.commission - row.tips
+    row.profit = row.ticketRevenue - (row.expenses ?? 0) - row.commission
   }
 
-  return [...map.values()].sort((a, b) => b.revenue - a.revenue)
+  return [...map.values()].sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
 export function computeEmployeeReport(invoices) {
@@ -106,24 +122,31 @@ export function computeEmployeeReport(invoices) {
 
   for (const inv of invoices) {
     const key = inv.employeeId || inv.employeeName || 'unknown'
+    const ticketRevenue = getInvoiceTicketRevenue(inv)
     const current = map.get(key) ?? {
       employeeId: inv.employeeId,
       employeeName: inv.employeeName || '—',
       branchName: inv.branchName || '—',
       invoiceCount: 0,
+      ticketRevenue: 0,
       revenue: 0,
+      customerTotal: 0,
       tips: 0,
       commission: 0,
+      salary: 0,
     }
 
     current.invoiceCount += 1
-    current.revenue += getInvoiceRevenue(inv)
+    current.ticketRevenue += ticketRevenue
+    current.revenue += ticketRevenue
+    current.customerTotal += getInvoiceCustomerTotal(inv)
     current.tips += getInvoiceTips(inv)
     current.commission += getInvoiceServiceCommission(inv)
+    current.salary = current.commission + current.tips
     map.set(key, current)
   }
 
-  return [...map.values()].sort((a, b) => b.revenue - a.revenue)
+  return [...map.values()].sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
 export function computeServiceReport(invoices) {
@@ -137,23 +160,25 @@ export function computeServiceReport(invoices) {
         serviceId: service.id,
         serviceName: service.name,
         count: 0,
+        ticketRevenue: 0,
         revenue: 0,
         commission: 0,
       }
 
       current.count += 1
+      current.ticketRevenue += service.price
       current.revenue += service.price
       current.commission += service.commissionAmount ?? 0
       map.set(key, current)
     }
   }
 
-  return [...map.values()].sort((a, b) => b.revenue - a.revenue)
+  return [...map.values()].sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
 export function computeTopServices(invoices) {
   return computeServiceReport(invoices).sort(
-    (a, b) => b.count - a.count || b.revenue - a.revenue,
+    (a, b) => b.count - a.count || b.ticketRevenue - a.ticketRevenue,
   )
 }
 
@@ -163,12 +188,14 @@ export function computeTopEmployeesByServiceCount(invoices) {
   for (const inv of invoices) {
     const key = inv.employeeId || inv.employeeName || 'unknown'
     const services = getInvoiceServiceDetails(inv)
+    const ticketRevenue = getInvoiceTicketRevenue(inv)
     const current = map.get(key) ?? {
       employeeId: inv.employeeId,
       employeeName: inv.employeeName || '—',
       branchName: inv.branchName || '—',
       invoiceCount: 0,
       serviceCount: 0,
+      ticketRevenue: 0,
       revenue: 0,
       tips: 0,
       commission: 0,
@@ -176,14 +203,15 @@ export function computeTopEmployeesByServiceCount(invoices) {
 
     current.invoiceCount += 1
     current.serviceCount += services.length
-    current.revenue += getInvoiceRevenue(inv)
+    current.ticketRevenue += ticketRevenue
+    current.revenue += ticketRevenue
     current.tips += getInvoiceTips(inv)
     current.commission += getInvoiceServiceCommission(inv)
     map.set(key, current)
   }
 
   return [...map.values()].sort(
-    (a, b) => b.serviceCount - a.serviceCount || b.revenue - a.revenue,
+    (a, b) => b.serviceCount - a.serviceCount || b.ticketRevenue - a.ticketRevenue,
   )
 }
 
@@ -204,7 +232,8 @@ export function computeReportData(invoices, expenses, filters) {
     summary: {
       ...summary,
       expenses: expenseTotal,
-      profit: summary.revenue - expenseTotal - summary.commission - summary.tips,
+      salary: summary.commission + summary.tips,
+      profit: summary.ticketRevenue - expenseTotal - summary.commission,
     },
     byBranch: mergeBranchReports(
       computeBranchReport(filtered),

@@ -252,12 +252,22 @@ export function getInvoiceTips(invoice) {
   return Number.isFinite(invoice?.tips) ? invoice.tips : 0
 }
 
-/** Thanh toán = Giá vé − Khuyến mãi (doanh thu ghi nhận, không gồm Tips). */
+/** Thanh toán dịch vụ / Doanh thu tiền vé = Giá vé − KM, không gồm Tips. */
 export function getInvoicePayment(invoice) {
   return getInvoiceServiceTotal(invoice)
 }
 
-/** Tổng khách thanh toán = Thanh toán + Tips. */
+/** Alias nghiệp vụ: Doanh thu tiền vé. */
+export function getInvoiceTicketRevenue(invoice) {
+  return getInvoicePayment(invoice)
+}
+
+/** Giá vé gốc (trước khuyến mãi). */
+export function getInvoiceTicketPrice(invoice) {
+  return getInvoiceOriginalServiceTotal(invoice)
+}
+
+/** Tổng khách thanh toán = Doanh thu tiền vé + Tips. */
 export function getInvoiceCustomerTotal(invoice) {
   if (Number.isFinite(invoice?.total)) return invoice.total
   return getInvoicePayment(invoice) + getInvoiceTips(invoice)

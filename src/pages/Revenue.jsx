@@ -45,11 +45,12 @@ export default function Revenue() {
   }
 
   const summaryCards = [
-    { label: 'Tổng doanh thu', value: formatCurrency(report.summary.revenue), variant: 'blue' },
-    { label: 'Tổng thanh toán', value: formatCurrency(report.summary.serviceTotal), variant: 'slate' },
-    { label: 'Tổng tips', value: formatCurrency(report.summary.tips), variant: 'orange' },
-    { label: 'Tổng hoa hồng', value: formatCurrency(report.summary.commission), variant: 'purple' },
-    { label: 'Số hóa đơn', value: String(report.summary.invoiceCount), variant: 'slate' },
+    { label: 'Doanh thu tiền vé', value: formatCurrency(report.summary.ticketRevenue ?? report.summary.revenue), variant: 'blue' },
+    { label: 'Tips', value: formatCurrency(report.summary.tips), variant: 'orange' },
+    { label: 'Tổng khách thanh toán', value: formatCurrency(report.summary.customerTotal), variant: 'slate' },
+    { label: 'Hoa hồng', value: formatCurrency(report.summary.commission), variant: 'purple' },
+    { label: 'Chi phí', value: formatCurrency(report.summary.expenses), variant: 'orange' },
+    { label: 'Lợi nhuận dự kiến', value: formatCurrency(report.summary.profit), variant: 'green' },
   ]
 
   return (
@@ -120,10 +121,10 @@ export default function Revenue() {
                 <tr>
                   <th>Chi nhánh</th>
                   <th>Số HĐ</th>
-                  <th>Doanh thu</th>
+                  <th>Doanh thu tiền vé</th>
                   <th>Tips</th>
                   <th>Hoa hồng</th>
-                  <th>Lợi nhuận</th>
+                  <th>Lợi nhuận dự kiến</th>
                 </tr>
               </thead>
               <tbody>

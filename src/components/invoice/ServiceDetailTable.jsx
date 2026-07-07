@@ -26,7 +26,7 @@ export default function ServiceDetailTable({ items, totals }) {
               <th>STT</th>
               <th>Tên dịch vụ</th>
               <th>Giá vé</th>
-              <th>Thanh toán</th>
+              <th>Doanh thu tiền vé</th>
               <th>% HH</th>
               <th>Hoa hồng</th>
             </tr>
@@ -57,7 +57,7 @@ export default function ServiceDetailTable({ items, totals }) {
               </td>
             </tr>
             <tr className="service-detail__row--highlight">
-              <td colSpan={2}>Thanh toán</td>
+              <td colSpan={2}>Doanh thu tiền vé</td>
               <td colSpan={4} className="service-detail__money service-detail__payment">
                 {formatCurrency(payment)}
               </td>

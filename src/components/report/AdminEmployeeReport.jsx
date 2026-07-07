@@ -288,7 +288,7 @@ export default function AdminEmployeeReport({ onNavigate }) {
                   <th>Chi nhánh</th>
                   <th>Số HĐ/Tour</th>
                   <th>Tổng dịch vụ</th>
-                  <th>Doanh thu</th>
+                  <th>Doanh thu tiền vé</th>
                   <th>Tips</th>
                   <th>Hoa hồng</th>
                   <th>Tổng lương</th>

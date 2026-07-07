@@ -111,8 +111,8 @@ export default function EmployeeHubDetail({ employee, invoices, month, onEdit })
       {activeTab === 'sales' && (
         <div className="employee-hub-detail__panel">
           <div className="employee-hub-detail__stats-grid">
-            <StatCard label="Doanh số hôm nay" value={formatCurrency(todayStats?.serviceRevenue ?? 0)} variant="gold" />
-            <StatCard label="Doanh số tháng" value={formatCurrency(monthStats?.serviceRevenue ?? 0)} variant="gold" />
+            <StatCard label="Doanh thu tiền vé hôm nay" value={formatCurrency(todayStats?.serviceRevenue ?? 0)} variant="gold" />
+            <StatCard label="Doanh thu tiền vé tháng" value={formatCurrency(monthStats?.serviceRevenue ?? 0)} variant="gold" />
             <StatCard label="Số khách/tour tháng" value={String(monthStats?.invoiceCount ?? 0)} />
             <StatCard label="Tips tháng" value={formatCurrency(monthStats?.tips ?? 0)} variant="tips" />
             <StatCard label="Hoa hồng tháng" value={formatCurrency(monthStats?.serviceCommission ?? 0)} variant="commission" />
@@ -133,14 +133,14 @@ export default function EmployeeHubDetail({ employee, invoices, month, onEdit })
                       <div><span>Dịch vụ</span><strong>{inv.serviceNames}</strong></div>
                       <div><span>Giá vé</span><strong>{formatCurrency(inv.ticketPrice)}</strong></div>
                       <div><span>KM</span><strong>{formatCurrency(inv.discount)}</strong></div>
-                      <div><span>Thanh toán</span><strong>{formatCurrency(inv.payment)}</strong></div>
+                      <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(inv.payment)}</strong></div>
                       <div><span>Tips</span><strong className="is-tips">{formatCurrency(inv.tips)}</strong></div>
                       <div><span>Hoa hồng</span><strong>{formatCurrency(inv.commission)}</strong></div>
                     </div>
                   </article>
                 ))}
                 <div className="employee-hub-sales-day__total">
-                  Tổng ngày: {day.invoiceCount} HĐ · DT {formatCurrency(day.serviceRevenue)} · Tips {formatCurrency(day.tips)} · HH {formatCurrency(day.serviceCommission)}
+                  Tổng ngày: {day.invoiceCount} HĐ · DT tiền vé {formatCurrency(day.serviceRevenue)} · Tips {formatCurrency(day.tips)} · HH {formatCurrency(day.serviceCommission)}
                 </div>
               </section>
             ))
@@ -164,7 +164,7 @@ export default function EmployeeHubDetail({ employee, invoices, month, onEdit })
           </div>
 
           <div className="employee-hub-detail__stats-grid">
-            <StatCard label="Doanh số kỳ" value={formatCurrency(salaryDetail?.periodTotals?.serviceRevenue ?? 0)} />
+            <StatCard label="Doanh thu tiền vé kỳ" value={formatCurrency(salaryDetail?.periodTotals?.serviceRevenue ?? 0)} />
             <StatCard label="Tips kỳ" value={formatCurrency(salaryDetail?.periodTotals?.tips ?? 0)} variant="tips" />
             <StatCard label="Hoa hồng kỳ" value={formatCurrency(salaryDetail?.periodTotals?.serviceCommission ?? 0)} variant="commission" />
             <StatCard label="Tổng lương kỳ" value={formatCurrency(salaryDetail?.periodTotals?.totalSalary ?? 0)} variant="salary" />
@@ -177,7 +177,7 @@ export default function EmployeeHubDetail({ employee, invoices, month, onEdit })
               <section key={day.date} className="employee-hub-salary-day">
                 <h4>{day.displayDate} — {day.invoiceCount} hóa đơn</h4>
                 <div className="employee-hub-salary-day__row">
-                  <span>Doanh số</span><strong>{formatCurrency(day.serviceRevenue)}</strong>
+                  <span>Doanh thu tiền vé</span><strong>{formatCurrency(day.serviceRevenue)}</strong>
                 </div>
                 <div className="employee-hub-salary-day__row">
                   <span>Tips</span><strong className="is-tips">{formatCurrency(day.tips)}</strong>

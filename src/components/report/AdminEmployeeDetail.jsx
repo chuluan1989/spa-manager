@@ -28,7 +28,7 @@ function InvoiceRow({ item, onView, onEdit, onDelete, allowDelete }) {
             </span>
           </div>
           <div className="employee-invoice-row__field">
-            <span className="employee-invoice-row__label">Thanh toán</span>
+            <span className="employee-invoice-row__label">Doanh thu tiền vé</span>
             <span className="employee-invoice-row__value employee-invoice-row__payment">
               {formatCurrency(item.payment)}
             </span>
@@ -124,7 +124,7 @@ export default function AdminEmployeeDetail({
 
               <div className="employee-report-day__totals">
                 <div><span>Tổng hóa đơn</span><strong>{day.invoiceCount}</strong></div>
-                <div><span>Tổng doanh thu</span><strong>{formatCurrency(day.serviceRevenue)}</strong></div>
+                <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(day.serviceRevenue)}</strong></div>
                 <div><span>Tổng Tips</span><strong className="employee-invoice-row__tips">{formatCurrency(day.tips)}</strong></div>
                 <div><span>Tổng hoa hồng</span><strong className="employee-invoice-row__commission">{formatCurrency(day.serviceCommission)}</strong></div>
                 <div><span>Tổng lương ngày</span><strong className="salary-report__salary">{formatCurrency(day.totalSalary)}</strong></div>
@@ -135,7 +135,7 @@ export default function AdminEmployeeDetail({
           <div className="salary-report__period-total">
             <h4 className="salary-report__period-total-title">Tổng cuối kỳ — {detail.employeeName}</h4>
             <div className="salary-report__period-total-grid">
-              <div><span>Tổng doanh thu</span><strong>{formatCurrency(detail.periodTotals.serviceRevenue)}</strong></div>
+              <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(detail.periodTotals.serviceRevenue)}</strong></div>
               <div><span>Tổng Tips</span><strong className="employee-invoice-row__tips">{formatCurrency(detail.periodTotals.tips)}</strong></div>
               <div><span>Tổng hoa hồng</span><strong className="salary-report__commission">{formatCurrency(detail.periodTotals.serviceCommission)}</strong></div>
               <div><span>Tổng lương</span><strong className="salary-report__salary">{formatCurrency(detail.periodTotals.totalSalary)}</strong></div>

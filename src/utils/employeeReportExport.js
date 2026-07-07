@@ -17,7 +17,7 @@ function buildExportRows(detail) {
     'Dịch vụ',
     'Giá vé',
     'Khuyến mãi',
-    'Thanh toán',
+    'Doanh thu tiền vé',
     'Tips',
     'Hoa hồng',
     'Lương dòng',
@@ -101,7 +101,7 @@ function buildPrintHtml(detail) {
           <div class="grid">
             <span>Giá vé: ${formatCurrency(inv.ticketPrice)}</span>
             <span>KM: ${formatCurrency(inv.discount)}</span>
-            <span>TT: ${formatCurrency(inv.payment)}</span>
+            <span>DT tiền vé: ${formatCurrency(inv.payment)}</span>
             <span>Tips: ${formatCurrency(inv.tips)}</span>
             <span>HH: ${formatCurrency(inv.commission)}</span>
           </div>
@@ -115,7 +115,7 @@ function buildPrintHtml(detail) {
         ${invoiceBlocks}
         <div class="day-total">
           <strong>Tổng ngày:</strong>
-          ${day.invoiceCount} HĐ · DT ${formatCurrency(day.serviceRevenue)} ·
+          ${day.invoiceCount} HĐ · DT tiền vé ${formatCurrency(day.serviceRevenue)} ·
           Tips ${formatCurrency(day.tips)} · HH ${formatCurrency(day.serviceCommission)} ·
           Lương ${formatCurrency(day.totalSalary)}
         </div>
@@ -140,7 +140,7 @@ function buildPrintHtml(detail) {
     ${daySections || '<p>Không có dữ liệu</p>'}
     <div class="period">
       <strong>Tổng kỳ:</strong>
-      Doanh thu ${formatCurrency(detail.periodTotals.serviceRevenue)} ·
+      Doanh thu tiền vé ${formatCurrency(detail.periodTotals.serviceRevenue)} ·
       Tips ${formatCurrency(detail.periodTotals.tips)} ·
       HH ${formatCurrency(detail.periodTotals.serviceCommission)} ·
       Lương ${formatCurrency(detail.periodTotals.totalSalary)}

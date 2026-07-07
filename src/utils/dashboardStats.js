@@ -64,8 +64,7 @@ export function computeDashboardStats(invoices, expenses) {
     0,
   )
   const monthTips = monthInvoices.reduce((sum, inv) => sum + getInvoiceTips(inv), 0)
-  const monthEmployeePay = monthInvoices.reduce((sum, inv) => sum + getEmployeePay(inv), 0)
-  const monthProfit = monthRevenue - monthExpenseTotal - monthEmployeePay
+  const monthProfit = monthRevenue - monthExpenseTotal - monthServiceCommission
   const topService = computeTopServices(monthInvoices)[0] ?? null
   const topEmployee = computeTopEmployeesByRevenue(monthInvoices)[0] ?? null
   const topBranch = computeBranchReport(monthInvoices)[0] ?? null

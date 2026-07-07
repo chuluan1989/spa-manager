@@ -64,14 +64,14 @@ export default function InvoiceDetailModal({ invoice, onClose, onEdit, canEdit }
           </section>
 
           <section className="invoice-detail-modal__section">
-            <h4>Thanh toán</h4>
+            <h4>Thanh toán khách</h4>
             {invoiceHasDiscount(invoice) && (
               <p className="invoice-detail-modal__promo">🎁 Khuyến mãi</p>
             )}
             <dl className="invoice-detail-modal__grid">
               <div><dt>Giá vé</dt><dd>{formatCurrency(getInvoiceOriginalServiceTotal(invoice))}</dd></div>
               <div><dt>Khuyến mãi</dt><dd>−{formatCurrency(getInvoiceDiscountAmount(invoice))}</dd></div>
-              <div><dt>Thanh toán</dt><dd className="invoice-detail-modal__payment">{formatCurrency(payment)}</dd></div>
+              <div><dt>Doanh thu tiền vé</dt><dd className="invoice-detail-modal__payment">{formatCurrency(payment)}</dd></div>
               <div><dt>Tips</dt><dd>{formatCurrency(tips)}</dd></div>
               <div><dt>Tổng khách thanh toán</dt><dd className="invoice-detail-modal__total">{formatCurrency(customerTotal)}</dd></div>
               <div><dt>Hoa hồng</dt><dd className="invoice-detail-modal__commission">{formatCurrency(invoice.commission)}</dd></div>

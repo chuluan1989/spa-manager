@@ -3,6 +3,7 @@ import {
   ChevronRight,
   FileText,
   Gift,
+  HandCoins,
   Percent,
   Receipt,
   TrendingUp,
@@ -49,6 +50,7 @@ function formatMetricValue(id, value) {
 const METRIC_ICONS = {
   ticketRevenue: Receipt,
   tips: Gift,
+  customerTotal: HandCoins,
   discount: Percent,
   commission: TrendingUp,
   expenses: Wallet,
@@ -62,6 +64,7 @@ const METRIC_ICONS = {
 const METRIC_VARIANTS = {
   ticketRevenue: 'gold',
   tips: 'green',
+  customerTotal: 'slate',
   discount: 'orange',
   commission: 'purple',
   expenses: 'orange',
@@ -440,7 +443,7 @@ export default function DrillDownExplorer({
                         <div className="drill-invoice-card__grid">
                           <div><span>Giá vé</span><strong>{formatCurrency(item.ticketPrice)}</strong></div>
                           <div><span>KM</span><strong>{formatCurrency(item.discount)}</strong></div>
-                          <div><span>Thanh toán</span><strong>{formatCurrency(item.payment)}</strong></div>
+                          <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(item.payment)}</strong></div>
                           <div><span>Tips</span><strong className="is-tips">{formatCurrency(item.tips)}</strong></div>
                           <div><span>Hoa hồng</span><strong>{formatCurrency(item.commission)}</strong></div>
                         </div>

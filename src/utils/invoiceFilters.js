@@ -95,13 +95,14 @@ export function computeInvoiceListTotals(invoices) {
   return invoices.reduce(
     (acc, invoice) => {
       acc.count += 1
+      acc.ticketRevenue += getInvoicePayment(invoice)
       acc.revenue += getInvoicePayment(invoice)
       acc.customerTotal += getInvoiceCustomerTotal(invoice)
       acc.tips += Number.isFinite(invoice.tips) ? invoice.tips : 0
       acc.commission += Number.isFinite(invoice.commission) ? invoice.commission : 0
       return acc
     },
-    { count: 0, revenue: 0, customerTotal: 0, tips: 0, commission: 0 },
+    { count: 0, ticketRevenue: 0, revenue: 0, customerTotal: 0, tips: 0, commission: 0 },
   )
 }
 

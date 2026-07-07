@@ -90,9 +90,9 @@ export default function InvoiceList({
               <th>SĐT khách</th>
               <th>Dịch vụ đã làm</th>
               <th>Giá từng DV</th>
-              <th>Thanh toán</th>
+              <th>Doanh thu tiền vé</th>
               <th>Tips</th>
-              <th>Tổng KH TT</th>
+              <th>Tổng khách thanh toán</th>
               <th>Hoa hồng</th>
               <th>Ghi chú</th>
               <th>Người nhập</th>
@@ -177,9 +177,9 @@ export default function InvoiceList({
           </tbody>
           <tfoot>
             <tr className="invoice-list__totals-row">
-              <td colSpan={10}><strong>Tổng theo bộ lọc (doanh thu = thanh toán)</strong></td>
+              <td colSpan={10}><strong>Tổng theo bộ lọc</strong></td>
               <td className="invoice-list__money invoice-list__payment">
-                <strong>{formatCurrency(totals.revenue)}</strong>
+                <strong>{formatCurrency(totals.ticketRevenue ?? totals.revenue)}</strong>
               </td>
               <td className="invoice-list__money"><strong>{formatCurrency(totals.tips)}</strong></td>
               <td className="invoice-list__money invoice-list__total">

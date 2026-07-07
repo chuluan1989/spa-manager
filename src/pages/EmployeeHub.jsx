@@ -238,7 +238,7 @@ export default function EmployeeHub({ adminMode = false }) {
                       </div>
                       <div className="employee-hub__employee-card-stats">
                         <div>
-                          <span>Doanh số</span>
+                          <span>Doanh thu tiền vé</span>
                           <strong>{formatCurrency(stats?.serviceRevenue ?? 0)}</strong>
                         </div>
                         <div>

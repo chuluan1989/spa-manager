@@ -137,7 +137,7 @@ export default function EmployeeSalaryPanel() {
                 <div><span>Chu kỳ</span><strong>{employee.cycleLabel}</strong></div>
                 <div><span>Tổng số hóa đơn</span><strong>{employee.summary.invoiceCount}</strong></div>
                 <div><span>Tổng số dịch vụ</span><strong>{employee.summary.serviceCount}</strong></div>
-                <div><span>Tổng doanh số</span><strong>{formatCurrency(employee.summary.revenue)}</strong></div>
+                <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(employee.summary.revenue)}</strong></div>
                 <div><span>Tổng tips</span><strong>{formatCurrency(employee.summary.tips)}</strong></div>
                 <div><span>Tổng hoa hồng DV</span><strong className="salary-report__commission">{formatCurrency(employee.summary.serviceCommission)}</strong></div>
                 <div><span>Tổng lương</span><strong className="salary-report__salary">{formatCurrency(employee.summary.totalSalary)}</strong></div>
@@ -179,7 +179,7 @@ export default function EmployeeSalaryPanel() {
                         </tr>
                       )}
                       <tr className="salary-report__row-total">
-                        <td colSpan={3}><strong>Tổng doanh số hóa đơn</strong></td>
+                        <td colSpan={3}><strong>Doanh thu tiền vé</strong></td>
                         <td className="report-table-card__money">{formatCurrency(invoice.totalRevenue)}</td>
                       </tr>
                       <tr className="salary-report__row-total">
@@ -197,7 +197,7 @@ export default function EmployeeSalaryPanel() {
             <div className="salary-report__period-total">
               <h4 className="salary-report__period-total-title">Tổng cuối kỳ</h4>
               <div className="salary-report__period-total-grid">
-                <div><span>Tổng doanh số kỳ</span><strong>{formatCurrency(employee.periodTotals.revenue)}</strong></div>
+                <div><span>Doanh thu tiền vé kỳ</span><strong>{formatCurrency(employee.periodTotals.revenue)}</strong></div>
                 <div><span>Tổng tips kỳ</span><strong>{formatCurrency(employee.periodTotals.tips)}</strong></div>
                 <div><span>Tổng hoa hồng kỳ</span><strong className="salary-report__commission">{formatCurrency(employee.periodTotals.serviceCommission)}</strong></div>
                 <div><span>Tổng lương kỳ</span><strong className="salary-report__salary">{formatCurrency(employee.periodTotals.totalSalary)}</strong></div>

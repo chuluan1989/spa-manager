@@ -208,7 +208,7 @@ export default function EmployeeProfileDetail({
           <div className="employee-detail__section">
             <div className="employee-detail__stats-grid">
               <div className="employee-detail__stat">
-                <span className="employee-detail__stat-label">Tổng doanh thu</span>
+                <span className="employee-detail__stat-label">Doanh thu tiền vé</span>
                 <span className="employee-detail__stat-value">{formatCurrency(stats?.revenue)}</span>
               </div>
               <div className="employee-detail__stat">

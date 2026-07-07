@@ -1133,7 +1133,8 @@ test('drillDownReport: tổng hợp cấp hệ thống và drill theo chi nhánh
     toDate: '2026-07-31',
   })
   assert.equal(summary.invoiceCount, 2)
-  assert.equal(summary.ticketRevenue, 550000)
+  assert.equal(summary.ticketRevenue, 500000)
+  assert.equal(summary.customerTotal, 620000)
   assert.equal(summary.tips, 120000)
   assert.equal(summary.discount, 50000)
   assert.equal(summary.commission, 70000)
@@ -1247,7 +1248,7 @@ test('tips count 100% toward employee pay', () => {
   assert.equal(totals.commission, 87800)
 })
 
-test('report profit subtracts commission and tips from payment revenue', () => {
+test('report profit subtracts commission from ticket revenue, not tips', () => {
   const invoices = [{
     id: '1',
     branchId: 'vinh-long',
@@ -1259,9 +1260,11 @@ test('report profit subtracts commission and tips from payment revenue', () => {
   const summary = computeReportSummary(invoices)
   const report = computeReportData(invoices, [], { fromDate: '', toDate: '', branchId: '', employeeId: '' })
   assert.equal(summary.revenue, 189000)
+  assert.equal(summary.ticketRevenue, 189000)
   assert.equal(summary.commission, 37800)
   assert.equal(summary.tips, 50000)
-  assert.equal(report.summary.profit, 189000 - 37800 - 50000)
+  assert.equal(summary.customerTotal, 239000)
+  assert.equal(report.summary.profit, 189000 - 37800)
 })
 
 async function testAsync(name, fn) {

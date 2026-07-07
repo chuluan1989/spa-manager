@@ -1,6 +1,5 @@
 import {
   getInvoiceDiscountAmount,
-  getInvoiceOriginalServiceTotal,
   getInvoicePayment,
   getInvoiceServiceDetails,
   getInvoiceTips,
@@ -34,8 +33,9 @@ export function countUniqueCustomers(invoices) {
 export function buildInvoiceMetrics(invoices) {
   return invoices.reduce(
     (acc, inv) => {
-      acc.ticketRevenue += getInvoiceOriginalServiceTotal(inv)
-      acc.payment += getInvoicePayment(inv)
+      const ticketRevenue = getInvoicePayment(inv)
+      acc.ticketRevenue += ticketRevenue
+      acc.customerTotal += ticketRevenue + getInvoiceTips(inv)
       acc.tips += getInvoiceTips(inv)
       acc.discount += getInvoiceDiscountAmount(inv)
       acc.commission += getInvoiceCommission(inv)
@@ -44,7 +44,7 @@ export function buildInvoiceMetrics(invoices) {
     },
     {
       ticketRevenue: 0,
-      payment: 0,
+      customerTotal: 0,
       tips: 0,
       discount: 0,
       commission: 0,
@@ -62,10 +62,11 @@ export function buildDrillDownSummary(invoices, expenses, filters = {}) {
 
   return {
     ...metrics,
-    revenue: metrics.payment,
+    revenue: metrics.ticketRevenue,
+    payment: metrics.ticketRevenue,
     expenses: expenseTotal,
     salary,
-    profit: metrics.payment - expenseTotal - salary,
+    profit: metrics.ticketRevenue - expenseTotal - metrics.commission,
     customerCount: countUniqueCustomers(filtered),
     filtered,
     filteredExpenses,
@@ -82,7 +83,7 @@ function mergeExpenseIntoRows(rows, expenseRows, keyFn) {
     const current = map.get(key) ?? {
       ...expRow,
       ticketRevenue: 0,
-      payment: 0,
+      customerTotal: 0,
       tips: 0,
       discount: 0,
       commission: 0,
@@ -98,11 +99,12 @@ function mergeExpenseIntoRows(rows, expenseRows, keyFn) {
 
   for (const row of map.values()) {
     row.salary = row.commission + row.tips
-    row.revenue = row.payment
-    row.profit = row.payment - (row.expenses ?? 0) - row.salary
+    row.revenue = row.ticketRevenue
+    row.payment = row.ticketRevenue
+    row.profit = row.ticketRevenue - (row.expenses ?? 0) - row.commission
   }
 
-  return [...map.values()].sort((a, b) => b.payment - a.payment)
+  return [...map.values()].sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
 export function buildBranchDrillRows(invoices, expenses, filters = {}) {
@@ -112,19 +114,20 @@ export function buildBranchDrillRows(invoices, expenses, filters = {}) {
 
   for (const inv of filtered) {
     const key = inv.branchId || inv.branchName || 'unknown'
+    const ticketRevenue = getInvoicePayment(inv)
     const current = map.get(key) ?? {
       branchId: inv.branchId,
       branchName: inv.branchName || getBranchName(inv.branchId) || '—',
       ticketRevenue: 0,
-      payment: 0,
+      customerTotal: 0,
       tips: 0,
       discount: 0,
       commission: 0,
       invoiceCount: 0,
       invoices: [],
     }
-    current.ticketRevenue += getInvoiceOriginalServiceTotal(inv)
-    current.payment += getInvoicePayment(inv)
+    current.ticketRevenue += ticketRevenue
+    current.customerTotal += ticketRevenue + getInvoiceTips(inv)
     current.tips += getInvoiceTips(inv)
     current.discount += getInvoiceDiscountAmount(inv)
     current.commission += getInvoiceCommission(inv)
@@ -135,7 +138,8 @@ export function buildBranchDrillRows(invoices, expenses, filters = {}) {
 
   const revenueRows = [...map.values()].map((row) => ({
     ...row,
-    revenue: row.payment,
+    revenue: row.ticketRevenue,
+    payment: row.ticketRevenue,
     salary: row.commission + row.tips,
     customerCount: countUniqueCustomers(row.invoices),
     invoices: undefined,
@@ -162,6 +166,7 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
     if (!employeeId) continue
 
     const employee = getEmployeeById(employeeId)
+    const ticketRevenue = getInvoicePayment(inv)
     const current = map.get(employeeId) ?? {
       employeeId,
       employeeName: employee?.name ?? inv.employeeName ?? '—',
@@ -170,7 +175,7 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
         ? getBranchName(employee.branchId)
         : inv.branchName || '—',
       ticketRevenue: 0,
-      payment: 0,
+      customerTotal: 0,
       tips: 0,
       discount: 0,
       commission: 0,
@@ -178,8 +183,8 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
       customers: new Set(),
     }
 
-    current.ticketRevenue += getInvoiceOriginalServiceTotal(inv)
-    current.payment += getInvoicePayment(inv)
+    current.ticketRevenue += ticketRevenue
+    current.customerTotal += ticketRevenue + getInvoiceTips(inv)
     current.tips += getInvoiceTips(inv)
     current.discount += getInvoiceDiscountAmount(inv)
     current.commission += getInvoiceCommission(inv)
@@ -200,8 +205,9 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
       branchId: row.branchId,
       branchName: row.branchName,
       ticketRevenue: row.ticketRevenue,
-      payment: row.payment,
-      revenue: row.payment,
+      payment: row.ticketRevenue,
+      revenue: row.ticketRevenue,
+      customerTotal: row.customerTotal,
       tips: row.tips,
       discount: row.discount,
       commission: row.commission,
@@ -209,25 +215,24 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
       invoiceCount: row.invoiceCount,
       customerCount: row.customers.size,
     }))
-    .sort((a, b) => b.payment - a.payment)
+    .sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
+/** KPI Dashboard — không trùng lặp doanh thu tiền vé / tổng khách thanh toán. */
 export const DRILL_METRICS = [
   { id: 'ticketRevenue', label: 'Doanh thu tiền vé' },
   { id: 'tips', label: 'Tips' },
-  { id: 'discount', label: 'Khuyến mãi' },
+  { id: 'customerTotal', label: 'Tổng khách thanh toán' },
   { id: 'commission', label: 'Hoa hồng' },
   { id: 'expenses', label: 'Chi phí' },
   { id: 'profit', label: 'Lợi nhuận dự kiến' },
-  { id: 'invoiceCount', label: 'Số hóa đơn' },
-  { id: 'customerCount', label: 'Số khách' },
 ]
 
 export const EMPLOYEE_DRILL_METRICS = [
-  { id: 'payment', label: 'Doanh thu' },
+  { id: 'ticketRevenue', label: 'Doanh thu tiền vé' },
   { id: 'tips', label: 'Tips' },
   { id: 'commission', label: 'Hoa hồng' },
-  { id: 'salary', label: 'Lương' },
+  { id: 'salary', label: 'Tổng lương' },
   { id: 'customerCount', label: 'Số khách' },
   { id: 'invoiceCount', label: 'Số hóa đơn' },
 ]
