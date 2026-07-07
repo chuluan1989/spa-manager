@@ -1,10 +1,6 @@
 import KhoeSpaLogo from '../brand/KhoeSpaLogo'
-import {
-  getCurrentUserBranchName,
-  getCurrentUserName,
-  getRoleLabel,
-  getVisibleNavItems,
-} from '../../constants/auth'
+import { BRAND_SLOGAN } from '../../constants/branchContacts'
+import { getVisibleNavItems } from '../../constants/auth'
 import NavIcon from './NavIcon'
 import './Sidebar.css'
 
@@ -14,17 +10,11 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
   return (
     <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
       <div className="sidebar__brand">
-        <KhoeSpaLogo size={48} className="sidebar__logo-img" />
+        <KhoeSpaLogo size={52} className="sidebar__logo-img" />
         <div className="sidebar__brand-text">
           <h1 className="sidebar__title">Khoẻ Spa</h1>
-          <p className="sidebar__subtitle">Manager</p>
+          <p className="sidebar__slogan">{BRAND_SLOGAN}</p>
         </div>
-      </div>
-
-      <div className="sidebar__user">
-        <p className="sidebar__user-name">{getCurrentUserName()}</p>
-        <p className="sidebar__user-role">{getRoleLabel()}</p>
-        <p className="sidebar__user-branch">{getCurrentUserBranchName()}</p>
       </div>
 
       <nav className="sidebar__nav">

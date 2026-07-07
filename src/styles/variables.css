@@ -1,37 +1,52 @@
 :root {
-  --ks-bg: #0b0b0b;
-  --ks-card: #151515;
-  --ks-card-hover: #1a1a1a;
-  --ks-input-bg: #1c1c1c;
-  --ks-sidebar: #0b0b0b;
-
+  /* ── Brand identity (sidebar, login only) ── */
+  --ks-brand-bg: #0b0b0b;
   --ks-gold: #d4af37;
   --ks-gold-hover: #e6c25a;
   --ks-gold-dark: #b8962e;
-  --ks-gold-muted: rgba(212, 175, 55, 0.25);
-  --ks-gold-glow: rgba(212, 175, 55, 0.15);
+  --ks-gold-muted: rgba(212, 175, 55, 0.14);
+  --ks-gold-glow: rgba(212, 175, 55, 0.22);
 
-  --ks-text: #ffffff;
-  --ks-text-muted: #bdbdbd;
-  --ks-text-subtle: #8a8a8a;
+  /* ── Workspace (light commercial SaaS) ── */
+  --ks-bg: #f4f5f7;
+  --ks-surface: #ffffff;
+  --ks-card: #ffffff;
+  --ks-card-hover: #fafbfc;
+  --ks-input-bg: #ffffff;
+  --ks-sidebar: #0b0b0b;
 
-  --ks-border: rgba(212, 175, 55, 0.25);
-  --ks-border-subtle: rgba(255, 255, 255, 0.08);
+  --ks-text: #111827;
+  --ks-text-muted: #6b7280;
+  --ks-text-subtle: #9ca3af;
+  --ks-text-inverse: #ffffff;
 
-  --ks-danger: #ef4444;
-  --ks-success: #22c55e;
+  --ks-border: #e5e7eb;
+  --ks-border-subtle: #f0f1f3;
+  --ks-border-strong: #d1d5db;
 
-  --ks-radius-sm: 10px;
-  --ks-radius-md: 14px;
-  --ks-radius-lg: 18px;
-  --ks-radius-xl: 24px;
+  --ks-danger: #dc2626;
+  --ks-success: #059669;
+  --ks-warning: #d97706;
+  --ks-info: #2563eb;
 
-  --ks-shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
-  --ks-shadow-gold: 0 8px 28px rgba(212, 175, 55, 0.18);
+  --ks-radius-xs: 6px;
+  --ks-radius-sm: 8px;
+  --ks-radius-md: 12px;
+  --ks-radius-lg: 16px;
+  --ks-radius-xl: 20px;
+
+  --ks-shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --ks-shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --ks-shadow-card: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --ks-shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.08), 0 2px 4px -2px rgba(16, 24, 40, 0.04);
+  --ks-shadow-lg: 0 12px 24px -4px rgba(16, 24, 40, 0.1), 0 4px 8px -4px rgba(16, 24, 40, 0.04);
+  --ks-shadow-gold: 0 4px 14px rgba(212, 175, 55, 0.25);
 
   --ks-font-display: 'Playfair Display', Georgia, serif;
-  --ks-font-body: 'Poppins', system-ui, -apple-system, sans-serif;
+  --ks-font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  --ks-sidebar-width: 268px;
-  --ks-header-height: 64px;
+  --ks-sidebar-width: 260px;
+  --ks-header-height: 60px;
+
+  --ks-transition: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }

@@ -1,6 +1,18 @@
 import { useMemo, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import {
+  ChevronRight,
+  FileText,
+  Gift,
+  Percent,
+  Receipt,
+  TrendingUp,
+  Users,
+  Wallet,
+} from 'lucide-react'
 import InvoiceDetailModal from '../invoice/InvoiceDetailModal'
+import MiniBarChart from '../dashboard/MiniBarChart'
+import DataTable from '../ui/DataTable'
+import KpiCard from '../ui/KpiCard'
 import {
   canEditInvoice,
   canSelectBranch,
@@ -34,65 +46,32 @@ function formatMetricValue(id, value) {
   return formatCurrency(value ?? 0)
 }
 
-function MetricCard({ metric, summary, onDrill, activeMetric }) {
-  const value = summary?.[metric.id] ?? 0
-  return (
-    <button
-      type="button"
-      className={`drill-metric ${activeMetric === metric.id ? 'drill-metric--active' : ''}`}
-      onClick={() => onDrill(metric.id)}
-      title={`Bấm để xem chi tiết theo ${metric.label}`}
-    >
-      <span className="drill-metric__label">{metric.label}</span>
-      <strong className="drill-metric__value">{formatMetricValue(metric.id, value)}</strong>
-      <span className="drill-metric__hint">Xem chi tiết →</span>
-    </button>
-  )
+const METRIC_ICONS = {
+  ticketRevenue: Receipt,
+  tips: Gift,
+  discount: Percent,
+  commission: TrendingUp,
+  expenses: Wallet,
+  profit: TrendingUp,
+  invoiceCount: FileText,
+  customerCount: Users,
+  payment: Receipt,
+  salary: Wallet,
 }
 
-function DrillTable({ columns, rows, onRowClick, emptyText }) {
-  if (!rows.length) {
-    return <p className="drill-empty">{emptyText}</p>
-  }
-
-  return (
-    <div className="drill-table-wrap">
-      <table className="drill-table">
-        <thead>
-          <tr>
-            {columns.map((col) => (
-              <th key={col.key}>{col.label}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.key}>
-              {columns.map((col) => {
-                const raw = row.data[col.key]
-                const content = col.format ? col.format(raw, row.data) : raw
-                if (col.key === columns[0].key && onRowClick) {
-                  return (
-                    <td key={col.key}>
-                      <button type="button" className="drill-table__link" onClick={() => onRowClick(row.data)}>
-                        {content}
-                      </button>
-                    </td>
-                  )
-                }
-                return (
-                  <td key={col.key} className={col.money ? 'drill-table__money' : col.num ? 'drill-table__num' : ''}>
-                    {content}
-                  </td>
-                )
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+const METRIC_VARIANTS = {
+  ticketRevenue: 'gold',
+  tips: 'green',
+  discount: 'orange',
+  commission: 'purple',
+  expenses: 'orange',
+  profit: 'blue',
+  invoiceCount: 'slate',
+  customerCount: 'slate',
+  payment: 'gold',
+  salary: 'purple',
 }
+
 
 export default function DrillDownExplorer({
   title = 'Dashboard',
@@ -214,27 +193,34 @@ export default function DrillDownExplorer({
     }
   }
 
-  const branchTableColumns = [
-    { key: 'branchName', label: 'Chi nhánh' },
+  const branchTableColumns = useMemo(() => [
+    { key: 'branchName', label: 'Chi nhánh', sortable: true },
     ...DRILL_METRICS.map((m) => ({
       key: m.id,
       label: m.label,
-      money: m.id !== 'invoiceCount' && m.id !== 'customerCount',
-      num: m.id === 'invoiceCount' || m.id === 'customerCount',
-      format: (v, row) => formatMetricValue(m.id, m.id === 'expenses' ? row.expenses : v),
+      align: 'right',
+      render: (v, row) => formatMetricValue(m.id, m.id === 'expenses' ? row.expenses : v),
     })),
-  ]
+  ], [])
 
-  const employeeTableColumns = [
-    { key: 'employeeName', label: 'Nhân viên' },
+  const employeeTableColumns = useMemo(() => [
+    { key: 'employeeName', label: 'Nhân viên', sortable: true },
     ...EMPLOYEE_DRILL_METRICS.map((m) => ({
       key: m.id,
       label: m.label,
-      money: m.id !== 'invoiceCount' && m.id !== 'customerCount',
-      num: m.id === 'invoiceCount' || m.id === 'customerCount',
-      format: (v) => formatMetricValue(m.id, v),
+      align: 'right',
+      render: (v) => formatMetricValue(m.id, v),
     })),
-  ]
+  ], [])
+
+  const chartItems = useMemo(
+    () => branchRows.slice(0, 8).map((row) => ({
+      id: row.branchId,
+      label: (row.branchName ?? '').replace('Khoẻ Spa ', ''),
+      value: row.ticketRevenue,
+    })),
+    [branchRows],
+  )
 
   const handleEditInvoice = (invoice) => {
     setInvoiceEditPrefill(invoice.id)
@@ -355,39 +341,51 @@ export default function DrillDownExplorer({
         <>
           {(level === 'system' || level === 'branch' || (level === 'employee' && isEmployee())) && (
             <section className="drill-metrics">
-              {currentMetrics.map((metric) => (
-                <MetricCard
+              {currentMetrics.map((metric, index) => (
+                <KpiCard
                   key={metric.id}
-                  metric={metric}
-                  summary={currentSummary}
-                  activeMetric={activeMetric}
-                  onDrill={drillFromMetric}
+                  label={metric.label}
+                  value={formatMetricValue(metric.id, currentSummary?.[metric.id] ?? 0)}
+                  icon={METRIC_ICONS[metric.id]}
+                  variant={METRIC_VARIANTS[metric.id] ?? 'gold'}
+                  active={activeMetric === metric.id}
+                  onClick={() => drillFromMetric(metric.id)}
+                  delay={index * 50}
                 />
               ))}
             </section>
           )}
 
+          {level === 'system' && isAdmin() && chartItems.length > 0 && (
+            <section className="drill-chart-section">
+              <h3 className="drill-panel__title">Doanh thu tiền vé theo chi nhánh</h3>
+              <MiniBarChart items={chartItems} formatValue={formatCurrency} />
+            </section>
+          )}
+
           {level === 'system' && isAdmin() && (
-            <section className="drill-panel">
-              <h3>Toàn hệ thống — bấm chỉ số phía trên hoặc chọn chi nhánh</h3>
-              <button type="button" className="drill-panel__cta" onClick={() => setLevel('branch')}>
+            <section className="drill-panel drill-panel--flat">
+              <h3 className="drill-panel__title">Tổng quan hệ thống</h3>
+              <p className="drill-panel__desc">Bấm vào chỉ số KPI hoặc nút bên dưới để drill-down theo chi nhánh</p>
+              <button type="button" className="drill-panel__cta ks-btn-ghost" onClick={() => setLevel('branch')}>
                 Xem theo chi nhánh →
               </button>
             </section>
           )}
 
           {level === 'branch' && (
-            <section className="drill-panel">
-              <h3>{isAdmin() ? 'Doanh thu theo chi nhánh' : `Chi nhánh ${getCurrentUserBranchName()}`}</h3>
+            <section className="drill-panel drill-panel--flat">
+              <h3 className="drill-panel__title">{isAdmin() ? 'Doanh thu theo chi nhánh' : `Chi nhánh ${getCurrentUserBranchName()}`}</h3>
               {isAdmin() ? (
-                <DrillTable
+                <DataTable
                   columns={branchTableColumns}
-                  rows={branchRows.map((row) => ({ key: row.branchId, data: row }))}
+                  rows={branchRows}
+                  getRowKey={(row) => row.branchId}
                   onRowClick={(row) => goToLevel('employee', { branchId: row.branchId })}
                   emptyText="Không có dữ liệu trong khoảng thời gian đã chọn."
                 />
               ) : (
-                <button type="button" className="drill-panel__cta" onClick={() => setLevel('employee')}>
+                <button type="button" className="drill-panel__cta ks-btn-ghost" onClick={() => setLevel('employee')}>
                   Xem theo nhân viên →
                 </button>
               )}
@@ -395,8 +393,8 @@ export default function DrillDownExplorer({
           )}
 
           {level === 'employee' && (
-            <section className="drill-panel">
-              <h3>
+            <section className="drill-panel drill-panel--flat">
+              <h3 className="drill-panel__title">
                 {scopedFilters.branchId
                   ? `Nhân viên — ${getBranchById(scopedFilters.branchId)?.name ?? ''}`
                   : isEmployee()
@@ -404,15 +402,16 @@ export default function DrillDownExplorer({
                     : 'Doanh thu theo nhân viên'}
               </h3>
               {!isEmployee() && (
-                <DrillTable
+                <DataTable
                   columns={employeeTableColumns}
-                  rows={employeeRows.map((row) => ({ key: row.employeeId, data: row }))}
+                  rows={employeeRows}
+                  getRowKey={(row) => row.employeeId}
                   onRowClick={(row) => goToLevel('invoices', { employeeId: row.employeeId, branchId: row.branchId || scopedFilters.branchId })}
                   emptyText="Không có dữ liệu nhân viên."
                 />
               )}
               {isEmployee() && (
-                <button type="button" className="drill-panel__cta" onClick={() => setLevel('invoices')}>
+                <button type="button" className="drill-panel__cta ks-btn-ghost" onClick={() => setLevel('invoices')}>
                   Xem hóa đơn của tôi →
                 </button>
               )}

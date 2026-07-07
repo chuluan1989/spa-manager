@@ -7,9 +7,15 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   margin: 0;
   font-family: var(--ks-font-body);
+  font-size: 14px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--ks-bg);
@@ -20,7 +26,10 @@ body {
   min-height: 100vh;
 }
 
-button {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
 }
 
@@ -28,3 +37,32 @@ button {
   display: block;
   object-fit: contain;
 }
+
+::selection {
+  background: var(--ks-gold-muted);
+  color: var(--ks-text);
+}
+
+@keyframes ks-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ks-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ks-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.ks-animate-in {
+  animation: ks-fade-in 0.4s ease both;
+}
+
+.ks-animate-in-delay-1 { animation-delay: 0.05s; }
+.ks-animate-in-delay-2 { animation-delay: 0.1s; }
+.ks-animate-in-delay-3 { animation-delay: 0.15s; }
+.ks-animate-in-delay-4 { animation-delay: 0.2s; }

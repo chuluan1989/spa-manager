@@ -1,0 +1,217 @@
+.data-table {
+  background: var(--ks-card);
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-md);
+  box-shadow: var(--ks-shadow-card);
+  overflow: hidden;
+}
+
+.data-table__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ks-border-subtle);
+}
+
+.data-table__search {
+  flex: 1;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+  background: var(--ks-input-bg);
+  color: var(--ks-text-subtle);
+}
+
+.data-table__search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  font-size: 14px;
+  color: var(--ks-text);
+  min-height: auto;
+}
+
+.data-table__search input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.data-table__count {
+  font-size: 12px;
+  color: var(--ks-text-muted);
+  white-space: nowrap;
+}
+
+.data-table__wrap {
+  overflow: auto;
+  max-height: min(520px, 60vh);
+}
+
+.data-table__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.data-table__table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.data-table__table th {
+  padding: 0;
+  background: #f9fafb;
+  border-bottom: 1px solid var(--ks-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.data-table__th-inner {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.data-table__sort-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 11px 14px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--ks-text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.data-table__sort-btn:disabled {
+  cursor: default;
+}
+
+.data-table__sort-idle {
+  opacity: 0.35;
+}
+
+.data-table__resize {
+  width: 4px;
+  align-self: stretch;
+  cursor: col-resize;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.data-table__resize:hover {
+  background: var(--ks-gold-muted);
+}
+
+.data-table__table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--ks-border-subtle);
+  color: var(--ks-text);
+  vertical-align: middle;
+}
+
+.data-table__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table__row--clickable {
+  cursor: pointer;
+  transition: background var(--ks-transition);
+}
+
+.data-table__row--clickable:hover td {
+  background: var(--ks-gold-muted);
+}
+
+.data-table__td--right {
+  text-align: right;
+}
+
+.data-table__td--money {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.data-table__link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--ks-info);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+}
+
+.data-table__link:hover {
+  color: var(--ks-gold-dark);
+  text-decoration: underline;
+}
+
+.data-table__empty,
+.data-table__empty-cell {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--ks-text-muted);
+}
+
+.data-table__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--ks-border-subtle);
+  font-size: 13px;
+  color: var(--ks-text-muted);
+}
+
+.data-table__pagination button {
+  padding: 8px 14px;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-sm);
+  background: var(--ks-surface);
+  color: var(--ks-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.data-table__pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.data-table__pagination button:not(:disabled):hover {
+  border-color: var(--ks-gold);
+  color: var(--ks-gold-dark);
+}
+
+@media (max-width: 640px) {
+  .data-table__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .data-table__search {
+    max-width: none;
+  }
+}

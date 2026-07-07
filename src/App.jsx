@@ -112,7 +112,7 @@ function App() {
 
   if (!authReady) {
     return (
-      <div className="app-loading" style={{ padding: 24, textAlign: 'center', color: '#64748b' }}>
+      <div className="app-loading" style={{ padding: 24, textAlign: 'center', color: '#6b7280', background: '#f4f5f7', minHeight: '100vh' }}>
         Đang tải...
       </div>
     )

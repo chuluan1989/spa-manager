@@ -1,7 +1,7 @@
 .drill-explorer {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .drill-explorer__header {
@@ -14,10 +14,10 @@
 
 .drill-explorer__title {
   margin: 0 0 4px;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--ks-text);
-  font-family: var(--ks-font-display);
+  letter-spacing: -0.3px;
 }
 
 .drill-explorer__subtitle {
@@ -33,14 +33,20 @@
 
 .drill-explorer__quick button {
   padding: 8px 14px;
-  border: 1px solid var(--ks-border-subtle);
+  border: 1px solid var(--ks-border);
   border-radius: var(--ks-radius-sm);
-  background: rgba(212, 175, 55, 0.08);
-  color: var(--ks-gold-hover);
+  background: var(--ks-surface);
+  color: var(--ks-text-muted);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   font-family: inherit;
+  transition: border-color var(--ks-transition), color var(--ks-transition);
+}
+
+.drill-explorer__quick button:hover {
+  border-color: var(--ks-gold);
+  color: var(--ks-gold-dark);
 }
 
 .drill-breadcrumb {
@@ -49,9 +55,10 @@
   align-items: center;
   gap: 4px;
   padding: 10px 14px;
-  border: 1px solid var(--ks-border-subtle);
+  border: 1px solid var(--ks-border);
   border-radius: var(--ks-radius-sm);
-  background: var(--ks-input-bg);
+  background: var(--ks-surface);
+  box-shadow: var(--ks-shadow-xs);
 }
 
 .drill-breadcrumb__item {
@@ -63,12 +70,17 @@
 .drill-breadcrumb__item button {
   border: none;
   background: transparent;
-  color: var(--ks-gold);
+  color: var(--ks-info);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
   padding: 2px 4px;
+}
+
+.drill-breadcrumb__item button:hover {
+  color: var(--ks-gold-dark);
+  text-decoration: underline;
 }
 
 .drill-breadcrumb__sep {
@@ -79,10 +91,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 12px;
-  border: 1px solid var(--ks-border-subtle);
+  padding: 16px;
+  border: 1px solid var(--ks-border);
   border-radius: var(--ks-radius-md);
-  background: var(--ks-card);
+  background: var(--ks-surface);
+  box-shadow: var(--ks-shadow-card);
 }
 
 .drill-filters label {
@@ -91,27 +104,19 @@
   gap: 4px;
   min-width: 140px;
   font-size: 11px;
-  color: var(--ks-text-subtle);
+  font-weight: 600;
+  color: var(--ks-text-muted);
   text-transform: uppercase;
-}
-
-.drill-filters input,
-.drill-filters select {
-  padding: 9px 10px;
-  border: 1px solid var(--ks-border-subtle);
-  border-radius: var(--ks-radius-sm);
-  background: var(--ks-input-bg);
-  color: var(--ks-text);
-  font-family: inherit;
-  font-size: 13px;
+  letter-spacing: 0.3px;
 }
 
 .drill-error {
   padding: 12px 14px;
   border-radius: var(--ks-radius-sm);
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: var(--ks-danger);
+  font-size: 14px;
 }
 
 .drill-loading,
@@ -123,111 +128,44 @@
 
 .drill-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.drill-chart-section {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-.drill-metric {
+.drill-panel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px 16px;
-  border: 1px solid var(--ks-border-subtle);
-  border-radius: var(--ks-radius-md);
-  background: var(--ks-card);
-  text-align: left;
-  cursor: pointer;
-  font-family: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  gap: 12px;
 }
 
-.drill-metric:hover,
-.drill-metric--active {
-  border-color: var(--ks-gold);
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.25);
+.drill-panel--flat {
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
-.drill-metric__label {
-  font-size: 12px;
-  color: var(--ks-text-muted);
-}
-
-.drill-metric__value {
-  font-size: 20px;
-  color: var(--ks-gold-hover);
-}
-
-.drill-metric__hint {
-  font-size: 11px;
-  color: var(--ks-gold);
-}
-
-.drill-panel {
-  border: 1px solid var(--ks-border-subtle);
-  border-radius: var(--ks-radius-md);
-  background: var(--ks-card);
-  padding: 16px;
-}
-
-.drill-panel h3 {
-  margin: 0 0 14px;
+.drill-panel__title {
+  margin: 0;
   font-size: 16px;
+  font-weight: 700;
   color: var(--ks-text);
 }
 
-.drill-panel__cta {
-  padding: 12px 18px;
-  border: 1px solid var(--ks-gold);
-  border-radius: var(--ks-radius-sm);
-  background: rgba(212, 175, 55, 0.1);
-  color: var(--ks-gold-hover);
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.drill-table-wrap {
-  overflow-x: auto;
-}
-
-.drill-table {
-  width: 100%;
-  border-collapse: collapse;
+.drill-panel__desc {
+  margin: 0;
   font-size: 13px;
+  color: var(--ks-text-muted);
 }
 
-.drill-table th,
-.drill-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--ks-border-subtle);
-  text-align: left;
-}
-
-.drill-table th {
-  font-size: 11px;
-  text-transform: uppercase;
-  color: var(--ks-text-subtle);
-  background: rgba(212, 175, 55, 0.06);
-}
-
-.drill-table__link {
-  border: none;
-  background: transparent;
-  color: var(--ks-gold);
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  padding: 0;
-  text-align: left;
-}
-
-.drill-table__money {
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.drill-table__num {
-  text-align: center;
+.drill-panel__cta {
+  align-self: flex-start;
 }
 
 .drill-timeline-day {
@@ -236,31 +174,39 @@
 
 .drill-timeline-day h4 {
   margin: 0 0 10px;
-  font-size: 14px;
-  color: var(--ks-gold);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ks-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 .drill-invoice-card {
   width: 100%;
-  margin-bottom: 10px;
-  padding: 12px 14px;
-  border: 1px solid var(--ks-border-subtle);
-  border-radius: var(--ks-radius-sm);
-  background: var(--ks-input-bg);
+  margin-bottom: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-md);
+  background: var(--ks-surface);
   text-align: left;
   cursor: pointer;
   font-family: inherit;
   color: inherit;
+  box-shadow: var(--ks-shadow-xs);
+  transition: border-color var(--ks-transition), box-shadow var(--ks-transition), transform var(--ks-transition);
 }
 
 .drill-invoice-card:hover {
   border-color: var(--ks-gold);
+  box-shadow: var(--ks-shadow-md);
+  transform: translateY(-1px);
 }
 
 .drill-invoice-card__time {
   font-weight: 700;
-  color: var(--ks-gold);
+  color: var(--ks-gold-dark);
   margin-bottom: 4px;
+  font-size: 13px;
 }
 
 .drill-invoice-card__name {
@@ -296,12 +242,6 @@
   color: var(--ks-success);
 }
 
-.drill-panel--detail {
-  padding: 0;
-  border: none;
-  background: transparent;
-}
-
 @media (max-width: 768px) {
   .drill-metrics {
     grid-template-columns: repeat(2, 1fr);
@@ -309,5 +249,11 @@
 
   .drill-filters label {
     min-width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 480px) {
+  .drill-metrics {
+    grid-template-columns: 1fr;
   }
 }

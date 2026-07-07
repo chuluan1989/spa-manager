@@ -1,122 +1,55 @@
-.report__header {
+.report__tabs {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-
-.report__title {
-  margin: 0 0 4px;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--ks-text);
-  letter-spacing: -0.5px;
-}
-
-.report__subtitle {
-  margin: 0;
-  font-size: 15px;
-  color: var(--ks-text-muted);
-}
-
-.report__quick {
-  display: flex;
-  gap: 8px;
-}
-
-.report__quick-btn {
-  padding: 10px 16px;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: var(--ks-surface);
   border: 1px solid var(--ks-border);
-  background: var(--ks-card);
-  color: var(--ks-gold);
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: var(--ks-radius-md);
+  box-shadow: var(--ks-shadow-xs);
+}
+
+.report__tab {
+  flex: 1;
+  min-width: max-content;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--ks-radius-sm);
+  background: transparent;
+  color: var(--ks-text-muted);
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.report__quick-btn:hover {
-  background: rgba(212, 175, 55, 0.12);
-  border-color: var(--ks-gold);
-}
-
-.report__field--banner {
-  grid-column: 1 / -1;
-}
-
-.report__filters {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  padding: 20px;
-  background: var(--ks-card);
-  border-radius: 16px;
-  border: 1px solid var(--ks-border-subtle);
-  box-shadow: 0 2px 8px var(--ks-shadow-card);
-  margin-bottom: 24px;
-}
-
-.report__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ks-text-muted);
-}
-
-.report__field input,
-.report__field select {
-  padding: 10px 14px;
-  border: 1px solid var(--ks-border);
-  border-radius: 10px;
-  font-size: 14px;
-  color: var(--ks-text);
-  background: var(--ks-input-bg);
   font-family: inherit;
+  white-space: nowrap;
+  transition: background var(--ks-transition), color var(--ks-transition);
 }
 
-.report__field input:focus,
-.report__field select:focus {
-  outline: none;
-  border-color: var(--ks-gold);
-  box-shadow: 0 0 0 3px var(--ks-gold-glow);
-  background: var(--ks-card);
-}
-
-.report__summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.report-card {
-  background: var(--ks-card);
-  border-radius: 16px;
-  padding: 20px;
-  border: 1px solid var(--ks-border-subtle);
-  box-shadow: 0 2px 8px var(--ks-shadow-card);
-}
-
-.report-card__label {
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: var(--ks-text-muted);
-  font-weight: 500;
-}
-
-.report-card__value {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
+.report__tab:hover {
   color: var(--ks-text);
-  letter-spacing: -0.3px;
+  background: var(--ks-border-subtle);
 }
 
+.report__tab--active {
+  background: var(--ks-gold);
+  color: #1a1508;
+  box-shadow: var(--ks-shadow-gold);
+}
+
+.report--denied {
+  padding: 32px;
+}
+
+.report--denied .report__title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: var(--ks-text);
+}
+
+.report--denied .report__subtitle {
+  margin: 0;
+  color: var(--ks-text-muted);
+}
 .report-card--blue .report-card__value { color: var(--ks-gold); }
 .report-card--green .report-card__value { color: var(--ks-success); }
 .report-card--orange .report-card__value { color: var(--ks-gold-hover); }
