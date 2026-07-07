@@ -84,9 +84,7 @@ export default function EmployeeHub({ adminMode = false }) {
         if (emp.status !== statusFilter) return false
       } else {
         const inDefaultList = isDefaultListEmployee(emp)
-        const inArchiveList = showArchived && (
-          isEmployeeArchived(emp) || emp.status === EMPLOYEE_STATUS.RESIGNED
-        )
+        const inArchiveList = showArchived && isEmployeeArchived(emp)
         if (!inDefaultList && !inArchiveList) return false
       }
       if (!q) return true
@@ -233,7 +231,7 @@ export default function EmployeeHub({ adminMode = false }) {
                   checked={showArchived}
                   onChange={(e) => setShowArchived(e.target.checked)}
                 />
-                Hiện NV đã lưu trữ / nghỉ việc
+                Hiện nhân viên đã lưu trữ
               </label>
             )}
           </div>

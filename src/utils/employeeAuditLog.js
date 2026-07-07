@@ -1,4 +1,6 @@
 import { getSessionUser } from './storageAccess'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { insertEmployeeAuditLog as pushAuditLogToSupabase } from '../repositories/employeeAuditRepository'
 
 const STORAGE_KEY = 'spa-manager-employee-audit-log'
 const MAX_ENTRIES = 2000
@@ -65,6 +67,12 @@ export function appendEmployeeAuditLog({
     localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
   } catch (error) {
     console.warn('[Audit] Không thể ghi nhật ký nhân viên:', error?.message)
+  }
+
+  if (isSupabaseConfigured) {
+    pushAuditLogToSupabase(entry).catch((error) => {
+      console.warn('[Supabase] Không thể đồng bộ nhật ký nhân viên:', error?.message)
+    })
   }
 
   return entry

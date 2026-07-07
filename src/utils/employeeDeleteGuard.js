@@ -11,7 +11,7 @@ function employeeHasInvoiceHistory(employeeId, invoices = loadInvoices()) {
   )
 }
 
-/** Kiểm tra có thể xóa vĩnh viễn — chỉ khi chưa phát sinh hóa đơn/doanh thu. */
+/** Kiểm tra có thể xóa vĩnh viễn — chỉ khi chưa phát sinh hóa đơn/doanh thu/lương. */
 export function canPermanentDeleteEmployee(employeeId, invoices = loadInvoices()) {
   if (!employeeId) {
     return { allowed: false, reason: 'Không tìm thấy nhân viên.' }

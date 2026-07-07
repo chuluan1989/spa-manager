@@ -29,7 +29,7 @@ export const PERMISSION_LABELS = {
   [PERMISSION_KEYS.DELETE_INVOICE]: 'Xóa hóa đơn (chỉ Admin)',
   [PERMISSION_KEYS.VIEW_CCCD]: 'Xem CCCD (chỉ Admin)',
   [PERMISSION_KEYS.MANAGE_EMPLOYEES]: 'Quản lý nhân viên chi nhánh',
-  [PERMISSION_KEYS.DELETE_EMPLOYEE]: 'Xóa nhân viên (chỉ Admin)',
+  [PERMISSION_KEYS.DELETE_EMPLOYEE]: 'Lưu trữ / xóa vĩnh viễn nhân viên (chỉ Admin)',
   [PERMISSION_KEYS.TRANSFER_EMPLOYEE]: 'Chuyển chi nhánh nhân viên (chỉ Admin)',
 }
 

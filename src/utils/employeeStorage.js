@@ -21,7 +21,8 @@ export const SUPABASE_EMPLOYEE_FIELDS = [
   'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'currentAddress',
   'bankName', 'bankAccountHolder', 'bankAccount',
   'emergencyContactName', 'emergencyContactPhone',
-  'position', 'startDate', 'status', 'note', 'avatar',
+  'position', 'startDate', 'endDate', 'commissionRate', 'salaryRate',
+  'status', 'note', 'avatar',
   'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
 ]
 

@@ -13,14 +13,14 @@ import './Settings.css'
 
 const TABS = [
   { id: 'admin-profile', label: 'Hồ sơ Admin' },
-  { id: 'accounts', label: 'Tài khoản & phân quyền' },
-  { id: 'branches', label: 'Chi nhánh' },
-  { id: 'employees', label: 'Nhân viên' },
-  { id: 'services', label: 'Dịch vụ' },
+  { id: 'accounts', label: 'Quản lý tài khoản & phân quyền' },
+  { id: 'branches', label: 'Quản lý chi nhánh' },
+  { id: 'employees', label: 'Quản lý nhân viên' },
+  { id: 'services', label: 'Quản lý dịch vụ' },
   { id: 'branch-pricing', label: 'Bảng giá theo chi nhánh' },
-  { id: 'policies', label: 'Chính sách' },
-  { id: 'audit-log', label: 'Nhật ký' },
-  { id: 'backup', label: 'Sao lưu & hệ thống' },
+  { id: 'policies', label: 'Chính sách lương & hoa hồng' },
+  { id: 'audit-log', label: 'Quản lý Nhật ký' },
+  { id: 'backup', label: 'Backup & Hệ thống' },
 ]
 
 export default function Settings() {
