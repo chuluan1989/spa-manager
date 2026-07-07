@@ -1,17 +1,17 @@
 .invoice-list {
-  margin-top: 32px;
-  background: #fff;
+  margin-top: 0;
+  background: var(--ks-card);
   border-radius: 16px;
   padding: 24px;
-  border: 1px solid #e3edf5;
-  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.08);
+  border: 1px solid var(--ks-border-subtle);
+  box-shadow: 0 2px 8px var(--ks-shadow-card);
 }
 
 .invoice-list__title {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .invoice-list__header {
@@ -25,12 +25,12 @@
 .invoice-list__meta {
   margin: 0;
   font-size: 13px;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 .invoice-list__empty {
   margin: 0;
-  color: #64748b;
+  color: var(--ks-text-muted);
   font-size: 14px;
   text-align: center;
   padding: 24px;
@@ -50,28 +50,28 @@
 .invoice-list__table th {
   text-align: left;
   padding: 12px 14px;
-  background: #f0f7ff;
-  color: #0f4c81;
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--ks-gold-hover);
   font-weight: 600;
   white-space: nowrap;
-  border-bottom: 2px solid #dbeafe;
+  border-bottom: 2px solid var(--ks-border);
   vertical-align: top;
 }
 
 .invoice-list__table td {
   padding: 14px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
+  border-bottom: 1px solid var(--ks-border-subtle);
+  color: var(--ks-text-muted);
   vertical-align: top;
   line-height: 1.5;
 }
 
 .invoice-list__table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--ks-input-bg);
 }
 
 .invoice-list__payment {
-  color: #1565a8;
+  color: var(--ks-gold);
 }
 
 .invoice-list__index,
@@ -84,8 +84,9 @@
   margin-top: 6px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--ks-gold-hover);
+  border: 1px solid var(--ks-border);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -137,7 +138,7 @@
 
 .invoice-list__service-lines li {
   padding: 6px 10px;
-  background: #f8fafc;
+  background: var(--ks-input-bg);
   border-radius: 6px;
   font-size: 13px;
   line-height: 1.45;
@@ -145,7 +146,7 @@
 }
 
 .invoice-list__muted {
-  color: #94a3b8;
+  color: var(--ks-text-subtle);
 }
 
 .invoice-list__service-lines--prices li {
@@ -163,8 +164,8 @@
 }
 
 .invoice-list__totals-row td {
-  background: #f0f7ff;
-  border-top: 2px solid #dbeafe;
+  background: rgba(212, 175, 55, 0.08);
+  border-top: 2px solid var(--ks-border);
   padding-top: 14px;
   padding-bottom: 14px;
 }
@@ -179,10 +180,10 @@
 
 .invoice-list__page-btn {
   padding: 8px 14px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--ks-border);
   border-radius: 8px;
-  background: #fff;
-  color: #1565a8;
+  background: var(--ks-card);
+  color: var(--ks-gold);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -196,19 +197,19 @@
 
 .invoice-list__page-info {
   font-size: 14px;
-  color: #64748b;
+  color: var(--ks-text-muted);
   font-weight: 500;
 }
 
 .invoice-list__view {
-  background: #f8fafc;
+  background: var(--ks-input-bg);
   color: #475569;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--ks-border-subtle);
   margin-right: 6px;
 }
 
 .invoice-list__view:hover {
-  background: #f1f5f9;
+  background: var(--ks-border-subtle);
 }
 
 .invoice-list__money {
@@ -217,11 +218,11 @@
 }
 
 .invoice-list__total {
-  color: #1565a8;
+  color: var(--ks-gold);
 }
 
 .invoice-list__commission {
-  color: #16a34a;
+  color: var(--ks-success);
 }
 
 .invoice-list__action {
@@ -241,20 +242,20 @@
 }
 
 .invoice-list__edit {
-  background: #e8f2fb;
-  color: #1565a8;
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--ks-gold);
   margin-right: 6px;
 }
 
 .invoice-list__edit:hover {
-  background: #dbeafe;
+  background: var(--ks-border);
 }
 
 .invoice-list__delete {
   padding: 6px 14px;
   border: 1px solid #fecaca;
-  background: #fff;
-  color: #dc2626;
+  background: var(--ks-card);
+  color: var(--ks-danger);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;

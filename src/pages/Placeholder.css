@@ -7,11 +7,11 @@
   margin: 0 0 8px;
   font-size: 28px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .placeholder__subtitle {
   margin: 0;
-  color: #64748b;
+  color: var(--ks-text-muted);
   font-size: 15px;
 }

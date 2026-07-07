@@ -4,7 +4,7 @@
   gap: 8px;
   margin-bottom: 24px;
   padding: 4px;
-  background: #f0f7ff;
+  background: rgba(212, 175, 55, 0.08);
   border-radius: 12px;
 }
 
@@ -12,7 +12,7 @@
   padding: 10px 16px;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: var(--ks-text-muted);
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -21,14 +21,14 @@
 }
 
 .settings__tab:hover {
-  color: #1565a8;
+  color: var(--ks-gold);
   background: rgba(255, 255, 255, 0.6);
 }
 
 .settings__tab--active {
-  background: #fff;
-  color: #1565a8;
-  box-shadow: 0 1px 4px rgba(15, 76, 129, 0.12);
+  background: var(--ks-card);
+  color: var(--ks-gold);
+  box-shadow: 0 1px 4px var(--ks-shadow-card);
 }
 
 .settings__actions-cell {
@@ -41,7 +41,7 @@
   margin: 0 0 12px;
   font-size: 15px;
   font-weight: 600;
-  color: #1565a8;
+  color: var(--ks-gold);
 }
 
 .settings__employee-group {
@@ -51,9 +51,9 @@
 .settings__transfer-box {
   margin-bottom: 24px;
   padding: 16px;
-  background: #f8fafc;
+  background: var(--ks-input-bg);
   border-radius: 12px;
-  border: 1px solid #e3edf5;
+  border: 1px solid var(--ks-border-subtle);
 }
 
 .settings__transfer-row {
@@ -65,9 +65,9 @@
 .settings__transfer-row select {
   min-width: 200px;
   padding: 10px 14px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--ks-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--ks-card);
 }
 
 .settings__filters {
@@ -76,9 +76,9 @@
   gap: 16px;
   margin-bottom: 20px;
   padding: 16px;
-  background: #f8fafc;
+  background: var(--ks-input-bg);
   border-radius: 12px;
-  border: 1px solid #e3edf5;
+  border: 1px solid var(--ks-border-subtle);
 }
 
 .settings__filter-field {
@@ -95,19 +95,19 @@
 .settings__filter-field input,
 .settings__filter-field select {
   padding: 10px 14px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--ks-border);
   border-radius: 10px;
   font-size: 14px;
-  color: #0f172a;
-  background: #fff;
+  color: var(--ks-text);
+  background: var(--ks-card);
   font-family: inherit;
 }
 
 .settings__filter-field input:focus,
 .settings__filter-field select:focus {
   outline: none;
-  border-color: #1565a8;
-  box-shadow: 0 0 0 3px rgba(21, 101, 168, 0.12);
+  border-color: var(--ks-gold);
+  box-shadow: 0 0 0 3px var(--ks-gold-glow);
 }
 
 .settings__profile-badge {
@@ -125,7 +125,7 @@
 }
 
 .settings__profile-badge--warning {
-  background: #fef3c7;
+  background: rgba(212, 175, 55, 0.15);
   color: #b45309;
 }
 
@@ -147,7 +147,7 @@
 .settings__info-box {
   margin-top: 20px;
   padding: 16px;
-  background: #f8fafc;
+  background: var(--ks-input-bg);
   border-radius: 12px;
 }
 
@@ -177,7 +177,7 @@
 
 .settings__backup-summary span {
   padding: 6px 12px;
-  background: #f8fafc;
+  background: var(--ks-input-bg);
   border-radius: 8px;
 }
 
@@ -189,8 +189,8 @@
 
 .settings__status--locked,
 .settings__status--inactive {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--ks-border-subtle);
+  color: var(--ks-text-muted);
 }
 
 .settings--denied {
@@ -206,13 +206,13 @@
   margin: 0 0 4px;
   font-size: 28px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .settings__subtitle {
   margin: 0;
   font-size: 15px;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 .settings__toast {
@@ -221,7 +221,7 @@
   right: 24px;
   z-index: 1100;
   padding: 14px 24px;
-  background: #16a34a;
+  background: var(--ks-success);
   color: #fff;
   border-radius: 10px;
   font-size: 14px;
@@ -230,11 +230,11 @@
 }
 
 .settings__card {
-  background: #fff;
+  background: var(--ks-card);
   border-radius: 16px;
   padding: 24px;
-  border: 1px solid #e3edf5;
-  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.08);
+  border: 1px solid var(--ks-border-subtle);
+  box-shadow: 0 2px 8px var(--ks-shadow-card);
   margin-bottom: 24px;
 }
 
@@ -250,7 +250,7 @@
   margin: 0 0 20px;
   font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .settings__hint--inline {
@@ -266,10 +266,10 @@
 
 .settings__price-tab {
   padding: 8px 16px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--ks-border);
   border-radius: 10px;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--ks-input-bg);
+  color: var(--ks-text-muted);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -277,15 +277,15 @@
 }
 
 .settings__price-tab--active {
-  background: #e8f2fb;
-  border-color: #1565a8;
-  color: #1565a8;
+  background: rgba(212, 175, 55, 0.12);
+  border-color: var(--ks-gold);
+  color: var(--ks-gold);
 }
 
 .settings__price-list-note {
   margin: 0 0 16px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 .settings__card-header .settings__card-title {
@@ -295,7 +295,7 @@
 .settings__hint {
   margin: 0 0 16px;
   font-size: 14px;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 .settings__table-wrap {
@@ -312,21 +312,21 @@
 .settings__table th {
   text-align: left;
   padding: 12px 14px;
-  background: #f0f7ff;
-  color: #0f4c81;
+  background: rgba(212, 175, 55, 0.08);
+  color: var(--ks-gold-dark);
   font-weight: 600;
-  border-bottom: 2px solid #dbeafe;
+  border-bottom: 2px solid var(--ks-border);
 }
 
 .settings__table td {
   padding: 12px 14px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
+  border-bottom: 1px solid var(--ks-border-subtle);
+  color: var(--ks-text-muted);
   vertical-align: middle;
 }
 
 .settings__table tbody tr:hover {
-  background: #f8fafc;
+  background: var(--ks-input-bg);
 }
 
 .settings__money {
@@ -349,12 +349,12 @@
 
 .settings__status--active {
   background: #e6f7ed;
-  color: #16a34a;
+  color: var(--ks-success);
 }
 
 .settings__status--inactive {
-  background: #f1f5f9;
-  color: #64748b;
+  background: var(--ks-border-subtle);
+  color: var(--ks-text-muted);
 }
 
 .settings__form-grid {
@@ -370,7 +370,7 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #334155;
+  color: var(--ks-text-muted);
 }
 
 .settings__field--full {
@@ -381,11 +381,11 @@
 .settings__field select,
 .settings__field textarea {
   padding: 10px 14px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--ks-border);
   border-radius: 10px;
   font-size: 14px;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--ks-text);
+  background: var(--ks-input-bg);
   font-family: inherit;
 }
 
@@ -393,9 +393,9 @@
 .settings__field select:focus,
 .settings__field textarea:focus {
   outline: none;
-  border-color: #1565a8;
-  box-shadow: 0 0 0 3px rgba(21, 101, 168, 0.12);
-  background: #fff;
+  border-color: var(--ks-gold);
+  box-shadow: 0 0 0 3px var(--ks-gold-glow);
+  background: var(--ks-card);
 }
 
 .settings__input--error {
@@ -405,7 +405,7 @@
 
 .settings__error {
   font-size: 12px;
-  color: #dc2626;
+  color: var(--ks-danger);
 }
 
 .settings__btn {
@@ -416,23 +416,23 @@
   cursor: pointer;
   border: none;
   font-family: inherit;
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--ks-border-subtle);
+  color: var(--ks-text-muted);
 }
 
 .settings__btn--primary {
-  background: linear-gradient(135deg, #0f4c81 0%, #1565a8 100%);
+  background: linear-gradient(135deg, var(--ks-gold-dark) 0%, var(--ks-gold) 100%);
   color: #fff;
 }
 
 .settings__btn--secondary {
-  background: #e8f2fb;
-  color: #1565a8;
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--ks-gold);
 }
 
 .settings__btn--danger {
-  background: #fff;
-  color: #dc2626;
+  background: var(--ks-card);
+  color: var(--ks-danger);
   border: 1px solid #fecaca;
 }
 
@@ -460,7 +460,7 @@
 
 .settings__modal {
   width: min(520px, 100%);
-  background: #fff;
+  background: var(--ks-card);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 20px 60px rgba(15, 76, 129, 0.25);
@@ -470,7 +470,7 @@
   margin: 0 0 20px;
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .settings__modal-actions {

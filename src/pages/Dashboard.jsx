@@ -1,3 +1,4 @@
+import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
 import StatCard from '../components/dashboard/StatCard'
 import BranchDashboardCard from '../components/dashboard/BranchDashboardCard'
 import { formatCurrency } from '../utils/invoice'
@@ -66,15 +67,18 @@ export default function Dashboard({ onNavigate }) {
   return (
     <div className="dashboard">
       <header className="dashboard__header">
-        <div>
-          <h2 className="dashboard__title">Dashboard</h2>
-          <p className="dashboard__subtitle">
+        <div className="dashboard__header-main">
+          <KhoeSpaLogo size={44} className="dashboard__logo" />
+          <div>
+            <h2 className="dashboard__title">Dashboard</h2>
+            <p className="dashboard__subtitle">
             {isAdmin()
               ? 'Tổng quan quản trị toàn hệ thống — doanh thu theo giá thực thu'
               : isEmployee()
                 ? `Tổng quan doanh số — ${getCurrentUserName()}`
                 : 'Tổng quan hoạt động chi nhánh'}
-          </p>
+            </p>
+          </div>
         </div>
       </header>
 

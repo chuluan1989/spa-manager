@@ -6,13 +6,13 @@
   margin: 0 0 4px;
   font-size: 28px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .revenue-page__subtitle {
   margin: 0;
   font-size: 15px;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 .revenue-page__filters {
@@ -21,8 +21,8 @@
   gap: 14px;
   margin-bottom: 24px;
   padding: 20px;
-  background: #fff;
-  border: 1px solid #e3edf5;
+  background: var(--ks-card);
+  border: 1px solid var(--ks-border-subtle);
   border-radius: 16px;
 }
 
@@ -41,7 +41,7 @@
 .revenue-page__field input,
 .revenue-page__field select {
   padding: 10px 12px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--ks-border);
   border-radius: 10px;
   font-size: 14px;
   font-family: inherit;
@@ -61,30 +61,30 @@
 .revenue-card {
   padding: 18px 20px;
   border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
+  border: 1px solid var(--ks-border-subtle);
+  background: var(--ks-card);
 }
 
 .revenue-card__label {
   margin: 0 0 8px;
   font-size: 13px;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 .revenue-card__value {
   margin: 0;
   font-size: 22px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
-.revenue-card--blue { border-color: #bfdbfe; background: #f0f7ff; }
-.revenue-card--orange { border-color: #fed7aa; background: #fffbeb; }
+.revenue-card--blue { border-color: #bfdbfe; background: rgba(212, 175, 55, 0.08); }
+.revenue-card--orange { border-color: var(--ks-border); background: rgba(212, 175, 55, 0.08); }
 .revenue-card--purple { border-color: #ddd6fe; background: #faf5ff; }
 
 .revenue-page__table-card {
-  background: #fff;
-  border: 1px solid #e3edf5;
+  background: var(--ks-card);
+  border: 1px solid var(--ks-border-subtle);
   border-radius: 16px;
   padding: 24px;
 }
@@ -92,12 +92,12 @@
 .revenue-page__table-card h3 {
   margin: 0 0 16px;
   font-size: 16px;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .revenue-page__empty {
   margin: 0;
-  color: #64748b;
+  color: var(--ks-text-muted);
   text-align: center;
   padding: 24px;
 }
@@ -114,13 +114,13 @@
 .revenue-page__table th,
 .revenue-page__table td {
   padding: 12px 14px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--ks-border-subtle);
   text-align: left;
 }
 
 .revenue-page__table th {
-  background: #f0f7ff;
-  color: #0f4c81;
+  background: rgba(212, 175, 55, 0.08);
+  color: var(--ks-gold-dark);
 }
 
 .revenue-page__table td:nth-child(n+3),

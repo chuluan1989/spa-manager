@@ -6,14 +6,14 @@
   margin: 0 0 4px;
   font-size: 28px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ks-text);
   letter-spacing: -0.5px;
 }
 
 .invoice__subtitle {
   margin: 0;
   font-size: 15px;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 .invoice__body {
@@ -37,18 +37,18 @@
 }
 
 .invoice__card {
-  background: #fff;
+  background: var(--ks-card);
   border-radius: 16px;
   padding: 24px;
-  border: 1px solid #e3edf5;
-  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.08);
+  border: 1px solid var(--ks-border-subtle);
+  box-shadow: 0 2px 8px var(--ks-shadow-card);
 }
 
 .invoice__card-title {
   margin: 0 0 20px;
   font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .invoice__fields {
@@ -63,24 +63,24 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #334155;
+  color: var(--ks-text-muted);
 }
 
 .invoice__optional {
   font-style: normal;
   font-weight: 400;
-  color: #94a3b8;
+  color: var(--ks-text-subtle);
 }
 
 .invoice__field input,
 .invoice__field select,
 .invoice__field textarea {
   padding: 10px 14px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--ks-border);
   border-radius: 10px;
   font-size: 14px;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--ks-text);
+  background: var(--ks-input-bg);
   transition: border-color 0.2s, box-shadow 0.2s;
   font-family: inherit;
 }
@@ -89,14 +89,14 @@
 .invoice__field select:focus,
 .invoice__field textarea:focus {
   outline: none;
-  border-color: #1565a8;
-  box-shadow: 0 0 0 3px rgba(21, 101, 168, 0.12);
-  background: #fff;
+  border-color: var(--ks-gold);
+  box-shadow: 0 0 0 3px var(--ks-gold-glow);
+  background: var(--ks-card);
 }
 
 .invoice__field select:disabled {
-  background: #e2e8f0;
-  color: #94a3b8;
+  background: var(--ks-border-subtle);
+  color: var(--ks-text-subtle);
   cursor: not-allowed;
 }
 
@@ -119,23 +119,23 @@
 
 .invoice__service-price {
   font-size: 12px;
-  color: #64748b;
+  color: var(--ks-text-muted);
   font-weight: 500;
 }
 
 .invoice__service:has(input:checked) .invoice__service-price {
-  color: #1565a8;
+  color: var(--ks-gold);
 }
 
 .invoice__service--selected {
-  border-color: #1565a8;
-  background: #e8f2fb;
-  color: #0f4c81;
+  border-color: var(--ks-gold);
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--ks-gold-dark);
   font-weight: 500;
 }
 
 .invoice__service--selected .invoice__service-price {
-  color: #1565a8;
+  color: var(--ks-gold);
 }
 
 .invoice__service-qty {
@@ -148,10 +148,10 @@
 .invoice__service-qty-btn {
   width: 28px;
   height: 28px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--ks-border);
   border-radius: 6px;
-  background: #fff;
-  color: #334155;
+  background: var(--ks-card);
+  color: var(--ks-text-muted);
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -161,8 +161,8 @@
 }
 
 .invoice__service-qty-btn:hover:not(:disabled) {
-  border-color: #1565a8;
-  color: #1565a8;
+  border-color: var(--ks-gold);
+  color: var(--ks-gold);
 }
 
 .invoice__service-qty-btn:disabled {
@@ -182,18 +182,18 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border: 1px solid #e3edf5;
+  border: 1px solid var(--ks-border-subtle);
   border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
-  color: #334155;
+  color: var(--ks-text-muted);
   transition: border-color 0.2s, background 0.2s;
   user-select: none;
 }
 
 .invoice__service:hover {
-  border-color: #93c5fd;
-  background: #f0f7ff;
+  border-color: var(--ks-gold);
+  background: rgba(212, 175, 55, 0.08);
 }
 
 .invoice__service input {
@@ -206,7 +206,7 @@
 .invoice__service-check {
   width: 18px;
   height: 18px;
-  border: 2px solid #cbd5e1;
+  border: 2px solid var(--ks-border);
   border-radius: 5px;
   flex-shrink: 0;
   display: flex;
@@ -216,8 +216,8 @@
 }
 
 .invoice__service input:checked ~ .invoice__service-check {
-  background: #1565a8;
-  border-color: #1565a8;
+  background: var(--ks-gold);
+  border-color: var(--ks-gold);
 }
 
 .invoice__service input:checked ~ .invoice__service-check::after {
@@ -231,9 +231,9 @@
 }
 
 .invoice__service:has(input:checked) {
-  border-color: #1565a8;
-  background: #e8f2fb;
-  color: #0f4c81;
+  border-color: var(--ks-gold);
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--ks-gold-dark);
   font-weight: 500;
 }
 
@@ -256,7 +256,7 @@
 .invoice__payment legend {
   font-size: 14px;
   font-weight: 500;
-  color: #334155;
+  color: var(--ks-text-muted);
   margin-bottom: 10px;
 }
 
@@ -272,23 +272,23 @@
   justify-content: center;
   gap: 8px;
   padding: 12px 16px;
-  border: 1px solid #e3edf5;
+  border: 1px solid var(--ks-border-subtle);
   border-radius: 10px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: #334155;
+  color: var(--ks-text-muted);
   transition: border-color 0.2s, background 0.2s;
 }
 
 .invoice__payment-option input {
-  accent-color: #1565a8;
+  accent-color: var(--ks-gold);
 }
 
 .invoice__payment-option:has(input:checked) {
-  border-color: #1565a8;
-  background: #e8f2fb;
-  color: #0f4c81;
+  border-color: var(--ks-gold);
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--ks-gold-dark);
 }
 
 .invoice__actions {
@@ -300,31 +300,38 @@
 
 .invoice__quick-btn {
   padding: 14px 20px;
-  border: 1px solid #dbeafe;
-  background: #fff;
-  color: #1565a8;
+  border: 1px solid var(--ks-border);
+  background: transparent;
+  color: var(--ks-text-muted);
   border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  min-height: 48px;
+}
+
+.invoice__quick-btn:hover {
+  border-color: var(--ks-gold);
+  color: var(--ks-gold-hover);
 }
 
 .invoice__save-btn {
   padding: 14px 32px;
-  background: linear-gradient(135deg, #0f4c81 0%, #1565a8 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--ks-gold) 0%, var(--ks-gold-dark) 100%);
+  color: #14100a;
   border: none;
   border-radius: 12px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(21, 101, 168, 0.3);
+  box-shadow: var(--ks-shadow-gold);
   transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 48px;
 }
 
 .invoice__save-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(21, 101, 168, 0.4);
+  box-shadow: 0 6px 16px var(--ks-shadow-gold);
 }
 
 .invoice__toast {
@@ -333,12 +340,12 @@
   right: 24px;
   z-index: 1000;
   padding: 14px 24px;
-  background: #16a34a;
+  background: var(--ks-success);
   color: #fff;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.35);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.35);
   animation: toast-in 0.3s ease;
 }
 
@@ -355,7 +362,7 @@
 
 .invoice__error {
   font-size: 12px;
-  color: #dc2626;
+  color: var(--ks-danger);
   font-weight: 400;
 }
 
@@ -393,9 +400,25 @@
 
   .invoice__actions {
     justify-content: stretch;
+    flex-direction: column;
   }
 
-  .invoice__save-btn {
+  .invoice__save-btn,
+  .invoice__quick-btn {
     width: 100%;
+  }
+
+  .invoice__service-qty-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .invoice__services {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice__service {
+    padding: 14px 16px;
   }
 }

@@ -98,6 +98,7 @@ export default function Invoice() {
   const [detailInvoice, setDetailInvoice] = useState(null)
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState('')
+  const [activeTab, setActiveTab] = useState(() => (isEmployee() ? 'create' : 'list'))
 
   const syncVersion = useDataSyncVersion()
   useEffect(() => {
@@ -355,6 +356,7 @@ export default function Invoice() {
       }
       setInvoices(result.invoices)
       resetForm()
+      setActiveTab('list')
       showToast('Cập nhật hóa đơn thành công')
       return
     }
@@ -372,6 +374,7 @@ export default function Invoice() {
     }
     setInvoices(result.invoices)
     resetForm()
+    setActiveTab('list')
     showToast('Lưu thành công')
   }
 
@@ -404,6 +407,7 @@ export default function Invoice() {
     setDiscountInput(invoice.discountInput ?? '')
     setPaymentMethod(invoice.paymentMethod ?? 'cash')
     setErrors({})
+    setActiveTab('create')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -443,10 +447,55 @@ export default function Invoice() {
       <header className="invoice__header">
         <h2 className="invoice__title">Hóa đơn</h2>
         <p className="invoice__subtitle">
-          {editingId ? 'Sửa hóa đơn đã lưu' : 'Tạo hóa đơn dịch vụ mới'}
+          Quản lý hóa đơn dịch vụ — lọc, xem chi tiết và tạo mới
         </p>
       </header>
 
+      <div className="app-tabs invoice__tabs">
+        <button
+          type="button"
+          className={`app-tabs__btn ${activeTab === 'list' ? 'app-tabs__btn--active' : ''}`}
+          onClick={() => setActiveTab('list')}
+        >
+          Danh sách hóa đơn
+        </button>
+        <button
+          type="button"
+          className={`app-tabs__btn ${activeTab === 'create' ? 'app-tabs__btn--active' : ''}`}
+          onClick={() => setActiveTab('create')}
+        >
+          {editingId ? 'Sửa hóa đơn' : 'Tạo hóa đơn'}
+        </button>
+      </div>
+
+      {activeTab === 'list' && (
+        <>
+          <InvoiceFilters
+            filters={effectiveListFilters}
+            onChange={setListFilters}
+            onReset={resetListFilters}
+            lockedBranch={lockedBranch}
+            branchName={activeBranchName}
+            resultCount={filteredInvoices.length}
+            serviceOptions={filterServiceOptions}
+          />
+
+          <InvoiceList
+            invoices={filteredInvoices}
+            page={listPage}
+            onPageChange={setListPage}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            onView={handleViewInvoice}
+            allowDelete={canDeleteInvoice()}
+            canEdit={(inv) => canEditInvoice(inv)}
+            emptyMessage={listEmptyMessage}
+          />
+        </>
+      )}
+
+      {activeTab === 'create' && (
+        <>
       <div className="invoice__body">
         <div className="invoice__main">
           <div className="invoice__columns">
@@ -698,28 +747,8 @@ export default function Invoice() {
 
         <InvoiceSummary {...totals} />
       </div>
-
-      <InvoiceFilters
-        filters={effectiveListFilters}
-        onChange={setListFilters}
-        onReset={resetListFilters}
-        lockedBranch={lockedBranch}
-        branchName={activeBranchName}
-        resultCount={filteredInvoices.length}
-        serviceOptions={filterServiceOptions}
-      />
-
-      <InvoiceList
-        invoices={filteredInvoices}
-        page={listPage}
-        onPageChange={setListPage}
-        onDelete={handleDelete}
-        onEdit={handleEdit}
-        onView={handleViewInvoice}
-        allowDelete={canDeleteInvoice()}
-        canEdit={(inv) => canEditInvoice(inv)}
-        emptyMessage={listEmptyMessage}
-      />
+        </>
+      )}
 
       <InvoiceDetailModal
         invoice={detailInvoice}

@@ -1,11 +1,11 @@
 .invoice-summary {
-  background: #fff;
-  border-radius: 16px;
+  background: var(--ks-card);
+  border-radius: var(--ks-radius-lg);
   padding: 24px;
-  border: 1px solid #e3edf5;
-  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.08);
+  border: 1px solid var(--ks-border);
+  box-shadow: var(--ks-shadow-gold);
   position: sticky;
-  top: 32px;
+  top: calc(var(--ks-header-height) + 16px);
 }
 
 .invoice-summary__flow {
@@ -14,26 +14,27 @@
   gap: 4px;
   margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--ks-border-subtle);
 }
 
 .invoice-summary__arrow {
   text-align: center;
-  color: #94a3b8;
+  color: var(--ks-gold);
   font-size: 14px;
   line-height: 1;
   padding: 2px 0;
+  opacity: 0.7;
 }
 
 .invoice-summary__hint {
   margin: -4px 0 4px;
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--ks-text-subtle);
   text-align: right;
 }
 
 .invoice-summary__row--payment .invoice-summary__value {
-  color: #1565a8;
+  color: var(--ks-gold-hover);
   font-weight: 700;
 }
 
@@ -41,7 +42,8 @@
   margin: 0 0 20px;
   font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ks-text);
+  font-family: var(--ks-font-display);
 }
 
 .invoice-summary__rows {
@@ -55,9 +57,9 @@
   justify-content: space-between;
   align-items: center;
   font-size: 14px;
-  color: #64748b;
+  color: var(--ks-text-muted);
   padding-bottom: 12px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--ks-border-subtle);
 }
 
 .invoice-summary__row:last-child {
@@ -67,25 +69,42 @@
 
 .invoice-summary__value {
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .invoice-summary__row--total {
-  padding-top: 4px;
+  margin-top: 8px;
+  padding: 16px 14px;
+  border-radius: var(--ks-radius-md);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.08) 100%);
+  border: 1px solid var(--ks-border);
   font-size: 15px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .invoice-summary__row--total .invoice-summary__value {
-  font-size: 22px;
-  color: #1565a8;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ks-gold-hover);
+  font-family: var(--ks-font-display);
+  text-shadow: 0 0 24px rgba(212, 175, 55, 0.35);
 }
 
 .invoice-summary__row--commission .invoice-summary__value {
-  color: #16a34a;
+  color: var(--ks-success);
 }
 
 .invoice-summary__row--discount .invoice-summary__value {
-  color: #dc2626;
+  color: var(--ks-danger);
+}
+
+@media (max-width: 768px) {
+  .invoice-summary {
+    position: static;
+  }
+
+  .invoice-summary__row--total .invoice-summary__value {
+    font-size: 22px;
+  }
 }

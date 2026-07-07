@@ -60,12 +60,17 @@ export default function Login({ onLogin, onBack }) {
         )}
 
         <div className="login__brand">
-          <KhoeSpaLogo size={104} />
-          <p className="login__eyebrow">Hệ thống quản lý vận hành</p>
+          <KhoeSpaLogo size={120} />
+          <h1 className="login__product">Khoẻ Spa Manager</h1>
+          <p className="login__slogan">Quản lý vận hành hệ thống Spa</p>
+          <p className="login__intro">
+            Nền tảng quản lý chuyên nghiệp — hóa đơn, doanh thu, nhân sự và báo cáo
+            theo thời gian thực cho toàn hệ thống Khoẻ Spa.
+          </p>
         </div>
 
         <div className="login__card">
-          <h1 className="login__title">Đăng nhập hệ thống</h1>
+          <h2 className="login__title">Đăng nhập</h2>
           <p className="login__audience">Dành cho Admin, Quản lý chi nhánh và Nhân viên</p>
 
           <form className="login__form" onSubmit={handleSubmit}>

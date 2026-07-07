@@ -13,57 +13,57 @@
   margin: 0 0 4px;
   font-size: 28px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ks-text);
   letter-spacing: -0.5px;
 }
 
 .myprofile__subtitle {
   margin: 0;
   font-size: 15px;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 .myprofile__banner {
   padding: 14px 18px;
   border-radius: 12px;
   background: #fff7ed;
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--ks-border);
   color: #9a3412;
   font-size: 14px;
 }
 
 .myprofile__card {
-  background: #fff;
+  background: var(--ks-card);
   border-radius: 16px;
   padding: 24px;
-  border: 1px solid #e3edf5;
-  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.08);
+  border: 1px solid var(--ks-border-subtle);
+  box-shadow: 0 2px 8px var(--ks-shadow-card);
 }
 
 .myprofile__card-title {
   margin: 0 0 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .myprofile__hint-block {
   margin: 0 0 16px;
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--ks-text-subtle);
 }
 
 .myprofile__hint {
   font-style: normal;
   font-weight: 400;
-  color: #94a3b8;
+  color: var(--ks-text-subtle);
   font-size: 12px;
 }
 
 .myprofile__images-grid {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--ks-border-subtle);
 }
 
 .myprofile__image-upload {
@@ -78,7 +78,7 @@
   height: 80px;
   object-fit: cover;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--ks-border-subtle);
 }
 
 .myprofile__image-placeholder {
@@ -89,7 +89,7 @@
   justify-content: center;
   border-radius: 10px;
   border: 1px dashed #cbd5e1;
-  color: #94a3b8;
+  color: var(--ks-text-subtle);
   font-size: 12px;
   text-align: center;
   padding: 4px;
@@ -102,20 +102,20 @@
 
 .myprofile__save-btn {
   padding: 14px 32px;
-  background: linear-gradient(135deg, #0f4c81 0%, #1565a8 100%);
+  background: linear-gradient(135deg, var(--ks-gold-dark) 0%, var(--ks-gold) 100%);
   color: #fff;
   border: none;
   border-radius: 12px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(21, 101, 168, 0.3);
+  box-shadow: 0 4px 12px var(--ks-shadow-gold);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .myprofile__save-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(21, 101, 168, 0.4);
+  box-shadow: 0 6px 16px var(--ks-shadow-gold);
 }
 
 .myprofile__toast {
@@ -124,7 +124,7 @@
   right: 24px;
   z-index: 1000;
   padding: 14px 24px;
-  background: #16a34a;
+  background: var(--ks-success);
   color: #fff;
   border-radius: 10px;
   font-size: 14px;
@@ -147,7 +147,7 @@
 .myprofile--denied {
   padding: 24px;
   text-align: center;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 @media (max-width: 768px) {

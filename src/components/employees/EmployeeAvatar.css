@@ -5,8 +5,8 @@
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  background: #e8f2fb;
-  color: #1565a8;
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--ks-gold);
   font-weight: 700;
 }
 
@@ -29,5 +29,5 @@
 }
 
 .employee-avatar--placeholder {
-  border: 2px solid #dbeafe;
+  border: 2px solid var(--ks-border);
 }

@@ -1,3 +1,6 @@
+@import './styles/variables.css';
+@import './styles/app-components.css';
+
 *,
 *::before,
 *::after {
@@ -6,11 +9,11 @@
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--ks-font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #f0f5fa;
-  color: #0f172a;
+  background: var(--ks-bg);
+  color: var(--ks-text);
 }
 
 #root {
@@ -19,4 +22,9 @@ body {
 
 button {
   font-family: inherit;
+}
+
+.khoe-spa-logo {
+  display: block;
+  object-fit: contain;
 }

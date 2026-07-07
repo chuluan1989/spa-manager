@@ -21,7 +21,7 @@
   width: min(720px, 100%);
   max-height: min(90vh, 900px);
   overflow: auto;
-  background: #fff;
+  background: var(--ks-card);
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(15, 76, 129, 0.2);
 }
@@ -32,19 +32,19 @@
   justify-content: space-between;
   gap: 12px;
   padding: 20px 24px;
-  border-bottom: 1px solid #e3edf5;
+  border-bottom: 1px solid var(--ks-border-subtle);
 }
 
 .invoice-detail-modal__header h3 {
   margin: 0 0 4px;
   font-size: 18px;
-  color: #0f172a;
+  color: var(--ks-text);
 }
 
 .invoice-detail-modal__header p {
   margin: 0;
   font-size: 14px;
-  color: #64748b;
+  color: var(--ks-text-muted);
 }
 
 .invoice-detail-modal__close {
@@ -52,7 +52,7 @@
   background: transparent;
   font-size: 28px;
   line-height: 1;
-  color: #64748b;
+  color: var(--ks-text-muted);
   cursor: pointer;
 }
 
@@ -66,7 +66,7 @@
 .invoice-detail-modal__section h4 {
   margin: 0 0 10px;
   font-size: 14px;
-  color: #1565a8;
+  color: var(--ks-gold);
 }
 
 .invoice-detail-modal__grid {
@@ -84,14 +84,14 @@
 
 .invoice-detail-modal__grid dt {
   font-size: 12px;
-  color: #64748b;
+  color: var(--ks-text-muted);
   font-weight: 500;
 }
 
 .invoice-detail-modal__grid dd {
   margin: 0;
   font-size: 14px;
-  color: #0f172a;
+  color: var(--ks-text);
   word-break: break-word;
 }
 
@@ -109,7 +109,7 @@
   grid-template-columns: 1fr auto auto;
   gap: 12px;
   padding: 10px 12px;
-  background: #f8fafc;
+  background: var(--ks-input-bg);
   border-radius: 8px;
   font-size: 13px;
 }
@@ -119,30 +119,30 @@
   display: inline-block;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--ks-gold-hover);
   font-size: 12px;
   font-weight: 700;
 }
 
 .invoice-detail-modal__payment {
-  color: #1565a8;
+  color: var(--ks-gold);
   font-weight: 700;
 }
 
 .invoice-detail-modal__total {
-  color: #1565a8;
+  color: var(--ks-gold);
   font-weight: 700;
 }
 
 .invoice-detail-modal__commission {
-  color: #16a34a;
+  color: var(--ks-success);
   font-weight: 700;
 }
 
 .invoice-detail-modal__empty {
   margin: 0;
-  color: #94a3b8;
+  color: var(--ks-text-subtle);
 }
 
 .invoice-detail-modal__footer {
@@ -150,7 +150,7 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 16px 24px 20px;
-  border-top: 1px solid #e3edf5;
+  border-top: 1px solid var(--ks-border-subtle);
 }
 
 .invoice-detail-modal__edit,
@@ -165,14 +165,14 @@
 
 .invoice-detail-modal__edit {
   border: none;
-  background: #1565a8;
+  background: var(--ks-gold);
   color: #fff;
 }
 
 .invoice-detail-modal__close-btn {
-  border: 1px solid #dbeafe;
-  background: #fff;
-  color: #1565a8;
+  border: 1px solid var(--ks-border);
+  background: var(--ks-card);
+  color: var(--ks-gold);
 }
 
 @media (max-width: 640px) {

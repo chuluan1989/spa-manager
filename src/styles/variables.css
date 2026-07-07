@@ -1,0 +1,37 @@
+:root {
+  --ks-bg: #0b0b0b;
+  --ks-card: #151515;
+  --ks-card-hover: #1a1a1a;
+  --ks-input-bg: #1c1c1c;
+  --ks-sidebar: #0b0b0b;
+
+  --ks-gold: #d4af37;
+  --ks-gold-hover: #e6c25a;
+  --ks-gold-dark: #b8962e;
+  --ks-gold-muted: rgba(212, 175, 55, 0.25);
+  --ks-gold-glow: rgba(212, 175, 55, 0.15);
+
+  --ks-text: #ffffff;
+  --ks-text-muted: #bdbdbd;
+  --ks-text-subtle: #8a8a8a;
+
+  --ks-border: rgba(212, 175, 55, 0.25);
+  --ks-border-subtle: rgba(255, 255, 255, 0.08);
+
+  --ks-danger: #ef4444;
+  --ks-success: #22c55e;
+
+  --ks-radius-sm: 10px;
+  --ks-radius-md: 14px;
+  --ks-radius-lg: 18px;
+  --ks-radius-xl: 24px;
+
+  --ks-shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --ks-shadow-gold: 0 8px 28px rgba(212, 175, 55, 0.18);
+
+  --ks-font-display: 'Playfair Display', Georgia, serif;
+  --ks-font-body: 'Poppins', system-ui, -apple-system, sans-serif;
+
+  --ks-sidebar-width: 268px;
+  --ks-header-height: 64px;
+}
