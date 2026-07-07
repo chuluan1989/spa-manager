@@ -1552,5 +1552,62 @@ await test('legacyCloudSync: checkLegacyData trả về counts theo phạm vi ad
   clearCurrentUser()
 })
 
+test('expense schema: derive time from updated_at when expense_time missing', async () => {
+  const { deriveExpenseTimeFromTimestamp, expenseToDbRow, isMissingColumnError } =
+    await import('../src/repositories/expenseSchema.js')
+
+  assert.equal(deriveExpenseTimeFromTimestamp('2026-07-08T14:30:00.000Z'), '14:30')
+
+  const core = expenseToDbRow({ id: 'e1', date: '2026-07-08', branchId: 'cn1', amount: 1000 }, { includeExtended: false })
+  assert.equal(core.expense_time, undefined)
+  assert.ok(core.id)
+
+  const full = expenseToDbRow({
+    id: 'e1',
+    date: '2026-07-08',
+    branchId: 'cn1',
+    amount: 1000,
+    expenseTime: '09:15',
+    paidBy: 'Admin',
+  })
+  assert.equal(full.expense_time, '09:15')
+  assert.equal(full.paid_by, 'Admin')
+
+  assert.equal(isMissingColumnError({ message: 'column expenses.expense_time does not exist' }, 'expense_time'), true)
+  assert.equal(isMissingColumnError({ message: 'other error' }, 'expense_time'), false)
+})
+
+test('normalizeExpense: fallback expenseTime from updatedAt', async () => {
+  const { normalizeExpense } = await import('../src/utils/expenseStorage.js')
+  const row = normalizeExpense({
+    id: 'e1',
+    date: '2026-07-08',
+    branchId: 'vinh-long',
+    expenseType: 'khac',
+    content: 'Test',
+    amount: 50000,
+    updatedAt: '2026-07-08T10:45:00.000Z',
+  })
+  assert.equal(row.expenseTime, '10:45')
+})
+
+test('report profit = ticketRevenue - commission - expenses', async () => {
+  const { computeReportData } = await import('../src/utils/report.js')
+  const invoices = [{
+    id: '1',
+    date: '2026-07-08',
+    branchId: 'vinh-long',
+    services: [{ id: 's1', name: 'Body', price: 200000, commissionAmount: 40000 }],
+    tips: 10000,
+    total: 210000,
+  }]
+  const expenses = [{ id: 'x1', date: '2026-07-08', branchId: 'vinh-long', amount: 50000 }]
+  const report = computeReportData(invoices, expenses, {})
+  assert.equal(report.summary.ticketRevenue, 200000)
+  assert.equal(report.summary.expenses, 50000)
+  assert.equal(report.summary.commission, 40000)
+  assert.equal(report.summary.profit, 110000)
+})
+
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`)
 process.exit(failed > 0 ? 1 : 0)

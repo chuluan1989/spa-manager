@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "test": "npx vite-node scripts/smoke-test.mjs",
+    "verify:schema": "npx vite-node scripts/verify-schema.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

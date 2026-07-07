@@ -3,6 +3,7 @@ import {
   getExpenseTypeLabel,
   normalizeExpenseTypeId,
 } from '../constants/expenseTypes'
+import { deriveExpenseTimeFromTimestamp } from '../repositories/expenseSchema'
 import { getMonthStartDate, getTodayDate } from './invoiceStorage'
 import {
   canAccessSessionBranch,
@@ -81,10 +82,11 @@ export function saveExpenses(expenses) {
 
 export function normalizeExpense(expense) {
   const expenseType = normalizeExpenseTypeId(expense.expenseType)
+  const updatedAt = expense.updatedAt ?? ''
   return {
     id: expense.id,
     date: expense.date ?? '',
-    expenseTime: expense.expenseTime ?? '',
+    expenseTime: expense.expenseTime ?? deriveExpenseTimeFromTimestamp(updatedAt) ?? '',
     branchId: expense.branchId ?? '',
     branchName: expense.branchName ?? resolveBranchName(expense.branchId),
     expenseType,
