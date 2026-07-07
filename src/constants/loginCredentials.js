@@ -2,6 +2,7 @@ import { ADMIN_BRANCH, ROLES } from './roles'
 import { verifyAdminPassword, verifyBranchPassword } from '../utils/credentialsStorage'
 import { getBranchName, isBranchActive } from '../utils/branchStorage'
 import { getEmployeeById, isEmployeeActive } from '../utils/employeeStorage'
+import { isAccountLocked, recordAccountLogin } from '../utils/accountMetadataStorage'
 
 export { ADMIN_BRANCH }
 
@@ -40,9 +41,13 @@ export async function verifyLogin({ role, branch, employeeId, password }) {
   }
 
   if (role === ROLES.ADMIN) {
+    if (isAccountLocked('admin')) {
+      return { ok: false, field: 'password', message: 'Tài khoản Admin đang bị khóa' }
+    }
     if (!(await verifyAdminPassword(password))) {
       return { ok: false, field: 'password', message: 'Sai mật khẩu' }
     }
+    recordAccountLogin('admin')
     return { ok: true, user: { role: ROLES.ADMIN, branch: ADMIN_BRANCH } }
   }
 
@@ -53,9 +58,13 @@ export async function verifyLogin({ role, branch, employeeId, password }) {
     if (!isBranchActive(branch)) {
       return { ok: false, field: 'branch', message: 'Chi nhánh đang tạm khóa' }
     }
+    if (isAccountLocked(branch)) {
+      return { ok: false, field: 'password', message: 'Tài khoản quản lý chi nhánh đang bị khóa' }
+    }
     if (!(await verifyBranchPassword(branch, password))) {
       return { ok: false, field: 'password', message: 'Sai mật khẩu' }
     }
+    recordAccountLogin(branch)
     return { ok: true, user: { role: ROLES.BRANCH_MANAGER, branch } }
   }
 

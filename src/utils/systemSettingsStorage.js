@@ -14,7 +14,17 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   systemName: 'Spa Manager',
   brandName: 'Sống Khoẻ Spa',
   hotline: '',
-  note: '',
+  slogan: '',
+  primaryColor: '#D4AF37',
+  logoUrl: '',
+  allowDiscount: true,
+  allowTips: true,
+  allowEmployeeEditOwnInvoice: true,
+  allowManagerEditBranchInvoice: true,
+  onlyAdminDeleteInvoice: true,
+  requireCompleteProfileBeforeTour: true,
+  realtimeEnabled: true,
+  warnLegacyLocalStorage: true,
 }
 
 export function loadSystemSettings() {
@@ -33,12 +43,30 @@ export function loadSystemSettings() {
 
 export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
   const normalized = {
+    ...DEFAULT_SYSTEM_SETTINGS,
+    ...settings,
     systemName: settings.systemName?.trim() ?? DEFAULT_SYSTEM_SETTINGS.systemName,
     brandName: settings.brandName?.trim() ?? DEFAULT_SYSTEM_SETTINGS.brandName,
     hotline: settings.hotline?.trim() ?? '',
-    note: settings.note?.trim() ?? '',
+    slogan: settings.slogan?.trim() ?? '',
+    primaryColor: settings.primaryColor?.trim() || DEFAULT_SYSTEM_SETTINGS.primaryColor,
+    logoUrl: settings.logoUrl ?? '',
+    allowDiscount: Boolean(settings.allowDiscount),
+    allowTips: Boolean(settings.allowTips),
+    allowEmployeeEditOwnInvoice: Boolean(settings.allowEmployeeEditOwnInvoice),
+    allowManagerEditBranchInvoice: Boolean(settings.allowManagerEditBranchInvoice),
+    onlyAdminDeleteInvoice: Boolean(settings.onlyAdminDeleteInvoice),
+    requireCompleteProfileBeforeTour: Boolean(settings.requireCompleteProfileBeforeTour),
+    realtimeEnabled: Boolean(settings.realtimeEnabled),
+    warnLegacyLocalStorage: Boolean(settings.warnLegacyLocalStorage),
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   if (!skipRemoteSync) pushSettingsToSupabase(normalized)
   return normalized
+}
+
+export function toggleSystemSetting(key, value) {
+  const settings = loadSystemSettings()
+  settings[key] = value
+  return saveSystemSettings(settings)
 }

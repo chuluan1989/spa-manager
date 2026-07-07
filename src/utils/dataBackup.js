@@ -4,7 +4,8 @@ import { loadEmployees } from './employeeStorage'
 import { loadCredentials } from './credentialsStorage'
 import { loadExpenses } from './expenseStorage'
 import { loadInvoices } from './invoiceStorage'
-import { loadPermissions } from './permissionsStorage'
+import { collectPermissionsSnapshot, applyPermissionsSnapshot } from './permissionsStorage'
+import { loadAccountMetadata } from './accountMetadataStorage'
 import { loadServices } from './serviceStorage'
 import { loadSystemSettings } from './systemSettingsStorage'
 
@@ -21,7 +22,8 @@ export function collectAllData() {
     branches: loadBranches(),
     branchPricing: loadBranchPricingMap(),
     credentials: loadCredentials(),
-    permissions: loadPermissions(),
+    permissions: collectPermissionsSnapshot(),
+    accountMetadata: loadAccountMetadata(),
     systemSettings: loadSystemSettings(),
   }
 }
@@ -75,7 +77,14 @@ export function importAllData(payload, { skipBackup = false } = {}) {
   if (payload.branches) setJson('spa-manager-branches', payload.branches)
   setJson('spa-manager-branch-pricing', payload.branchPricing ?? {})
   if (payload.credentials) setJson('spa-manager-credentials', payload.credentials)
-  if (payload.permissions) setJson('spa-manager-permissions', payload.permissions)
+  if (payload.permissions) {
+    if (payload.permissions.global || payload.permissions.branch || payload.permissions.employee) {
+      applyPermissionsSnapshot(payload.permissions)
+    } else {
+      setJson('spa-manager-permissions', payload.permissions)
+    }
+  }
+  if (payload.accountMetadata) setJson('spa-manager-account-metadata', payload.accountMetadata)
   if (payload.systemSettings) setJson('spa-manager-system-settings', payload.systemSettings)
 
   if (payload.services) {

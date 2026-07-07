@@ -4,7 +4,7 @@ import {
   loadAdminProfile,
   saveAdminProfile,
 } from '../../utils/adminProfileStorage'
-import { updateAdminPassword } from '../../utils/credentialsStorage'
+import { verifyAdminPassword, updateAdminPassword } from '../../utils/credentialsStorage'
 import { isValidVietnamesePhone } from '../../utils/validators'
 
 function readImageFile(file, onLoad) {
@@ -16,9 +16,8 @@ function readImageFile(file, onLoad) {
 
 export default function SettingsAdminProfileTab({ showToast }) {
   const avatarInputRef = useRef(null)
-  const logoInputRef = useRef(null)
   const [profile, setProfile] = useState(() => loadAdminProfile())
-  const [passwordForm, setPasswordForm] = useState({ next: '', confirm: '' })
+  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
 
   const handleSaveProfile = () => {
     if (profile.phone && !isValidVietnamesePhone(profile.phone)) {
@@ -29,13 +28,15 @@ export default function SettingsAdminProfileTab({ showToast }) {
     showToast('Đã lưu hồ sơ Admin')
   }
 
-  const handleResetProfile = () => {
-    setProfile({ ...DEFAULT_ADMIN_PROFILE })
-    saveAdminProfile(DEFAULT_ADMIN_PROFILE)
-    showToast('Đã đặt lại hồ sơ Admin mặc định')
-  }
-
   const handleChangePassword = async () => {
+    if (!passwordForm.current.trim()) {
+      showToast('Vui lòng nhập mật khẩu hiện tại')
+      return
+    }
+    if (!(await verifyAdminPassword(passwordForm.current))) {
+      showToast('Mật khẩu hiện tại không đúng')
+      return
+    }
     if (!passwordForm.next.trim()) {
       showToast('Vui lòng nhập mật khẩu mới')
       return
@@ -45,11 +46,11 @@ export default function SettingsAdminProfileTab({ showToast }) {
       return
     }
     await updateAdminPassword(passwordForm.next)
-    setPasswordForm({ next: '', confirm: '' })
-    showToast('Đổi mật khẩu Admin thành công')
+    setPasswordForm({ current: '', next: '', confirm: '' })
+    showToast('Đổi mật khẩu thành công')
   }
 
-  const handleImagePick = (file, field) => {
+  const handleImagePick = (file) => {
     if (!file) return
     if (file.size > 2 * 1024 * 1024) {
       showToast('Ảnh tối đa 2MB')
@@ -60,127 +61,103 @@ export default function SettingsAdminProfileTab({ showToast }) {
         showToast('Không đọc được file ảnh')
         return
       }
-      setProfile((current) => ({ ...current, [field]: dataUrl }))
+      setProfile((current) => ({ ...current, avatar: dataUrl }))
     })
   }
 
   return (
-    <div className="settings__panel">
-      <h3 className="settings__section-title">Hồ sơ quản trị viên</h3>
-      <p className="settings__hint">
-        Cập nhật thông tin hiển thị và bảo mật tài khoản Admin hệ thống.
-      </p>
-
-      <div className="settings__form-grid">
-        <label className="settings__field">
-          <span>Tên hiển thị</span>
-          <input
-            type="text"
-            value={profile.name}
-            onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-          />
-        </label>
-        <label className="settings__field">
-          <span>Email</span>
-          <input
-            type="email"
-            value={profile.email}
-            onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-          />
-        </label>
-        <label className="settings__field">
-          <span>Số điện thoại</span>
-          <input
-            type="tel"
-            value={profile.phone}
-            onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-          />
-        </label>
-      </div>
-
-      <div className="settings__avatar-row">
-        <div className="settings__avatar-preview">
+    <div className="settings__panel settings__profile-layout">
+      <aside className="settings__profile-sidebar">
+        <div className="settings__profile-avatar-lg">
           {profile.avatar ? (
             <img src={profile.avatar} alt="Avatar Admin" />
           ) : (
-            <span>Chưa có avatar</span>
+            <span>{profile.name?.charAt(0) ?? 'A'}</span>
           )}
         </div>
-        <div className="settings__avatar-actions">
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => handleImagePick(e.target.files?.[0], 'avatar')}
-          />
-          <button type="button" className="settings__btn settings__btn--secondary" onClick={() => avatarInputRef.current?.click()}>
-            Đổi Avatar
-          </button>
-          <button type="button" className="settings__btn settings__btn--secondary" onClick={() => setProfile({ ...profile, avatar: '' })}>
-            Xóa Avatar
-          </button>
-        </div>
-      </div>
+        <h3 className="settings__profile-name">{profile.name || 'Quản trị viên'}</h3>
+        <p className="settings__profile-role">Admin</p>
+        <input
+          ref={avatarInputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={(e) => handleImagePick(e.target.files?.[0])}
+        />
+        <button
+          type="button"
+          className="settings__btn settings__btn--secondary settings__btn--small"
+          onClick={() => avatarInputRef.current?.click()}
+        >
+          Đổi avatar
+        </button>
+      </aside>
 
-      <div className="settings__avatar-row">
-        <div className="settings__avatar-preview settings__avatar-preview--logo">
-          {profile.logoUrl ? (
-            <img src={profile.logoUrl} alt="Logo tùy chỉnh" />
-          ) : (
-            <span>Logo mặc định hệ thống</span>
-          )}
+      <div className="settings__profile-main">
+        <h3 className="settings__section-title">Thông tin cá nhân</h3>
+        <div className="settings__form-grid">
+          <label className="settings__field">
+            <span>Tên hiển thị</span>
+            <input
+              type="text"
+              value={profile.name}
+              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+            />
+          </label>
+          <label className="settings__field">
+            <span>Số điện thoại</span>
+            <input
+              type="tel"
+              value={profile.phone}
+              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+            />
+          </label>
+          <label className="settings__field settings__field--full">
+            <span>Email</span>
+            <input
+              type="email"
+              value={profile.email}
+              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+            />
+          </label>
         </div>
-        <div className="settings__avatar-actions">
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => handleImagePick(e.target.files?.[0], 'logoUrl')}
-          />
-          <button type="button" className="settings__btn settings__btn--secondary" onClick={() => logoInputRef.current?.click()}>
-            Đổi Logo
-          </button>
-          <button type="button" className="settings__btn settings__btn--secondary" onClick={() => setProfile({ ...profile, logoUrl: '' })}>
-            Dùng logo mặc định
-          </button>
-        </div>
-      </div>
-
-      <div className="settings__actions-row">
         <button type="button" className="settings__btn settings__btn--primary" onClick={handleSaveProfile}>
           Lưu hồ sơ
         </button>
-        <button type="button" className="settings__btn settings__btn--secondary" onClick={handleResetProfile}>
-          Đặt lại mặc định
+
+        <hr className="settings__divider" />
+
+        <h4 className="settings__subheading">Đổi mật khẩu</h4>
+        <div className="settings__form-grid">
+          <label className="settings__field settings__field--full">
+            <span>Mật khẩu hiện tại</span>
+            <input
+              type="password"
+              value={passwordForm.current}
+              onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+            />
+          </label>
+          <label className="settings__field">
+            <span>Mật khẩu mới</span>
+            <input
+              type="password"
+              value={passwordForm.next}
+              onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })}
+            />
+          </label>
+          <label className="settings__field">
+            <span>Nhập lại mật khẩu mới</span>
+            <input
+              type="password"
+              value={passwordForm.confirm}
+              onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+            />
+          </label>
+        </div>
+        <button type="button" className="settings__btn settings__btn--primary" onClick={handleChangePassword}>
+          Cập nhật mật khẩu
         </button>
       </div>
-
-      <hr className="settings__divider" />
-
-      <h4 className="settings__subheading">Đổi mật khẩu Admin</h4>
-      <div className="settings__form-grid">
-        <label className="settings__field">
-          <span>Mật khẩu mới</span>
-          <input
-            type="password"
-            value={passwordForm.next}
-            onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })}
-          />
-        </label>
-        <label className="settings__field">
-          <span>Xác nhận mật khẩu</span>
-          <input
-            type="password"
-            value={passwordForm.confirm}
-            onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-          />
-        </label>
-      </div>
-      <button type="button" className="settings__btn settings__btn--primary" onClick={handleChangePassword}>
-        Cập nhật mật khẩu
-      </button>
     </div>
   )
 }

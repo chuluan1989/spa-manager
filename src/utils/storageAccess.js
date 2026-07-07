@@ -1,5 +1,5 @@
 import { loadCurrentUser } from './authStorage'
-import { loadPermissions, PERMISSION_KEYS } from './permissionsStorage'
+import { checkPermission, PERMISSION_KEYS } from './permissionsStorage'
 
 export { PERMISSION_KEYS }
 
@@ -12,9 +12,7 @@ export function getSessionUser() {
 export function hasSessionPermission(permissionKey) {
   const user = getSessionUser()
   if (!user?.role) return false
-  const permissions = loadPermissions()
-  const allowed = permissions[permissionKey] ?? []
-  return allowed.includes(user.role)
+  return checkPermission(permissionKey, user.role, user.branch)
 }
 
 export function isSessionAdmin() {

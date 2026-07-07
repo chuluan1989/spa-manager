@@ -549,24 +549,71 @@ test('permissions: role access matrix', () => {
   assert.equal(canAccessInvoicesPage(), true)
   assert.equal(canAccessEmployeesPage(), true)
   assert.equal(canDeleteInvoice(), false)
-  assert.equal(canEditInvoice({ id: 'any' }), false, 'QL chi nhánh chỉ xem, không sửa hóa đơn đã lưu')
+  assert.equal(canEditInvoice({ id: 'any', branchId: 'vinh-long' }), false, 'QL mặc định không sửa HĐ nếu chưa bật quyền')
 
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
   assert.equal(canAccessInvoicesPage(), true)
   assert.equal(canAddInvoice(), true)
   assert.equal(canDeleteInvoice(), false)
   assert.equal(
-    canEditInvoice({ employeeId: 'vinh-long-linh' }),
+    canEditInvoice({ employeeId: 'vinh-long-linh', branchId: 'vinh-long' }),
     true,
     'employee sửa được hóa đơn do chính mình tạo',
   )
   assert.equal(
-    canEditInvoice({ employeeId: 'other-employee' }),
+    canEditInvoice({ employeeId: 'other-employee', branchId: 'vinh-long' }),
     false,
     'employee không được sửa hóa đơn của nhân viên khác',
   )
   assert.equal(filterByUserScope([{ branchId: 'vinh-long', employeeId: 'vinh-long-linh' }]).length, 1)
   assert.equal(filterByUserScope([{ branchId: 'vinh-long', employeeId: 'other' }]).length, 0)
+  clearCurrentUser()
+})
+
+test('permissions: branch-specific CN1 edit vs CN2 view-only', async () => {
+  const {
+    toggleBranchPermission,
+    PERMISSION_KEYS,
+    getBranchPermission,
+  } = await import('../src/utils/permissionsStorage.js')
+
+  toggleBranchPermission('vinh-long', PERMISSION_KEYS.EDIT_INVOICE, true)
+  toggleBranchPermission('soc-trang', PERMISSION_KEYS.EDIT_INVOICE, false)
+
+  assert.equal(getBranchPermission('vinh-long', PERMISSION_KEYS.EDIT_INVOICE), true)
+  assert.equal(getBranchPermission('soc-trang', PERMISSION_KEYS.EDIT_INVOICE), false)
+
+  setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
+  assert.equal(
+    canEditInvoice({ id: 'inv-cn1', branchId: 'vinh-long' }),
+    true,
+    'QL CN1 được sửa hóa đơn chi nhánh mình',
+  )
+
+  setSession({ role: ROLES.BRANCH_MANAGER, branch: 'soc-trang' })
+  assert.equal(
+    canEditInvoice({ id: 'inv-cn2', branchId: 'soc-trang' }),
+    false,
+    'QL CN2 không được sửa hóa đơn khi quyền tắt',
+  )
+
+  localStorage.setItem('spa-manager-branch-permissions', JSON.stringify({}))
+  clearCurrentUser()
+})
+
+test('permissions: employee nav hides expenses without permission', async () => {
+  const { toggleEmployeePermission, PERMISSION_KEYS } = await import('../src/utils/permissionsStorage.js')
+  const { getVisibleNavItems } = await import('../src/constants/auth.js')
+
+  toggleEmployeePermission(PERMISSION_KEYS.VIEW_EXPENSE, false)
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  const navWithout = getVisibleNavItems()
+  assert.equal(navWithout.some((item) => item.id === 'expenses'), false)
+
+  toggleEmployeePermission(PERMISSION_KEYS.VIEW_EXPENSE, true)
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  const navWith = getVisibleNavItems()
+  assert.equal(navWith.some((item) => item.id === 'expenses'), true)
   clearCurrentUser()
 })
 

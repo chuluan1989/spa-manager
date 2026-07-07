@@ -15,6 +15,7 @@ import InvoiceDetailModal from '../invoice/InvoiceDetailModal'
 import KpiCard from '../ui/KpiCard'
 import {
   canEditInvoice,
+  canExportReport,
   canSelectBranch,
   getCurrentUserBranchName,
   isAdmin,
@@ -224,6 +225,10 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
   }
 
   const handleExport = () => {
+    if (!canExportReport()) {
+      window.alert('Bạn không có quyền xuất Excel.')
+      return
+    }
     if (level === LEVEL.OVERVIEW) {
       exportReportOverviewCsv(summary, appliedFilters)
       return

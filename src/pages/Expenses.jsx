@@ -23,8 +23,8 @@ import {
 import { exportExpensesCsv } from '../utils/expenseExport'
 import {
   addExpense,
-  canDeleteExpense,
-  canEditExpense,
+  canDeleteExpenseRecord,
+  canEditExpenseRecord,
   deleteExpense,
   updateExpense,
 } from '../utils/expenseStorage'
@@ -164,8 +164,8 @@ export default function Expenses() {
     setScreen('list')
   }
 
-  const canEdit = (expense) => canEditExpense(expense).allowed
-  const canDelete = (expense) => canDeleteExpense(expense).allowed
+  const canEdit = (expense) => canEditExpenseRecord(expense).allowed
+  const canDelete = (expense) => canDeleteExpenseRecord(expense).allowed
 
   return (
     <div className="expenses">

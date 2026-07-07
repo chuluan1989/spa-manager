@@ -9,7 +9,8 @@ import { ADMIN_BRANCH, ROLES } from './roles'
 import { getBranchName } from '../utils/branchStorage'
 import { getEmployeeById } from '../utils/employeeStorage'
 import { loadCurrentUser } from '../utils/authStorage'
-import { hasPermission, PERMISSION_KEYS } from '../utils/permissionsStorage'
+import { loadSystemSettings } from '../utils/systemSettingsStorage'
+import { checkPermission, hasPermission, PERMISSION_KEYS } from '../utils/permissionsStorage'
 
 export { ADMIN_BRANCH, ROLES }
 
@@ -107,112 +108,161 @@ export function isEmployeeInUserBranch(employee) {
   return employee.branchId === getCurrentUserBranch()
 }
 
-export function canAccessEmployeesPage(role = getCurrentUserRole()) {
+export function canAccessEmployeesPage(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
   if (role === ROLES.ADMIN) return false
-  return role === ROLES.BRANCH_MANAGER || hasPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES, role)
+  return checkPermission(PERMISSION_KEYS.VIEW_EMPLOYEE_PROFILE, role, branchId)
+    || checkPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES, role, branchId)
 }
 
 export function canAccessInvoicesPage(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE
 }
 
-export function canAccessExpensesPage(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN
-    || role === ROLES.BRANCH_MANAGER
-    || hasPermission(PERMISSION_KEYS.MANAGE_EXPENSES, role)
+export function canAccessExpensesPage(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return canViewExpense(role, branchId)
 }
 
-export function canViewEmployeeCccd(role = getCurrentUserRole()) {
-  return hasPermission(PERMISSION_KEYS.VIEW_CCCD, role)
+export function canViewEmployeeCccd(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_SENSITIVE, role, branchId)
+    || checkPermission(PERMISSION_KEYS.VIEW_CCCD, role, branchId)
 }
 
-export function canViewEmployeePersonalInfo(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN
+export function canViewEmployeePersonalInfo(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_SENSITIVE, role, branchId)
 }
 
-export function canViewEmployeeNote(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN
+export function canViewEmployeeNote(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_SENSITIVE, role, branchId)
 }
 
-/** Ảnh chân dung là thông tin riêng tư — chỉ Admin được xem. */
-export function canViewEmployeeAvatar(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN
+/** Ảnh chân dung là thông tin riêng tư — cần quyền xem nhạy cảm. */
+export function canViewEmployeeAvatar(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_SENSITIVE, role, branchId)
 }
 
-export function canEditEmployeeAvatar(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN
+export function canEditEmployeeAvatar(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.EDIT_EMPLOYEE, role, branchId)
 }
 
-/** Địa chỉ hiện tại là thông tin riêng tư — chỉ Admin được xem. */
-export function canViewEmployeeCurrentAddress(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN
+/** Địa chỉ hiện tại là thông tin riêng tư. */
+export function canViewEmployeeCurrentAddress(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_SENSITIVE, role, branchId)
 }
 
-/** Ngân hàng/số tài khoản là thông tin riêng tư — chỉ Admin được xem. */
-export function canViewEmployeeBankInfo(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN
+/** Ngân hàng/số tài khoản là thông tin riêng tư. */
+export function canViewEmployeeBankInfo(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_SENSITIVE, role, branchId)
 }
 
-/** Người liên hệ khẩn cấp là thông tin riêng tư — chỉ Admin được xem. */
-export function canViewEmployeeEmergencyContact(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN
+/** Người liên hệ khẩn cấp là thông tin riêng tư. */
+export function canViewEmployeeEmergencyContact(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_SENSITIVE, role, branchId)
 }
 
-export function canViewEmployeePosition(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER
+export function canViewEmployeePosition(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_EMPLOYEE_PROFILE, role, branchId)
 }
 
 export function canChangeEmployeeBranch(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
 
-export function canAddEmployee(role = getCurrentUserRole()) {
-  return hasPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES, role)
+export function canAddEmployee(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.ADD_EMPLOYEE, role, branchId)
+    || checkPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES, role, branchId)
 }
 
-export function canEditEmployee(employee = null, role = getCurrentUserRole()) {
-  if (!hasPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES, role)) return false
+export function canEditEmployee(employee = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (!checkPermission(PERMISSION_KEYS.EDIT_EMPLOYEE, role, branchId)
+    && !checkPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES, role, branchId)) {
+    return false
+  }
   if (role === ROLES.ADMIN) return true
   return isEmployeeInUserBranch(employee)
 }
 
-export function canDeleteEmployee(role = getCurrentUserRole()) {
-  return hasPermission(PERMISSION_KEYS.DELETE_EMPLOYEE, role)
+export function canDeleteEmployee(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.DELETE_EMPLOYEE, role, branchId)
 }
 
-export function canTransferEmployee(role = getCurrentUserRole()) {
-  return hasPermission(PERMISSION_KEYS.TRANSFER_EMPLOYEE, role)
+export function canTransferEmployee(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.TRANSFER_EMPLOYEE, role, branchId)
 }
 
-export function canViewReport(role = getCurrentUserRole()) {
-  return hasPermission(PERMISSION_KEYS.VIEW_REPORT, role) || role === ROLES.EMPLOYEE
+export function canLockEmployee(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.LOCK_EMPLOYEE, role, branchId)
 }
 
-export function canViewOverviewReport(role = getCurrentUserRole()) {
-  return role === ROLES.EMPLOYEE || hasPermission(PERMISSION_KEYS.VIEW_REPORT, role)
+export function canViewReport(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_REPORT, role, branchId)
 }
 
-export function canAddInvoice(role = getCurrentUserRole()) {
-  if (role === ROLES.EMPLOYEE) return true
-  return hasPermission(PERMISSION_KEYS.ADD_INVOICE, role)
+export function canViewOverviewReport(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_REPORT, role, branchId)
 }
 
-/**
- * Admin: sửa mọi hóa đơn (không phụ thuộc ma trận phân quyền).
- * Nhân viên: chỉ sửa hóa đơn do chính mình thực hiện.
- * Quản lý chi nhánh: chỉ xem danh sách, không sửa hóa đơn đã lưu.
- */
-export function canEditInvoice(invoice = null, role = getCurrentUserRole()) {
+export function canExportReport(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.EXPORT_EXCEL, role, branchId)
+}
+
+export function canViewSalary(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_SALARY, role, branchId)
+}
+
+export function canViewSystemWide(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_SYSTEM_WIDE, role, branchId)
+}
+
+export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.ADD_INVOICE, role, branchId)
+}
+
+export function canEditInvoice(invoice = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  const settings = loadSystemSettings()
+
   if (role === ROLES.ADMIN) return true
+
+  if (role === ROLES.BRANCH_MANAGER) {
+    if (!settings.allowManagerEditBranchInvoice) return false
+    if (!checkPermission(PERMISSION_KEYS.EDIT_INVOICE, role, branchId)) return false
+    if (!invoice) return true
+    return invoice.branchId === getCurrentUserBranch()
+  }
+
   if (role === ROLES.EMPLOYEE) {
+    if (!settings.allowEmployeeEditOwnInvoice) return false
+    if (!checkPermission(PERMISSION_KEYS.EDIT_INVOICE, role, branchId)) {
+      return Boolean(invoice) && invoice.employeeId === getCurrentUserEmployeeId()
+    }
     return Boolean(invoice) && invoice.employeeId === getCurrentUserEmployeeId()
   }
+
   return false
 }
 
-/** Chỉ Admin được xóa hóa đơn. */
-export function canDeleteInvoice(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN
+export function canDeleteInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  const settings = loadSystemSettings()
+  if (settings.onlyAdminDeleteInvoice) return role === ROLES.ADMIN
+  return checkPermission(PERMISSION_KEYS.DELETE_INVOICE, role, branchId)
+}
+
+export function canViewExpense(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_EXPENSE, role, branchId)
+    || checkPermission(PERMISSION_KEYS.MANAGE_EXPENSES, role, branchId)
+}
+
+export function canAddExpense(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.ADD_EXPENSE, role, branchId)
+    || checkPermission(PERMISSION_KEYS.MANAGE_EXPENSES, role, branchId)
+}
+
+export function canEditExpense(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.EDIT_EXPENSE, role, branchId)
+    || checkPermission(PERMISSION_KEYS.MANAGE_EXPENSES, role, branchId)
+}
+
+export function canDeleteExpense(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.DELETE_EXPENSE, role, branchId)
 }
 
 export function canAccessLegacySyncPage(role = getCurrentUserRole()) {
@@ -234,12 +284,22 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
   }
 
   if (role === ROLES.BRANCH_MANAGER) {
-    return pickNavItems(NAV_ITEMS, BRANCH_MANAGER_NAV_ORDER)
+    const branchId = getCurrentUserBranch()
+    return pickNavItems(NAV_ITEMS, BRANCH_MANAGER_NAV_ORDER).filter((item) => {
+      if (item.id === 'reports') return canViewReport(role, branchId)
+      if (item.id === 'expenses') return canViewExpense(role, branchId)
+      return true
+    })
   }
 
   if (role === ROLES.EMPLOYEE) {
-    const items = pickNavItems(NAV_ITEMS, EMPLOYEE_NAV_ORDER)
-    if (hasPermission(PERMISSION_KEYS.MANAGE_EXPENSES, role)) {
+    const branchId = getCurrentUserBranch()
+    const items = pickNavItems(NAV_ITEMS, EMPLOYEE_NAV_ORDER).filter((item) => {
+      if (item.id === 'reports') return canViewReport(role, branchId)
+      if (item.id === 'expenses') return canViewExpense(role, branchId)
+      return true
+    })
+    if (canViewExpense(role, branchId)) {
       const expenseItem = NAV_ITEMS.find((item) => item.id === 'expenses')
       if (expenseItem && !items.some((item) => item.id === 'expenses')) {
         items.splice(2, 0, expenseItem)

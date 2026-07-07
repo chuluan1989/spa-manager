@@ -1,5 +1,6 @@
 import { ADMIN_BRANCH } from '../constants/roles'
 import { loadBranches } from './branchStorage'
+import { formatLastLogin, getAccountMeta, loadAccountMetadata } from './accountMetadataStorage'
 import { hashPassword, isPasswordHash, verifyPassword } from './passwordHash'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { upsertCredentials } from '../repositories/credentialsRepository'
@@ -168,16 +169,33 @@ export async function registerBranchCredential(branchId, password) {
 
 export function getAccountList() {
   const credentials = loadCredentials()
+  const metadata = loadAccountMetadata()
   const mask = (value) => (isPasswordHash(value) ? '••••••••' : value)
 
   return [
-    { id: 'admin', label: 'Admin', branchId: ADMIN_BRANCH, password: mask(credentials.admin) },
+    {
+      id: 'admin',
+      label: 'Admin',
+      branchId: ADMIN_BRANCH,
+      branchName: 'Tất cả',
+      role: 'Admin',
+      password: mask(credentials.admin),
+      status: metadata.admin?.locked ? 'locked' : 'active',
+      lastLogin: formatLastLogin(metadata.admin?.lastLogin),
+    },
     ...loadBranches().map((branch) => ({
       id: branch.id,
-      label: branch.name,
+      label: `QL ${branch.name}`,
       branchId: branch.id,
       branchName: branch.name,
+      role: 'Quản lý chi nhánh',
       password: mask(credentials.branches[branch.id] ?? ''),
+      status: metadata[branch.id]?.locked ? 'locked' : 'active',
+      lastLogin: formatLastLogin(metadata[branch.id]?.lastLogin),
     })),
   ]
+}
+
+export function getAccountMetaForKey(accountKey) {
+  return getAccountMeta(accountKey)
 }

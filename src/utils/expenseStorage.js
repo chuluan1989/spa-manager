@@ -12,7 +12,13 @@ import {
   isSessionAdmin,
 } from './storageAccess'
 import { getCurrentUserName } from '../constants/auth'
-import { hasPermission, PERMISSION_KEYS } from './permissionsStorage'
+import {
+  canAddExpense as authCanAddExpense,
+  canDeleteExpense as authCanDeleteExpense,
+  canEditExpense as authCanEditExpense,
+  canViewExpense as authCanViewExpense,
+} from '../constants/auth'
+import { checkPermission, PERMISSION_KEYS } from './permissionsStorage'
 import { ROLES } from '../constants/roles'
 import { deleteExpenseRow, upsertExpense } from '../repositories/expensesRepository'
 
@@ -128,8 +134,24 @@ export function getBranchName(branchId) {
 
 function canManageExpenses() {
   const user = getSessionUser()
-  if (user?.role === ROLES.ADMIN || user?.role === ROLES.BRANCH_MANAGER) return true
-  return hasPermission(PERMISSION_KEYS.MANAGE_EXPENSES, user?.role)
+  if (!user?.role) return false
+  return authCanViewExpense(user.role, user.branch)
+    || authCanAddExpense(user.role, user.branch)
+    || checkPermission(PERMISSION_KEYS.MANAGE_EXPENSES, user.role, user.branch)
+}
+
+function canModifyExpenses() {
+  const user = getSessionUser()
+  if (!user?.role) return false
+  return authCanAddExpense(user.role, user.branch)
+    || authCanEditExpense(user.role, user.branch)
+    || checkPermission(PERMISSION_KEYS.MANAGE_EXPENSES, user.role, user.branch)
+}
+
+function canRemoveExpenses() {
+  const user = getSessionUser()
+  if (!user?.role) return false
+  return authCanDeleteExpense(user.role, user.branch)
 }
 
 export function isExpensePeriodLocked(expense) {
@@ -138,12 +160,9 @@ export function isExpensePeriodLocked(expense) {
   return expense.date < monthStart
 }
 
-export function canDeleteExpense(expense) {
-  if (!canManageExpenses()) {
+export function canDeleteExpenseRecord(expense) {
+  if (!canRemoveExpenses()) {
     return { allowed: false, reason: 'Bạn không có quyền xóa chi phí.' }
-  }
-  if (!isSessionAdmin()) {
-    return { allowed: false, reason: 'Chỉ Admin được xóa chi phí.' }
   }
   if (!canAccessSessionBranch(expense.branchId)) {
     return { allowed: false, reason: 'Bạn không có quyền thao tác chi phí chi nhánh này.' }
@@ -151,8 +170,8 @@ export function canDeleteExpense(expense) {
   return { allowed: true }
 }
 
-export function canEditExpense(expense) {
-  if (!canManageExpenses()) {
+export function canEditExpenseRecord(expense) {
+  if (!canModifyExpenses()) {
     return { allowed: false, reason: 'Bạn không có quyền sửa chi phí.' }
   }
   if (!canAccessSessionBranch(expense.branchId)) {
@@ -170,7 +189,7 @@ export function canEditExpense(expense) {
 }
 
 function assertExpenseWriteAccess(expense) {
-  if (!canManageExpenses()) {
+  if (!canModifyExpenses()) {
     return denyAccess('Bạn không có quyền quản lý chi phí.')
   }
   if (!canAccessSessionBranch(expense.branchId)) {
@@ -203,7 +222,7 @@ export function updateExpense(id, data) {
     return denyAccess('Không tìm thấy khoản chi.')
   }
 
-  const editCheck = canEditExpense(expenses[index])
+  const editCheck = canEditExpenseRecord(expenses[index])
   if (!editCheck.allowed) {
     return denyAccess(editCheck.reason)
   }
@@ -229,7 +248,7 @@ export function deleteExpense(id) {
     return denyAccess('Không tìm thấy khoản chi.')
   }
 
-  const deleteCheck = canDeleteExpense(current)
+  const deleteCheck = canDeleteExpenseRecord(current)
   if (!deleteCheck.allowed) {
     return denyAccess(deleteCheck.reason)
   }

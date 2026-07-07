@@ -1,26 +1,16 @@
 import { useState } from 'react'
 import { canAccessSettingsPage } from '../constants/auth'
-import SettingsAccountsTab from '../components/settings/SettingsAccountsTab'
+import SettingsAccountsPermissionsTab from '../components/settings/SettingsAccountsPermissionsTab'
 import SettingsAdminProfileTab from '../components/settings/SettingsAdminProfileTab'
-import SettingsAuditLogTab from '../components/settings/SettingsAuditLogTab'
-import SettingsBackupTab from '../components/settings/SettingsBackupTab'
-import SettingsBranchPricingTab from '../components/settings/SettingsBranchPricingTab'
-import SettingsBranchesTab from '../components/settings/SettingsBranchesTab'
-import SettingsEmployeesTab from '../components/settings/SettingsEmployeesTab'
-import SettingsPoliciesTab from '../components/settings/SettingsPoliciesTab'
-import SettingsServicesTab from '../components/settings/SettingsServicesTab'
+import SettingsBranchesRolesTab from '../components/settings/SettingsBranchesRolesTab'
+import SettingsSystemTab from '../components/settings/SettingsSystemTab'
 import './Settings.css'
 
 const TABS = [
   { id: 'admin-profile', label: 'Hồ sơ Admin' },
-  { id: 'accounts', label: 'Quản lý tài khoản & phân quyền' },
-  { id: 'branches', label: 'Quản lý chi nhánh' },
-  { id: 'employees', label: 'Quản lý nhân viên' },
-  { id: 'services', label: 'Quản lý dịch vụ' },
-  { id: 'branch-pricing', label: 'Bảng giá theo chi nhánh' },
-  { id: 'policies', label: 'Chính sách lương & hoa hồng' },
-  { id: 'audit-log', label: 'Quản lý Nhật ký' },
-  { id: 'backup', label: 'Backup & Hệ thống' },
+  { id: 'accounts', label: 'Tài khoản & phân quyền' },
+  { id: 'branches', label: 'Chi nhánh & vai trò' },
+  { id: 'system', label: 'Hệ thống' },
 ]
 
 export default function Settings() {
@@ -32,7 +22,7 @@ export default function Settings() {
     return (
       <div className="settings settings--denied">
         <h2 className="settings__title">Không có quyền truy cập</h2>
-        <p className="settings__subtitle">Chỉ Admin được truy cập Trung tâm quản trị hệ thống.</p>
+        <p className="settings__subtitle">Chỉ Admin được truy cập Cài đặt hệ thống.</p>
       </div>
     )
   }
@@ -48,22 +38,12 @@ export default function Settings() {
     switch (activeTab) {
       case 'admin-profile':
         return <SettingsAdminProfileTab showToast={showToast} />
-      case 'branches':
-        return <SettingsBranchesTab showToast={showToast} onDataChange={handleDataChange} />
-      case 'employees':
-        return <SettingsEmployeesTab showToast={showToast} key={refreshKey} />
-      case 'services':
-        return <SettingsServicesTab showToast={showToast} />
-      case 'branch-pricing':
-        return <SettingsBranchPricingTab showToast={showToast} key={refreshKey} />
-      case 'policies':
-        return <SettingsPoliciesTab />
-      case 'audit-log':
-        return <SettingsAuditLogTab />
       case 'accounts':
-        return <SettingsAccountsTab showToast={showToast} />
-      case 'backup':
-        return <SettingsBackupTab showToast={showToast} />
+        return <SettingsAccountsPermissionsTab showToast={showToast} key={refreshKey} />
+      case 'branches':
+        return <SettingsBranchesRolesTab showToast={showToast} onDataChange={handleDataChange} key={refreshKey} />
+      case 'system':
+        return <SettingsSystemTab showToast={showToast} />
       default:
         return null
     }
@@ -74,10 +54,8 @@ export default function Settings() {
       {toast && <div className="settings__toast">{toast}</div>}
 
       <header className="settings__header">
-        <h2 className="settings__title">Trung tâm quản trị hệ thống</h2>
-        <p className="settings__subtitle">
-          Quản lý tài khoản, chi nhánh, nhân viên, dịch vụ, chính sách, nhật ký và sao lưu dữ liệu
-        </p>
+        <h2 className="settings__title">Cài đặt</h2>
+        <p className="settings__subtitle">Quản trị hồ sơ, tài khoản, chi nhánh và cấu hình hệ thống</p>
       </header>
 
       <nav className="settings__tabs" aria-label="Cài đặt hệ thống">

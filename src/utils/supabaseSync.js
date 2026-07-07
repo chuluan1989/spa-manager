@@ -16,6 +16,8 @@ import {
 } from '../repositories/branchPricingRepository'
 import { fetchCredentials, upsertCredentials } from '../repositories/credentialsRepository'
 import { fetchPermissions, upsertPermissions } from '../repositories/permissionsRepository'
+import { fetchBranchPermissions, upsertBranchPermissions } from '../repositories/branchPermissionsRepository'
+import { fetchAccountMetadata, upsertAccountMetadata } from '../repositories/accountMetadataRepository'
 import { fetchSettings, upsertSettings } from '../repositories/settingsRepository'
 
 import { loadBranches, normalizeBranch, saveBranches } from './branchStorage'
@@ -25,7 +27,16 @@ import { loadExpenses, normalizeExpense, saveExpenses } from './expenseStorage'
 import { loadServices, normalizeService, saveServices } from './serviceStorage'
 import { loadBranchPricingMap, saveBranchPricingMap } from './branchPricingStorage'
 import { loadCredentials, saveCredentials } from './credentialsStorage'
-import { loadPermissions, savePermissions } from './permissionsStorage'
+import {
+  collectPermissionsSnapshot,
+  loadBranchPermissions,
+  loadEmployeePermissions,
+  loadPermissions,
+  saveBranchPermissions,
+  saveEmployeePermissions,
+  savePermissions,
+} from './permissionsStorage'
+import { loadAccountMetadata, saveAccountMetadata } from './accountMetadataStorage'
 import { loadSystemSettings, saveSystemSettings } from './systemSettingsStorage'
 
 const CACHE_ONLY = { skipRemoteSync: true }
@@ -35,6 +46,46 @@ function shouldApplyRemoteList(remoteList, localList) {
   if (!Array.isArray(remoteList)) return false
   if (remoteList.length > 0) return true
   return !Array.isArray(localList) || localList.length === 0
+}
+
+/** Gộp remote + local theo id — giữ bản mới hơn. Tránh mất dữ liệu khi Supabase thiếu bản ghi. */
+function mergeRemoteWithLocal(localList, remoteList) {
+  if (!Array.isArray(localList)) return remoteList ?? []
+  if (!Array.isArray(remoteList) || remoteList.length === 0) return localList
+
+  const map = new Map()
+  for (const item of localList) {
+    if (item?.id) map.set(item.id, item)
+  }
+  for (const item of remoteList) {
+    if (!item?.id) continue
+    const existing = map.get(item.id)
+    if (!existing) {
+      map.set(item.id, item)
+      continue
+    }
+    const existingTime = Date.parse(existing.updatedAt ?? existing.createdAt ?? 0)
+    const remoteTime = Date.parse(item.updatedAt ?? item.createdAt ?? 0)
+    map.set(item.id, remoteTime >= existingTime ? item : existing)
+  }
+  return [...map.values()]
+}
+
+/** Pull list: merge nếu remote ít hơn local; replace nếu remote đủ hoặc local trống. */
+function applyRemoteList(localList, remoteList, saveFn, entityName) {
+  if (!shouldApplyRemoteList(remoteList, localList)) {
+    console.warn(`[Supabase] Pull ${entityName} rỗng — giữ cache local`)
+    return
+  }
+  if (Array.isArray(localList) && localList.length > remoteList.length) {
+    const merged = mergeRemoteWithLocal(localList, remoteList)
+    console.warn(
+      `[Supabase] Pull ${entityName}: remote ${remoteList.length} < local ${localList.length} — merge ${merged.length} bản ghi`,
+    )
+    saveFn(merged)
+    return
+  }
+  saveFn(remoteList)
 }
 
 /** Không ghi đè cache local bằng object rỗng từ Supabase. */
@@ -104,11 +155,7 @@ export async function pullAllFromSupabase() {
       fetch: fetchEmployees,
       apply: (data) => {
         const local = loadEmployees()
-        if (!shouldApplyRemoteList(data, local)) {
-          console.warn('[Supabase] Pull employees rỗng — giữ cache local')
-          return
-        }
-        saveEmployees(data.map(normalizeEmployee))
+        applyRemoteList(local, data, (merged) => saveEmployees(merged.map(normalizeEmployee)), 'employees')
       },
     },
     {
@@ -140,11 +187,7 @@ export async function pullAllFromSupabase() {
       fetch: fetchInvoices,
       apply: (data) => {
         const local = loadInvoices()
-        if (!shouldApplyRemoteList(data, local)) {
-          console.warn('[Supabase] Pull invoices rỗng — giữ cache local')
-          return
-        }
-        replaceAllInvoices(data)
+        applyRemoteList(local, data, replaceAllInvoices, 'invoices')
       },
     },
     {
@@ -152,11 +195,7 @@ export async function pullAllFromSupabase() {
       fetch: fetchExpenses,
       apply: (data) => {
         const local = loadExpenses()
-        if (!shouldApplyRemoteList(data, local)) {
-          console.warn('[Supabase] Pull expenses rỗng — giữ cache local')
-          return
-        }
-        saveExpenses(data.map(normalizeExpense))
+        applyRemoteList(local, data, (merged) => saveExpenses(merged.map(normalizeExpense)), 'expenses')
       },
     },
     {
@@ -168,6 +207,16 @@ export async function pullAllFromSupabase() {
       name: 'permissions',
       fetch: fetchPermissions,
       apply: (data) => savePermissions(data, CACHE_ONLY),
+    },
+    {
+      name: 'branchPermissions',
+      fetch: fetchBranchPermissions,
+      apply: (data) => saveBranchPermissions(data, CACHE_ONLY),
+    },
+    {
+      name: 'accountMetadata',
+      fetch: fetchAccountMetadata,
+      apply: (data) => saveAccountMetadata(data, CACHE_ONLY),
     },
     {
       name: 'settings',
@@ -226,7 +275,9 @@ export async function pushLocalToSupabase() {
     ['invoices', () => upsertInvoices(snapshot.invoices)],
     ['expenses', () => upsertExpenses(snapshot.expenses)],
     ['credentials', () => upsertCredentials(snapshot.credentials)],
-    ['permissions', () => upsertPermissions(snapshot.permissions)],
+    ['permissions', () => upsertPermissions(snapshot.permissions?.global ?? snapshot.permissions ?? loadPermissions())],
+    ['branchPermissions', () => upsertBranchPermissions(snapshot.permissions?.branch ?? loadBranchPermissions())],
+    ['accountMetadata', () => upsertAccountMetadata(snapshot.accountMetadata ?? loadAccountMetadata())],
     ['settings', () => upsertSettings(snapshot.systemSettings)],
   ]
 
