@@ -62,16 +62,28 @@ async function step(name, fn) {
 const { isSupabaseConfigured, supabase } = await import('../src/lib/supabaseClient.js')
 const { normalizeSupabaseUrl, normalizeSupabaseAnonKey } = await import('../src/lib/supabaseClient.js')
 
+function trimEnv(value) {
+  return String(value ?? '').trim().replace(/^['"]|['"]$/g, '')
+}
+
 function explainEnvProblem() {
   const rawUrl = import.meta.env?.VITE_SUPABASE_URL ?? ''
   const rawKey = import.meta.env?.VITE_SUPABASE_ANON_KEY ?? ''
   const url = normalizeSupabaseUrl(rawUrl)
   const key = normalizeSupabaseAnonKey(rawKey)
 
-  if (!String(rawUrl).trim() || !String(rawKey).trim()) {
+  if (!trimEnv(rawUrl) || !trimEnv(rawKey)) {
     return 'Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY trong .env.local'
   }
   if (!url || !key) {
+    const keyText = trimEnv(rawKey)
+    if (keyText.includes('...') || (keyText && keyText.length < 40)) {
+      return [
+        'VITE_SUPABASE_ANON_KEY bị cắt ngắn hoặc chứa "..." — cần dán TOÀN BỘ key từ Supabase Dashboard.',
+        'Key hợp lệ thường dài hơn 100 ký tự (sb_publishable_... hoặc eyJ...).',
+        'Không ghi "..." — copy nguyên văn rồi lưu .env.local và redeploy Vercel.',
+      ].join('\n')
+    }
     return [
       'Giá trị trong .env.local chưa hợp lệ (có thể vẫn là text mô tả/placeholder).',
       'Hãy mở Supabase Dashboard → Project Settings → API, copy NGUYÊN VĂN:',
@@ -130,6 +142,8 @@ const {
   loadEmployees,
 } = await import('../src/utils/employeeStorage.js')
 const { saveInvoice, deleteInvoice, loadInvoices } = await import('../src/utils/invoiceStorage.js')
+const { addExpense, updateExpense, deleteExpense, loadExpenses } = await import('../src/utils/expenseStorage.js')
+const { addService, updateService, softDeleteService, loadServices } = await import('../src/utils/serviceStorage.js')
 const { pullAllFromSupabase } = await import('../src/utils/supabaseSync.js')
 
 const branches = loadBranches()
@@ -139,6 +153,8 @@ assert.ok(testBranch, 'Cần ít nhất 1 chi nhánh để test')
 const TEST_TAG = `__SUPA_VERIFY_${Date.now()}__`
 let testEmployeeId = null
 let testInvoiceId = null
+let testExpenseId = null
+let testServiceId = null
 
 await step('2. Tạo nhân viên mới trên "thiết bị A" (LocalStorage A)', async () => {
   useDevice(storeA)
@@ -225,6 +241,76 @@ await step('8. Thiết bị B pull lại, thấy hóa đơn mới', async () => 
   assert.ok(invoices.some((inv) => inv.id === testInvoiceId), 'Thiết bị B phải thấy hóa đơn vừa tạo')
 })
 
+await step('8b. Expenses CRUD: tạo chi phí → Supabase → thiết bị B thấy', async () => {
+  useDevice(storeA)
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  const result = addExpense({
+    date: new Date().toISOString().slice(0, 10),
+    branchId: testBranch.id,
+    expenseType: 'other',
+    content: TEST_TAG,
+    amount: 50000,
+    enteredBy: 'Verify Script',
+    note: TEST_TAG,
+  })
+  assert.equal(result.success, true, result.error)
+  testExpenseId = result.expense.id
+  await wait(1500)
+  const { data, error } = await supabase.from('expenses').select('*').eq('id', testExpenseId).single()
+  if (error) throw error
+  assert.equal(data.content, TEST_TAG)
+
+  updateExpense(testExpenseId, { content: `${TEST_TAG}-updated` })
+  await wait(1500)
+  const { data: updated, error: updErr } = await supabase
+    .from('expenses')
+    .select('content')
+    .eq('id', testExpenseId)
+    .single()
+  if (updErr) throw updErr
+  assert.equal(updated.content, `${TEST_TAG}-updated`)
+
+  useDevice(storeB)
+  await pullAllFromSupabase()
+  assert.ok(
+    loadExpenses().some((exp) => exp.id === testExpenseId),
+    'Thiết bị B phải thấy chi phí test',
+  )
+})
+
+await step('8c. Services CRUD: thêm dịch vụ → Supabase → thiết bị B thấy', async () => {
+  useDevice(storeA)
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  testServiceId = `verify-svc-${Date.now()}`
+  addService({
+    id: testServiceId,
+    name: TEST_TAG,
+    price: 100000,
+    commissionPercent: 10,
+  })
+  await wait(1500)
+  const { data, error } = await supabase.from('services').select('*').eq('id', testServiceId).single()
+  if (error) throw error
+  assert.equal(data.name, TEST_TAG)
+
+  updateService(testServiceId, { name: `${TEST_TAG}-updated` })
+  await wait(1500)
+  const { data: updated, error: updErr } = await supabase
+    .from('services')
+    .select('name')
+    .eq('id', testServiceId)
+    .single()
+  if (updErr) throw updErr
+  assert.equal(updated.name, `${TEST_TAG}-updated`)
+
+  useDevice(storeB)
+  await pullAllFromSupabase()
+  assert.ok(
+    loadServices().some((svc) => svc.id === testServiceId),
+    'Thiết bị B phải thấy dịch vụ test',
+  )
+})
+
 await step('9. Realtime: sửa nhân viên và nhận được sự kiện postgres_changes', async () => {
   const eventPromise = new Promise((resolve, reject) => {
     const channel = supabase
@@ -260,13 +346,19 @@ await step('10. Dọn dẹp dữ liệu test khỏi Supabase', async () => {
   useDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   deleteInvoice(testInvoiceId)
+  if (testExpenseId) deleteExpense(testExpenseId)
+  if (testServiceId) softDeleteService(testServiceId)
   deleteEmployee(testEmployeeId)
   await wait(1500)
 
   const { data: emp } = await supabase.from('employees').select('id').eq('id', testEmployeeId).maybeSingle()
   const { data: inv } = await supabase.from('invoices').select('id').eq('id', testInvoiceId).maybeSingle()
+  const { data: exp } = testExpenseId
+    ? await supabase.from('expenses').select('id').eq('id', testExpenseId).maybeSingle()
+    : { data: null }
   assert.equal(emp, null, 'Nhân viên test phải được xoá khỏi Supabase')
   assert.equal(inv, null, 'Hóa đơn test phải được xoá khỏi Supabase')
+  assert.equal(exp, null, 'Chi phí test phải được xoá khỏi Supabase')
 })
 
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`)

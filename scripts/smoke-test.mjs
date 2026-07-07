@@ -835,6 +835,9 @@ await testAsync('supabaseClient: normalizeSupabaseUrl thêm https và từ chố
   assert.equal(normalizeSupabaseUrl('abcd1234567890'), 'https://abcd1234567890.supabase.co')
   assert.equal(normalizeSupabaseUrl('URL_THẬT_CỦA_SUPABASE'), '')
   assert.equal(normalizeSupabaseAnonKey('KEY_THẬT_BẮT_ĐẦU_BẰNG_sb_publishable'), '')
+  assert.equal(normalizeSupabaseAnonKey('sb_publishable_...'), '')
+  assert.equal(normalizeSupabaseAnonKey('x'.repeat(39)), '')
+  assert.equal(normalizeSupabaseAnonKey('x'.repeat(40)), 'x'.repeat(40))
 })
 
 await testAsync('caseUtils: chuyển đổi camelCase <-> snake_case hai chiều', async () => {

@@ -10,7 +10,8 @@ import { createClient } from '@supabase/supabase-js'
  *   VITE_SUPABASE_URL=https://abcdefghijklmnop.supabase.co
  *   VITE_SUPABASE_ANON_KEY=sb_publishable_... hoặc eyJhbG...
  */
-const PLACEHOLDER_PATTERN = /URL_THẬT|KEY_THẬT|YOUR_|XXXX|placeholder|điền|paste|example|mẫu/i
+const PLACEHOLDER_PATTERN = /URL_THẬT|KEY_THẬT|YOUR_|placeholder|điền|paste|example|mẫu|\.\.\./i
+const MIN_ANON_KEY_LENGTH = 40
 
 function normalizeEnvValue(value) {
   return String(value ?? '').trim().replace(/^['"]|['"]$/g, '')
@@ -51,6 +52,7 @@ export function normalizeSupabaseUrl(raw) {
 export function normalizeSupabaseAnonKey(raw) {
   const key = normalizeEnvValue(raw)
   if (!key || isPlaceholderValue(key)) return ''
+  if (key.length < MIN_ANON_KEY_LENGTH) return ''
   return key
 }
 
