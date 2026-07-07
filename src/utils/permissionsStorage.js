@@ -18,6 +18,7 @@ export const PERMISSION_KEYS = {
   DELETE_INVOICE: 'deleteInvoice',
   VIEW_CCCD: 'viewCccd',
   MANAGE_EMPLOYEES: 'manageEmployees',
+  MANAGE_EXPENSES: 'manageExpenses',
   DELETE_EMPLOYEE: 'deleteEmployee',
   TRANSFER_EMPLOYEE: 'transferEmployee',
 }
@@ -29,6 +30,7 @@ export const PERMISSION_LABELS = {
   [PERMISSION_KEYS.DELETE_INVOICE]: 'Xóa hóa đơn (chỉ Admin)',
   [PERMISSION_KEYS.VIEW_CCCD]: 'Xem CCCD (chỉ Admin)',
   [PERMISSION_KEYS.MANAGE_EMPLOYEES]: 'Quản lý nhân viên chi nhánh',
+  [PERMISSION_KEYS.MANAGE_EXPENSES]: 'Quản lý chi phí',
   [PERMISSION_KEYS.DELETE_EMPLOYEE]: 'Lưu trữ / xóa vĩnh viễn nhân viên (chỉ Admin)',
   [PERMISSION_KEYS.TRANSFER_EMPLOYEE]: 'Chuyển chi nhánh nhân viên (chỉ Admin)',
 }
@@ -48,6 +50,7 @@ export const DEFAULT_PERMISSIONS = {
   [PERMISSION_KEYS.DELETE_INVOICE]: [ROLES.ADMIN],
   [PERMISSION_KEYS.VIEW_CCCD]: [ROLES.ADMIN],
   [PERMISSION_KEYS.MANAGE_EMPLOYEES]: [ROLES.ADMIN, ROLES.BRANCH_MANAGER],
+  [PERMISSION_KEYS.MANAGE_EXPENSES]: [ROLES.ADMIN, ROLES.BRANCH_MANAGER],
   [PERMISSION_KEYS.DELETE_EMPLOYEE]: [ROLES.ADMIN],
   [PERMISSION_KEYS.TRANSFER_EMPLOYEE]: [ROLES.ADMIN],
 }
@@ -100,6 +103,7 @@ export function getPermissionMatrix() {
     label,
     admin: permissions[key]?.includes(ROLES.ADMIN) ?? false,
     branchManager: permissions[key]?.includes(ROLES.BRANCH_MANAGER) ?? false,
+    employee: permissions[key]?.includes(ROLES.EMPLOYEE) ?? false,
     adminOnly: ADMIN_ONLY_PERMISSIONS.includes(key),
   }))
 }

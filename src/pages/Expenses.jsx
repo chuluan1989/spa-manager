@@ -1,334 +1,290 @@
-import { useEffect, useMemo, useState } from 'react'
-import BranchBanner from '../components/common/BranchBanner'
-import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
+import { useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
+import ExpenseBranchDetail from '../components/expenses/ExpenseBranchDetail'
+import ExpenseBranchGrid from '../components/expenses/ExpenseBranchGrid'
+import ExpenseCategoryCards from '../components/expenses/ExpenseCategoryCards'
+import ExpenseDetailModal from '../components/expenses/ExpenseDetailModal'
+import ExpenseFilters from '../components/expenses/ExpenseFilters'
+import ExpenseFormModal from '../components/expenses/ExpenseFormModal'
+import ExpenseOverview from '../components/expenses/ExpenseOverview'
+import ExpenseTable from '../components/expenses/ExpenseTable'
 import {
   canSelectBranch,
-  filterByUserBranch,
   getCurrentUserBranch,
-  getCurrentUserBranchName,
-  getCurrentUserName,
+  isAdmin,
 } from '../constants/auth'
-import { getActiveBranches } from '../constants/branches'
-import { EXPENSE_TYPES } from '../constants/expenseTypes'
-import { formatCurrency } from '../utils/invoice'
+import { EXPENSE_CATEGORY_CARDS } from '../constants/expenseTypes'
+import { buildDefaultExpenseFilters, useExpensesData } from '../hooks/useExpensesData'
 import {
-  EMPTY_EXPENSE_FORM,
+  computeAdminExpenseOverview,
+  computeAllCategoryCards,
+  filterExpensesAdvanced,
+} from '../utils/expenseAnalytics'
+import { exportExpensesCsv } from '../utils/expenseExport'
+import {
   addExpense,
-  computeExpenseTotals,
+  canDeleteExpense,
+  canEditExpense,
   deleteExpense,
-  loadExpenses,
   updateExpense,
 } from '../utils/expenseStorage'
-import { getTodayDate } from '../utils/invoiceStorage'
+import { formatCurrency } from '../utils/invoice'
+import { getMonthStartDate, getTodayDate } from '../utils/invoiceStorage'
 import './Expenses.css'
 
-function createInitialForm() {
-  return {
-    ...EMPTY_EXPENSE_FORM,
-    date: getTodayDate(),
-    enteredBy: getCurrentUserName(),
-    branchId: canSelectBranch() ? '' : getCurrentUserBranch(),
-  }
-}
-
 export default function Expenses() {
-  const lockedBranch = !canSelectBranch()
-  const activeBranchName = getCurrentUserBranchName()
-
-  const [allExpenses, setAllExpenses] = useState(() => loadExpenses())
-  const expenses = useMemo(() => filterByUserBranch(allExpenses), [allExpenses])
-  const [form, setForm] = useState(createInitialForm)
-  const [errors, setErrors] = useState({})
+  const [draftFilters, setDraftFilters] = useState(buildDefaultExpenseFilters)
+  const [appliedFilters, setAppliedFilters] = useState(buildDefaultExpenseFilters)
+  const [screen, setScreen] = useState(isAdmin() ? 'overview' : 'branch')
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    isAdmin() ? '' : getCurrentUserBranch(),
+  )
+  const [activeCategoryId, setActiveCategoryId] = useState('')
   const [toast, setToast] = useState('')
-  const [editingId, setEditingId] = useState(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingExpense, setEditingExpense] = useState(null)
+  const [viewingExpense, setViewingExpense] = useState(null)
 
-  const totals = useMemo(() => computeExpenseTotals(expenses), [expenses])
+  const { expenses, invoices, loading, error, reload } = useExpensesData(appliedFilters)
+
+  const monthExpenses = useMemo(() => {
+    const monthStart = getMonthStartDate()
+    const today = getTodayDate()
+    return expenses.filter((exp) => exp.date >= monthStart && exp.date <= today)
+  }, [expenses])
+
+  const overview = useMemo(
+    () => computeAdminExpenseOverview(expenses, invoices),
+    [expenses, invoices],
+  )
+
+  const categoryCards = useMemo(
+    () => computeAllCategoryCards(monthExpenses),
+    [monthExpenses],
+  )
+
+  const filteredExpenses = useMemo(() => {
+    let rows = filterExpensesAdvanced(expenses, appliedFilters)
+    if (activeCategoryId && activeCategoryId !== 'total') {
+      rows = filterExpensesAdvanced(rows, { categoryId: activeCategoryId })
+    }
+    if (screen === 'branch' && selectedBranchId) {
+      rows = rows.filter((exp) => exp.branchId === selectedBranchId)
+    }
+    return rows.sort((a, b) => {
+      const dateCmp = b.date.localeCompare(a.date)
+      if (dateCmp !== 0) return dateCmp
+      return (b.expenseTime || '').localeCompare(a.expenseTime || '')
+    })
+  }, [expenses, appliedFilters, activeCategoryId, screen, selectedBranchId])
 
   const showToast = (message) => {
     setToast(message)
     setTimeout(() => setToast(''), 3000)
   }
 
-  const refresh = () => setAllExpenses(loadExpenses())
-
-  const syncVersion = useDataSyncVersion()
-  useEffect(() => {
-    if (syncVersion > 0) refresh()
-  }, [syncVersion])
-
-  const getFormPayload = (data) => ({
-    ...data,
-    branchId: lockedBranch ? getCurrentUserBranch() : data.branchId,
-  })
-
-  const validateForm = (data) => {
-    const next = {}
-    if (!data.date) next.date = 'Vui lòng chọn ngày'
-    if (!data.branchId) next.branchId = 'Vui lòng chọn chi nhánh'
-    if (!data.expenseType) next.expenseType = 'Vui lòng chọn loại chi phí'
-    if (!data.content?.trim()) next.content = 'Vui lòng nhập nội dung'
-    if (!data.amount || Number(data.amount) <= 0) next.amount = 'Vui lòng nhập số tiền hợp lệ'
-    if (!data.enteredBy?.trim()) next.enteredBy = 'Vui lòng nhập người nhập'
-    return next
+  const handleSearch = () => setAppliedFilters({ ...draftFilters })
+  const handleReset = () => {
+    const defaults = buildDefaultExpenseFilters()
+    setDraftFilters(defaults)
+    setAppliedFilters(defaults)
+    setActiveCategoryId('')
+    setScreen(isAdmin() ? 'overview' : 'branch')
+    setSelectedBranchId(isAdmin() ? '' : getCurrentUserBranch())
   }
 
-  const resetForm = () => {
-    setForm(createInitialForm())
-    setEditingId(null)
-    setErrors({})
+  const handleExport = () => exportExpensesCsv(filteredExpenses, appliedFilters)
+
+  const openCreateForm = () => {
+    setEditingExpense(null)
+    setFormOpen(true)
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    const payload = getFormPayload(form)
-    const next = validateForm(payload)
-    setErrors(next)
-    if (Object.keys(next).length > 0) return
+  const openEditForm = (expense) => {
+    setViewingExpense(null)
+    setEditingExpense(expense)
+    setFormOpen(true)
+  }
 
-    if (editingId) {
-      const result = updateExpense(editingId, payload)
-      if (!result.success) {
-        showToast(result.error ?? 'Không thể cập nhật chi phí')
-        return
-      }
-      showToast('Cập nhật chi phí thành công')
-    } else {
-      const result = addExpense(payload)
-      if (!result.success) {
-        showToast(result.error ?? 'Không thể thêm chi phí')
-        return
-      }
-      showToast('Thêm chi phí thành công')
+  const handleSaveExpense = (payload) => {
+    const result = editingExpense
+      ? updateExpense(editingExpense.id, payload)
+      : addExpense(payload)
+
+    if (!result.success) {
+      showToast(result.error ?? 'Không thể lưu chi phí')
+      return
     }
 
-    resetForm()
-    refresh()
+    setFormOpen(false)
+    setEditingExpense(null)
+    reload()
+    showToast(editingExpense ? 'Cập nhật chi phí thành công' : 'Thêm chi phí thành công')
   }
 
-  const startEdit = (expense) => {
-    setEditingId(expense.id)
-    setForm({
-      date: expense.date,
-      branchId: expense.branchId,
-      expenseType: expense.expenseType,
-      content: expense.content,
-      amount: String(expense.amount),
-      enteredBy: expense.enteredBy,
-      note: expense.note,
-    })
-    setErrors({})
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  const handleDelete = (id, content) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa khoản chi "${content}"?`)) return
-    const result = deleteExpense(id)
+  const handleDeleteExpense = (expense) => {
+    if (!window.confirm(`Xóa khoản chi "${expense.content}"?`)) return
+    const result = deleteExpense(expense.id)
     if (!result.success) {
       showToast(result.error ?? 'Không thể xóa chi phí')
       return
     }
-    if (editingId === id) resetForm()
-    refresh()
+    reload()
     showToast('Đã xóa chi phí')
   }
+
+  const drillToList = (patch = {}) => {
+    const next = { ...appliedFilters, ...patch }
+    setDraftFilters(next)
+    setAppliedFilters(next)
+    setScreen('list')
+  }
+
+  const handleSelectBranch = (branchId) => {
+    setSelectedBranchId(branchId)
+    setScreen('branch')
+    const next = { ...appliedFilters, branchId }
+    setDraftFilters(next)
+    setAppliedFilters(next)
+  }
+
+  const handleSelectCategory = (categoryId) => {
+    setActiveCategoryId(categoryId)
+    if (categoryId === 'total') {
+      drillToList({ expenseType: '' })
+      return
+    }
+    const card = EXPENSE_CATEGORY_CARDS.find((item) => item.id === categoryId)
+    if (card?.typeIds?.length === 1) {
+      drillToList({ expenseType: card.typeIds[0] })
+      return
+    }
+    drillToList({ expenseType: '' })
+    setActiveCategoryId(categoryId)
+    setScreen('list')
+  }
+
+  const canEdit = (expense) => canEditExpense(expense).allowed
+  const canDelete = (expense) => canDeleteExpense(expense).allowed
 
   return (
     <div className="expenses">
       {toast && <div className="expenses__toast">{toast}</div>}
 
       <header className="expenses__header">
-        <h2 className="expenses__title">Chi phí</h2>
-        <p className="expenses__subtitle">Quản lý các khoản chi theo chi nhánh</p>
+        <div>
+          <h2 className="expenses__title">Chi phí</h2>
+          <p className="expenses__subtitle">
+            Quản trị chi phí toàn hệ thống · Lợi nhuận dự kiến = Doanh thu tiền vé − Hoa hồng − Chi phí
+          </p>
+        </div>
+        <button type="button" className="expenses__add-btn" onClick={openCreateForm}>
+          <Plus size={18} />
+          Thêm chi phí
+        </button>
       </header>
 
-      <section className="expenses__summary">
-        <div className="expenses-card expenses-card--blue">
-          <p className="expenses-card__label">Chi phí hôm nay</p>
-          <p className="expenses-card__value">{formatCurrency(totals.today)}</p>
-        </div>
-        <div className="expenses-card expenses-card--orange">
-          <p className="expenses-card__label">Chi phí tháng này</p>
-          <p className="expenses-card__value">{formatCurrency(totals.month)}</p>
-        </div>
-      </section>
+      {error && <div className="expenses__alert">{error}</div>}
+      {loading && <div className="expenses__loading">Đang tải dữ liệu chi phí...</div>}
 
-      {totals.byBranch.length > 0 && canSelectBranch() && (
-        <section className="expenses__card expenses__branch-summary">
-          <h3 className="expenses__card-title">Chi phí tháng này theo chi nhánh</h3>
-          <div className="expenses__branch-grid">
-            {totals.byBranch.map((row) => (
-              <div key={row.branchId} className="expenses-branch-card">
-                <p className="expenses-branch-card__name">{row.branchName}</p>
-                <p className="expenses-branch-card__value">{formatCurrency(row.total)}</p>
-              </div>
-            ))}
+      <ExpenseFilters
+        draftFilters={draftFilters}
+        appliedFilters={appliedFilters}
+        onChange={setDraftFilters}
+        onSearch={handleSearch}
+        onReset={handleReset}
+        onExport={handleExport}
+      />
+
+      {isAdmin() && screen === 'overview' && (
+        <>
+          <ExpenseOverview
+            overview={overview}
+            onDrillTotal={() => drillToList({ fromDate: '', toDate: '', branchId: '', expenseType: '' })}
+            onDrillToday={() => drillToList({ fromDate: getTodayDate(), toDate: getTodayDate() })}
+            onDrillMonth={() => drillToList({ fromDate: getMonthStartDate(), toDate: getTodayDate() })}
+            onDrillTopBranch={() => overview.topBranch && handleSelectBranch(overview.topBranch.branchId)}
+            onDrillTopType={() => overview.topType && drillToList({ expenseType: overview.topType.typeId })}
+            onDrillRatio={() => drillToList({ fromDate: getMonthStartDate(), toDate: getTodayDate() })}
+          />
+
+          <ExpenseCategoryCards
+            cards={categoryCards}
+            activeCategoryId={activeCategoryId}
+            onSelectCategory={handleSelectCategory}
+          />
+
+          <ExpenseBranchGrid
+            rows={overview.byBranch}
+            onSelectBranch={handleSelectBranch}
+            activeBranchId={selectedBranchId}
+          />
+        </>
+      )}
+
+      {screen === 'branch' && selectedBranchId && (
+        <ExpenseBranchDetail
+          branchId={selectedBranchId}
+          expenses={expenses.filter((exp) => exp.branchId === selectedBranchId)}
+          onBack={() => {
+            setScreen(isAdmin() ? 'overview' : 'branch')
+            if (isAdmin()) setSelectedBranchId('')
+          }}
+          onViewExpense={setViewingExpense}
+          onEditExpense={openEditForm}
+          onDeleteExpense={handleDeleteExpense}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      )}
+
+      {(screen === 'list' || (screen === 'overview' && !isAdmin())) && (
+        <section className="expenses__card">
+          <div className="expenses__card-head">
+            <h3>Danh sách khoản chi</h3>
+            <span>{filteredExpenses.length} khoản · {formatCurrency(filteredExpenses.reduce((s, e) => s + e.amount, 0))}</span>
           </div>
+          <ExpenseTable
+            expenses={filteredExpenses}
+            onView={setViewingExpense}
+            onEdit={openEditForm}
+            onDelete={handleDeleteExpense}
+            canEdit={canEdit}
+            canDelete={canDelete}
+            showBranch={canSelectBranch()}
+          />
         </section>
       )}
 
-      <section className="expenses__card">
-        <h3 className="expenses__card-title">
-          {editingId ? 'Sửa chi phí' : 'Thêm chi phí mới'}
-        </h3>
-        <form className="expenses__form" onSubmit={handleSubmit}>
-          {lockedBranch && (
-            <div className="expenses__field expenses__field--full">
-              <BranchBanner branchName={activeBranchName} />
-            </div>
-          )}
+      <ExpenseFormModal
+        key={editingExpense?.id ?? 'new'}
+        open={formOpen}
+        onClose={() => {
+          setFormOpen(false)
+          setEditingExpense(null)
+        }}
+        onSubmit={handleSaveExpense}
+        initialData={editingExpense ? {
+          date: editingExpense.date,
+          expenseTime: editingExpense.expenseTime,
+          branchId: editingExpense.branchId,
+          expenseType: editingExpense.expenseType,
+          content: editingExpense.content,
+          amount: String(editingExpense.amount),
+          paidBy: editingExpense.paidBy,
+          enteredBy: editingExpense.enteredBy,
+          note: editingExpense.note,
+          receiptImage: editingExpense.receiptImage,
+        } : null}
+        title={editingExpense ? 'Sửa chi phí' : 'Thêm chi phí'}
+      />
 
-          <label className="expenses__field">
-            <span>Ngày</span>
-            <input
-              type="date"
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className={errors.date ? 'expenses__input--error' : ''}
-            />
-            {errors.date && <span className="expenses__error">{errors.date}</span>}
-          </label>
-
-          {canSelectBranch() && (
-            <label className="expenses__field">
-              <span>Chi nhánh</span>
-              <select
-                value={form.branchId}
-                onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-                className={errors.branchId ? 'expenses__input--error' : ''}
-              >
-                <option value="">Chọn chi nhánh</option>
-                {getActiveBranches().map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-              {errors.branchId && <span className="expenses__error">{errors.branchId}</span>}
-            </label>
-          )}
-
-          <label className="expenses__field">
-            <span>Loại chi phí</span>
-            <select
-              value={form.expenseType}
-              onChange={(e) => setForm({ ...form, expenseType: e.target.value })}
-              className={errors.expenseType ? 'expenses__input--error' : ''}
-            >
-              <option value="">Chọn loại chi phí</option>
-              {EXPENSE_TYPES.map((type) => (
-                <option key={type.id} value={type.id}>{type.label}</option>
-              ))}
-            </select>
-            {errors.expenseType && <span className="expenses__error">{errors.expenseType}</span>}
-          </label>
-
-          <label className="expenses__field">
-            <span>Số tiền</span>
-            <input
-              type="number"
-              min="0"
-              step="1000"
-              value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
-              placeholder="Nhập số tiền"
-              className={errors.amount ? 'expenses__input--error' : ''}
-            />
-            {errors.amount && <span className="expenses__error">{errors.amount}</span>}
-          </label>
-
-          <label className="expenses__field expenses__field--full">
-            <span>Nội dung</span>
-            <input
-              value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              placeholder="Mô tả nội dung chi phí"
-              className={errors.content ? 'expenses__input--error' : ''}
-            />
-            {errors.content && <span className="expenses__error">{errors.content}</span>}
-          </label>
-
-          <label className="expenses__field">
-            <span>Người nhập</span>
-            <input
-              value={form.enteredBy}
-              onChange={(e) => setForm({ ...form, enteredBy: e.target.value })}
-              placeholder="Tên người nhập"
-              className={errors.enteredBy ? 'expenses__input--error' : ''}
-            />
-            {errors.enteredBy && <span className="expenses__error">{errors.enteredBy}</span>}
-          </label>
-
-          <label className="expenses__field expenses__field--full">
-            <span>Ghi chú</span>
-            <textarea
-              rows={2}
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-              placeholder="Ghi chú thêm (tùy chọn)"
-            />
-          </label>
-
-          <div className="expenses__form-actions">
-            <button type="submit" className="expenses__btn expenses__btn--primary">
-              {editingId ? 'Lưu thay đổi' : 'Thêm chi phí'}
-            </button>
-            {editingId && (
-              <button type="button" className="expenses__btn" onClick={resetForm}>
-                Hủy
-              </button>
-            )}
-          </div>
-        </form>
-      </section>
-
-      <section className="expenses__card">
-        <h3 className="expenses__card-title">Danh sách chi phí</h3>
-        {expenses.length === 0 ? (
-          <p className="expenses__empty">Chưa có khoản chi nào.</p>
-        ) : (
-          <div className="expenses__table-wrap">
-            <table className="expenses__table">
-              <thead>
-                <tr>
-                  <th>Ngày</th>
-                  <th>Chi nhánh</th>
-                  <th>Loại chi phí</th>
-                  <th>Nội dung</th>
-                  <th>Số tiền</th>
-                  <th>Người nhập</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenses.map((exp) => (
-                  <tr key={exp.id}>
-                    <td>{exp.date}</td>
-                    <td>{exp.branchName}</td>
-                    <td>{exp.expenseTypeLabel}</td>
-                    <td className="expenses__content">{exp.content}</td>
-                    <td className="expenses__money">{formatCurrency(exp.amount)}</td>
-                    <td>{exp.enteredBy || '—'}</td>
-                    <td className="expenses__actions">
-                      <button
-                        type="button"
-                        className="expenses__btn expenses__btn--small expenses__btn--secondary"
-                        onClick={() => startEdit(exp)}
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        type="button"
-                        className="expenses__btn expenses__btn--small expenses__btn--danger"
-                        onClick={() => handleDelete(exp.id, exp.content)}
-                      >
-                        Xóa
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <ExpenseDetailModal
+        expense={viewingExpense}
+        onClose={() => setViewingExpense(null)}
+        onEdit={openEditForm}
+        canEdit={canEdit}
+      />
     </div>
   )
 }

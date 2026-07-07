@@ -117,7 +117,9 @@ export function canAccessInvoicesPage(role = getCurrentUserRole()) {
 }
 
 export function canAccessExpensesPage(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER
+  return role === ROLES.ADMIN
+    || role === ROLES.BRANCH_MANAGER
+    || hasPermission(PERMISSION_KEYS.MANAGE_EXPENSES, role)
 }
 
 export function canViewEmployeeCccd(role = getCurrentUserRole()) {
@@ -236,7 +238,14 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
   }
 
   if (role === ROLES.EMPLOYEE) {
-    return pickNavItems(NAV_ITEMS, EMPLOYEE_NAV_ORDER)
+    const items = pickNavItems(NAV_ITEMS, EMPLOYEE_NAV_ORDER)
+    if (hasPermission(PERMISSION_KEYS.MANAGE_EXPENSES, role)) {
+      const expenseItem = NAV_ITEMS.find((item) => item.id === 'expenses')
+      if (expenseItem && !items.some((item) => item.id === 'expenses')) {
+        items.splice(2, 0, expenseItem)
+      }
+    }
+    return items
   }
 
   return NAV_ITEMS.filter((item) => !['settings', 'admin-employees', 'admin-services', 'revenue'].includes(item.id))

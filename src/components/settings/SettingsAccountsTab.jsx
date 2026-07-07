@@ -7,6 +7,7 @@ import {
 } from '../../utils/credentialsStorage'
 import {
   getPermissionMatrix,
+  PERMISSION_KEYS,
   togglePermissionRole,
 } from '../../utils/permissionsStorage'
 
@@ -109,6 +110,7 @@ export default function SettingsAccountsTab({ showToast }) {
                 <th>Quyền</th>
                 <th>Admin</th>
                 <th>Quản lý chi nhánh</th>
+                <th>Nhân viên</th>
               </tr>
             </thead>
             <tbody>
@@ -129,6 +131,14 @@ export default function SettingsAccountsTab({ showToast }) {
                       checked={row.branchManager}
                       disabled={row.adminOnly}
                       onChange={(e) => handleToggle(row.key, ROLES.BRANCH_MANAGER, e.target.checked)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={row.employee}
+                      disabled={row.adminOnly || row.key !== PERMISSION_KEYS.MANAGE_EXPENSES}
+                      onChange={(e) => handleToggle(row.key, ROLES.EMPLOYEE, e.target.checked)}
                     />
                   </td>
                 </tr>

@@ -1,5 +1,8 @@
 import { getBranchName as resolveBranchName } from './branchStorage'
-import { getExpenseTypeLabel } from '../constants/expenseTypes'
+import {
+  getExpenseTypeLabel,
+  normalizeExpenseTypeId,
+} from '../constants/expenseTypes'
 import { getMonthStartDate, getTodayDate } from './invoiceStorage'
 import {
   canAccessSessionBranch,
@@ -7,9 +10,9 @@ import {
   getSessionUser,
   isSessionAdmin,
 } from './storageAccess'
-
+import { getCurrentUserName } from '../constants/auth'
+import { hasPermission, PERMISSION_KEYS } from './permissionsStorage'
 import { ROLES } from '../constants/roles'
-import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteExpenseRow, upsertExpense } from '../repositories/expensesRepository'
 
 const STORAGE_KEY = 'spa-manager-expenses'
@@ -30,12 +33,15 @@ function pushExpenseDeletionToSupabase(id) {
 
 export const EMPTY_EXPENSE_FORM = {
   date: getTodayDate(),
+  expenseTime: '',
   branchId: '',
   expenseType: '',
   content: '',
   amount: '',
+  paidBy: '',
   enteredBy: '',
   note: '',
+  receiptImage: '',
 }
 
 export function parseAmount(value) {
@@ -50,6 +56,11 @@ export function createExpenseId() {
     return crypto.randomUUID()
   }
   return `exp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+function getCurrentTime() {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 }
 
 export function loadExpenses() {
@@ -69,32 +80,43 @@ export function saveExpenses(expenses) {
 }
 
 export function normalizeExpense(expense) {
+  const expenseType = normalizeExpenseTypeId(expense.expenseType)
   return {
     id: expense.id,
     date: expense.date ?? '',
+    expenseTime: expense.expenseTime ?? '',
     branchId: expense.branchId ?? '',
     branchName: expense.branchName ?? resolveBranchName(expense.branchId),
-    expenseType: expense.expenseType ?? '',
-    expenseTypeLabel: expense.expenseTypeLabel ?? getExpenseTypeLabel(expense.expenseType),
+    expenseType,
+    expenseTypeLabel: expense.expenseTypeLabel ?? getExpenseTypeLabel(expenseType),
     content: expense.content ?? '',
     amount: parseAmount(expense.amount),
+    paidBy: expense.paidBy ?? '',
     enteredBy: expense.enteredBy ?? '',
+    enteredById: expense.enteredById ?? '',
     note: expense.note ?? '',
+    receiptImage: expense.receiptImage ?? '',
+    updatedAt: expense.updatedAt ?? '',
   }
 }
 
 function sanitizeExpenseData(data) {
   const amount = parseAmount(data.amount)
+  const expenseType = normalizeExpenseTypeId(data.expenseType)
   return {
     date: data.date ?? '',
+    expenseTime: data.expenseTime?.trim() || getCurrentTime(),
     branchId: data.branchId ?? '',
     branchName: resolveBranchName(data.branchId),
-    expenseType: data.expenseType ?? '',
-    expenseTypeLabel: getExpenseTypeLabel(data.expenseType),
+    expenseType,
+    expenseTypeLabel: getExpenseTypeLabel(expenseType),
     content: data.content?.trim() ?? '',
     amount,
-    enteredBy: data.enteredBy?.trim() ?? '',
+    paidBy: data.paidBy?.trim() ?? '',
+    enteredBy: data.enteredBy?.trim() ?? getCurrentUserName(),
+    enteredById: data.enteredById ?? getSessionUser()?.employeeId ?? '',
     note: data.note?.trim() ?? '',
+    receiptImage: data.receiptImage ?? '',
   }
 }
 
@@ -104,7 +126,45 @@ export function getBranchName(branchId) {
 
 function canManageExpenses() {
   const user = getSessionUser()
-  return user?.role === ROLES.ADMIN || user?.role === ROLES.BRANCH_MANAGER
+  if (user?.role === ROLES.ADMIN || user?.role === ROLES.BRANCH_MANAGER) return true
+  return hasPermission(PERMISSION_KEYS.MANAGE_EXPENSES, user?.role)
+}
+
+export function isExpensePeriodLocked(expense) {
+  if (isSessionAdmin()) return false
+  const monthStart = getMonthStartDate()
+  return expense.date < monthStart
+}
+
+export function canDeleteExpense(expense) {
+  if (!canManageExpenses()) {
+    return { allowed: false, reason: 'Bạn không có quyền xóa chi phí.' }
+  }
+  if (!isSessionAdmin()) {
+    return { allowed: false, reason: 'Chỉ Admin được xóa chi phí.' }
+  }
+  if (!canAccessSessionBranch(expense.branchId)) {
+    return { allowed: false, reason: 'Bạn không có quyền thao tác chi phí chi nhánh này.' }
+  }
+  return { allowed: true }
+}
+
+export function canEditExpense(expense) {
+  if (!canManageExpenses()) {
+    return { allowed: false, reason: 'Bạn không có quyền sửa chi phí.' }
+  }
+  if (!canAccessSessionBranch(expense.branchId)) {
+    return { allowed: false, reason: 'Bạn không có quyền thao tác chi phí chi nhánh này.' }
+  }
+  if (isSessionAdmin()) return { allowed: true }
+  if (isExpensePeriodLocked(expense)) {
+    return { allowed: false, reason: 'Kỳ này đã khóa — không thể sửa chi phí tháng trước.' }
+  }
+  const currentName = getCurrentUserName()
+  if (expense.enteredBy && expense.enteredBy !== currentName) {
+    return { allowed: false, reason: 'Chỉ được sửa chi phí do chính bạn nhập.' }
+  }
+  return { allowed: true }
 }
 
 function assertExpenseWriteAccess(expense) {
@@ -126,6 +186,7 @@ export function addExpense(data) {
   const expense = normalizeExpense({
     id: createExpenseId(),
     ...sanitized,
+    updatedAt: new Date().toISOString(),
   })
   expenses.unshift(expense)
   saveExpenses(expenses)
@@ -140,18 +201,19 @@ export function updateExpense(id, data) {
     return denyAccess('Không tìm thấy khoản chi.')
   }
 
+  const editCheck = canEditExpense(expenses[index])
+  if (!editCheck.allowed) {
+    return denyAccess(editCheck.reason)
+  }
+
   const merged = sanitizeExpenseData({ ...expenses[index], ...data })
   const access = assertExpenseWriteAccess(merged)
   if (!access.success) return access
 
-  if (!isSessionAdmin()) {
-    const currentAccess = assertExpenseWriteAccess(expenses[index])
-    if (!currentAccess.success) return currentAccess
-  }
-
   expenses[index] = normalizeExpense({
     ...expenses[index],
     ...merged,
+    updatedAt: new Date().toISOString(),
   })
   saveExpenses(expenses)
   pushExpenseToSupabase(expenses[index])
@@ -165,8 +227,10 @@ export function deleteExpense(id) {
     return denyAccess('Không tìm thấy khoản chi.')
   }
 
-  const access = assertExpenseWriteAccess(current)
-  if (!access.success) return access
+  const deleteCheck = canDeleteExpense(current)
+  if (!deleteCheck.allowed) {
+    return denyAccess(deleteCheck.reason)
+  }
 
   const next = expenses.filter((exp) => exp.id !== id)
   saveExpenses(next)
@@ -174,11 +238,14 @@ export function deleteExpense(id) {
   return { success: true, expenses: next }
 }
 
-export function filterExpenses(expenses, { fromDate, toDate, branchId } = {}) {
+export function filterExpenses(expenses, { fromDate, toDate, branchId, expenseType } = {}) {
   return expenses.filter((exp) => {
     if (fromDate && exp.date < fromDate) return false
     if (toDate && exp.date > toDate) return false
     if (branchId && exp.branchId !== branchId) return false
+    if (expenseType && normalizeExpenseTypeId(exp.expenseType) !== normalizeExpenseTypeId(expenseType)) {
+      return false
+    }
     return true
   })
 }
@@ -239,4 +306,21 @@ export function computeExpenseByBranch(expenses) {
   }
 
   return [...map.values()].sort((a, b) => b.total - a.total)
+}
+
+export async function readReceiptImage(file) {
+  if (!file) return { success: false, error: 'Không có file.' }
+  if (!file.type.startsWith('image/')) {
+    return { success: false, error: 'Chỉ chấp nhận file ảnh.' }
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return { success: false, error: 'Ảnh không được vượt quá 5MB.' }
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve({ success: true, dataUrl: reader.result })
+    reader.onerror = () => resolve({ success: false, error: 'Không đọc được ảnh.' })
+    reader.readAsDataURL(file)
+  })
 }
