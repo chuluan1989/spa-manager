@@ -1,9 +1,34 @@
 import { ADMIN_BRANCH, ROLES } from './roles'
 import { verifyAdminPassword, verifyBranchPassword } from '../utils/credentialsStorage'
-import { isBranchActive } from '../utils/branchStorage'
+import { getBranchName, isBranchActive } from '../utils/branchStorage'
 import { getEmployeeById, isEmployeeActive } from '../utils/employeeStorage'
 
 export { ADMIN_BRANCH }
+
+function normalizeForPassword(text) {
+  return String(text ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+/** Tên chi nhánh dùng để tạo mật khẩu không bao gồm chữ "spa" ở cuối. */
+function getPasswordBranchName(branchName) {
+  return String(branchName ?? '').replace(/\s*spa\s*$/i, '').trim()
+}
+
+/**
+ * Mật khẩu mặc định của nhân viên = tên nhân viên + tên chi nhánh,
+ * viết liền, không dấu, chữ thường, không ký tự đặc biệt, không thêm chữ "spa".
+ */
+export function computeEmployeeDefaultPassword(employeeName, branchName) {
+  return (
+    normalizeForPassword(employeeName)
+    + normalizeForPassword(getPasswordBranchName(branchName))
+  )
+}
 
 export async function verifyLogin({ role, branch, employeeId, password }) {
   if (!role) {
@@ -48,7 +73,12 @@ export async function verifyLogin({ role, branch, employeeId, password }) {
     if (!employee || employee.branchId !== branch || !isEmployeeActive(employee)) {
       return { ok: false, field: 'employeeId', message: 'Nhân viên không hợp lệ' }
     }
-    if (!(await verifyBranchPassword(branch, password))) {
+    const expectedPassword = computeEmployeeDefaultPassword(
+      employee.name,
+      getBranchName(employee.branchId),
+    )
+    const inputPassword = password.trim().toLowerCase()
+    if (!expectedPassword || inputPassword !== expectedPassword) {
       return { ok: false, field: 'password', message: 'Sai mật khẩu' }
     }
     return {

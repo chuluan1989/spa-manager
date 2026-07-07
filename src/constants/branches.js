@@ -14,7 +14,7 @@ export {
   getStatusLabel as getBranchStatusLabel,
 } from '../utils/branchStorage'
 
-import { getBranchMap, getSupportBranchIds, loadBranches } from '../utils/branchStorage'
+import { getActiveBranches, getBranchMap, getSupportBranchIds, loadBranches } from '../utils/branchStorage'
 
 /** Danh sách chi nhánh — gọi mỗi lần render để lấy dữ liệu mới nhất */
 export function getBranches() {

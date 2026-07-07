@@ -3,7 +3,7 @@ import { formatCurrency } from '../utils/invoice'
 import { loadInvoices } from '../utils/invoiceStorage'
 import { loadExpenses } from '../utils/expenseStorage'
 import { computeDashboardStats } from '../utils/dashboardStats'
-import { getCurrentUserName, isEmployee } from '../constants/auth'
+import { getCurrentUserName, isAdmin, isEmployee } from '../constants/auth'
 import './Dashboard.css'
 
 export default function Dashboard() {

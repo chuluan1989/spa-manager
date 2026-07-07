@@ -14,7 +14,7 @@ import {
   updateEmployee,
 } from '../../utils/employeeStorage'
 
-export const POSITION_SUGGESTIONS = [
+const POSITION_SUGGESTIONS = [
   'KTV Body',
   'KTV Foot',
   'KTV Gội',

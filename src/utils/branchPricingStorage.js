@@ -1,5 +1,5 @@
 import { getBranchById, loadBranches } from './branchStorage'
-import { loadServices } from './serviceStorage'
+import { getServicesForPriceList, loadServices } from './serviceStorage'
 
 const STORAGE_KEY = 'spa-manager-branch-pricing'
 
