@@ -828,6 +828,15 @@ await testAsync('supabaseClient: không có biến môi trường -> fallback Lo
   assert.equal(supabaseClientInstance, null, 'supabase client phải là null khi chưa cấu hình')
 })
 
+await testAsync('supabaseClient: normalizeSupabaseUrl thêm https và từ chối placeholder', async () => {
+  const { normalizeSupabaseUrl, normalizeSupabaseAnonKey } = await import('../src/lib/supabaseClient.js')
+  assert.equal(normalizeSupabaseUrl('abcd1234.supabase.co'), 'https://abcd1234.supabase.co')
+  assert.equal(normalizeSupabaseUrl('https://abcd1234.supabase.co/'), 'https://abcd1234.supabase.co')
+  assert.equal(normalizeSupabaseUrl('abcd1234567890'), 'https://abcd1234567890.supabase.co')
+  assert.equal(normalizeSupabaseUrl('URL_THẬT_CỦA_SUPABASE'), '')
+  assert.equal(normalizeSupabaseAnonKey('KEY_THẬT_BẮT_ĐẦU_BẰNG_sb_publishable'), '')
+})
+
 await testAsync('caseUtils: chuyển đổi camelCase <-> snake_case hai chiều', async () => {
   assert.equal(camelToSnakeKey('branchId'), 'branch_id')
   assert.equal(camelToSnakeKey('cccdFrontImage'), 'cccd_front_image')

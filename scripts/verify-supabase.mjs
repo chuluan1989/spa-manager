@@ -60,11 +60,31 @@ async function step(name, fn) {
 }
 
 const { isSupabaseConfigured, supabase } = await import('../src/lib/supabaseClient.js')
+const { normalizeSupabaseUrl, normalizeSupabaseAnonKey } = await import('../src/lib/supabaseClient.js')
+
+function explainEnvProblem() {
+  const rawUrl = import.meta.env?.VITE_SUPABASE_URL ?? ''
+  const rawKey = import.meta.env?.VITE_SUPABASE_ANON_KEY ?? ''
+  const url = normalizeSupabaseUrl(rawUrl)
+  const key = normalizeSupabaseAnonKey(rawKey)
+
+  if (!String(rawUrl).trim() || !String(rawKey).trim()) {
+    return 'Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY trong .env.local'
+  }
+  if (!url || !key) {
+    return [
+      'Giá trị trong .env.local chưa hợp lệ (có thể vẫn là text mô tả/placeholder).',
+      'Hãy mở Supabase Dashboard → Project Settings → API, copy NGUYÊN VĂN:',
+      '  • Project URL  → dạng https://xxxxx.supabase.co',
+      '  • anon public key (sb_publishable_... hoặc eyJ...)',
+      'Dán vào .env.local, lưu file, rồi chạy lại lệnh kiểm tra.',
+    ].join('\n')
+  }
+  return 'Không khởi tạo được Supabase client — kiểm tra lại URL/key.'
+}
 
 if (!isSupabaseConfigured) {
-  console.error(
-    '\n✗ Chưa cấu hình VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY (tạo file .env.local rồi chạy lại).\n',
-  )
+  console.error(`\n✗ ${explainEnvProblem()}\n`)
   process.exit(1)
 }
 
