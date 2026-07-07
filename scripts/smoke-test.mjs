@@ -80,7 +80,7 @@ const {
   canViewEmployeePersonalInfo,
   filterByUserScope,
 } = await import('../src/constants/auth.js')
-const { saveInvoice, updateInvoice, loadInvoices } = await import('../src/utils/invoiceStorage.js')
+const { saveInvoice, updateInvoice, deleteInvoice, loadInvoices } = await import('../src/utils/invoiceStorage.js')
 const {
   getEmployeeById,
   getEmployeeProfileStatus,
@@ -247,11 +247,19 @@ test('permissions: role access matrix', () => {
   assert.equal(canAccessInvoicesPage(), true)
   assert.equal(canAccessEmployeesPage(), false)
   assert.equal(canDeleteInvoice(), true)
+  assert.equal(canEditInvoice({ id: 'any-invoice' }), true, 'Admin luôn được sửa hóa đơn')
+  localStorage.setItem(
+    'spa-manager-permissions',
+    JSON.stringify({ editInvoice: [], deleteInvoice: [] }),
+  )
+  assert.equal(canEditInvoice({ id: 'any-invoice' }), true, 'Admin không phụ thuộc ma trận phân quyền')
+  assert.equal(canDeleteInvoice(), true, 'Admin luôn được xóa hóa đơn')
 
   setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
   assert.equal(canAccessInvoicesPage(), true)
   assert.equal(canAccessEmployeesPage(), true)
   assert.equal(canDeleteInvoice(), false)
+  assert.equal(canEditInvoice({ id: 'any' }), false, 'QL chi nhánh chỉ xem, không sửa hóa đơn đã lưu')
 
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
   assert.equal(canAccessInvoicesPage(), true)
@@ -392,6 +400,75 @@ test('invoice storage: employee edit cannot reassign branch/employee via forged 
   assert.equal(result.invoice.branchId, 'vinh-long')
   assert.equal(result.invoice.employeeId, 'vinh-long-linh')
   assert.equal(result.invoice.supportEmployeeId, '')
+  clearCurrentUser()
+})
+
+test('invoice storage: admin sửa và xóa mọi hóa đơn', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  localStorage.setItem('spa-manager-invoices', JSON.stringify([]))
+  saveInvoice({
+    id: 'admin-inv-1',
+    branchId: 'vinh-long',
+    branchName: 'Vĩnh Long',
+    employeeId: 'vinh-long-linh',
+    employeeName: 'Linh',
+    serviceIds: ['svc'],
+    services: [{ id: 'svc', name: 'DV', price: 150000, commissionPercent: 10, commissionAmount: 15000 }],
+    tips: 0,
+    total: 150000,
+    serviceTotal: 150000,
+    commission: 15000,
+    date: '2026-07-05',
+    invoiceTime: '14:30',
+    customerPhone: '0901111111',
+    createdAt: new Date().toISOString(),
+  })
+
+  const updated = updateInvoice('admin-inv-1', {
+    branchId: 'tra-vinh',
+    branchName: 'Trà Vinh',
+    employeeId: 'tra-vinh-mai-nhi',
+    employeeName: 'Mai Nhi',
+    customerName: 'Khách VIP',
+    customerPhone: '0902222222',
+    invoiceTime: '16:45',
+    tips: 50000,
+    total: 200000,
+    serviceTotal: 150000,
+    commission: 65000,
+  })
+  assert.equal(updated.success, true)
+  assert.equal(updated.invoice.branchId, 'tra-vinh')
+  assert.equal(updated.invoice.customerPhone, '0902222222')
+
+  const deleted = deleteInvoice('admin-inv-1')
+  assert.equal(deleted.success, true)
+  assert.equal(loadInvoices().length, 0)
+  clearCurrentUser()
+})
+
+test('invoice storage: quản lý chi nhánh không xóa hoặc sửa hóa đơn đã lưu', () => {
+  setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
+  localStorage.setItem('spa-manager-invoices', JSON.stringify([]))
+  saveInvoice({
+    id: 'manager-inv-1',
+    branchId: 'vinh-long',
+    branchName: 'Vĩnh Long',
+    employeeId: 'vinh-long-linh',
+    employeeName: 'Linh',
+    serviceIds: ['svc'],
+    services: [{ id: 'svc', name: 'DV', price: 150000, commissionPercent: 10, commissionAmount: 15000 }],
+    tips: 0,
+    total: 150000,
+    serviceTotal: 150000,
+    commission: 15000,
+    date: '2026-07-05',
+    createdAt: new Date().toISOString(),
+  })
+
+  assert.equal(updateInvoice('manager-inv-1', { customerName: 'Hack' }).success, false)
+  assert.equal(deleteInvoice('manager-inv-1').success, false)
+  assert.equal(loadInvoices().length, 1)
   clearCurrentUser()
 })
 
@@ -891,6 +968,86 @@ await testAsync('supabaseSync: runInitialSync trả về not_configured khi chư
   const result = await runInitialSync({ timeoutMs: 500 })
   assert.equal(result.success, false)
   assert.equal(result.reason, 'not_configured')
+})
+
+const {
+  scopeLegacySnapshot,
+  countPendingLegacyItems,
+  getLegacySyncUserKey,
+} = await import('../src/utils/legacyCloudSync.js')
+
+await test('legacyCloudSync: scope theo vai trò admin / QL / NV', () => {
+  const snapshot = {
+    branches: [{ id: 'b1' }],
+    services: [{ id: 's1' }],
+    branchPricing: { 'vinh-long': { useCustom: true, overrides: {} } },
+    employees: [
+      { id: 'e1', branchId: 'vinh-long' },
+      { id: 'e2', branchId: 'tra-vinh' },
+    ],
+    invoices: [
+      { id: 'i1', branchId: 'vinh-long', employeeId: 'e1' },
+      { id: 'i2', branchId: 'tra-vinh', employeeId: 'e2' },
+    ],
+    expenses: [
+      { id: 'x1', branchId: 'vinh-long' },
+      { id: 'x2', branchId: 'tra-vinh' },
+    ],
+  }
+
+  const adminScope = scopeLegacySnapshot(snapshot, { role: 'admin', branch: 'all' })
+  assert.equal(adminScope.invoices.length, 2)
+  assert.equal(adminScope.includeAuth, true)
+
+  const managerScope = scopeLegacySnapshot(snapshot, { role: 'branch_manager', branch: 'vinh-long' })
+  assert.equal(managerScope.invoices.length, 1)
+  assert.equal(managerScope.employees.length, 1)
+  assert.equal(managerScope.includeAuth, false)
+
+  const employeeScope = scopeLegacySnapshot(snapshot, {
+    role: 'employee',
+    branch: 'vinh-long',
+    employeeId: 'e1',
+  })
+  assert.equal(employeeScope.invoices.length, 1)
+  assert.equal(employeeScope.employees.length, 1)
+})
+
+await test('legacyCloudSync: đếm pending theo id chưa có trên remote', () => {
+  const scoped = scopeLegacySnapshot(
+    {
+      employees: [{ id: 'local-only', branchId: 'vinh-long' }],
+      invoices: [{ id: 'inv-local', branchId: 'vinh-long', employeeId: 'local-only' }],
+      expenses: [],
+      branches: [],
+      services: [],
+      branchPricing: {},
+    },
+    { role: 'admin', branch: 'all' },
+  )
+  const pending = countPendingLegacyItems(scoped, {
+    employees: new Set(['existing']),
+    invoices: new Set(),
+    expenses: new Set(),
+    services: new Set(),
+    branches: new Set(),
+    branchPricing: new Set(),
+  })
+  assert.equal(pending.employees, 1)
+  assert.equal(pending.invoices, 1)
+  assert.equal(pending.hasPending, true)
+})
+
+await test('legacyCloudSync: khóa theo tài khoản phân biệt admin và QL chi nhánh', () => {
+  assert.equal(getLegacySyncUserKey({ role: 'admin', branch: 'all' }), 'admin')
+  assert.equal(
+    getLegacySyncUserKey({ role: 'branch_manager', branch: 'vinh-long' }),
+    'manager:vinh-long',
+  )
+  assert.equal(
+    getLegacySyncUserKey({ role: 'employee', branch: 'vinh-long', employeeId: 'e1' }),
+    'employee:vinh-long:e1',
+  )
 })
 
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`)

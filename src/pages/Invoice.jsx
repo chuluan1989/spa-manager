@@ -10,6 +10,7 @@ import {
   getCurrentUserBranchName,
   getCurrentUserName,
   getScopedEmployeeId,
+  isAdmin,
   isEmployee,
 } from '../constants/auth'
 import { getActiveBranches, getBranchById, isSupportBranchEnabled } from '../constants/branches'
@@ -41,12 +42,26 @@ import './Invoice.css'
 
 const INITIAL_FORM = () => ({
   date: getTodayDate(),
+  invoiceTime: getCurrentTime(),
   branchId: canSelectBranch() ? '' : getCurrentUserBranch(),
   employeeId: getScopedEmployeeId(''),
   supportEmployeeId: '',
   customerName: '',
+  customerPhone: '',
   note: '',
 })
+
+function getCurrentTime(date = new Date()) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+function readInvoiceTime(invoice) {
+  if (invoice?.invoiceTime) return invoice.invoiceTime
+  if (!invoice?.createdAt) return getCurrentTime()
+  const parsed = new Date(invoice.createdAt)
+  if (Number.isNaN(parsed.getTime())) return getCurrentTime()
+  return getCurrentTime(parsed)
+}
 
 export default function Invoice() {
   const lockedBranch = !canSelectBranch()
@@ -216,6 +231,7 @@ export default function Invoice() {
 
   const buildInvoicePayload = (branchId, branch, employee, supportEmployee) => ({
     date: form.date,
+    invoiceTime: form.invoiceTime,
     branchId,
     branchName: branch.name,
     employeeId: form.employeeId,
@@ -230,6 +246,7 @@ export default function Invoice() {
           supportEmployeeName: '',
         }),
     customerName: form.customerName.trim(),
+    customerPhone: form.customerPhone.trim(),
     serviceIds: selectedIds,
     services: totals.services ?? getSelectedServiceDetails(selectedIds, branchId, fallbackServices, branch.name),
     tips: totals.tips,
@@ -307,10 +324,12 @@ export default function Invoice() {
     setEditingId(invoice.id)
     setForm({
       date: invoice.date,
+      invoiceTime: readInvoiceTime(invoice),
       branchId: invoice.branchId,
       employeeId: lockedEmployee ? getScopedEmployeeId('') : invoice.employeeId,
       supportEmployeeId: invoice.supportEmployeeId ?? '',
       customerName: invoice.customerName ?? '',
+      customerPhone: invoice.customerPhone ?? '',
       note: invoice.note ?? '',
     })
     setSelectedIds(
@@ -330,7 +349,7 @@ export default function Invoice() {
       showToast('Bạn không có quyền xóa hóa đơn.')
       return
     }
-    if (!window.confirm('Bạn có chắc muốn xóa hóa đơn này?')) return
+    if (!window.confirm('Bạn chắc chắn muốn xóa hóa đơn này? Thao tác này không thể hoàn tác.')) return
 
     const result = deleteInvoice(id)
     if (!result.success) {
@@ -369,6 +388,14 @@ export default function Invoice() {
                   />
                   {errors.date && <span className="invoice__error">{errors.date}</span>}
                 </label>
+                <label className="invoice__field">
+                  <span>Giờ</span>
+                  <input
+                    type="time"
+                    value={form.invoiceTime}
+                    onChange={(e) => updateForm('invoiceTime', e.target.value)}
+                  />
+                </label>
                 {canSelectBranch() ? (
                   <label className="invoice__field">
                     <span>Chi nhánh</span>
@@ -376,7 +403,6 @@ export default function Invoice() {
                       value={form.branchId}
                       onChange={(e) => handleBranchChange(e.target.value)}
                       className={errors.branchId ? 'invoice__input--error' : ''}
-                      disabled={Boolean(editingId)}
                     >
                       <option value="" disabled>
                         Chọn chi nhánh
@@ -422,7 +448,7 @@ export default function Invoice() {
                 {showSupportField && (
                   <label className="invoice__field">
                     <span>
-                      Nhân viên hỗ trợ
+                      Nhân viên tư vấn
                       <em className="invoice__optional"> (không bắt buộc)</em>
                     </span>
                     <select
@@ -452,6 +478,19 @@ export default function Invoice() {
                     placeholder="Nhập tên khách hàng"
                     value={form.customerName}
                     onChange={(e) => updateForm('customerName', e.target.value)}
+                  />
+                </label>
+                <label className="invoice__field">
+                  <span>
+                    Số điện thoại khách
+                    <em className="invoice__optional"> (không bắt buộc)</em>
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="Nhập SĐT khách hàng"
+                    value={form.customerPhone}
+                    onChange={(e) => updateForm('customerPhone', e.target.value)}
                   />
                 </label>
               </div>
@@ -576,6 +615,7 @@ export default function Invoice() {
         onDelete={handleDelete}
         onEdit={handleEdit}
         allowDelete={canDeleteInvoice()}
+        allowEdit={isAdmin()}
         canEdit={(inv) => canEditInvoice(inv)}
       />
     </div>

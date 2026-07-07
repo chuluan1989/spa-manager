@@ -11,9 +11,11 @@ export default function InvoiceList({
   onDelete,
   onEdit,
   allowDelete = false,
+  allowEdit = false,
   canEdit = () => false,
 }) {
-  const showActions = allowDelete || invoices.some((inv) => canEdit(inv))
+  const showActions =
+    allowDelete || allowEdit || invoices.some((inv) => canEdit(inv))
 
   if (invoices.length === 0) {
     return (

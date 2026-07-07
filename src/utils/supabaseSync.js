@@ -45,7 +45,7 @@ function shouldApplyRemoteMap(remoteMap, localMap) {
 }
 
 const MIGRATION_FLAG_KEY = 'spa-manager-supabase-migrated-v1'
-const SYNC_EVENT = 'spa-manager:data-synced'
+import { notifyDataSynced, SYNC_EVENT } from './dataSyncEvents'
 // Realtime lo phần "gần như tức thời"; interval này chỉ là lưới an toàn dự
 // phòng khi kênh Realtime bị rớt (mất mạng, hết phiên...).
 const DEFAULT_SYNC_INTERVAL_MS = 30000
@@ -61,10 +61,7 @@ let realtimeDebounceTimer = null
 
 // -------------------- Event bus (thông báo UI khi có dữ liệu mới) --------------------
 
-function notifyDataSynced(changedEntities) {
-  if (typeof window === 'undefined') return
-  window.dispatchEvent(new CustomEvent(SYNC_EVENT, { detail: { changedEntities } }))
-}
+export { notifyDataSynced } from './dataSyncEvents'
 
 /** Trả về hàm huỷ đăng ký. Dùng trong useEffect của các trang cần tự làm mới dữ liệu. */
 export function subscribeToDataSync(callback) {

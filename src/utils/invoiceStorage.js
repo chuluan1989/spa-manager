@@ -13,6 +13,7 @@ import { getEmployeeById } from './employeeStorage'
 import { getSelectedServiceDetails } from './invoice'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteInvoiceRow, upsertInvoice } from '../repositories/invoicesRepository'
+import { notifyDataSynced } from './dataSyncEvents'
 
 function pushInvoiceToSupabase(invoice) {
   if (!isSupabaseConfigured || !invoice) return
@@ -30,7 +31,9 @@ function pushInvoiceDeletionToSupabase(id) {
 
 const EMPLOYEE_EDITABLE_INVOICE_FIELDS = [
   'date',
+  'invoiceTime',
   'customerName',
+  'customerPhone',
   'serviceIds',
   'services',
   'tips',
@@ -161,6 +164,7 @@ export function saveInvoice(invoice) {
   invoices.unshift(snapshot)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
   pushInvoiceToSupabase(snapshot)
+  notifyDataSynced(['invoices'])
   return { success: true, invoice: snapshot, invoices }
 }
 
@@ -208,6 +212,7 @@ export function updateInvoice(id, data) {
   invoices[index] = updated
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
   pushInvoiceToSupabase(updated)
+  notifyDataSynced(['invoices'])
   return { success: true, invoice: updated, invoices }
 }
 
@@ -229,6 +234,7 @@ export function deleteInvoice(id) {
   const invoices = loadInvoices().filter((inv) => inv.id !== id)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
   pushInvoiceDeletionToSupabase(id)
+  notifyDataSynced(['invoices'])
   return { success: true, invoices }
 }
 

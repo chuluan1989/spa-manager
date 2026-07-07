@@ -1,0 +1,117 @@
+.legacy-sync-banner {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border: 1px solid #fdba74;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.08);
+}
+
+.legacy-sync-banner--success {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-color: #6ee7b7;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+}
+
+.legacy-sync-banner__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.legacy-sync-banner__icon {
+  flex-shrink: 0;
+  color: #ea580c;
+  margin-top: 2px;
+}
+
+.legacy-sync-banner__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.legacy-sync-banner__text strong {
+  display: block;
+  color: #9a3412;
+  margin-bottom: 4px;
+}
+
+.legacy-sync-banner--success .legacy-sync-banner__text strong {
+  color: #047857;
+}
+
+.legacy-sync-banner__text p {
+  margin: 0;
+}
+
+.legacy-sync-banner__counts,
+.legacy-sync-banner__summary {
+  margin-top: 6px !important;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.legacy-sync-banner__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px !important;
+  color: #b91c1c !important;
+  font-size: 13px;
+}
+
+.legacy-sync-banner__button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #ea580c;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.legacy-sync-banner__button:hover:not(:disabled) {
+  background: #c2410c;
+}
+
+.legacy-sync-banner__button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.legacy-sync-banner__spin {
+  animation: legacy-sync-spin 0.8s linear infinite;
+}
+
+.legacy-sync-banner__success-icon {
+  flex-shrink: 0;
+  color: #059669;
+  margin-top: 2px;
+}
+
+@keyframes legacy-sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .legacy-sync-banner__content {
+    flex-wrap: wrap;
+  }
+
+  .legacy-sync-banner__button {
+    width: 100%;
+    justify-content: center;
+  }
+}

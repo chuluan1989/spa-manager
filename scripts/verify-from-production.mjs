@@ -45,4 +45,20 @@ const result = spawnSync('npx', ['vite-node', 'scripts/verify-supabase.mjs'], {
   stdio: 'inherit',
 })
 
-process.exit(result.status ?? 1)
+if (result.status !== 0) {
+  process.exit(result.status ?? 1)
+}
+
+console.log('\n--- Kiểm tra đồng bộ dữ liệu cũ ---\n')
+
+const legacyResult = spawnSync('npx', ['vite-node', 'scripts/verify-legacy-sync.mjs'], {
+  cwd: ROOT,
+  env: {
+    ...process.env,
+    VITE_SUPABASE_URL: url,
+    VITE_SUPABASE_ANON_KEY: key,
+  },
+  stdio: 'inherit',
+})
+
+process.exit(legacyResult.status ?? 1)

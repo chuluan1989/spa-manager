@@ -190,19 +190,21 @@ export function canAddInvoice(role = getCurrentUserRole()) {
 }
 
 /**
- * Nhân viên chỉ được sửa hóa đơn do chính mình tạo (employeeId trùng
- * với tài khoản đang đăng nhập). Admin/Quản lý chi nhánh dùng quyền
- * cấu hình sẵn (không phụ thuộc invoice cụ thể) như trước.
+ * Admin: sửa mọi hóa đơn (không phụ thuộc ma trận phân quyền).
+ * Nhân viên: chỉ sửa hóa đơn do chính mình thực hiện.
+ * Quản lý chi nhánh: chỉ xem danh sách, không sửa hóa đơn đã lưu.
  */
 export function canEditInvoice(invoice = null, role = getCurrentUserRole()) {
+  if (role === ROLES.ADMIN) return true
   if (role === ROLES.EMPLOYEE) {
     return Boolean(invoice) && invoice.employeeId === getCurrentUserEmployeeId()
   }
-  return hasPermission(PERMISSION_KEYS.EDIT_INVOICE, role)
+  return false
 }
 
+/** Chỉ Admin được xóa hóa đơn. */
 export function canDeleteInvoice(role = getCurrentUserRole()) {
-  return hasPermission(PERMISSION_KEYS.DELETE_INVOICE, role)
+  return role === ROLES.ADMIN
 }
 
 export function canAccessSettingsPage(role = getCurrentUserRole()) {

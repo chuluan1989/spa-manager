@@ -26,6 +26,7 @@ import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { getEmployeeById, isEmployeeProfileComplete } from './utils/employeeStorage'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync } from './utils/supabaseSync'
+import LegacyCloudSyncBanner from './components/common/LegacyCloudSyncBanner'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -157,6 +158,12 @@ function App() {
       onNavigate={handleNavigate}
       onLogout={handleLogout}
     >
+      {isSupabaseConfigured && (
+        <LegacyCloudSyncBanner
+          user={currentUser}
+          onSyncComplete={() => setProfileTick((tick) => tick + 1)}
+        />
+      )}
       <Page key={activePage} />
     </Layout>
   )
