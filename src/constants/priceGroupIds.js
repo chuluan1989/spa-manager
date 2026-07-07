@@ -7,15 +7,15 @@ export const PRICE_GROUP_IDS = {
 export const PRICE_GROUPS = [
   {
     id: PRICE_GROUP_IDS.STANDARD,
-    name: 'STANDARD',
+    name: 'Khoẻ Spa',
   },
   {
     id: PRICE_GROUP_IDS.TRAM_SPA,
-    name: 'TRẠM SPA',
+    name: 'Trạm Spa',
   },
   {
     id: PRICE_GROUP_IDS.SONG_KHOE_SPA,
-    name: 'SỐNG KHOẺ SPA',
+    name: 'Sống Khoẻ Spa',
   },
 ]
 
