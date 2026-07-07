@@ -1,7 +1,11 @@
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { ROLES } from '../constants/roles'
-import { collectAllData } from './dataBackup'
 import { pullAllFromSupabase } from './supabaseSync'
+import { notifyDataSynced } from './dataSyncEvents'
+import {
+  markLegacyImportCompleted,
+  scanLocalStorageForLegacyData,
+} from './legacyStorageScanner'
 
 import { fetchBranches, upsertBranches } from '../repositories/branchesRepository'
 import { fetchEmployees, upsertEmployees } from '../repositories/employeesRepository'
@@ -16,8 +20,6 @@ import { upsertCredentials } from '../repositories/credentialsRepository'
 import { upsertPermissions } from '../repositories/permissionsRepository'
 import { upsertSettings } from '../repositories/settingsRepository'
 
-const LEGACY_SYNC_FLAG_PREFIX = 'spa-manager-legacy-cloud-sync-v1:'
-
 function emptySnapshot() {
   return {
     branches: [],
@@ -30,39 +32,6 @@ function emptySnapshot() {
   }
 }
 
-/** Khóa theo tài khoản đăng nhập trên thiết bị này (admin / QL chi nhánh / NV). */
-export function getLegacySyncUserKey(user) {
-  if (!user?.role) return ''
-  if (user.role === ROLES.EMPLOYEE) {
-    return `employee:${user.branch}:${user.employeeId ?? ''}`
-  }
-  if (user.role === ROLES.BRANCH_MANAGER) {
-    return `manager:${user.branch ?? ''}`
-  }
-  return 'admin'
-}
-
-function getLegacySyncFlagKey(user) {
-  return `${LEGACY_SYNC_FLAG_PREFIX}${getLegacySyncUserKey(user)}`
-}
-
-export function hasUserCompletedLegacySync(user) {
-  try {
-    return localStorage.getItem(getLegacySyncFlagKey(user)) === 'done'
-  } catch {
-    return false
-  }
-}
-
-export function markLegacySyncComplete(user) {
-  try {
-    localStorage.setItem(getLegacySyncFlagKey(user), 'done')
-  } catch {
-    // bỏ qua
-  }
-}
-
-/** Lọc dữ liệu LocalStorage theo phạm vi tài khoản trước khi đẩy lên Cloud. */
 export function scopeLegacySnapshot(snapshot, user) {
   if (!user?.role) return emptySnapshot()
 
@@ -123,47 +92,6 @@ function toBranchIdSet(map) {
   return new Set(Object.keys(map ?? {}))
 }
 
-/** Đếm bản ghi local (theo phạm vi user) chưa có trên Supabase. */
-export function countPendingLegacyItems(scoped, remoteIds) {
-  const pendingEmployees = scoped.employees.filter((item) => !remoteIds.employees.has(item.id))
-  const pendingInvoices = scoped.invoices.filter((item) => !remoteIds.invoices.has(item.id))
-  const pendingExpenses = scoped.expenses.filter((item) => !remoteIds.expenses.has(item.id))
-  const pendingServices = scoped.services.filter((item) => !remoteIds.services.has(item.id))
-  const pendingBranches = scoped.branches.filter((item) => !remoteIds.branches.has(item.id))
-  const pendingBranchPricing = Object.keys(scoped.branchPricing ?? {}).filter(
-    (branchId) => !remoteIds.branchPricing.has(branchId),
-  )
-
-  const totals = {
-    employees: pendingEmployees.length,
-    invoices: pendingInvoices.length,
-    expenses: pendingExpenses.length,
-    services: pendingServices.length,
-    branches: pendingBranches.length,
-    branchPricing: pendingBranchPricing.length,
-  }
-
-  const totalCount =
-    totals.employees +
-    totals.invoices +
-    totals.expenses +
-    totals.services +
-    totals.branches +
-    totals.branchPricing
-
-  return {
-    ...totals,
-    totalCount,
-    hasPending: totalCount > 0,
-    pendingEmployees,
-    pendingInvoices,
-    pendingExpenses,
-    pendingServices,
-    pendingBranches,
-    pendingBranchPricing,
-  }
-}
-
 async function fetchRemoteIdSets() {
   const [branches, employees, services, invoices, expenses, branchPricing] = await Promise.all([
     fetchBranches(),
@@ -184,138 +112,181 @@ async function fetchRemoteIdSets() {
   }
 }
 
-/**
- * Kiểm tra xem thiết bị này còn dữ liệu cũ (LocalStorage) chưa có trên Supabase không.
- * Dùng để hiển thị banner "Đồng bộ dữ liệu cũ".
- */
-export async function detectPendingLegacyData(user) {
-  if (!isSupabaseConfigured || !user?.role) {
-    return { hasPending: false, totals: null, error: null }
+function partitionByRemote(scoped, remoteIds) {
+  const pick = (items, remoteSet) => {
+    const toImport = []
+    let skipped = 0
+    for (const item of items ?? []) {
+      if (!item?.id) continue
+      if (remoteSet.has(item.id)) {
+        skipped += 1
+      } else {
+        toImport.push(item)
+      }
+    }
+    return { toImport, skipped }
   }
 
-  try {
-    const snapshot = collectAllData()
-    const scoped = scopeLegacySnapshot(snapshot, user)
-    const remoteIds = await fetchRemoteIdSets()
-    const pending = countPendingLegacyItems(scoped, remoteIds)
-
-    return {
-      hasPending: pending.hasPending,
-      totals: {
-        employees: pending.employees,
-        invoices: pending.invoices,
-        expenses: pending.expenses,
-        services: pending.services,
-        branches: pending.branches,
-        branchPricing: pending.branchPricing,
-        total: pending.totalCount,
-      },
-      error: null,
+  const branchPricingKeys = Object.keys(scoped.branchPricing ?? {})
+  const branchPricingToImport = {}
+  let branchPricingSkipped = 0
+  for (const branchId of branchPricingKeys) {
+    if (remoteIds.branchPricing.has(branchId)) {
+      branchPricingSkipped += 1
+    } else {
+      branchPricingToImport[branchId] = scoped.branchPricing[branchId]
     }
+  }
+
+  const branches = pick(scoped.branches, remoteIds.branches)
+  const employees = pick(scoped.employees, remoteIds.employees)
+  const services = pick(scoped.services, remoteIds.services)
+  const invoices = pick(scoped.invoices, remoteIds.invoices)
+  const expenses = pick(scoped.expenses, remoteIds.expenses)
+
+  return {
+    payload: {
+      ...scoped,
+      branches: branches.toImport,
+      employees: employees.toImport,
+      services: services.toImport,
+      invoices: invoices.toImport,
+      expenses: expenses.toImport,
+      branchPricing: branchPricingToImport,
+    },
+    skipped: {
+      branches: branches.skipped,
+      employees: employees.skipped,
+      services: services.skipped,
+      invoices: invoices.skipped,
+      expenses: expenses.skipped,
+      branchPricing: branchPricingSkipped,
+    },
+  }
+}
+
+/** Chỉ quét localStorage — không ghi Supabase. */
+export function checkLegacyData(user, { jsonPayload = null } = {}) {
+  const scan = scanLocalStorageForLegacyData({ jsonPayload })
+  const scoped = scopeLegacySnapshot(scan.snapshot, user)
+
+  const scopedCounts = {
+    employees: scoped.employees.length,
+    invoices: scoped.invoices.length,
+    expenses: scoped.expenses.length,
+    services: scoped.services.length,
+    branches: scoped.branches.length,
+    branchPricing: Object.keys(scoped.branchPricing ?? {}).length,
+    systemSettings: scoped.systemSettings ? 1 : 0,
+    permissions: scoped.permissions ? 1 : 0,
+    credentials: scoped.credentials ? 1 : 0,
+  }
+  const scopedTotal =
+    scopedCounts.employees +
+    scopedCounts.invoices +
+    scopedCounts.expenses +
+    scopedCounts.services +
+    scopedCounts.branches +
+    scopedCounts.branchPricing
+
+  return {
+    scan,
+    scopedCounts,
+    hasLegacyData: scopedTotal > 0,
+  }
+}
+
+async function importEntityBatch(name, items, upsertFn) {
+  if (!items?.length) {
+    return { imported: 0, skipped: 0, errors: [] }
+  }
+  try {
+    await upsertFn(items)
+    return { imported: items.length, skipped: 0, errors: [] }
   } catch (error) {
     return {
-      hasPending: false,
-      totals: null,
-      error: error?.message ?? String(error),
+      imported: 0,
+      skipped: 0,
+      errors: [{ entity: name, message: error?.message ?? String(error), count: items.length }],
     }
   }
 }
 
-export function shouldShowLegacySyncBanner(user, pendingResult) {
-  if (!isSupabaseConfigured || !user?.role) return false
-  if (!pendingResult || pendingResult.error) return false
-  return Boolean(pendingResult.hasPending)
-}
-
-async function pushScopedLegacyPayload(scoped) {
+async function pushImportPayload(payload) {
+  const results = {}
   const errors = []
-  const synced = {
-    branches: 0,
-    services: 0,
-    branchPricing: 0,
-    employees: 0,
-    invoices: 0,
-    expenses: 0,
-  }
 
-  const tasks = [
-    {
-      name: 'branches',
-      count: scoped.branches.length,
-      run: () => upsertBranches(scoped.branches),
-    },
-    {
-      name: 'services',
-      count: scoped.services.length,
-      run: () => upsertServices(scoped.services),
-    },
-    {
-      name: 'branchPricing',
-      count: Object.keys(scoped.branchPricing ?? {}).length,
-      run: () => upsertBranchPricingMap(scoped.branchPricing),
-    },
-    {
-      name: 'employees',
-      count: scoped.employees.length,
-      run: () => upsertEmployees(scoped.employees),
-    },
-    {
-      name: 'invoices',
-      count: scoped.invoices.length,
-      run: () => upsertInvoices(scoped.invoices),
-    },
-    {
-      name: 'expenses',
-      count: scoped.expenses.length,
-      run: () => upsertExpenses(scoped.expenses),
-    },
+  const listSteps = [
+    ['branches', payload.branches, upsertBranches],
+    ['services', payload.services, upsertServices],
+    ['employees', payload.employees, upsertEmployees],
+    ['invoices', payload.invoices, upsertInvoices],
+    ['expenses', payload.expenses, upsertExpenses],
   ]
 
-  if (scoped.includeAuth) {
-    if (scoped.credentials) {
-      tasks.push({
-        name: 'credentials',
-        count: 1,
-        run: () => upsertCredentials(scoped.credentials),
-      })
+  for (const [name, items, fn] of listSteps) {
+    if (!items?.length) {
+      results[name] = { imported: 0 }
+      continue
     }
-    if (scoped.permissions) {
-      tasks.push({
-        name: 'permissions',
-        count: 1,
-        run: () => upsertPermissions(scoped.permissions),
-      })
-    }
-    if (scoped.systemSettings) {
-      tasks.push({
-        name: 'settings',
-        count: 1,
-        run: () => upsertSettings(scoped.systemSettings),
-      })
-    }
+    // eslint-disable-next-line no-await-in-loop
+    const result = await importEntityBatch(name, items, fn)
+    results[name] = { imported: result.imported }
+    if (result.errors.length) errors.push(...result.errors)
   }
 
-  for (const task of tasks) {
-    if (task.count === 0) continue
+  const pricingKeys = Object.keys(payload.branchPricing ?? {})
+  if (pricingKeys.length > 0) {
     try {
-      // eslint-disable-next-line no-await-in-loop
-      await task.run()
-      if (Object.prototype.hasOwnProperty.call(synced, task.name)) {
-        synced[task.name] = task.count
-      }
+      await upsertBranchPricingMap(payload.branchPricing)
+      results.branchPricing = { imported: pricingKeys.length }
     } catch (error) {
-      errors.push({ entity: task.name, message: error?.message ?? String(error) })
+      errors.push({
+        entity: 'branchPricing',
+        message: error?.message ?? String(error),
+        count: pricingKeys.length,
+      })
+      results.branchPricing = { imported: 0 }
+    }
+  } else {
+    results.branchPricing = { imported: 0 }
+  }
+
+  if (payload.includeAuth) {
+    if (payload.credentials) {
+      try {
+        await upsertCredentials(payload.credentials)
+        results.credentials = { imported: 1, skipped: 0 }
+      } catch (error) {
+        errors.push({ entity: 'credentials', message: error?.message ?? String(error), count: 1 })
+      }
+    }
+    if (payload.permissions) {
+      try {
+        await upsertPermissions(payload.permissions)
+        results.permissions = { imported: 1, skipped: 0 }
+      } catch (error) {
+        errors.push({ entity: 'permissions', message: error?.message ?? String(error), count: 1 })
+      }
+    }
+    if (payload.systemSettings) {
+      try {
+        await upsertSettings(payload.systemSettings)
+        results.settings = { imported: 1, skipped: 0 }
+      } catch (error) {
+        errors.push({ entity: 'settings', message: error?.message ?? String(error), count: 1 })
+      }
     }
   }
 
-  return { synced, errors, errorCount: errors.length }
+  return { results, errors }
 }
 
 /**
- * Đẩy dữ liệu cũ từ LocalStorage lên Supabase (upsert theo id — không trùng).
- * Không xóa LocalStorage; chỉ đánh dấu hoàn tất khi toàn bộ bước thành công.
+ * Import dữ liệu cũ lên Supabase.
+ * Không xóa localStorage — chỉ đánh dấu legacy_import_completed và ghi log.
  */
-export async function syncLegacyDataToCloud(user) {
+export async function importLegacyDataToCloud(user, { jsonPayload = null } = {}) {
   if (!isSupabaseConfigured) {
     return { success: false, reason: 'not_configured' }
   }
@@ -323,52 +294,109 @@ export async function syncLegacyDataToCloud(user) {
     return { success: false, reason: 'not_logged_in' }
   }
 
-  const snapshot = collectAllData()
-  const remoteIds = await fetchRemoteIdSets()
-  const scopedFull = scopeLegacySnapshot(snapshot, user)
-  const pending = countPendingLegacyItems(scopedFull, remoteIds)
+  const scan = scanLocalStorageForLegacyData({ jsonPayload })
+  const scopedFull = scopeLegacySnapshot(scan.snapshot, user)
 
-  const scoped = {
-    ...scopedFull,
-    branches: pending.pendingBranches,
-    services: pending.pendingServices,
-    branchPricing: Object.fromEntries(
-      pending.pendingBranchPricing.map((branchId) => [branchId, scopedFull.branchPricing[branchId]]),
-    ),
-    employees: pending.pendingEmployees,
-    invoices: pending.pendingInvoices,
-    expenses: pending.pendingExpenses,
+  const detected = {
+    employees: scopedFull.employees.length,
+    invoices: scopedFull.invoices.length,
+    expenses: scopedFull.expenses.length,
+    services: scopedFull.services.length,
+    branches: scopedFull.branches.length,
+    branchPricing: Object.keys(scopedFull.branchPricing ?? {}).length,
+    total:
+      scopedFull.employees.length +
+      scopedFull.invoices.length +
+      scopedFull.expenses.length +
+      scopedFull.services.length +
+      scopedFull.branches.length +
+      Object.keys(scopedFull.branchPricing ?? {}).length,
   }
 
-  if (pending.totalCount === 0) {
-    markLegacySyncComplete(user)
+  if (detected.total === 0) {
     return {
       success: true,
-      skipped: true,
-      synced: { employees: 0, invoices: 0, expenses: 0, services: 0, branches: 0, branchPricing: 0 },
+      empty: true,
+      message: 'Không tìm thấy dữ liệu cũ trên thiết bị này.',
+      scan,
+      detected,
+      imported: {},
+      skipped: {},
       errorCount: 0,
       errors: [],
     }
   }
 
-  const { synced, errors, errorCount } = await pushScopedLegacyPayload(scoped)
+  const remoteIds = await fetchRemoteIdSets()
+  const { payload, skipped } = partitionByRemote(scopedFull, remoteIds)
+  const { results, errors } = await pushImportPayload(payload)
 
-  if (errorCount > 0) {
-    return {
-      success: false,
-      synced,
-      errorCount,
-      errors,
-    }
+  const imported = {
+    branches: results.branches?.imported ?? 0,
+    services: results.services?.imported ?? 0,
+    branchPricing: results.branchPricing?.imported ?? 0,
+    employees: results.employees?.imported ?? 0,
+    invoices: results.invoices?.imported ?? 0,
+    expenses: results.expenses?.imported ?? 0,
+    credentials: results.credentials?.imported ?? 0,
+    permissions: results.permissions?.imported ?? 0,
+    settings: results.settings?.imported ?? 0,
   }
 
-  markLegacySyncComplete(user)
-  await pullAllFromSupabase()
+  const skippedTotal =
+    skipped.branches +
+    skipped.employees +
+    skipped.services +
+    skipped.invoices +
+    skipped.expenses +
+    skipped.branchPricing
+
+  const importedTotal = Object.values(imported).reduce((sum, n) => sum + n, 0)
+
+  if (errors.length === 0) {
+    markLegacyImportCompleted({
+      detected,
+      imported,
+      skipped,
+      importedTotal,
+      skippedTotal,
+      errorCount: 0,
+      role: user.role,
+    })
+    await pullAllFromSupabase()
+    notifyDataSynced(['employees', 'invoices', 'expenses', 'services', 'branches'])
+  }
 
   return {
-    success: true,
-    synced,
-    errorCount: 0,
-    errors: [],
+    success: errors.length === 0,
+    scan,
+    detected,
+    imported,
+    skipped,
+    skippedTotal,
+    importedTotal,
+    errorCount: errors.length,
+    errors,
   }
 }
+
+/** @deprecated Dùng checkLegacyData / importLegacyDataToCloud */
+export async function detectPendingLegacyData(user) {
+  const result = checkLegacyData(user)
+  return {
+    hasPending: result.hasLegacyData,
+    totals: result.scopedCounts,
+    error: null,
+  }
+}
+
+/** @deprecated Dùng importLegacyDataToCloud */
+export async function syncLegacyDataToCloud(user) {
+  return importLegacyDataToCloud(user)
+}
+
+export function shouldShowLegacySyncBanner() {
+  return false
+}
+
+export { scanLocalStorageForLegacyData, downloadLegacyExport } from './legacyStorageScanner'

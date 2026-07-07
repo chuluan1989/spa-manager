@@ -21,6 +21,12 @@ function createStorage() {
     clear() {
       store.clear()
     },
+    get length() {
+      return store.size
+    },
+    key(index) {
+      return [...store.keys()][index] ?? null
+    },
   }
 }
 
@@ -972,9 +978,12 @@ await testAsync('supabaseSync: runInitialSync trả về not_configured khi chư
 
 const {
   scopeLegacySnapshot,
-  countPendingLegacyItems,
-  getLegacySyncUserKey,
+  checkLegacyData,
 } = await import('../src/utils/legacyCloudSync.js')
+const {
+  scanLocalStorageForLegacyData,
+  buildInvoiceFingerprint,
+} = await import('../src/utils/legacyStorageScanner.js')
 
 await test('legacyCloudSync: scope theo vai trò admin / QL / NV', () => {
   const snapshot = {
@@ -1013,41 +1022,56 @@ await test('legacyCloudSync: scope theo vai trò admin / QL / NV', () => {
   assert.equal(employeeScope.employees.length, 1)
 })
 
-await test('legacyCloudSync: đếm pending theo id chưa có trên remote', () => {
-  const scoped = scopeLegacySnapshot(
-    {
-      employees: [{ id: 'local-only', branchId: 'vinh-long' }],
-      invoices: [{ id: 'inv-local', branchId: 'vinh-long', employeeId: 'local-only' }],
-      expenses: [],
-      branches: [],
-      services: [],
-      branchPricing: {},
-    },
-    { role: 'admin', branch: 'all' },
+await test('legacyStorageScanner: quét key tour cũ và tạo fingerprint hóa đơn', () => {
+  localStorage.setItem(
+    'old-spa-tours',
+    JSON.stringify([
+      {
+        date: '2026-01-01',
+        branch_id: 'vinh-long',
+        employee_id: 'emp-a',
+        service_total: 100000,
+        tip: 5000,
+        customer_name: 'Test',
+        services: [{ id: 's1', name: 'Body', price: 100000 }],
+      },
+    ]),
   )
-  const pending = countPendingLegacyItems(scoped, {
-    employees: new Set(['existing']),
-    invoices: new Set(),
-    expenses: new Set(),
-    services: new Set(),
-    branches: new Set(),
-    branchPricing: new Set(),
+  const scan = scanLocalStorageForLegacyData()
+  assert.ok(scan.counts.invoices >= 1, `Phải nhận diện tour là invoice, got ${scan.counts.invoices}`)
+  const fp = buildInvoiceFingerprint({
+    date: '2026-01-01',
+    branchId: 'vinh-long',
+    employeeId: 'emp-a',
+    total: 100000,
+    tips: 5000,
+    customerName: 'Test',
+    services: [{ id: 's1' }],
   })
-  assert.equal(pending.employees, 1)
-  assert.equal(pending.invoices, 1)
-  assert.equal(pending.hasPending, true)
+  assert.ok(fp.startsWith('legacy-inv-'))
+  localStorage.removeItem('old-spa-tours')
 })
 
-await test('legacyCloudSync: khóa theo tài khoản phân biệt admin và QL chi nhánh', () => {
-  assert.equal(getLegacySyncUserKey({ role: 'admin', branch: 'all' }), 'admin')
-  assert.equal(
-    getLegacySyncUserKey({ role: 'branch_manager', branch: 'vinh-long' }),
-    'manager:vinh-long',
+await test('legacyCloudSync: checkLegacyData trả về counts theo phạm vi admin', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  localStorage.setItem(
+    'spa-manager-invoices',
+    JSON.stringify([
+      {
+        id: 'inv-check-1',
+        date: '2026-01-02',
+        branchId: 'vinh-long',
+        employeeId: 'e1',
+        total: 150000,
+        serviceTotal: 150000,
+        services: [{ id: 's1', name: 'Body', price: 150000 }],
+      },
+    ]),
   )
-  assert.equal(
-    getLegacySyncUserKey({ role: 'employee', branch: 'vinh-long', employeeId: 'e1' }),
-    'employee:vinh-long:e1',
-  )
+  const check = checkLegacyData({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  assert.equal(check.hasLegacyData, true)
+  assert.ok(check.scopedCounts.invoices >= 1)
+  clearCurrentUser()
 })
 
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`)

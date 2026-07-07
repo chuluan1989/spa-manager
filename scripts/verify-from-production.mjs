@@ -49,9 +49,9 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1)
 }
 
-console.log('\n--- Kiểm tra đồng bộ dữ liệu cũ ---\n')
+console.log('\n--- Kiểm tra import dữ liệu cũ ---\n')
 
-const legacyResult = spawnSync('npx', ['vite-node', 'scripts/verify-legacy-sync.mjs'], {
+const legacyResult = spawnSync('npx', ['vite-node', 'scripts/verify-legacy-import.mjs'], {
   cwd: ROOT,
   env: {
     ...process.env,

@@ -4,6 +4,7 @@ import {
   canAccessEmployeesPage,
   canAccessExpensesPage,
   canAccessInvoicesPage,
+  canAccessLegacySyncPage,
   canAccessMyProfilePage,
   canAccessSettingsPage,
   canViewReport,
@@ -18,6 +19,7 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import MyProfile from './pages/MyProfile'
 import Report from './pages/Report'
+import LegacySync from './pages/LegacySync'
 import Settings from './pages/Settings'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncMissingBranchCredentials } from './utils/credentialsStorage'
@@ -26,7 +28,6 @@ import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { getEmployeeById, isEmployeeProfileComplete } from './utils/employeeStorage'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync } from './utils/supabaseSync'
-import LegacyCloudSyncBanner from './components/common/LegacyCloudSyncBanner'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -34,6 +35,7 @@ const PAGES = {
   expenses: Expenses,
   employees: Employees,
   reports: Report,
+  'legacy-sync': LegacySync,
   profile: MyProfile,
   settings: Settings,
 }
@@ -49,6 +51,7 @@ function canAccessPage(pageId) {
   if (pageId === 'invoices') return canAccessInvoicesPage()
   if (pageId === 'expenses') return canAccessExpensesPage()
   if (pageId === 'reports') return canViewReport()
+  if (pageId === 'legacy-sync') return canAccessLegacySyncPage()
   if (pageId === 'profile') return canAccessMyProfilePage()
   return true
 }
@@ -158,12 +161,6 @@ function App() {
       onNavigate={handleNavigate}
       onLogout={handleLogout}
     >
-      {isSupabaseConfigured && (
-        <LegacyCloudSyncBanner
-          user={currentUser}
-          onSyncComplete={() => setProfileTick((tick) => tick + 1)}
-        />
-      )}
       <Page key={activePage} />
     </Layout>
   )

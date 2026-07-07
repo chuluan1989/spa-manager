@@ -207,6 +207,10 @@ export function canDeleteInvoice(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
 
+export function canAccessLegacySyncPage(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE
+}
+
 export function canAccessSettingsPage(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
@@ -220,11 +224,17 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
   let items = NAV_ITEMS
 
   if (role === ROLES.EMPLOYEE) {
-    items = items.filter((item) => ['dashboard', 'invoices', 'reports', 'profile'].includes(item.id))
+    items = items.filter((item) => ['dashboard', 'invoices', 'reports', 'profile', 'legacy-sync'].includes(item.id))
   }
 
   if (role !== ROLES.EMPLOYEE) {
     items = items.filter((item) => item.id !== 'profile')
+  }
+
+  if (role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER) {
+    // giữ legacy-sync cho admin và quản lý
+  } else if (role !== ROLES.EMPLOYEE) {
+    items = items.filter((item) => item.id !== 'legacy-sync')
   }
 
   if (role !== ROLES.ADMIN && role !== ROLES.BRANCH_MANAGER && role !== ROLES.EMPLOYEE) {

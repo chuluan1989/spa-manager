@@ -1,0 +1,250 @@
+.legacy-sync {
+  max-width: 960px;
+}
+
+.legacy-sync__header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  color: #1565a8;
+}
+
+.legacy-sync__title {
+  margin: 0 0 6px;
+  font-size: 24px;
+  color: #0f172a;
+}
+
+.legacy-sync__subtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.legacy-sync__note {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #1e40af;
+}
+
+.legacy-sync__warn {
+  padding: 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #b91c1c;
+}
+
+.legacy-sync__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.legacy-sync__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #dbeafe;
+  background: #fff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.legacy-sync__btn:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.legacy-sync__btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.legacy-sync__btn--primary {
+  background: #e8f2fb;
+  border-color: #93c5fd;
+  color: #1565a8;
+}
+
+.legacy-sync__btn--accent {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #fff;
+}
+
+.legacy-sync__btn--accent:hover:not(:disabled) {
+  background: #c2410c;
+}
+
+.legacy-sync__file {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.legacy-sync__error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.legacy-sync__empty {
+  padding: 24px;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  color: #64748b;
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+
+.legacy-sync__panel {
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.06);
+}
+
+.legacy-sync__panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.legacy-sync__panel h4 {
+  margin: 20px 0 10px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.legacy-sync__panel--success {
+  border-color: #6ee7b7;
+  background: #f0fdf4;
+}
+
+.legacy-sync__panel--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.legacy-sync__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.legacy-sync__stats div {
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.legacy-sync__stats span {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.legacy-sync__stats strong {
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.legacy-sync__table-wrap {
+  overflow-x: auto;
+}
+
+.legacy-sync__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.legacy-sync__table th,
+.legacy-sync__table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  vertical-align: top;
+}
+
+.legacy-sync__table th {
+  background: #f0f7ff;
+  color: #1565a8;
+  font-weight: 600;
+}
+
+.legacy-sync__report {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.legacy-sync__errors-list {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+.legacy-sync__errors-list ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.legacy-sync__logs {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.legacy-sync__spin {
+  animation: legacy-sync-spin 0.8s linear infinite;
+}
+
+@keyframes legacy-sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .legacy-sync__actions {
+    flex-direction: column;
+  }
+
+  .legacy-sync__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
