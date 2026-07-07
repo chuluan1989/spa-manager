@@ -11,7 +11,19 @@ import { validateEmployeeSelfProfile } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteEmployeeRow, upsertEmployee } from '../repositories/employeesRepository'
 
+import { appendEmployeeAuditLog, EMPLOYEE_AUDIT_ACTIONS } from './employeeAuditLog'
+import { canPermanentDeleteEmployee, PERMANENT_DELETE_BLOCKED_MESSAGE } from './employeeDeleteGuard'
 import { ROLES } from '../constants/roles'
+
+/** Các cột employees đã có trên Supabase — field ERP mới chỉ lưu local cho tới khi migrate. */
+export const SUPABASE_EMPLOYEE_FIELDS = [
+  'id', 'branchId', 'name', 'dateOfBirth', 'gender', 'phone', 'email', 'cccd',
+  'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'currentAddress',
+  'bankName', 'bankAccountHolder', 'bankAccount',
+  'emergencyContactName', 'emergencyContactPhone',
+  'position', 'startDate', 'status', 'note', 'avatar',
+  'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
+]
 
 /**
  * Ghi kèm lên Supabase (nếu đã cấu hình) mỗi khi có thay đổi — không chặn
@@ -37,6 +49,7 @@ export const EMPLOYEE_STATUS = {
   ACTIVE: 'active',
   ON_LEAVE: 'on_leave',
   RESIGNED: 'resigned',
+  ARCHIVED: 'archived',
 }
 
 export const GENDER_OPTIONS = [
@@ -85,6 +98,9 @@ export const EMPTY_EMPLOYEE_FORM = {
   branchId: '',
   position: '',
   startDate: '',
+  endDate: '',
+  commissionRate: '',
+  salaryRate: '',
   status: EMPLOYEE_STATUS.ACTIVE,
   note: '',
   avatar: '',
@@ -134,8 +150,31 @@ function slugify(name) {
 
 function normalizeStatus(status) {
   if (status === 'inactive') return EMPLOYEE_STATUS.RESIGNED
+  if (status === 'archived') return EMPLOYEE_STATUS.ARCHIVED
   if (Object.values(EMPLOYEE_STATUS).includes(status)) return status
   return EMPLOYEE_STATUS.ACTIVE
+}
+
+export function isEmployeeArchived(employee) {
+  return employee?.status === EMPLOYEE_STATUS.ARCHIVED
+}
+
+export function isEmployeeResigned(employee) {
+  return employee?.status === EMPLOYEE_STATUS.RESIGNED
+}
+
+/** Danh sách mặc định — nhân viên đang làm + nghỉ phép. */
+export function isDefaultListEmployee(employee) {
+  return employee?.status === EMPLOYEE_STATUS.ACTIVE
+    || employee?.status === EMPLOYEE_STATUS.ON_LEAVE
+}
+
+export function isEmployeeLoginEligible(employee) {
+  return employee?.status === EMPLOYEE_STATUS.ACTIVE
+}
+
+export function isEmployeeInvoiceEligible(employee) {
+  return employee?.status === EMPLOYEE_STATUS.ACTIVE
 }
 
 export function normalizeEmployee(employee) {
@@ -159,6 +198,9 @@ export function normalizeEmployee(employee) {
     branchId: employee.branchId ?? '',
     position: employee.position ?? '',
     startDate: employee.startDate ?? '',
+    endDate: employee.endDate ?? '',
+    commissionRate: employee.commissionRate ?? '',
+    salaryRate: employee.salaryRate ?? '',
     status: normalizeStatus(employee.status),
     note: employee.note ?? '',
     avatar: employee.avatar ?? '',
@@ -226,7 +268,7 @@ export function getEmployeeById(id) {
 }
 
 export function isEmployeeActive(employee) {
-  return employee?.status === EMPLOYEE_STATUS.ACTIVE
+  return isEmployeeLoginEligible(employee)
 }
 
 export function getEmployeesByBranch(branchId, { activeOnly = false } = {}) {
@@ -359,6 +401,9 @@ function sanitizeEmployeeData(data) {
     branchId: data.branchId ?? '',
     position: data.position?.trim() ?? '',
     startDate: data.startDate ?? '',
+    endDate: data.endDate ?? '',
+    commissionRate: data.commissionRate?.trim?.() ?? data.commissionRate ?? '',
+    salaryRate: data.salaryRate?.trim?.() ?? data.salaryRate ?? '',
     status: normalizeStatus(data.status),
     note: data.note?.trim() ?? '',
     avatar: data.avatar ?? '',
@@ -535,6 +580,23 @@ export function updateEmployee(id, data) {
     return denyAccess(error.message)
   }
   pushEmployeeToSupabase(employees[index])
+
+  if (sanitized.status !== current.status) {
+    appendEmployeeAuditLog({
+      employeeId: id,
+      employeeName: employees[index].name,
+      action: EMPLOYEE_AUDIT_ACTIONS.STATUS_CHANGE,
+      details: `${getStatusLabel(current.status)} → ${getStatusLabel(sanitized.status)}`,
+    })
+  } else if (sanitized.branchId === current.branchId) {
+    appendEmployeeAuditLog({
+      employeeId: id,
+      employeeName: employees[index].name,
+      action: EMPLOYEE_AUDIT_ACTIONS.PROFILE_UPDATE,
+      details: 'Cập nhật hồ sơ nhân viên',
+    })
+  }
+
   return { success: true, employee: employees[index] }
 }
 
@@ -583,15 +645,37 @@ export function deleteEmployee(id) {
     return denyAccess('Chỉ Admin mới được xóa nhân viên.')
   }
 
+  const user = getSessionUser()
+  if (user?.role !== ROLES.ADMIN) {
+    return denyAccess('Chỉ Admin mới được xóa vĩnh viễn nhân viên.')
+  }
+
   const employees = loadEmployees()
   const current = employees.find((e) => e.id === id)
   if (!current) {
     return denyAccess('Không tìm thấy nhân viên.')
   }
 
+  const guard = canPermanentDeleteEmployee(id)
+  if (!guard.allowed) {
+    appendEmployeeAuditLog({
+      employeeId: id,
+      employeeName: current.name,
+      action: EMPLOYEE_AUDIT_ACTIONS.PERMANENT_DELETE_BLOCKED,
+      details: guard.reason,
+    })
+    return { success: false, error: guard.reason ?? PERMANENT_DELETE_BLOCKED_MESSAGE }
+  }
+
   const next = employees.filter((e) => e.id !== id)
   saveEmployees(next)
   pushEmployeeDeletionToSupabase(id)
+  appendEmployeeAuditLog({
+    employeeId: id,
+    employeeName: current.name,
+    action: EMPLOYEE_AUDIT_ACTIONS.PERMANENT_DELETE,
+    details: 'Xóa vĩnh viễn nhân viên chưa phát sinh dữ liệu',
+  })
   return { success: true, employees: next }
 }
 
@@ -605,9 +689,10 @@ export function transferEmployee(id, newBranchId, options = {}) {
     return denyAccess('Chỉ Admin mới được chuyển chi nhánh nhân viên.')
   }
 
-  const { transferDate, note = '' } = options
+  const { transferDate, note = '', approver = '', reason = '' } = options
   const current = getEmployeeById(id)
   if (current && current.branchId && current.branchId !== newBranchId) {
+    const effectiveDate = transferDate || new Date().toISOString().slice(0, 10)
     const historyEntry = {
       fromBranchId: current.branchId,
       fromBranchName: resolveBranchName(current.branchId),
@@ -615,23 +700,36 @@ export function transferEmployee(id, newBranchId, options = {}) {
       toBranchName: resolveBranchName(newBranchId),
       branchId: current.branchId,
       branchName: resolveBranchName(current.branchId),
-      transferDate: transferDate || new Date().toISOString().slice(0, 10),
+      transferDate: effectiveDate,
+      effectiveDate,
       note: note.trim(),
+      reason: reason.trim() || note.trim(),
+      approver: approver.trim(),
       changedAt: new Date().toISOString(),
     }
-    return updateEmployee(id, {
+    const result = updateEmployee(id, {
       branchId: newBranchId,
       branchHistory: [...(current.branchHistory ?? []), historyEntry],
     })
+    if (result.success) {
+      appendEmployeeAuditLog({
+        employeeId: id,
+        employeeName: current.name,
+        action: EMPLOYEE_AUDIT_ACTIONS.TRANSFER,
+        details: `${resolveBranchName(current.branchId)} → ${resolveBranchName(newBranchId)} (hiệu lực ${effectiveDate})`,
+        meta: { approver: approver.trim(), reason: reason.trim() || note.trim() },
+      })
+    }
+    return result
   }
 
   return updateEmployee(id, { branchId: newBranchId })
 }
 
-/** Xóa mềm — đặt trạng thái nghỉ việc, giữ dữ liệu và doanh số lịch sử. */
-export function softDeleteEmployee(id) {
-  if (!hasSessionPermission(PERMISSION_KEYS.DELETE_EMPLOYEE)) {
-    return denyAccess('Chỉ Admin mới được xóa nhân viên.')
+/** Đặt trạng thái làm việc — nghỉ việc tự ghi ngày nghỉ. */
+export function setEmployeeStatus(id, status, options = {}) {
+  if (!hasSessionPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES)) {
+    return denyAccess('Bạn không có quyền đổi trạng thái nhân viên.')
   }
 
   const current = getEmployeeById(id)
@@ -639,12 +737,64 @@ export function softDeleteEmployee(id) {
     return denyAccess('Không tìm thấy nhân viên.')
   }
 
-  return updateEmployee(id, {
-    status: EMPLOYEE_STATUS.RESIGNED,
-    note: current.note
-      ? `${current.note}\n[Đã ẩn khỏi danh sách ${new Date().toISOString().slice(0, 10)}]`
-      : `[Đã ẩn khỏi danh sách ${new Date().toISOString().slice(0, 10)}]`,
-  })
+  const nextStatus = normalizeStatus(status)
+  const patch = { status: nextStatus }
+  if (nextStatus === EMPLOYEE_STATUS.RESIGNED) {
+    patch.endDate = options.endDate || new Date().toISOString().slice(0, 10)
+  }
+  if (nextStatus === EMPLOYEE_STATUS.ACTIVE) {
+    patch.endDate = ''
+  }
+
+  return updateEmployee(id, patch)
+}
+
+/** Lưu trữ — ẩn khỏi danh sách mặc định, giữ toàn bộ dữ liệu lịch sử. */
+export function archiveEmployee(id) {
+  if (!hasSessionPermission(PERMISSION_KEYS.DELETE_EMPLOYEE)) {
+    return denyAccess('Chỉ Admin mới được lưu trữ nhân viên.')
+  }
+
+  const current = getEmployeeById(id)
+  if (!current) {
+    return denyAccess('Không tìm thấy nhân viên.')
+  }
+
+  const result = setEmployeeStatus(id, EMPLOYEE_STATUS.ARCHIVED)
+  return result
+}
+
+/** @deprecated Dùng archiveEmployee hoặc setEmployeeStatus(RESIGNED). */
+export function softDeleteEmployee(id) {
+  return setEmployeeStatus(id, EMPLOYEE_STATUS.RESIGNED)
+}
+
+/**
+ * Xác định chi nhánh của nhân viên tại một ngày (phục vụ đối soát sau chuyển CN).
+ * Doanh thu trên hóa đ đơn vẫn gắn branch_id lúc tạo — hàm này dùng cho hiển thị/lịch sử.
+ */
+export function getEmployeeBranchAtDate(employee, date) {
+  if (!employee) return ''
+  const history = [...(employee.branchHistory ?? [])]
+    .filter((entry) => entry.effectiveDate || entry.transferDate)
+    .sort((a, b) => String(a.effectiveDate || a.transferDate).localeCompare(String(b.effectiveDate || b.transferDate)))
+
+  let branchId = employee.branchId
+  for (const entry of history) {
+    const effective = entry.effectiveDate || entry.transferDate
+    if (date >= effective && entry.toBranchId) {
+      branchId = entry.toBranchId
+    }
+  }
+  return branchId
+}
+
+export function toSupabaseEmployeePayload(employee) {
+  const payload = {}
+  for (const key of SUPABASE_EMPLOYEE_FIELDS) {
+    if (employee[key] !== undefined) payload[key] = employee[key]
+  }
+  return payload
 }
 
 export function getBranchName(branchId) {
@@ -657,10 +807,19 @@ export function getStatusLabel(status) {
       return 'Nghỉ phép'
     case EMPLOYEE_STATUS.RESIGNED:
       return 'Nghỉ việc'
+    case EMPLOYEE_STATUS.ARCHIVED:
+      return 'Lưu trữ'
     default:
       return 'Đang làm'
   }
 }
+
+export const EMPLOYEE_STATUS_OPTIONS = [
+  { value: EMPLOYEE_STATUS.ACTIVE, label: 'Đang làm' },
+  { value: EMPLOYEE_STATUS.ON_LEAVE, label: 'Nghỉ phép' },
+  { value: EMPLOYEE_STATUS.RESIGNED, label: 'Nghỉ việc' },
+  { value: EMPLOYEE_STATUS.ARCHIVED, label: 'Lưu trữ' },
+]
 
 export function getGenderLabel(gender) {
   return GENDER_OPTIONS.find((option) => option.value === gender)?.label ?? '—'

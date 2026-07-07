@@ -15,6 +15,7 @@ import {
 } from '../../constants/auth'
 import {
   EMPLOYEE_STATUS,
+  EMPLOYEE_STATUS_OPTIONS,
   GENDER_OPTIONS,
   readAvatarFile,
 } from '../../utils/employeeStorage'
@@ -136,11 +137,8 @@ export default function EmployeeProfileForm({
     }
   }
 
-  const statusOptions = [
-    { value: EMPLOYEE_STATUS.ACTIVE, label: 'Đang làm' },
-    { value: EMPLOYEE_STATUS.ON_LEAVE, label: 'Nghỉ phép' },
-    { value: EMPLOYEE_STATUS.RESIGNED, label: 'Nghỉ việc' },
-  ]
+  const statusOptions = EMPLOYEE_STATUS_OPTIONS
+  const showPayrollFields = forceAdminFields
 
   return (
     <div className="employee-profile">
@@ -458,6 +456,52 @@ export default function EmployeeProfileForm({
             />
           )}
         </Field>
+
+        {showPayrollFields && (
+          <>
+            <Field label="Ngày nghỉ việc">
+              {readOnly ? (
+                <ReadOnlyValue value={form.endDate} />
+              ) : (
+                <input
+                  type="date"
+                  value={form.endDate}
+                  onChange={(e) => onChange({ ...form, endDate: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field label="Mức hoa hồng (%)">
+              {readOnly ? (
+                <ReadOnlyValue value={form.commissionRate ? `${form.commissionRate}%` : ''} />
+              ) : (
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={form.commissionRate}
+                  onChange={(e) => onChange({ ...form, commissionRate: e.target.value })}
+                  placeholder="VD: 20"
+                />
+              )}
+            </Field>
+            <Field label="Tỷ lệ lương (%)">
+              {readOnly ? (
+                <ReadOnlyValue value={form.salaryRate ? `${form.salaryRate}%` : ''} />
+              ) : (
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={form.salaryRate}
+                  onChange={(e) => onChange({ ...form, salaryRate: e.target.value })}
+                  placeholder="VD: 100"
+                />
+              )}
+            </Field>
+          </>
+        )}
 
         <Field label="Trạng thái">
           {readOnly ? (

@@ -10,10 +10,17 @@ import {
   canEditEmployee,
   canSelectBranch,
   getCurrentUserBranch,
+  isAdmin,
 } from '../constants/auth'
 import { useEmployeeHubData } from '../hooks/useEmployeeHubData'
 import { computeEmployeeListStats } from '../utils/employeeHubStats'
-import { EMPLOYEE_STATUS, getStatusLabel } from '../utils/employeeStorage'
+import {
+  EMPLOYEE_STATUS,
+  EMPLOYEE_STATUS_OPTIONS,
+  getStatusLabel,
+  isDefaultListEmployee,
+  isEmployeeArchived,
+} from '../utils/employeeStorage'
 import { redactEmployeeForViewer } from '../utils/employeeVisibility'
 import { formatCurrency } from '../utils/invoice'
 import { getCurrentMonthValue } from '../utils/salaryReport'
@@ -29,7 +36,9 @@ function StatusBadge({ status }) {
       ? 'active'
       : status === EMPLOYEE_STATUS.ON_LEAVE
         ? 'leave'
-        : 'resigned'
+        : status === EMPLOYEE_STATUS.ARCHIVED
+          ? 'archived'
+          : 'resigned'
   return <span className={`employee-hub-status employee-hub-status--${tone}`}>{getStatusLabel(status)}</span>
 }
 
@@ -43,6 +52,7 @@ export default function EmployeeHub({ adminMode = false }) {
   const [month, setMonth] = useState(getCurrentMonthValue())
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [mobileView, setMobileView] = useState('branches')
@@ -70,12 +80,20 @@ export default function EmployeeHub({ adminMode = false }) {
   const filteredEmployees = useMemo(() => {
     const q = search.trim().toLowerCase()
     return employees.filter((emp) => {
-      if (statusFilter && emp.status !== statusFilter) return false
+      if (statusFilter) {
+        if (emp.status !== statusFilter) return false
+      } else {
+        const inDefaultList = isDefaultListEmployee(emp)
+        const inArchiveList = showArchived && (
+          isEmployeeArchived(emp) || emp.status === EMPLOYEE_STATUS.RESIGNED
+        )
+        if (!inDefaultList && !inArchiveList) return false
+      }
       if (!q) return true
       const haystack = `${emp.name ?? ''} ${emp.phone ?? ''} ${emp.position ?? ''}`.toLowerCase()
       return haystack.includes(q)
     })
-  }, [employees, search, statusFilter])
+  }, [employees, search, statusFilter, showArchived])
 
   const selectedEmployee = useMemo(() => {
     const found = employees.find((e) => e.id === selectedEmployeeId)
@@ -203,11 +221,21 @@ export default function EmployeeHub({ adminMode = false }) {
               onChange={(e) => setStatusFilter(e.target.value)}
               aria-label="Lọc trạng thái"
             >
-              <option value="">Tất cả trạng thái</option>
-              <option value={EMPLOYEE_STATUS.ACTIVE}>Đang làm</option>
-              <option value={EMPLOYEE_STATUS.ON_LEAVE}>Nghỉ phép</option>
-              <option value={EMPLOYEE_STATUS.RESIGNED}>Nghỉ việc</option>
+              <option value="">Đang làm + Nghỉ phép</option>
+              {EMPLOYEE_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
             </select>
+            {isAdmin() && (
+              <label className="employee-hub__archived-toggle">
+                <input
+                  type="checkbox"
+                  checked={showArchived}
+                  onChange={(e) => setShowArchived(e.target.checked)}
+                />
+                Hiện NV đã lưu trữ / nghỉ việc
+              </label>
+            )}
           </div>
 
           {loading ? (

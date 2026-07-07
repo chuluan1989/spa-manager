@@ -9,19 +9,24 @@ import {
   canEditEmployee,
   canSelectBranch,
   getCurrentUserBranch,
+  getCurrentUserName,
   getScopedBranchId,
   isAdmin,
 } from '../../constants/auth'
 import {
   addEmployee,
+  archiveEmployee,
+  deleteEmployee,
   EMPLOYEE_STATUS,
+  EMPLOYEE_STATUS_OPTIONS,
   EMPTY_EMPLOYEE_FORM,
   getStatusLabel,
   normalizeEmployee,
-  softDeleteEmployee,
+  setEmployeeStatus,
   transferEmployee,
   updateEmployee,
 } from '../../utils/employeeStorage'
+import { PERMANENT_DELETE_BLOCKED_MESSAGE } from '../../utils/employeeDeleteGuard'
 import { redactEmployeeForViewer } from '../../utils/employeeVisibility'
 import './EmployeeHubSettings.css'
 
@@ -41,7 +46,12 @@ export default function EmployeeHubSettings({
   const [mode, setMode] = useState('menu')
   const [form, setForm] = useState(EMPTY_EMPLOYEE_FORM)
   const [errors, setErrors] = useState({})
-  const [transfer, setTransfer] = useState({ branchId: '', transferDate: '', note: '' })
+  const [transfer, setTransfer] = useState({
+    branchId: '',
+    effectiveDate: '',
+    reason: '',
+    approver: '',
+  })
   const [statusValue, setStatusValue] = useState(EMPLOYEE_STATUS.ACTIVE)
 
   if (!open) return null
@@ -49,13 +59,13 @@ export default function EmployeeHubSettings({
   const selectedEmployeeId = selectedEmployee?.id ?? ''
   const allowAdd = canAddEmployee()
   const allowTransfer = canChangeEmployeeBranch()
-  const allowDelete = canDeleteEmployee()
+  const allowAdminActions = canDeleteEmployee() && isAdmin()
 
   const reset = () => {
     setMode('menu')
     setForm(EMPTY_EMPLOYEE_FORM)
     setErrors({})
-    setTransfer({ branchId: '', transferDate: '', note: '' })
+    setTransfer({ branchId: '', effectiveDate: '', reason: '', approver: getCurrentUserName() })
     setStatusValue(EMPLOYEE_STATUS.ACTIVE)
   }
 
@@ -65,10 +75,7 @@ export default function EmployeeHubSettings({
   }
 
   const openAdd = () => {
-    setForm({
-      ...EMPTY_EMPLOYEE_FORM,
-      branchId: getScopedBranchId() || '',
-    })
+    setForm({ ...EMPTY_EMPLOYEE_FORM, branchId: getScopedBranchId() || '' })
     setErrors({})
     setMode('add')
   }
@@ -94,8 +101,9 @@ export default function EmployeeHubSettings({
     }
     setTransfer({
       branchId: '',
-      transferDate: new Date().toISOString().slice(0, 10),
-      note: '',
+      effectiveDate: new Date().toISOString().slice(0, 10),
+      reason: '',
+      approver: getCurrentUserName(),
     })
     setMode('transfer')
   }
@@ -147,40 +155,62 @@ export default function EmployeeHubSettings({
 
   const handleTransfer = (e) => {
     e.preventDefault()
-    if (!transfer.branchId) return
+    if (!transfer.branchId || !transfer.effectiveDate || !transfer.reason.trim() || !transfer.approver.trim()) {
+      showToast('Vui lòng nhập đủ ngày hiệu lực, lý do và người duyệt')
+      return
+    }
     const result = transferEmployee(selectedEmployeeId, transfer.branchId, {
-      transferDate: transfer.transferDate,
-      note: transfer.note,
+      transferDate: transfer.effectiveDate,
+      reason: transfer.reason,
+      approver: transfer.approver,
+      note: transfer.reason,
     })
     if (!result.success) {
       showToast(result.error ?? 'Không thể chuyển chi nhánh')
       return
     }
-    showToast('Chuyển chi nhánh thành công')
+    showToast('Chuyển chi nhánh thành công — doanh thu cũ vẫn thuộc chi nhánh trước ngày hiệu lực')
     onSaved()
     closeAll()
   }
 
   const handleStatus = (e) => {
     e.preventDefault()
-    const result = updateEmployee(selectedEmployeeId, { status: statusValue })
+    const result = setEmployeeStatus(selectedEmployeeId, statusValue)
     if (!result.success) {
       showToast(result.error ?? 'Không thể đổi trạng thái')
       return
     }
-    showToast('Đã cập nhật trạng thái')
+    const label = getStatusLabel(statusValue)
+    if (statusValue === EMPLOYEE_STATUS.RESIGNED) {
+      showToast(`Đã chuyển sang Nghỉ việc — khóa đăng nhập, giữ toàn bộ dữ liệu lịch sử`)
+    } else {
+      showToast(`Đã cập nhật trạng thái: ${label}`)
+    }
     onSaved()
     closeAll()
   }
 
-  const handleSoftDelete = () => {
-    if (!window.confirm(`Ẩn nhân viên "${selectedEmployee?.name}" khỏi danh sách? Dữ liệu và doanh số cũ vẫn được giữ.`)) return
-    const result = softDeleteEmployee(selectedEmployeeId)
+  const handleArchive = () => {
+    if (!window.confirm(`Lưu trữ nhân viên "${selectedEmployee?.name}"?\n\nNhân viên sẽ ẩn khỏi danh sách mặc định. Toàn bộ hóa đơn, doanh thu và báo cáo vẫn được giữ.`)) return
+    const result = archiveEmployee(selectedEmployeeId)
     if (!result.success) {
-      showToast(result.error ?? 'Không thể xóa nhân viên')
+      showToast(result.error ?? 'Không thể lưu trữ nhân viên')
       return
     }
-    showToast('Đã ẩn nhân viên (xóa mềm)')
+    showToast('Đã lưu trữ nhân viên')
+    onSaved()
+    closeAll()
+  }
+
+  const handlePermanentDelete = () => {
+    if (!window.confirm(`XÓA VĨNH VIỄN "${selectedEmployee?.name}"?\n\nChỉ thực hiện khi nhân viên chưa từng có hóa đơn/doanh thu.`)) return
+    const result = deleteEmployee(selectedEmployeeId)
+    if (!result.success) {
+      showToast(result.error ?? PERMANENT_DELETE_BLOCKED_MESSAGE)
+      return
+    }
+    showToast('Đã xóa vĩnh viễn nhân viên')
     onSaved()
     closeAll()
   }
@@ -192,7 +222,7 @@ export default function EmployeeHubSettings({
         <header className="employee-hub-settings__header">
           <div>
             <Settings size={20} aria-hidden />
-            <h3>Cài đặt nhân viên</h3>
+            <h3>Quản lý nhân viên</h3>
           </div>
           <button type="button" className="employee-hub-settings__close" onClick={closeAll} aria-label="Đóng">
             <X size={20} />
@@ -205,6 +235,7 @@ export default function EmployeeHubSettings({
               <p className="employee-hub-settings__selected">
                 Đang chọn: <strong>{selectedEmployee.name}</strong>
                 {' · '}{getBranchById(selectedEmployee.branchId)?.name}
+                {' · '}{getStatusLabel(selectedEmployee.status)}
               </p>
             )}
             {allowAdd && (
@@ -223,16 +254,19 @@ export default function EmployeeHubSettings({
             <button type="button" className="employee-hub-settings__menu-btn" onClick={openStatus} disabled={!selectedEmployee}>
               Đổi trạng thái
             </button>
-            {allowDelete && (
-              <button type="button" className="employee-hub-settings__menu-btn employee-hub-settings__menu-btn--danger" onClick={handleSoftDelete} disabled={!selectedEmployee}>
-                Xóa mềm nhân viên
-              </button>
+            {allowAdminActions && (
+              <>
+                <button type="button" className="employee-hub-settings__menu-btn" onClick={handleArchive} disabled={!selectedEmployee}>
+                  Lưu trữ nhân viên
+                </button>
+                <button type="button" className="employee-hub-settings__menu-btn employee-hub-settings__menu-btn--danger" onClick={handlePermanentDelete} disabled={!selectedEmployee}>
+                  Xóa vĩnh viễn (chưa có dữ liệu)
+                </button>
+              </>
             )}
-            {isAdmin() && (
-              <p className="employee-hub-settings__hint">
-                Phân quyền chi tiết: Cài đặt → Phân quyền
-              </p>
-            )}
+            <p className="employee-hub-settings__hint">
+              Nghỉ việc/Lưu trữ giữ nguyên hóa đơn và báo cáo. Không xóa dữ liệu lịch sử.
+            </p>
           </div>
         )}
 
@@ -246,6 +280,7 @@ export default function EmployeeHubSettings({
               mode={mode}
               showAvatarUpload={isAdmin()}
               onAvatarError={showToast}
+              forceAdminFields={isAdmin()}
             />
             <div className="employee-hub-settings__actions">
               <button type="button" className="employee-hub-settings__primary" onClick={handleSaveEmployee}>
@@ -259,6 +294,9 @@ export default function EmployeeHubSettings({
         {mode === 'transfer' && (
           <form className="employee-hub-settings__body" onSubmit={handleTransfer}>
             <h4>Chuyển chi nhánh</h4>
+            <p className="employee-hub-settings__hint">
+              Doanh thu trước ngày hiệu lực vẫn thuộc chi nhánh cũ (theo hóa đơn đã lưu).
+            </p>
             <label className="employee-hub-settings__field">
               <span>Chi nhánh mới</span>
               <select value={transfer.branchId} onChange={(e) => setTransfer({ ...transfer, branchId: e.target.value })} required>
@@ -269,12 +307,16 @@ export default function EmployeeHubSettings({
               </select>
             </label>
             <label className="employee-hub-settings__field">
-              <span>Ngày chuyển</span>
-              <input type="date" value={transfer.transferDate} onChange={(e) => setTransfer({ ...transfer, transferDate: e.target.value })} required />
+              <span>Ngày hiệu lực</span>
+              <input type="date" value={transfer.effectiveDate} onChange={(e) => setTransfer({ ...transfer, effectiveDate: e.target.value })} required />
             </label>
             <label className="employee-hub-settings__field">
-              <span>Ghi chú / lý do</span>
-              <textarea rows={3} value={transfer.note} onChange={(e) => setTransfer({ ...transfer, note: e.target.value })} placeholder="Lý do chuyển chi nhánh..." />
+              <span>Lý do chuyển</span>
+              <textarea rows={3} value={transfer.reason} onChange={(e) => setTransfer({ ...transfer, reason: e.target.value })} placeholder="Lý do chuyển chi nhánh..." required />
+            </label>
+            <label className="employee-hub-settings__field">
+              <span>Người duyệt</span>
+              <input value={transfer.approver} onChange={(e) => setTransfer({ ...transfer, approver: e.target.value })} required />
             </label>
             <div className="employee-hub-settings__actions">
               <button type="submit" className="employee-hub-settings__primary" disabled={!transfer.branchId}>Xác nhận chuyển</button>
@@ -285,15 +327,20 @@ export default function EmployeeHubSettings({
 
         {mode === 'status' && (
           <form className="employee-hub-settings__body" onSubmit={handleStatus}>
-            <h4>Đổi trạng thái</h4>
+            <h4>Trạng thái làm việc</h4>
             <label className="employee-hub-settings__field">
               <span>Trạng thái</span>
               <select value={statusValue} onChange={(e) => setStatusValue(e.target.value)}>
-                <option value={EMPLOYEE_STATUS.ACTIVE}>{getStatusLabel(EMPLOYEE_STATUS.ACTIVE)}</option>
-                <option value={EMPLOYEE_STATUS.ON_LEAVE}>{getStatusLabel(EMPLOYEE_STATUS.ON_LEAVE)}</option>
-                <option value={EMPLOYEE_STATUS.RESIGNED}>{getStatusLabel(EMPLOYEE_STATUS.RESIGNED)}</option>
+                {EMPLOYEE_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
             </label>
+            {statusValue === EMPLOYEE_STATUS.RESIGNED && (
+              <p className="employee-hub-settings__warn">
+                Nghỉ việc sẽ khóa đăng nhập và không cho tạo hóa đơn. Dữ liệu lịch sử vẫn giữ nguyên.
+              </p>
+            )}
             <div className="employee-hub-settings__actions">
               <button type="submit" className="employee-hub-settings__primary">Lưu trạng thái</button>
               <button type="button" onClick={() => setMode('menu')}>Quay lại</button>

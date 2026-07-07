@@ -15,6 +15,10 @@ import {
   getGenderLabel,
   getStatusLabel,
 } from '../../utils/employeeStorage'
+import {
+  getAuditActionLabel,
+  loadEmployeeAuditLogs,
+} from '../../utils/employeeAuditLog'
 import { getEmployeeLifetimeStats } from '../../utils/employeeStats'
 import { formatCurrency } from '../../utils/invoice'
 import EmployeeAvatar from './EmployeeAvatar'
@@ -53,6 +57,26 @@ function Thumb({ label, src, onOpen }) {
   )
 }
 
+function formatDateTime(iso) {
+  if (!iso) return '—'
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatRate(value) {
+  if (value === null || value === undefined || value === '') return ''
+  const num = Number(value)
+  if (Number.isNaN(num)) return String(value)
+  return `${num}%`
+}
+
 const STATUS_BADGE_TONE = {
   complete: 'success',
   missing_cccd: 'danger',
@@ -88,8 +112,9 @@ export default function EmployeeProfileDetail({
     if (showBankInfo) list.push({ id: 'bank', label: 'Ngân hàng' })
     if (hasImagesTab) list.push({ id: 'images', label: 'Hình ảnh' })
     if (showStats) list.push({ id: 'stats', label: 'Vận hành' })
+    if (forceAdminFields) list.push({ id: 'audit', label: 'Nhật ký' })
     return list
-  }, [hasContactTab, showCccd, showBankInfo, hasImagesTab, showStats])
+  }, [hasContactTab, showCccd, showBankInfo, hasImagesTab, showStats, forceAdminFields])
 
   const [activeTab, setActiveTab] = useState(tabs[0]?.id ?? 'basic')
   const currentTab = tabs.some((t) => t.id === activeTab) ? activeTab : tabs[0]?.id
@@ -98,6 +123,9 @@ export default function EmployeeProfileDetail({
   const profileStatus = forceAdminFields ? getEmployeeProfileStatus(employee) : null
   const stats = showStats ? getEmployeeLifetimeStats(employee?.id) : null
   const branchHistory = Array.isArray(employee?.branchHistory) ? employee.branchHistory : []
+  const auditLogs = forceAdminFields && employee?.id
+    ? loadEmployeeAuditLogs({ employeeId: employee.id, limit: 50 })
+    : []
 
   if (!employee) return null
 
@@ -153,6 +181,9 @@ export default function EmployeeProfileDetail({
             {showPosition && <Row label="Chức vụ" value={employee.position} />}
             <Row label="Trạng thái" value={getStatusLabel(employee.status)} />
             <Row label="Ngày bắt đầu làm việc" value={employee.startDate} />
+            {forceAdminFields && <Row label="Ngày nghỉ việc" value={employee.endDate} />}
+            {forceAdminFields && <Row label="Mức hoa hồng" value={formatRate(employee.commissionRate)} />}
+            {forceAdminFields && <Row label="Tỷ lệ lương" value={formatRate(employee.salaryRate)} />}
             <Row label="Số điện thoại" value={employee.phone} />
             {showNote && <Row label="Ghi chú" value={employee.note} />}
           </div>
@@ -236,13 +267,38 @@ export default function EmployeeProfileDetail({
                 <ul className="employee-detail__history-list">
                   {branchHistory.map((entry, index) => (
                     <li key={`${entry.branchId}-${index}`}>
-                      {entry.branchName || entry.branchId} — đến {new Date(entry.changedAt).toLocaleDateString('vi-VN')}
+                      <strong>{entry.effectiveDate || entry.transferDate || formatDateTime(entry.changedAt).slice(0, 10)}</strong>
+                      {' — '}
+                      {entry.fromBranchName || entry.branchName || entry.branchId}
+                      {' → '}
+                      {entry.toBranchName || '—'}
+                      {entry.approver && <> · Duyệt: {entry.approver}</>}
+                      {entry.reason && <> · {entry.reason}</>}
                     </li>
                   ))}
                   <li>{branch?.name} — hiện tại</li>
                 </ul>
               )}
             </div>
+          </div>
+        )}
+
+        {currentTab === 'audit' && (
+          <div className="employee-detail__section">
+            {auditLogs.length === 0 ? (
+              <p className="employee-detail__hint">Chưa có nhật ký thao tác.</p>
+            ) : (
+              <ul className="employee-detail__audit-list">
+                {auditLogs.map((entry) => (
+                  <li key={entry.id}>
+                    <strong>{formatDateTime(entry.createdAt)}</strong>
+                    <span>{getAuditActionLabel(entry.action)}</span>
+                    <em>{entry.details}</em>
+                    <span className="employee-detail__audit-actor">{entry.actorName}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </div>

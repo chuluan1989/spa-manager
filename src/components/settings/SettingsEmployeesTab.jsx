@@ -5,8 +5,10 @@ import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import { loadBranches } from '../../utils/branchStorage'
 import {
   addEmployee,
+  archiveEmployee,
   deleteEmployee,
   EMPTY_EMPLOYEE_FORM,
+  EMPLOYEE_STATUS_OPTIONS,
   getEmployeeById,
   getEmployeeProfileStatus,
   getStatusLabel,
@@ -16,6 +18,7 @@ import {
   transferEmployee,
   updateEmployee,
 } from '../../utils/employeeStorage'
+import { PERMANENT_DELETE_BLOCKED_MESSAGE } from '../../utils/employeeDeleteGuard'
 
 const POSITION_SUGGESTIONS = [
   'KTV Body',
@@ -132,14 +135,25 @@ export default function SettingsEmployeesTab({ showToast }) {
     refresh()
   }
 
-  const handleDelete = (id) => {
-    if (!window.confirm('Xóa nhân viên này?')) return
-    const result = deleteEmployee(id)
+  const handleArchive = (id) => {
+    if (!window.confirm('Lưu trữ nhân viên này? Hồ sơ sẽ ẩn khỏi danh sách mặc định nhưng giữ nguyên dữ liệu lịch sử.')) return
+    const result = archiveEmployee(id)
     if (!result.success) {
-      showToast(result.error ?? 'Không thể xóa nhân viên')
+      showToast(result.error ?? 'Không thể lưu trữ nhân viên')
       return
     }
-    showToast('Đã xóa nhân viên')
+    showToast('Đã lưu trữ nhân viên')
+    refresh()
+  }
+
+  const handlePermanentDelete = (id) => {
+    if (!window.confirm('Xóa vĩnh viễn nhân viên này? Chỉ áp dụng khi chưa phát sinh hóa đơn/doanh thu.')) return
+    const result = deleteEmployee(id)
+    if (!result.success) {
+      showToast(result.error ?? PERMANENT_DELETE_BLOCKED_MESSAGE)
+      return
+    }
+    showToast('Đã xóa vĩnh viễn nhân viên')
     refresh()
   }
 
@@ -228,9 +242,9 @@ export default function SettingsEmployeesTab({ showToast }) {
             onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           >
             <option value="">Tất cả</option>
-            <option value="active">Đang làm</option>
-            <option value="on_leave">Nghỉ phép</option>
-            <option value="resigned">Nghỉ việc</option>
+            {EMPLOYEE_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </div>
         <div className="settings__filter-field">
@@ -284,8 +298,11 @@ export default function SettingsEmployeesTab({ showToast }) {
                         <button type="button" className="settings__btn settings__btn--small settings__btn--secondary" onClick={() => openEdit(employee)}>
                           Sửa
                         </button>
-                        <button type="button" className="settings__btn settings__btn--small settings__btn--danger" onClick={() => handleDelete(employee.id)}>
-                          Xóa
+                        <button type="button" className="settings__btn settings__btn--small" onClick={() => handleArchive(employee.id)}>
+                          Lưu trữ
+                        </button>
+                        <button type="button" className="settings__btn settings__btn--small settings__btn--danger" onClick={() => handlePermanentDelete(employee.id)}>
+                          Xóa vĩnh viễn
                         </button>
                       </td>
                     </tr>

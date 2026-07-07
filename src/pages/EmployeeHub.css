@@ -327,6 +327,24 @@
   color: #94a3b8;
 }
 
+.employee-hub-status--archived {
+  background: rgba(100, 116, 139, 0.2);
+  color: #cbd5e1;
+}
+
+.employee-hub__archived-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ks-text-muted);
+  white-space: nowrap;
+}
+
+.employee-hub__archived-toggle input {
+  accent-color: var(--ks-gold);
+}
+
 .employee-hub__detail {
   padding: 12px;
   overflow-y: auto;

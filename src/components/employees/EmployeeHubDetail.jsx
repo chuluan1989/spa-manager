@@ -212,13 +212,14 @@ export default function EmployeeHubDetail({ employee, invoices, month, onEdit })
               <ul className="employee-hub-history-list">
                 {[...branchHistory].reverse().map((entry, index) => (
                   <li key={`${entry.changedAt}-${index}`}>
-                    <strong>{entry.transferDate || formatDisplayDate((entry.changedAt || '').slice(0, 10))}</strong>
+                    <strong>{entry.effectiveDate || entry.transferDate || formatDisplayDate((entry.changedAt || '').slice(0, 10))}</strong>
                     <span>
                       {entry.fromBranchName || entry.branchName || '—'}
                       {' → '}
                       {entry.toBranchName || '—'}
                     </span>
-                    {entry.note && <em>{entry.note}</em>}
+                    {entry.approver && <span>Người duyệt: {entry.approver}</span>}
+                    {(entry.reason || entry.note) && <em>{entry.reason || entry.note}</em>}
                   </li>
                 ))}
               </ul>

@@ -1,6 +1,23 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
+const SUPABASE_EMPLOYEE_FIELDS = [
+  'id', 'branchId', 'name', 'dateOfBirth', 'gender', 'phone', 'email', 'cccd',
+  'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'currentAddress',
+  'bankName', 'bankAccountHolder', 'bankAccount',
+  'emergencyContactName', 'emergencyContactPhone',
+  'position', 'startDate', 'status', 'note', 'avatar',
+  'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
+]
+
+function toSupabaseEmployeePayload(employee) {
+  const payload = {}
+  for (const key of SUPABASE_EMPLOYEE_FIELDS) {
+    if (employee[key] !== undefined) payload[key] = employee[key]
+  }
+  return payload
+}
+
 const TABLE = 'employees'
 
 export async function fetchEmployeesFiltered({ branchId } = {}) {
@@ -21,7 +38,7 @@ export async function fetchEmployees() {
 
 export async function upsertEmployee(employee) {
   if (!isSupabaseConfigured || !employee?.id) return
-  const row = objectToSnakeRow({ ...employee, updatedAt: new Date().toISOString() })
+  const row = objectToSnakeRow({ ...toSupabaseEmployeePayload(employee), updatedAt: new Date().toISOString() })
   const { error } = await supabase.from(TABLE).upsert(row, { onConflict: 'id' })
   if (error) throw error
 }
@@ -29,7 +46,7 @@ export async function upsertEmployee(employee) {
 export async function upsertEmployees(employees) {
   if (!isSupabaseConfigured || !Array.isArray(employees) || employees.length === 0) return
   const rows = employees.map((employee) =>
-    objectToSnakeRow({ ...employee, updatedAt: new Date().toISOString() }),
+    objectToSnakeRow({ ...toSupabaseEmployeePayload(employee), updatedAt: new Date().toISOString() }),
   )
   const { error } = await supabase.from(TABLE).upsert(rows, { onConflict: 'id' })
   if (error) throw error

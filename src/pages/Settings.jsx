@@ -1,20 +1,26 @@
 import { useState } from 'react'
 import { canAccessSettingsPage } from '../constants/auth'
 import SettingsAccountsTab from '../components/settings/SettingsAccountsTab'
+import SettingsAdminProfileTab from '../components/settings/SettingsAdminProfileTab'
+import SettingsAuditLogTab from '../components/settings/SettingsAuditLogTab'
 import SettingsBackupTab from '../components/settings/SettingsBackupTab'
 import SettingsBranchPricingTab from '../components/settings/SettingsBranchPricingTab'
 import SettingsBranchesTab from '../components/settings/SettingsBranchesTab'
 import SettingsEmployeesTab from '../components/settings/SettingsEmployeesTab'
+import SettingsPoliciesTab from '../components/settings/SettingsPoliciesTab'
 import SettingsServicesTab from '../components/settings/SettingsServicesTab'
 import './Settings.css'
 
 const TABS = [
+  { id: 'admin-profile', label: 'Hồ sơ Admin' },
+  { id: 'accounts', label: 'Tài khoản & phân quyền' },
   { id: 'branches', label: 'Chi nhánh' },
   { id: 'employees', label: 'Nhân viên' },
   { id: 'services', label: 'Dịch vụ' },
   { id: 'branch-pricing', label: 'Bảng giá theo chi nhánh' },
-  { id: 'accounts', label: 'Tài khoản & phân quyền' },
-  { id: 'backup', label: 'Sao lưu dữ liệu' },
+  { id: 'policies', label: 'Chính sách' },
+  { id: 'audit-log', label: 'Nhật ký' },
+  { id: 'backup', label: 'Sao lưu & hệ thống' },
 ]
 
 export default function Settings() {
@@ -40,6 +46,8 @@ export default function Settings() {
 
   const renderTab = () => {
     switch (activeTab) {
+      case 'admin-profile':
+        return <SettingsAdminProfileTab showToast={showToast} />
       case 'branches':
         return <SettingsBranchesTab showToast={showToast} onDataChange={handleDataChange} />
       case 'employees':
@@ -48,6 +56,10 @@ export default function Settings() {
         return <SettingsServicesTab showToast={showToast} />
       case 'branch-pricing':
         return <SettingsBranchPricingTab showToast={showToast} key={refreshKey} />
+      case 'policies':
+        return <SettingsPoliciesTab />
+      case 'audit-log':
+        return <SettingsAuditLogTab />
       case 'accounts':
         return <SettingsAccountsTab showToast={showToast} />
       case 'backup':
@@ -64,7 +76,7 @@ export default function Settings() {
       <header className="settings__header">
         <h2 className="settings__title">Trung tâm quản trị hệ thống</h2>
         <p className="settings__subtitle">
-          Quản lý chi nhánh, nhân viên, dịch vụ, bảng giá, tài khoản và sao lưu dữ liệu
+          Quản lý tài khoản, chi nhánh, nhân viên, dịch vụ, chính sách, nhật ký và sao lưu dữ liệu
         </p>
       </header>
 

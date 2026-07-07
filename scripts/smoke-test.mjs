@@ -94,9 +94,15 @@ const {
   isEmployeeProfileComplete,
   transferEmployee,
   softDeleteEmployee,
+  archiveEmployee,
+  deleteEmployee,
+  setEmployeeStatus,
+  EMPLOYEE_STATUS,
   updateEmployee,
   updateOwnEmployeeProfile,
 } = await import('../src/utils/employeeStorage.js')
+const { canPermanentDeleteEmployee, PERMANENT_DELETE_BLOCKED_MESSAGE } = await import('../src/utils/employeeDeleteGuard.js')
+const { loadEmployeeAuditLogs } = await import('../src/utils/employeeAuditLog.js')
 const { getEmployeeLifetimeStats } = await import('../src/utils/employeeStats.js')
 const {
   computeEmployeeListStats,
@@ -1072,8 +1078,69 @@ test('softDeleteEmployee: đặt trạng thái nghỉ việc, giữ hồ sơ', (
   const result = softDeleteEmployee('vinh-long-linh')
   assert.equal(result.success, true)
   assert.equal(result.employee.status, 'resigned')
+  assert.ok(result.employee.endDate, 'Ghi nhận ngày nghỉ việc')
   assert.equal(result.employee.name, before.name)
-  assert.equal(result.employee.phone, before.phone, 'SĐT vẫn còn sau xóa mềm')
+  assert.equal(result.employee.phone, before.phone, 'SĐT vẫn còn sau nghỉ việc')
+  clearCurrentUser()
+})
+
+test('archiveEmployee: lưu trữ nhân viên, giữ hồ sơ', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  updateEmployee('vinh-long-linh', { status: 'active', endDate: '' })
+  const before = getEmployeeById('vinh-long-linh')
+  const result = archiveEmployee('vinh-long-linh')
+  assert.equal(result.success, true)
+  assert.equal(result.employee.status, EMPLOYEE_STATUS.ARCHIVED)
+  assert.equal(result.employee.name, before.name)
+  clearCurrentUser()
+})
+
+test('canPermanentDeleteEmployee: chặn xóa khi đã có hóa đơn', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  saveInvoice({
+    id: 'guard-inv-1',
+    branchId: 'vinh-long',
+    employeeId: 'vinh-long-linh',
+    date: '2026-07-01',
+    serviceTotal: 100000,
+    tips: 0,
+    commission: 0,
+    services: [],
+  })
+  const guard = canPermanentDeleteEmployee('vinh-long-linh')
+  assert.equal(guard.allowed, false)
+  assert.equal(guard.reason, PERMANENT_DELETE_BLOCKED_MESSAGE)
+  clearCurrentUser()
+})
+
+test('deleteEmployee: chặn xóa vĩnh viễn khi có hóa đơn', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  saveInvoice({
+    id: 'guard-inv-2',
+    branchId: 'vinh-long',
+    employeeId: 'vinh-long-linh',
+    date: '2026-07-02',
+    serviceTotal: 50000,
+    tips: 0,
+    commission: 0,
+    services: [],
+  })
+  const result = deleteEmployee('vinh-long-linh')
+  assert.equal(result.success, false)
+  assert.equal(result.error, PERMANENT_DELETE_BLOCKED_MESSAGE)
+  assert.ok(getEmployeeById('vinh-long-linh'), 'Nhân viên vẫn tồn tại')
+  const logs = loadEmployeeAuditLogs({ employeeId: 'vinh-long-linh', limit: 5 })
+  assert.ok(logs.some((entry) => entry.action === 'permanent_delete_blocked'))
+  clearCurrentUser()
+})
+
+test('setEmployeeStatus: nghỉ việc khóa đăng nhập nhưng giữ dữ liệu', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  updateEmployee('vinh-long-linh', { status: 'active', endDate: '' })
+  const result = setEmployeeStatus('vinh-long-linh', EMPLOYEE_STATUS.RESIGNED)
+  assert.equal(result.success, true)
+  assert.equal(result.employee.status, EMPLOYEE_STATUS.RESIGNED)
+  assert.ok(result.employee.endDate)
   clearCurrentUser()
 })
 
