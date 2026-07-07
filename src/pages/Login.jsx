@@ -3,7 +3,7 @@ import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
 import { ROLES } from '../constants/auth'
 import { verifyLogin } from '../constants/loginCredentials'
 import { getActiveBranches } from '../constants/branches'
-import { BRANCH_CONTACTS, BRAND_SLOGAN, SYSTEM_HOTLINE } from '../constants/branchContacts'
+import { BRANCH_CONTACTS, SYSTEM_HOTLINE } from '../constants/branchContacts'
 import { getActiveEmployeesByBranch } from '../utils/employeeStorage'
 import './Login.css'
 
@@ -13,7 +13,7 @@ const ROLE_OPTIONS = [
   { value: ROLES.EMPLOYEE, label: 'Nhân viên' },
 ]
 
-export default function Login({ onLogin, onBack }) {
+export default function Login({ onLogin }) {
   const [role, setRole] = useState('')
   const [branch, setBranch] = useState('')
   const [employeeId, setEmployeeId] = useState('')
@@ -44,32 +44,21 @@ export default function Login({ onLogin, onBack }) {
 
   return (
     <div className="login">
+      <div className="login__backdrop" aria-hidden="true">
+        <img src="/assets/spa-hero.png" alt="" className="login__backdrop-image" />
+        <div className="login__backdrop-overlay" />
+      </div>
+
       <div className="login__stage">
-        <aside className="login__hero">
-          <div className="login__hero-media" aria-hidden="true">
-            <img src="/assets/spa-hero.png" alt="" className="login__hero-image" />
-            <div className="login__hero-overlay" />
+        <section className="login__brand-panel">
+          <KhoeSpaLogo size={268} className="login__logo" priority />
+          <div className="login__hotline">
+            <span className="login__hotline-label">Hotline</span>
+            <a href={`tel:${SYSTEM_HOTLINE.replace(/\./g, '')}`} className="login__hotline-number">
+              {SYSTEM_HOTLINE}
+            </a>
           </div>
-
-          <div className="login__hero-content">
-            {onBack && (
-              <button type="button" className="login__back" onClick={onBack}>
-                Quay lại
-              </button>
-            )}
-
-            <div className="login__brand">
-              <KhoeSpaLogo size={268} className="login__logo" priority />
-              <p className="login__slogan">{BRAND_SLOGAN}</p>
-              <div className="login__hotline">
-                <span className="login__hotline-label">Hotline</span>
-                <a href={`tel:${SYSTEM_HOTLINE.replace(/\./g, '')}`} className="login__hotline-number">
-                  {SYSTEM_HOTLINE}
-                </a>
-              </div>
-            </div>
-          </div>
-        </aside>
+        </section>
 
         <main className="login__main">
           <div className="login__card">
