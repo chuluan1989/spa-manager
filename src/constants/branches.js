@@ -11,6 +11,7 @@ export {
   addBranch,
   updateBranch,
   createBranchId,
+  syncMissingDefaultBranches,
   getStatusLabel as getBranchStatusLabel,
 } from '../utils/branchStorage'
 

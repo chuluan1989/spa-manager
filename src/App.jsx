@@ -22,6 +22,7 @@ import Settings from './pages/Settings'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncMissingBranchCredentials } from './utils/credentialsStorage'
 import { syncAllCustomBranchPricing } from './utils/branchPricingStorage'
+import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { getEmployeeById, isEmployeeProfileComplete } from './utils/employeeStorage'
 
 const PAGES = {
@@ -61,6 +62,7 @@ function App() {
 
   useEffect(() => {
     clearLegacySession()
+    syncMissingDefaultBranches()
     Promise.all([
       ensureCredentialsHashed(),
       syncMissingBranchCredentials(),

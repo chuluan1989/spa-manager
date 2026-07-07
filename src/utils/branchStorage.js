@@ -14,6 +14,8 @@ const DEFAULT_BRANCHES = [
   { id: 'soc-trang', name: 'Sóc Trăng', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: true },
   { id: 'tram-spa', name: 'Trạm Spa', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.TRAM_SPA, supportEnabled: true },
   { id: 'song-khoe-spa', name: 'Sống Khoẻ Spa', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.SONG_KHOE_SPA, supportEnabled: true },
+  { id: 'gia-lai-1', name: 'Gia Lai 1', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+  { id: 'gia-lai-2', name: 'Gia Lai 2', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
 ]
 
 export function normalizeBranch(branch) {
@@ -52,6 +54,22 @@ export function saveBranches(branches) {
   const normalized = branches.map(normalizeBranch)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   return normalized
+}
+
+/**
+ * Bổ sung các chi nhánh mặc định mới (vd. khi hệ thống thêm chi nhánh mới
+ * qua code) vào danh sách đã lưu trong localStorage của người dùng cũ,
+ * mà không đụng tới hay xoá bất kỳ chi nhánh nào đã có sẵn.
+ */
+export function syncMissingDefaultBranches() {
+  const branches = loadBranches()
+  const existingIds = new Set(branches.map((branch) => branch.id))
+  const missing = DEFAULT_BRANCHES.filter((branch) => !existingIds.has(branch.id))
+  if (missing.length === 0) return branches
+
+  const merged = [...branches, ...missing.map(normalizeBranch)]
+  saveBranches(merged)
+  return merged
 }
 
 export function getBranchById(branchId) {

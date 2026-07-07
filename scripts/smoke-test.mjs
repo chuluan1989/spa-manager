@@ -61,6 +61,8 @@ const { calculateInvoiceTotals, calculateServiceCommissionFromDetails } = await 
 const { computeReportSummary, computeReportData } = await import('../src/utils/report.js')
 const { computeSalaryReport, getPayPeriodRange, PAY_CYCLES } = await import('../src/utils/salaryReport.js')
 const { verifyLogin, ADMIN_BRANCH } = await import('../src/constants/loginCredentials.js')
+const { getActiveBranches, syncMissingDefaultBranches, BRANCH_STATUS } = await import('../src/utils/branchStorage.js')
+const { PRICE_GROUP_IDS } = await import('../src/constants/priceGroupIds.js')
 const { ROLES } = await import('../src/constants/auth.js')
 const { saveCurrentUser, loadCurrentUser, clearCurrentUser } = await import('../src/utils/authStorage.js')
 const {
@@ -87,7 +89,7 @@ const {
 } = await import('../src/utils/employeeStorage.js')
 const { redactEmployeeForViewer } = await import('../src/utils/employeeVisibility.js')
 const { isValidCccd, isValidVietnamesePhone } = await import('../src/utils/validators.js')
-const { ensureCredentialsHashed } = await import('../src/utils/credentialsStorage.js')
+const { ensureCredentialsHashed, verifyBranchPassword } = await import('../src/utils/credentialsStorage.js')
 const { validateImportPayload } = await import('../src/utils/dataBackup.js')
 const { SUPPORT_EMPLOYEE_COMMISSION_RATE } = await import('../src/constants/salary.js')
 
@@ -172,6 +174,57 @@ test('login: admin credentials', async () => {
   const result = await verifyLogin({ role: ROLES.ADMIN, branch: '', password: 'admin123' })
   assert.equal(result.ok, true)
   assert.equal(result.user.branch, ADMIN_BRANCH)
+})
+
+test('branches: Gia Lai 1 và Gia Lai 2 tồn tại với đúng nhóm bảng giá', () => {
+  const active = getActiveBranches()
+  const giaLai1 = active.find((b) => b.id === 'gia-lai-1')
+  const giaLai2 = active.find((b) => b.id === 'gia-lai-2')
+
+  assert.ok(giaLai1, 'Phải có chi nhánh Gia Lai 1')
+  assert.equal(giaLai1.name, 'Gia Lai 1')
+  assert.equal(giaLai1.status, BRANCH_STATUS.ACTIVE)
+  assert.equal(giaLai1.priceGroupId, PRICE_GROUP_IDS.STANDARD, 'Gia Lai 1 phải dùng nhóm bảng giá Khoẻ Spa')
+
+  assert.ok(giaLai2, 'Phải có chi nhánh Gia Lai 2')
+  assert.equal(giaLai2.name, 'Gia Lai 2')
+  assert.equal(giaLai2.status, BRANCH_STATUS.ACTIVE)
+  assert.equal(giaLai2.priceGroupId, PRICE_GROUP_IDS.STANDARD, 'Gia Lai 2 phải dùng nhóm bảng giá Khoẻ Spa')
+})
+
+test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh Gia Lai 1/2', async () => {
+  await ensureCredentialsHashed()
+  assert.equal(await verifyBranchPassword('gia-lai-1', 'khoespagialai1'), true)
+  assert.equal(await verifyBranchPassword('gia-lai-2', 'khoespagialai2'), true)
+  assert.equal(await verifyBranchPassword('gia-lai-1', 'saipass'), false)
+
+  const login1 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-1', password: 'khoespagialai1' })
+  assert.equal(login1.ok, true)
+  assert.equal(login1.user.branch, 'gia-lai-1')
+
+  const login2 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-2', password: 'khoespagialai2' })
+  assert.equal(login2.ok, true)
+  assert.equal(login2.user.branch, 'gia-lai-2')
+})
+
+test('branches: đồng bộ chi nhánh mặc định không làm mất chi nhánh cũ / dữ liệu tuỳ chỉnh', () => {
+  // Giả lập người dùng cũ: localStorage chỉ có các chi nhánh cũ (chưa có Gia Lai),
+  // và một chi nhánh đã có tuỳ chỉnh riêng (đổi tên, khoá...).
+  const legacyBranches = [
+    { id: 'vinh-long', name: 'Vĩnh Long (đã đổi tên)', status: BRANCH_STATUS.LOCKED, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+    { id: 'tra-vinh', name: 'Trà Vinh', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+  ]
+  localStorage.setItem('spa-manager-branches', JSON.stringify(legacyBranches))
+
+  const merged = syncMissingDefaultBranches()
+
+  const vinhLong = merged.find((b) => b.id === 'vinh-long')
+  assert.equal(vinhLong.name, 'Vĩnh Long (đã đổi tên)', 'Không được ghi đè dữ liệu chi nhánh cũ đã tuỳ chỉnh')
+  assert.equal(vinhLong.status, BRANCH_STATUS.LOCKED, 'Không được đổi trạng thái chi nhánh cũ')
+
+  assert.equal(merged.length, 8, 'Phải giữ 2 chi nhánh cũ + bổ sung đủ chi nhánh mặc định còn thiếu')
+  assert.ok(merged.some((b) => b.id === 'gia-lai-1'), 'Phải tự bổ sung Gia Lai 1 cho người dùng cũ')
+  assert.ok(merged.some((b) => b.id === 'gia-lai-2'), 'Phải tự bổ sung Gia Lai 2 cho người dùng cũ')
 })
 
 test('session: reject forged localStorage admin', () => {
