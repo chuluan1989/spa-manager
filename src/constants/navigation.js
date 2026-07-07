@@ -1,15 +1,15 @@
 export const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Tổng quan', icon: 'dashboard' },
-  { id: 'reports', label: 'Báo cáo', icon: 'report' },
-  { id: 'revenue', label: 'Doanh thu', icon: 'revenue' },
-  { id: 'invoices', label: 'Hóa đơn', icon: 'invoice' },
-  { id: 'admin-employees', label: 'Nhân viên', icon: 'employee' },
-  { id: 'expenses', label: 'Chi phí', icon: 'expense' },
-  { id: 'admin-services', label: 'Dịch vụ', icon: 'service' },
-  { id: 'settings', label: 'Cài đặt', icon: 'settings' },
-  { id: 'employees', label: 'Nhân viên', icon: 'employee' },
-  { id: 'legacy-sync', label: 'Đồng bộ', icon: 'cloud-sync' },
-  { id: 'profile', label: 'Hồ sơ', icon: 'profile' },
+  { id: 'dashboard', label: 'Tổng quan', icon: 'dashboard', description: 'Dashboard toàn hệ thống' },
+  { id: 'reports', label: 'Báo cáo', icon: 'report', description: 'Doanh thu • Lương • Thống kê' },
+  { id: 'revenue', label: 'Doanh thu', icon: 'revenue', description: 'Theo dõi doanh thu chi nhánh' },
+  { id: 'invoices', label: 'Hóa đơn', icon: 'invoice', description: 'Quản lý hóa đơn khách' },
+  { id: 'admin-employees', label: 'Nhân viên', icon: 'employee', description: 'Nhân sự & hồ sơ' },
+  { id: 'expenses', label: 'Chi phí', icon: 'expense', description: 'Quản lý chi phí' },
+  { id: 'admin-services', label: 'Dịch vụ', icon: 'service', description: 'Bảng giá & dịch vụ' },
+  { id: 'settings', label: 'Cài đặt', icon: 'settings', description: 'Hệ thống & phân quyền' },
+  { id: 'employees', label: 'Nhân viên', icon: 'employee', description: 'Nhân sự & hồ sơ' },
+  { id: 'legacy-sync', label: 'Đồng bộ', icon: 'cloud-sync', description: 'Đồng bộ dữ liệu cloud' },
+  { id: 'profile', label: 'Hồ sơ', icon: 'profile', description: 'Thông tin cá nhân' },
 ]
 
 /** Menu ưu tiên quản trị cho Admin (Chủ hệ thống). */
