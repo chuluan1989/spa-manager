@@ -26,14 +26,8 @@ export default function Landing({ onStart }) {
       <div className="landing__glow landing__glow--two" aria-hidden="true" />
 
       <div className="landing__content">
-        <header className="landing__header">
-          <div className="landing__brand">
-            <KhoeSpaLogo size={40} />
-            <span className="landing__brand-name">Khoẻ Spa Manager</span>
-          </div>
-        </header>
-
         <main className="landing__hero">
+          <KhoeSpaLogo size={104} className="landing__logo" />
           <p className="landing__eyebrow">Hệ thống quản lý vận hành</p>
           <h1 className="landing__title">Khoẻ Spa Manager</h1>
           <p className="landing__description">

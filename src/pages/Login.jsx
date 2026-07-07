@@ -57,11 +57,9 @@ export default function Login({ onLogin, onBack }) {
 
         <div className="login__card">
           <div className="login__brand">
-            <KhoeSpaLogo size={56} />
-            <div>
-              <h1 className="login__title">Khoẻ Spa Manager</h1>
-              <p className="login__slogan">Quản lý vận hành hệ thống Spa</p>
-            </div>
+            <KhoeSpaLogo size={84} />
+            <h1 className="login__title">Khoẻ Spa Manager</h1>
+            <p className="login__slogan">Quản lý vận hành hệ thống Spa</p>
           </div>
 
           <p className="login__audience">Dành cho Admin, Quản lý chi nhánh và Nhân viên</p>

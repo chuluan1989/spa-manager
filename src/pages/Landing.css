@@ -3,7 +3,7 @@
   min-height: 100vh;
   min-height: 100dvh;
   overflow: hidden;
-  background: linear-gradient(160deg, #f4fbf7 0%, #eaf7f0 45%, #f7fbf9 100%);
+  background: radial-gradient(circle at 20% 0%, #1c1404 0%, #000000 50%), #000;
   display: flex;
   flex-direction: column;
 }
@@ -11,25 +11,25 @@
 .landing__glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(60px);
+  filter: blur(70px);
   pointer-events: none;
   z-index: 0;
 }
 
 .landing__glow--one {
-  width: 420px;
-  height: 420px;
-  top: -140px;
-  right: -120px;
-  background: radial-gradient(circle, rgba(47, 158, 111, 0.28) 0%, rgba(47, 158, 111, 0) 70%);
+  width: 460px;
+  height: 460px;
+  top: -160px;
+  right: -140px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.24) 0%, rgba(212, 175, 55, 0) 70%);
 }
 
 .landing__glow--two {
-  width: 380px;
-  height: 380px;
-  bottom: -160px;
-  left: -100px;
-  background: radial-gradient(circle, rgba(212, 175, 55, 0.18) 0%, rgba(212, 175, 55, 0) 70%);
+  width: 420px;
+  height: 420px;
+  bottom: -170px;
+  left: -120px;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.14) 0%, rgba(212, 175, 55, 0) 70%);
 }
 
 .landing__content {
@@ -41,26 +41,8 @@
   width: 100%;
   max-width: 1080px;
   margin: 0 auto;
-  padding: 28px 24px 40px;
+  padding: 48px 24px 40px;
   box-sizing: border-box;
-}
-
-.landing__header {
-  display: flex;
-  justify-content: center;
-}
-
-.landing__brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.landing__brand-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0d6b4a;
-  letter-spacing: -0.2px;
 }
 
 .landing__hero {
@@ -69,7 +51,11 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-top: 56px;
+}
+
+.landing__logo {
+  margin-bottom: 20px;
+  filter: drop-shadow(0 8px 22px rgba(212, 175, 55, 0.28));
 }
 
 .landing__eyebrow {
@@ -78,14 +64,14 @@
   font-weight: 700;
   letter-spacing: 1.6px;
   text-transform: uppercase;
-  color: #2f9e6f;
+  color: #d4af37;
 }
 
 .landing__title {
   margin: 0 0 16px;
   font-size: clamp(32px, 6vw, 52px);
   font-weight: 800;
-  color: #0f2f22;
+  color: #f0c869;
   letter-spacing: -1px;
   line-height: 1.1;
 }
@@ -95,7 +81,7 @@
   max-width: 560px;
   font-size: clamp(15px, 2.2vw, 18px);
   line-height: 1.6;
-  color: #45594e;
+  color: #cbb98a;
 }
 
 .landing__cta {
@@ -105,19 +91,19 @@
   padding: 16px 32px;
   border: none;
   border-radius: 999px;
-  background: linear-gradient(135deg, #2f9e6f 0%, #0d6b4a 100%);
-  color: #fff;
+  background: linear-gradient(135deg, #f0c869 0%, #d4af37 55%, #b8860b 100%);
+  color: #1a1207;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: 0 14px 30px rgba(13, 107, 74, 0.28);
+  box-shadow: 0 14px 32px rgba(212, 175, 55, 0.32);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .landing__cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 36px rgba(13, 107, 74, 0.34);
+  box-shadow: 0 18px 38px rgba(212, 175, 55, 0.4);
 }
 
 .landing__cta:active {
@@ -138,13 +124,12 @@
 }
 
 .landing__feature-card {
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(47, 158, 111, 0.16);
+  background: linear-gradient(180deg, #171208 0%, #100c05 100%);
+  border: 1px solid rgba(212, 175, 55, 0.22);
   border-radius: 18px;
   padding: 24px 20px;
   text-align: left;
-  backdrop-filter: blur(6px);
-  box-shadow: 0 10px 30px rgba(15, 47, 34, 0.06);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .landing__feature-icon {
@@ -154,7 +139,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: rgba(47, 158, 111, 0.12);
+  background: rgba(212, 175, 55, 0.14);
   font-size: 22px;
   margin-bottom: 14px;
 }
@@ -163,36 +148,32 @@
   margin: 0 0 8px;
   font-size: 16px;
   font-weight: 700;
-  color: #0f2f22;
+  color: #f0c869;
 }
 
 .landing__feature-desc {
   margin: 0;
   font-size: 13.5px;
   line-height: 1.55;
-  color: #5b6d63;
+  color: #b5a582;
 }
 
 .landing__footer {
   margin-top: 48px;
   text-align: center;
   font-size: 13px;
-  color: #7c8d82;
+  color: #8a7650;
 }
 
 @media (max-width: 860px) {
   .landing__features {
     grid-template-columns: 1fr;
   }
-
-  .landing__hero {
-    padding-top: 32px;
-  }
 }
 
 @media (max-width: 480px) {
   .landing__content {
-    padding: 20px 16px 28px;
+    padding: 32px 16px 28px;
   }
 
   .landing__cta {
