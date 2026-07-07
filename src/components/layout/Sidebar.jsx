@@ -1,5 +1,5 @@
+import { LogOut } from 'lucide-react'
 import KhoeSpaLogo from '../brand/KhoeSpaLogo'
-import { BRAND_SLOGAN } from '../../constants/branchContacts'
 import { getVisibleNavItems } from '../../constants/auth'
 import NavIcon from './NavIcon'
 import './Sidebar.css'
@@ -8,13 +8,9 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
   const navItems = getVisibleNavItems()
 
   return (
-    <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
+    <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`} aria-label="Menu chính">
       <div className="sidebar__brand">
-        <KhoeSpaLogo size={52} className="sidebar__logo-img" />
-        <div className="sidebar__brand-text">
-          <h1 className="sidebar__title">Khoẻ Spa</h1>
-          <p className="sidebar__slogan">{BRAND_SLOGAN}</p>
-        </div>
+        <KhoeSpaLogo size={64} className="sidebar__logo-img" priority />
       </div>
 
       <nav className="sidebar__nav">
@@ -24,16 +20,24 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
             type="button"
             className={`sidebar__link ${activeItem === item.id ? 'sidebar__link--active' : ''}`}
             onClick={() => onNavigate?.(item.id)}
+            title={item.label}
+            aria-label={item.label}
+            aria-current={activeItem === item.id ? 'page' : undefined}
           >
             <NavIcon name={item.icon} />
-            <span>{item.label}</span>
           </button>
         ))}
       </nav>
 
       <div className="sidebar__footer">
-        <button type="button" className="sidebar__logout" onClick={onLogout}>
-          Đăng xuất
+        <button
+          type="button"
+          className="sidebar__logout"
+          onClick={onLogout}
+          title="Đăng xuất"
+          aria-label="Đăng xuất"
+        >
+          <LogOut size={20} strokeWidth={1.75} />
         </button>
       </div>
     </aside>

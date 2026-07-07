@@ -1,121 +1,108 @@
 .login {
-  --login-bg: #0f0f10;
-  --login-bg-soft: #161618;
+  --login-black: #0b0b0b;
   --login-gold: #d4af37;
   --login-gold-hover: #e6c25a;
-  --login-white: #ffffff;
-  --login-black: #0f0f10;
-  --login-muted: rgba(255, 255, 255, 0.52);
+  --login-cream: #faf8f5;
 
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: var(--login-white);
-  background-color: var(--login-bg);
-  background-image:
-    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(255, 255, 255, 0.035) 0%, transparent 55%),
-    linear-gradient(180deg, var(--login-bg) 0%, var(--login-bg-soft) 48%, var(--login-bg) 100%);
-  overflow-x: hidden;
+  background: var(--login-cream);
 }
 
-/* —— Main —— */
-.login__main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+/* —— Hero (black top) —— */
+.login__hero {
+  position: relative;
+  background: var(--login-black);
+  overflow: hidden;
+  animation: loginFadeIn 0.6s ease both;
+}
+
+.login__hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 50%, rgba(212, 175, 55, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 85% 30%, rgba(212, 175, 55, 0.08) 0%, transparent 50%),
+    linear-gradient(135deg, rgba(212, 175, 55, 0.06) 0%, transparent 40%, rgba(212, 175, 55, 0.04) 100%);
+}
+
+.login__hero-glow::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: -10%;
+  width: 120%;
+  height: 120px;
+  background: radial-gradient(ellipse 60% 100% at 50% 100%, rgba(212, 175, 55, 0.12) 0%, transparent 70%);
+}
+
+.login__hero-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 420px;
   align-items: center;
-  width: 100%;
-  max-width: 520px;
+  gap: 48px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 72px 24px 48px;
-  animation: loginFadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  padding: 56px 40px 64px;
 }
 
-/* —— Brand —— */
 .login__brand {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  width: 100%;
-  margin-bottom: 56px;
+  align-items: flex-start;
+  gap: 20px;
 }
 
 .login__logo {
-  margin: 0 auto 40px;
-  filter: drop-shadow(0 20px 48px rgba(0, 0, 0, 0.55));
-}
-
-.login__slogan {
-  margin: 0 0 28px;
-  font-size: 15px;
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  color: var(--login-muted);
-  line-height: 1.5;
+  filter: drop-shadow(0 20px 48px rgba(0, 0, 0, 0.5));
 }
 
 .login__hotline {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.login__hotline-label {
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.38);
-}
-
-.login__hotline-number {
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  color: var(--login-white);
+  color: rgba(255, 255, 255, 0.72);
   text-decoration: none;
   transition: color 0.25s ease;
 }
 
-.login__hotline-number:hover {
+.login__hotline:hover {
   color: var(--login-gold);
 }
 
 /* —— Form card —— */
 .login__card {
   width: 100%;
-  padding: 44px 40px 40px;
-  background: var(--login-white);
-  border-radius: 24px;
-  color: var(--login-black);
-  box-shadow:
-    0 32px 80px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+  padding: 40px 36px;
+  background: #ffffff;
+  border-radius: 22px;
+  color: #111827;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .login__card:hover {
-  box-shadow:
-    0 36px 96px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(212, 175, 55, 0.12);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.4);
 }
 
 .login__card-title {
-  margin: 0 0 32px;
-  font-size: 22px;
+  margin: 0 0 28px;
+  font-size: 20px;
   font-weight: 600;
-  color: var(--login-black);
-  text-align: center;
+  color: #111827;
   letter-spacing: -0.02em;
 }
 
 .login__form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .login__field {
@@ -127,21 +114,21 @@
 .login__field span {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(15, 15, 16, 0.55);
+  color: #6b7280;
 }
 
 .login__field select,
 .login__field input {
   width: 100%;
-  min-height: 52px;
-  padding: 14px 16px;
-  border: 1px solid rgba(15, 15, 16, 0.1);
-  border-radius: 14px;
+  min-height: 50px;
+  padding: 13px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   font-size: 15px;
   font-weight: 400;
   font-family: inherit;
-  color: var(--login-black);
-  background: var(--login-white);
+  color: #111827;
+  background: #fff;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -149,32 +136,30 @@
 .login__field input:focus {
   outline: none;
   border-color: var(--login-gold);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
 }
 
 .login__input--error {
   border-color: var(--login-gold) !important;
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12) !important;
 }
 
 .login__error {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(15, 15, 16, 0.72);
+  color: #6b7280;
 }
 
 .login__submit {
   width: 100%;
-  margin-top: 8px;
-  min-height: 54px;
+  margin-top: 6px;
+  min-height: 52px;
   padding: 0 24px;
   border: none;
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--login-gold);
-  color: var(--login-black);
+  color: #0b0b0b;
   font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.01em;
   cursor: pointer;
   font-family: inherit;
   transition: background 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
@@ -186,50 +171,67 @@
   box-shadow: 0 8px 24px rgba(212, 175, 55, 0.35);
 }
 
-.login__submit:active:not(:disabled) {
-  transform: translateY(0);
-}
-
 .login__submit:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* —— Branches —— */
+/* —— Branches (cream bottom) —— */
 .login__branches {
-  flex-shrink: 0;
-  width: 100%;
-  padding: 48px 32px 56px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  animation: loginFadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+  flex: 1;
+  padding: 48px 32px 40px;
+  background: var(--login-cream);
+  animation: loginFadeIn 0.6s ease 0.1s both;
+}
+
+.login__branches-title {
+  margin: 0 auto 32px;
+  max-width: 1100px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--login-gold);
 }
 
 .login__branches-grid {
-  max-width: 1120px;
+  max-width: 1100px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 28px 32px;
+  gap: 16px;
 }
 
 .login__branch-card {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 4px 0;
-  transition: opacity 0.25s ease;
+  padding: 18px 16px;
+  background: #ffffff;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 14px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .login__branch-card:hover {
-  opacity: 0.88;
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.1);
 }
 
 .login__branch-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
+  color: #111827;
+}
+
+.login__branch-label svg {
   color: var(--login-gold);
-  letter-spacing: 0.02em;
+  flex-shrink: 0;
 }
 
 .login__branch-address {
@@ -237,26 +239,40 @@
   font-size: 13px;
   font-weight: 400;
   line-height: 1.55;
-  color: var(--login-muted);
+  color: #6b7280;
 }
 
 .login__branch-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.82);
+  color: #111827;
   text-decoration: none;
   transition: color 0.25s ease;
+}
+
+.login__branch-phone svg {
+  color: var(--login-gold);
+  flex-shrink: 0;
 }
 
 .login__branch-phone:hover {
   color: var(--login-gold);
 }
 
-/* —— Animation —— */
+.login__footer-note {
+  margin: 32px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
 @keyframes loginFadeIn {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -266,76 +282,66 @@
 
 /* —— Responsive —— */
 @media (max-width: 1024px) {
-  .login__branches-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px 28px;
+  .login__hero-inner {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    max-width: 440px;
+    padding: 48px 24px 56px;
+  }
+
+  .login__brand {
+    align-items: center;
+    text-align: center;
   }
 
   .login__logo {
-    height: 320px !important;
+    height: 260px !important;
+  }
+
+  .login__branches-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .login__main {
-    padding: 48px 20px 36px;
-  }
-
-  .login__brand {
-    margin-bottom: 40px;
+  .login__hero-inner {
+    padding: 40px 20px 48px;
   }
 
   .login__logo {
-    height: 240px !important;
-    margin-bottom: 32px;
-  }
-
-  .login__slogan {
-    font-size: 14px;
-    margin-bottom: 24px;
-  }
-
-  .login__hotline-number {
-    font-size: 20px;
+    height: 200px !important;
   }
 
   .login__card {
-    padding: 32px 24px 28px;
-    border-radius: 20px;
-  }
-
-  .login__card-title {
-    font-size: 20px;
-    margin-bottom: 28px;
-  }
-
-  .login__field select,
-  .login__field input {
-    min-height: 50px;
-    font-size: 16px;
+    padding: 28px 22px;
+    border-radius: 18px;
   }
 
   .login__branches {
-    padding: 36px 20px 44px;
+    padding: 36px 20px 32px;
   }
 
   .login__branches-grid {
     grid-template-columns: 1fr;
-    gap: 22px;
+  }
+
+  .login__field select,
+  .login__field input {
+    min-height: 48px;
+    font-size: 16px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .login__main,
+  .login__hero,
   .login__branches {
     animation: none;
   }
 
   .login__submit,
-  .login__hotline-number,
-  .login__branch-phone,
   .login__card,
-  .login__branch-card {
+  .login__branch-card,
+  .login__hotline {
     transition: none;
   }
 }

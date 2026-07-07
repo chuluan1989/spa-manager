@@ -4,6 +4,11 @@
   gap: 20px;
 }
 
+.drill-explorer__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .drill-explorer__header {
   display: flex;
   flex-wrap: wrap;
@@ -32,7 +37,7 @@
 }
 
 .drill-explorer__quick button {
-  padding: 8px 14px;
+  padding: 8px 16px;
   border: 1px solid var(--ks-border);
   border-radius: var(--ks-radius-sm);
   background: var(--ks-surface);
@@ -41,12 +46,13 @@
   font-weight: 500;
   cursor: pointer;
   font-family: inherit;
-  transition: border-color var(--ks-transition), color var(--ks-transition);
+  transition: border-color var(--ks-transition), color var(--ks-transition), background var(--ks-transition);
 }
 
 .drill-explorer__quick button:hover {
   border-color: var(--ks-gold);
   color: var(--ks-gold-dark);
+  background: var(--ks-gold-muted);
 }
 
 .drill-breadcrumb {
@@ -90,10 +96,10 @@
 .drill-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 16px;
+  gap: 12px;
+  padding: 18px 20px;
   border: 1px solid var(--ks-border);
-  border-radius: var(--ks-radius-md);
+  border-radius: var(--ks-radius-lg);
   background: var(--ks-surface);
   box-shadow: var(--ks-shadow-card);
 }
@@ -101,13 +107,11 @@
 .drill-filters label {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   min-width: 140px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--ks-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 
 .drill-error {
@@ -128,8 +132,8 @@
 
 .drill-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
 }
 
 .drill-chart-section {

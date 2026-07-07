@@ -1,9 +1,12 @@
 import { Menu, X } from 'lucide-react'
-import KhoeSpaLogo from '../brand/KhoeSpaLogo'
-import { getCurrentUserBranchName, getCurrentUserName, getRoleLabel } from '../../constants/auth'
+import { getCurrentUserName, getRoleLabel } from '../../constants/auth'
 import './AppHeader.css'
 
-export default function AppHeader({ sidebarOpen, onToggleSidebar }) {
+export default function AppHeader({
+  sidebarOpen,
+  onToggleSidebar,
+  pageTitle = 'Tổng quan',
+}) {
   return (
     <header className="app-header">
       <div className="app-header__left">
@@ -15,14 +18,7 @@ export default function AppHeader({ sidebarOpen, onToggleSidebar }) {
         >
           {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
-
-        <div className="app-header__brand">
-          <KhoeSpaLogo size={32} />
-          <div className="app-header__brand-text">
-            <span className="app-header__system">Khoẻ Spa Manager</span>
-            <span className="app-header__branch">{getCurrentUserBranchName()}</span>
-          </div>
-        </div>
+        <h1 className="app-header__title">{pageTitle}</h1>
       </div>
 
       <div className="app-header__user">

@@ -2,10 +2,10 @@
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 18px 20px;
+  padding: 20px 22px;
   background: var(--ks-card);
   border: 1px solid var(--ks-border);
-  border-radius: var(--ks-radius-md);
+  border-radius: var(--ks-radius-lg);
   box-shadow: var(--ks-shadow-card);
   text-align: left;
   font-family: inherit;

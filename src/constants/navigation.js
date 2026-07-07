@@ -1,5 +1,5 @@
 export const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { id: 'dashboard', label: 'Tổng quan', icon: 'dashboard' },
   { id: 'reports', label: 'Báo cáo', icon: 'report' },
   { id: 'revenue', label: 'Doanh thu', icon: 'revenue' },
   { id: 'invoices', label: 'Hóa đơn', icon: 'invoice' },
@@ -8,8 +8,8 @@ export const NAV_ITEMS = [
   { id: 'admin-services', label: 'Dịch vụ', icon: 'service' },
   { id: 'settings', label: 'Cài đặt', icon: 'settings' },
   { id: 'employees', label: 'Nhân viên', icon: 'employee' },
-  { id: 'legacy-sync', label: 'Đồng bộ dữ liệu cũ', icon: 'cloud-sync' },
-  { id: 'profile', label: 'Hồ sơ cá nhân', icon: 'profile' },
+  { id: 'legacy-sync', label: 'Đồng bộ', icon: 'cloud-sync' },
+  { id: 'profile', label: 'Hồ sơ', icon: 'profile' },
 ]
 
 /** Menu ưu tiên quản trị cho Admin (Chủ hệ thống). */

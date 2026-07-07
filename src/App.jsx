@@ -151,7 +151,6 @@ function App() {
   const handleLogout = () => {
     clearCurrentUser()
     setCurrentUser(null)
-    setAuthView('landing')
   }
 
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)

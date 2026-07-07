@@ -82,6 +82,7 @@ export default function DrillDownExplorer({
   rootLabel = 'Dashboard',
   initialPrefill = null,
   onNavigate,
+  hidePageHeader = false,
 }) {
   const role = getCurrentUserRole()
   const levelConfig = getDrillLevelConfig(role)
@@ -251,18 +252,29 @@ export default function DrillDownExplorer({
 
   return (
     <div className="drill-explorer">
-      <header className="drill-explorer__header">
-        <div>
-          <h2 className="drill-explorer__title">{title}</h2>
-          <p className="drill-explorer__subtitle">
-            {subtitle || 'Mọi chỉ số đều click được — truy ngược đến từng hóa đơn'}
-          </p>
+      {!hidePageHeader && (
+        <header className="drill-explorer__header">
+          <div>
+            <h2 className="drill-explorer__title">{title}</h2>
+            <p className="drill-explorer__subtitle">
+              {subtitle || 'Mọi chỉ số đều click được — truy ngược đến từng hóa đơn'}
+            </p>
+          </div>
+          <div className="drill-explorer__quick">
+            <button type="button" onClick={setToday}>Hôm nay</button>
+            <button type="button" onClick={setThisMonth}>Tháng này</button>
+          </div>
+        </header>
+      )}
+
+      {hidePageHeader && (
+        <div className="drill-explorer__toolbar">
+          <div className="drill-explorer__quick">
+            <button type="button" onClick={setToday}>Hôm nay</button>
+            <button type="button" onClick={setThisMonth}>Tháng này</button>
+          </div>
         </div>
-        <div className="drill-explorer__quick">
-          <button type="button" onClick={setToday}>Hôm nay</button>
-          <button type="button" onClick={setThisMonth}>Tháng này</button>
-        </div>
-      </header>
+      )}
 
       <nav className="drill-breadcrumb" aria-label="Drill-down">
         {breadcrumbs.map((item, index) => (

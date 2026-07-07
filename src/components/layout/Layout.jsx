@@ -1,7 +1,13 @@
 import { useState } from 'react'
 import AppHeader from './AppHeader'
 import Sidebar from './Sidebar'
+import { NAV_ITEMS } from '../../constants/navigation'
 import './Layout.css'
+
+function getPageTitle(activeItem) {
+  const item = NAV_ITEMS.find((nav) => nav.id === activeItem)
+  return item?.label ?? 'Tổng quan'
+}
 
 export default function Layout({ children, activeItem = 'dashboard', onNavigate, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -33,6 +39,7 @@ export default function Layout({ children, activeItem = 'dashboard', onNavigate,
         <AppHeader
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
+          pageTitle={getPageTitle(activeItem)}
         />
         <main className="layout__main">{children}</main>
       </div>
