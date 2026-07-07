@@ -1,4 +1,4 @@
-import { getInvoiceServiceDetails, getInvoiceServiceTotal } from './invoice'
+import { getInvoiceServiceDetails, getInvoiceServiceTotal, invoiceHasDiscount } from './invoice'
 import {
   computeExpenseByBranch,
   computeExpenseSummary,
@@ -9,12 +9,14 @@ import { getMonthStartDate } from './invoiceStorage'
 
 export { getMonthStartDate }
 
-export function filterInvoices(invoices, { fromDate, toDate, branchId, employeeId }) {
+export function filterInvoices(invoices, { fromDate, toDate, branchId, employeeId, discountFilter = '' }) {
   return invoices.filter((inv) => {
     if (fromDate && inv.date < fromDate) return false
     if (toDate && inv.date > toDate) return false
     if (branchId && inv.branchId !== branchId) return false
     if (employeeId && inv.employeeId !== employeeId) return false
+    if (discountFilter === 'with' && !invoiceHasDiscount(inv)) return false
+    if (discountFilter === 'without' && invoiceHasDiscount(inv)) return false
     return true
   })
 }

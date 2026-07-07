@@ -3,6 +3,7 @@ import {
   formatCurrency,
   getInvoiceServiceDetails,
   getInvoiceServiceTotal,
+  invoiceHasDiscount,
 } from '../../utils/invoice'
 import {
   computeInvoiceListTotals,
@@ -106,7 +107,12 @@ export default function InvoiceList({
               return (
                 <tr key={inv.id}>
                   <td className="invoice-list__index">{rowNumber}</td>
-                  <td className="invoice-list__date">{inv.date}</td>
+                  <td className="invoice-list__date">
+                    {inv.date}
+                    {invoiceHasDiscount(inv) && (
+                      <span className="invoice-list__promo-badge">🎁 Khuyến mãi</span>
+                    )}
+                  </td>
                   <td className="invoice-list__time">{readInvoiceTime(inv)}</td>
                   <td className="invoice-list__branch">{inv.branchName}</td>
                   <td className="invoice-list__employee">{inv.employeeName}</td>

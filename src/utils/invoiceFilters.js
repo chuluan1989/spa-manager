@@ -1,4 +1,4 @@
-import { getInvoiceServiceDetails } from './invoice'
+import { getInvoiceServiceDetails, invoiceHasDiscount } from './invoice'
 
 export const INVOICE_PAGE_SIZE = 20
 
@@ -52,6 +52,7 @@ export function filterInvoices(invoices, filters) {
     serviceId = '',
     paymentMethod = '',
     search = '',
+    discountFilter = '',
   } = filters
 
   const query = search.trim().toLowerCase()
@@ -82,6 +83,9 @@ export function filterInvoices(invoices, filters) {
       const phone = (invoice.customerPhone ?? '').toLowerCase()
       if (!name.includes(query) && !phone.includes(query)) return false
     }
+
+    if (discountFilter === 'with' && !invoiceHasDiscount(invoice)) return false
+    if (discountFilter === 'without' && invoiceHasDiscount(invoice)) return false
 
     return true
   })
@@ -123,6 +127,7 @@ export function hasActiveInvoiceFilters(filters) {
     || filters.employeeId
     || filters.serviceId
     || filters.paymentMethod
+    || filters.discountFilter
     || filters.search?.trim(),
   )
 }

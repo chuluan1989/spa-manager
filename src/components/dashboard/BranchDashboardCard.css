@@ -1,0 +1,63 @@
+.branch-dashboard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  padding: 20px 22px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 2px 8px rgba(15, 76, 129, 0.08);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.branch-dashboard-card:hover {
+  transform: translateY(-2px);
+  border-color: #93c5fd;
+  box-shadow: 0 8px 20px rgba(15, 76, 129, 0.12);
+}
+
+.branch-dashboard-card__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f4c81;
+}
+
+.branch-dashboard-card__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.branch-dashboard-card__grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 10px;
+}
+
+.branch-dashboard-card__grid span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.branch-dashboard-card__grid strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.branch-dashboard-card__profit {
+  color: #16a34a;
+}
+
+.branch-dashboard-card__hint {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+}

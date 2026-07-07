@@ -114,6 +114,17 @@
   font-size: 13px;
 }
 
+.invoice-detail-modal__promo {
+  margin: 0 0 10px;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .invoice-detail-modal__total {
   color: #1565a8;
   font-weight: 700;

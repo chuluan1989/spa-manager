@@ -71,9 +71,24 @@
 }
 
 .invoice-list__index,
-.invoice-list__date,
 .invoice-list__time {
   white-space: nowrap;
+}
+
+.invoice-list__promo-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.invoice-list__date {
+  min-width: 110px;
 }
 
 .invoice-list__phone,

@@ -1,0 +1,33 @@
+.admin-section__header {
+  margin-bottom: 24px;
+}
+
+.admin-section__title {
+  margin: 0 0 4px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-section__subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: #64748b;
+}
+
+.admin-section__toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  padding: 12px 18px;
+  background: #0f4c81;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 14px;
+  box-shadow: 0 8px 20px rgba(15, 76, 129, 0.25);
+}
+
+.admin-section--denied {
+  padding: 24px;
+}

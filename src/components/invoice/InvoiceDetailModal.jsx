@@ -1,7 +1,10 @@
 import {
   formatCurrency,
+  getInvoiceDiscountAmount,
+  getInvoiceOriginalServiceTotal,
   getInvoiceServiceDetails,
   getInvoiceServiceTotal,
+  invoiceHasDiscount,
 } from '../../utils/invoice'
 import {
   formatInvoiceDateTime,
@@ -59,10 +62,15 @@ export default function InvoiceDetailModal({ invoice, onClose, onEdit, canEdit }
 
           <section className="invoice-detail-modal__section">
             <h4>Thanh toán</h4>
+            {invoiceHasDiscount(invoice) && (
+              <p className="invoice-detail-modal__promo">🎁 Khuyến mãi</p>
+            )}
             <dl className="invoice-detail-modal__grid">
-              <div><dt>Tiền dịch vụ</dt><dd>{formatCurrency(serviceTotal)}</dd></div>
+              <div><dt>Giá gốc dịch vụ</dt><dd>{formatCurrency(getInvoiceOriginalServiceTotal(invoice))}</dd></div>
+              <div><dt>Giảm giá</dt><dd>−{formatCurrency(getInvoiceDiscountAmount(invoice))}</dd></div>
+              <div><dt>Giá thực thu (dịch vụ)</dt><dd>{formatCurrency(serviceTotal)}</dd></div>
               <div><dt>Tips</dt><dd>{formatCurrency(tips)}</dd></div>
-              <div><dt>Tổng hóa đơn</dt><dd className="invoice-detail-modal__total">{formatCurrency(invoice.total)}</dd></div>
+              <div><dt>Tổng khách thanh toán</dt><dd className="invoice-detail-modal__total">{formatCurrency(invoice.total)}</dd></div>
               <div><dt>Hoa hồng</dt><dd className="invoice-detail-modal__commission">{formatCurrency(invoice.commission)}</dd></div>
               <div><dt>Phương thức</dt><dd>{getPaymentMethodLabel(invoice.paymentMethod)}</dd></div>
               <div><dt>Ghi chú</dt><dd>{invoice.note || '—'}</dd></div>

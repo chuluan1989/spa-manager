@@ -12,6 +12,8 @@ import {
   isEmployee,
 } from './constants/auth'
 import Dashboard from './pages/Dashboard'
+import AdminEmployees from './pages/AdminEmployees'
+import AdminServices from './pages/AdminServices'
 import Employees from './pages/Employees'
 import Expenses from './pages/Expenses'
 import Invoice from './pages/Invoice'
@@ -19,6 +21,7 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import MyProfile from './pages/MyProfile'
 import Report from './pages/Report'
+import Revenue from './pages/Revenue'
 import LegacySync from './pages/LegacySync'
 import Settings from './pages/Settings'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
@@ -31,23 +34,28 @@ import { runInitialSync, startAutoSync } from './utils/supabaseSync'
 
 const PAGES = {
   dashboard: Dashboard,
-  invoices: Invoice,
-  expenses: Expenses,
-  employees: Employees,
   reports: Report,
+  revenue: Revenue,
+  invoices: Invoice,
+  'admin-employees': AdminEmployees,
+  expenses: Expenses,
+  'admin-services': AdminServices,
+  employees: Employees,
   'legacy-sync': LegacySync,
   profile: MyProfile,
   settings: Settings,
 }
 
 function getDefaultPage(user) {
-  if (user?.role === 'employee') return 'dashboard'
-  return 'invoices'
+  if (user?.role === 'admin' || user?.role === 'employee') return 'dashboard'
+  return 'dashboard'
 }
 
 function canAccessPage(pageId) {
   if (pageId === 'employees') return canAccessEmployeesPage()
+  if (pageId === 'admin-employees' || pageId === 'admin-services') return canAccessSettingsPage()
   if (pageId === 'settings') return canAccessSettingsPage()
+  if (pageId === 'revenue') return canViewReport()
   if (pageId === 'invoices') return canAccessInvoicesPage()
   if (pageId === 'expenses') return canAccessExpensesPage()
   if (pageId === 'reports') return canViewReport()
@@ -161,7 +169,7 @@ function App() {
       onNavigate={handleNavigate}
       onLogout={handleLogout}
     >
-      <Page key={activePage} />
+      <Page key={activePage} onNavigate={handleNavigate} />
     </Layout>
   )
 }

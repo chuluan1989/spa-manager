@@ -1,7 +1,7 @@
 import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
 import { getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
-import { getInvoiceServiceDetails, getInvoiceServiceTotal } from './invoice'
+import { getInvoiceServiceDetails, getInvoiceServiceTotal, invoiceHasDiscount } from './invoice'
 
 export const PAY_CYCLES = {
   PERIOD_1: 'period1',
@@ -68,7 +68,7 @@ function scaleCommissionAmount(amount, role) {
   return Math.round(amount * SUPPORT_EMPLOYEE_COMMISSION_RATE)
 }
 
-function filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId }) {
+function filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId, discountFilter = '' }) {
   return invoices.filter((invoice) => {
     if (fromDate && invoice.date < fromDate) return false
     if (toDate && invoice.date > toDate) return false
@@ -78,6 +78,8 @@ function filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId
       const matchesSupport = invoice.supportEmployeeId === employeeId
       if (!matchesPrimary && !matchesSupport) return false
     }
+    if (discountFilter === 'with' && !invoiceHasDiscount(invoice)) return false
+    if (discountFilter === 'without' && invoiceHasDiscount(invoice)) return false
     return true
   })
 }
@@ -298,8 +300,8 @@ function buildAdminEmployeeSummary(invoices, employeeId) {
 
 /** Báo cáo tổng hợp theo nhân viên cho Admin (lọc theo khoảng ngày). */
 export function computeAdminEmployeeReports(invoices, filters) {
-  const { fromDate, toDate, branchId, employeeId, cycle = PAY_CYCLES.FULL } = filters
-  const filtered = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId })
+  const { fromDate, toDate, branchId, employeeId, cycle = PAY_CYCLES.FULL, discountFilter = '' } = filters
+  const filtered = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId, discountFilter })
   const employeeGroups = groupInvoicesByEmployee(filtered)
   const targetEmployeeIds = employeeId ? [employeeId] : [...employeeGroups.keys()]
 
@@ -331,8 +333,8 @@ export function computeAdminEmployeeReports(invoices, filters) {
 
 /** Chi tiết doanh số/lương theo từng ngày của một nhân viên. */
 export function computeEmployeeDailyReports(invoices, employeeId, filters) {
-  const { fromDate, toDate, branchId, cycle = PAY_CYCLES.FULL } = filters
-  const filtered = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId })
+  const { fromDate, toDate, branchId, cycle = PAY_CYCLES.FULL, discountFilter = '' } = filters
+  const filtered = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId, discountFilter })
   const employeeGroups = groupInvoicesByEmployee(filtered)
   const employeeInvoices = employeeGroups.get(employeeId) ?? []
 

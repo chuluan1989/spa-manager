@@ -1,4 +1,10 @@
-import { NAV_ITEMS } from './navigation'
+import {
+  ADMIN_NAV_ORDER,
+  BRANCH_MANAGER_NAV_ORDER,
+  EMPLOYEE_NAV_ORDER,
+  NAV_ITEMS,
+  pickNavItems,
+} from './navigation'
 import { ADMIN_BRANCH, ROLES } from './roles'
 import { getBranchName } from '../utils/branchStorage'
 import { getEmployeeById } from '../utils/employeeStorage'
@@ -221,35 +227,19 @@ export function canAccessMyProfilePage(role = getCurrentUserRole()) {
 }
 
 export function getVisibleNavItems(role = getCurrentUserRole()) {
-  let items = NAV_ITEMS
+  if (role === ROLES.ADMIN) {
+    return pickNavItems(NAV_ITEMS, ADMIN_NAV_ORDER)
+  }
+
+  if (role === ROLES.BRANCH_MANAGER) {
+    return pickNavItems(NAV_ITEMS, BRANCH_MANAGER_NAV_ORDER)
+  }
 
   if (role === ROLES.EMPLOYEE) {
-    items = items.filter((item) => ['dashboard', 'invoices', 'reports', 'profile', 'legacy-sync'].includes(item.id))
+    return pickNavItems(NAV_ITEMS, EMPLOYEE_NAV_ORDER)
   }
 
-  if (role !== ROLES.EMPLOYEE) {
-    items = items.filter((item) => item.id !== 'profile')
-  }
-
-  if (role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER) {
-    // giữ legacy-sync cho admin và quản lý
-  } else if (role !== ROLES.EMPLOYEE) {
-    items = items.filter((item) => item.id !== 'legacy-sync')
-  }
-
-  if (role !== ROLES.ADMIN && role !== ROLES.BRANCH_MANAGER && role !== ROLES.EMPLOYEE) {
-    items = items.filter((item) => !['invoices', 'expenses', 'employees'].includes(item.id))
-  }
-
-  if (role === ROLES.ADMIN) {
-    items = items.filter((item) => item.id !== 'employees')
-  }
-
-  if (role !== ROLES.ADMIN) {
-    items = items.filter((item) => item.id !== 'settings')
-  }
-
-  return items
+  return NAV_ITEMS.filter((item) => !['settings', 'admin-employees', 'admin-services', 'revenue'].includes(item.id))
 }
 
 export function getRoleLabel(role = getCurrentUserRole()) {

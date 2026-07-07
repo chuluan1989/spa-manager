@@ -17,6 +17,7 @@ import { formatCurrency } from '../utils/invoice'
 import { getTodayDate, loadInvoices } from '../utils/invoiceStorage'
 import { loadExpenses } from '../utils/expenseStorage'
 import { computeReportData, getMonthStartDate } from '../utils/report'
+import { consumeReportPrefill } from '../utils/navigationPrefill'
 import './Report.css'
 
 const INITIAL_FILTERS = () => ({
@@ -24,6 +25,7 @@ const INITIAL_FILTERS = () => ({
   toDate: getTodayDate(),
   branchId: canSelectBranch() ? '' : getCurrentUserBranch(),
   employeeId: '',
+  discountFilter: '',
 })
 
 function ReportTable({ title, headers, rows, emptyText }) {
@@ -99,7 +101,10 @@ export default function Report() {
   const [activeTab, setActiveTab] = useState(
     isEmployee() ? REPORT_TABS.SALARY : REPORT_TABS.OVERVIEW,
   )
-  const [filters, setFilters] = useState(INITIAL_FILTERS)
+  const [filters, setFilters] = useState(() => {
+    const prefill = consumeReportPrefill()
+    return prefill ? { ...INITIAL_FILTERS(), ...prefill } : INITIAL_FILTERS()
+  })
   const lockedBranch = !canSelectBranch()
 
   const effectiveFilters = useMemo(
@@ -265,6 +270,17 @@ export default function Report() {
                 {e.name}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="report__field">
+          <span>Khuyến mãi</span>
+          <select
+            value={filters.discountFilter}
+            onChange={(e) => updateFilter('discountFilter', e.target.value)}
+          >
+            <option value="">Tất cả hóa đơn</option>
+            <option value="with">Chỉ có giảm giá</option>
+            <option value="without">Không giảm giá</option>
           </select>
         </label>
       </section>

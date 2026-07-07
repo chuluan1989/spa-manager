@@ -104,6 +104,38 @@ const { SUPPORT_EMPLOYEE_COMMISSION_RATE } = await import('../src/constants/sala
 
 console.log('\nSpa Manager — smoke tests\n')
 
+test('invoice discount: 20% reduces revenue and commission, tips unchanged', () => {
+  const totals = calculateInvoiceTotals(
+    ['body-vip'],
+    50000,
+    'vinh-long',
+    [{ id: 'body-vip', name: 'Body VIP', price: 300000, commissionPercent: 20, commissionAmount: 60000 }],
+    'Vĩnh Long',
+    '20%',
+  )
+  assert.equal(totals.originalServiceTotal, 300000)
+  assert.equal(totals.discountAmount, 60000)
+  assert.equal(totals.serviceTotal, 240000)
+  assert.equal(totals.tips, 50000)
+  assert.equal(totals.total, 290000)
+  assert.equal(totals.serviceCommission, 48000)
+  assert.equal(totals.commission, 98000)
+})
+
+test('invoice discount: fixed amount 50000', () => {
+  const totals = calculateInvoiceTotals(
+    ['svc-a'],
+    0,
+    'vinh-long',
+    [{ id: 'svc-a', name: 'Massage', price: 200000, commissionPercent: 20, commissionAmount: 40000 }],
+    'Vĩnh Long',
+    '50000',
+  )
+  assert.equal(totals.serviceTotal, 150000)
+  assert.equal(totals.discountAmount, 50000)
+  assert.equal(totals.serviceCommission, 30000)
+})
+
 test('invoice totals: duplicate services + tips', () => {
   const ids = ['svc-a', 'svc-a']
   const fallback = [

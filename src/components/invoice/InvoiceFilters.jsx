@@ -99,6 +99,15 @@ export default function InvoiceFilters({
           </select>
         </label>
 
+        <label className="invoice-filters__field">
+          <span>Khuyến mãi</span>
+          <select value={filters.discountFilter} onChange={(e) => update('discountFilter', e.target.value)}>
+            <option value="">Tất cả hóa đơn</option>
+            <option value="with">Chỉ có giảm giá</option>
+            <option value="without">Không giảm giá</option>
+          </select>
+        </label>
+
         <label className="invoice-filters__field invoice-filters__field--search">
           <span>Tìm tên khách / SĐT</span>
           <input

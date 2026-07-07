@@ -55,6 +55,7 @@ const INITIAL_FILTERS = () => ({
   serviceId: '',
   paymentMethod: '',
   search: '',
+  discountFilter: '',
 })
 
 const INITIAL_FORM = () => ({
@@ -88,6 +89,7 @@ export default function Invoice() {
   const [selectedIds, setSelectedIds] = useState([])
   const [fallbackServices, setFallbackServices] = useState([])
   const [tipsInput, setTipsInput] = useState('')
+  const [discountInput, setDiscountInput] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [editingId, setEditingId] = useState(null)
   const [invoices, setInvoices] = useState(() => loadInvoices())
@@ -158,10 +160,12 @@ export default function Invoice() {
         form.branchId,
         fallbackServices,
         currentBranchName,
+        discountInput,
       ),
     [
       selectedIds,
       tipsInput,
+      discountInput,
       form.branchId,
       currentBranchName,
       fallbackServices,
@@ -270,6 +274,7 @@ export default function Invoice() {
     setSelectedIds([])
     setFallbackServices([])
     setTipsInput('')
+    setDiscountInput('')
     setPaymentMethod('cash')
     setEditingId(null)
     setErrors({})
@@ -303,6 +308,11 @@ export default function Invoice() {
     tips: totals.tips,
     paymentMethod,
     note: form.note.trim(),
+    originalServiceTotal: totals.originalServiceTotal,
+    discountInput: totals.discountInput,
+    discountType: totals.discountType,
+    discountValue: totals.discountValue,
+    discountAmount: totals.discountAmount,
     serviceTotal: totals.serviceTotal,
     total: totals.total,
     commission: totals.commission,
@@ -391,6 +401,7 @@ export default function Invoice() {
     )
     setFallbackServices(services)
     setTipsInput(String(invoice.tips ?? 0))
+    setDiscountInput(invoice.discountInput ?? '')
     setPaymentMethod(invoice.paymentMethod ?? 'cash')
     setErrors({})
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -611,6 +622,19 @@ export default function Invoice() {
 
           <section className="invoice__card invoice__footer-fields">
             <div className="invoice__footer-grid">
+              <label className="invoice__field">
+                <span>
+                  Giảm giá / Khuyến mãi
+                  <em className="invoice__optional"> (% hoặc số tiền)</em>
+                </span>
+                <input
+                  type="text"
+                  placeholder="VD: 10% hoặc 50000"
+                  value={discountInput}
+                  onChange={(e) => setDiscountInput(e.target.value)}
+                />
+              </label>
+
               <label className="invoice__field">
                 <span>Tips</span>
                 <input

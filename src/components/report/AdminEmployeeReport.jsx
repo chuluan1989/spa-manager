@@ -112,6 +112,7 @@ export default function AdminEmployeeReport() {
     branchId: lockedBranch ? getCurrentUserBranch() : '',
     employeeId: '',
     cycle: PAY_CYCLES.PERIOD_1,
+    discountFilter: '',
   }))
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
 
@@ -241,6 +242,15 @@ export default function AdminEmployeeReport() {
             {PAY_CYCLE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
+          </select>
+        </label>
+
+        <label className="report__field">
+          <span>Khuyến mãi</span>
+          <select value={filters.discountFilter} onChange={(e) => updateFilter('discountFilter', e.target.value)}>
+            <option value="">Tất cả hóa đơn</option>
+            <option value="with">Chỉ có giảm giá</option>
+            <option value="without">Không giảm giá</option>
           </select>
         </label>
       </section>

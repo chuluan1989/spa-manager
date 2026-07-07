@@ -56,3 +56,7 @@
 .invoice-summary__row--commission .invoice-summary__value {
   color: #16a34a;
 }
+
+.invoice-summary__row--discount .invoice-summary__value {
+  color: #dc2626;
+}

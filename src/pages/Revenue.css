@@ -1,0 +1,129 @@
+.revenue-page__header {
+  margin-bottom: 24px;
+}
+
+.revenue-page__title {
+  margin: 0 0 4px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.revenue-page__subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: #64748b;
+}
+
+.revenue-page__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #e3edf5;
+  border-radius: 16px;
+}
+
+.revenue-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.revenue-page__field span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.revenue-page__field input,
+.revenue-page__field select {
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.revenue-page__field--banner {
+  grid-column: 1 / -1;
+}
+
+.revenue-page__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.revenue-card {
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.revenue-card__label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.revenue-card__value {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.revenue-card--blue { border-color: #bfdbfe; background: #f0f7ff; }
+.revenue-card--orange { border-color: #fed7aa; background: #fffbeb; }
+.revenue-card--purple { border-color: #ddd6fe; background: #faf5ff; }
+
+.revenue-page__table-card {
+  background: #fff;
+  border: 1px solid #e3edf5;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.revenue-page__table-card h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.revenue-page__empty {
+  margin: 0;
+  color: #64748b;
+  text-align: center;
+  padding: 24px;
+}
+
+.revenue-page__table-wrap {
+  overflow-x: auto;
+}
+
+.revenue-page__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.revenue-page__table th,
+.revenue-page__table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+}
+
+.revenue-page__table th {
+  background: #f0f7ff;
+  color: #0f4c81;
+}
+
+.revenue-page__table td:nth-child(n+3),
+.revenue-page__table th:nth-child(n+3) {
+  text-align: right;
+}

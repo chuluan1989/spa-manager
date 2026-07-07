@@ -48,3 +48,20 @@
   font-weight: 600;
   color: #0f172a;
 }
+
+.dashboard__branches {
+  margin-top: 28px;
+}
+
+.dashboard__branches-title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dashboard__branch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
