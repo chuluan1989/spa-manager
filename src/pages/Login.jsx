@@ -97,10 +97,9 @@ export default function Login({ onLogin }) {
       <section className="login__hero">
         <div className="login__hero-inner">
           <div className="login__brand">
-            <KhoeSpaLogo size={540} className="login__logo" priority />
+            <KhoeSpaLogo size={621} className="login__logo" priority />
             <a href={`tel:${SYSTEM_HOTLINE.replace(/\./g, '')}`} className="login__hotline">
-              <Phone size={24} strokeWidth={2} className="login__hotline-icon" aria-hidden="true" />
-              <span>{SYSTEM_HOTLINE}</span>
+              ☎ {SYSTEM_HOTLINE}
             </a>
           </div>
 
