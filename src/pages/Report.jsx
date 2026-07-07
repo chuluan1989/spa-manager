@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import EmployeeSalaryPanel from '../components/report/EmployeeSalaryPanel'
+import AdminEmployeeReport from '../components/report/AdminEmployeeReport'
 import BranchBanner from '../components/common/BranchBanner'
 import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import {
@@ -175,7 +176,9 @@ export default function Report() {
               ? (isEmployee()
                 ? 'Tổng quan doanh thu chi nhánh'
                 : 'Thống kê từ hóa đơn và chi phí đã lưu')
-              : 'Báo cáo lương nhân viên theo chu kỳ từ hóa đơn đã lưu'}
+              : (isEmployee()
+                ? 'Báo cáo lương nhân viên theo chu kỳ từ hóa đơn đã lưu'
+                : 'Doanh số và lương từng nhân viên theo ngày/tháng từ hóa đơn đã đồng bộ')}
           </p>
         </div>
         {activeTab === REPORT_TABS.OVERVIEW && (
@@ -205,12 +208,12 @@ export default function Report() {
           className={`report__tab ${activeTab === REPORT_TABS.SALARY ? 'report__tab--active' : ''}`}
           onClick={() => setActiveTab(REPORT_TABS.SALARY)}
         >
-          Lương nhân viên
+          {isEmployee() ? 'Lương nhân viên' : 'Báo cáo nhân viên'}
         </button>
       </nav>
 
       {activeTab === REPORT_TABS.SALARY || !canViewOverviewReport() ? (
-        <EmployeeSalaryPanel />
+        isEmployee() ? <EmployeeSalaryPanel /> : <AdminEmployeeReport />
       ) : isEmployee() ? (
         <EmployeeBranchOverview filters={filters} updateFilter={updateFilter} report={report} />
       ) : (

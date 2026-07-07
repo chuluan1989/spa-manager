@@ -65,7 +65,7 @@ function test(name, fn) {
 
 const { calculateInvoiceTotals, calculateServiceCommissionFromDetails } = await import('../src/utils/invoice.js')
 const { computeReportSummary, computeReportData } = await import('../src/utils/report.js')
-const { computeSalaryReport, getPayPeriodRange, PAY_CYCLES } = await import('../src/utils/salaryReport.js')
+const { computeSalaryReport, computeAdminEmployeeReports, computeEmployeeDailyReports, getPayPeriodRange, PAY_CYCLES } = await import('../src/utils/salaryReport.js')
 const { verifyLogin, ADMIN_BRANCH } = await import('../src/constants/loginCredentials.js')
 const { getActiveBranches, syncMissingDefaultBranches, BRANCH_STATUS } = await import('../src/utils/branchStorage.js')
 const { PRICE_GROUP_IDS } = await import('../src/constants/priceGroupIds.js')
@@ -176,6 +176,79 @@ test('pay period ranges', () => {
   const p2 = getPayPeriodRange('2026-07', PAY_CYCLES.PERIOD_2)
   assert.equal(p2.fromDate, '2026-07-16')
   assert.equal(p2.toDate, '2026-07-31')
+})
+
+test('admin employee report: summary and daily breakdown', () => {
+  const invoices = [
+    {
+      id: 'inv-1',
+      date: '2026-07-05',
+      branchId: 'soc-trang',
+      branchName: 'Sóc Trăng',
+      employeeId: 'emp-main',
+      employeeName: 'Main',
+      tips: 50000,
+      services: [
+        { id: 'svc-a', name: 'Massage', price: 200000, commissionPercent: 20, commissionAmount: 40000 },
+      ],
+      serviceTotal: 200000,
+      total: 250000,
+    },
+    {
+      id: 'inv-2',
+      date: '2026-07-10',
+      branchId: 'soc-trang',
+      branchName: 'Sóc Trăng',
+      employeeId: 'emp-main',
+      employeeName: 'Main',
+      tips: 30000,
+      services: [
+        { id: 'svc-a', name: 'Massage', price: 200000, commissionPercent: 20, commissionAmount: 40000 },
+        { id: 'svc-b', name: 'Facial', price: 150000, commissionPercent: 10, commissionAmount: 15000 },
+      ],
+      serviceTotal: 350000,
+      total: 380000,
+    },
+  ]
+
+  const filters = {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-15',
+    branchId: '',
+    employeeId: '',
+    cycle: PAY_CYCLES.PERIOD_1,
+  }
+
+  const summary = computeAdminEmployeeReports(invoices, filters)
+  assert.equal(summary.employees.length, 1)
+  assert.equal(summary.employees[0].invoiceCount, 2)
+  assert.equal(summary.employees[0].serviceCount, 3)
+  assert.equal(summary.employees[0].serviceRevenue, 550000)
+  assert.equal(summary.employees[0].tips, 80000)
+  assert.equal(summary.employees[0].serviceCommission, 95000)
+  assert.equal(summary.employees[0].totalSalary, 175000)
+  assert.equal(summary.periodTotals.totalSalary, 175000)
+
+  const daily = computeEmployeeDailyReports(invoices, 'emp-main', filters)
+  assert.equal(daily.days.length, 2)
+  assert.equal(daily.days[0].date, '2026-07-05')
+  assert.equal(daily.days[0].invoiceCount, 1)
+  assert.equal(daily.days[0].services[0].quantity, 1)
+  assert.equal(daily.days[1].invoiceCount, 1)
+  assert.equal(daily.days[1].services.length, 2)
+  assert.equal(daily.periodTotals.totalSalary, 175000)
+})
+
+test('admin employee report: empty period', () => {
+  const summary = computeAdminEmployeeReports([], {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-15',
+    branchId: '',
+    employeeId: '',
+    cycle: PAY_CYCLES.PERIOD_1,
+  })
+  assert.equal(summary.employees.length, 0)
+  assert.equal(summary.periodTotals.totalSalary, 0)
 })
 
 test('login: admin credentials', async () => {

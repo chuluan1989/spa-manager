@@ -197,3 +197,161 @@ export function computeSalaryReport(invoices, filters) {
     employees,
   }
 }
+
+function groupInvoicesByEmployee(invoices) {
+  const employeeGroups = new Map()
+
+  for (const invoice of invoices) {
+    if (invoice.employeeId) {
+      if (!employeeGroups.has(invoice.employeeId)) employeeGroups.set(invoice.employeeId, [])
+      employeeGroups.get(invoice.employeeId).push(invoice)
+    }
+    if (invoice.supportEmployeeId) {
+      if (!employeeGroups.has(invoice.supportEmployeeId)) {
+        employeeGroups.set(invoice.supportEmployeeId, [])
+      }
+      employeeGroups.get(invoice.supportEmployeeId).push(invoice)
+    }
+  }
+
+  return employeeGroups
+}
+
+function buildDailySalaryRows(invoiceRows) {
+  const byDate = new Map()
+
+  for (const row of invoiceRows) {
+    if (!byDate.has(row.date)) byDate.set(row.date, [])
+    byDate.get(row.date).push(row)
+  }
+
+  return [...byDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, rows]) => {
+      const serviceMap = new Map()
+      let tips = 0
+      let serviceCommission = 0
+      let serviceRevenue = 0
+
+      for (const row of rows) {
+        tips += row.tips
+        serviceCommission += row.serviceCommission
+        serviceRevenue += row.serviceRevenue
+        for (const service of row.services) {
+          const key = service.serviceId || service.serviceName
+          const current = serviceMap.get(key) ?? {
+            serviceId: service.serviceId,
+            serviceName: service.serviceName,
+            quantity: 0,
+            revenue: 0,
+            commission: 0,
+          }
+          current.quantity += 1
+          current.revenue += service.price ?? 0
+          current.commission += service.commissionAmount ?? 0
+          serviceMap.set(key, current)
+        }
+      }
+
+      return {
+        date,
+        displayDate: formatDisplayDate(date),
+        invoiceCount: rows.length,
+        services: [...serviceMap.values()].sort((a, b) => a.serviceName.localeCompare(b.serviceName, 'vi')),
+        serviceRevenue,
+        tips,
+        serviceCommission,
+        totalSalary: tips + serviceCommission,
+      }
+    })
+}
+
+function buildAdminEmployeeSummary(invoices, employeeId) {
+  const invoiceRows = [...invoices]
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt ?? '').localeCompare(b.createdAt ?? ''))
+    .map((invoice) => buildInvoiceSalaryRow(invoice, employeeId))
+
+  const invoiceCount = invoiceRows.length
+  const serviceCount = invoiceRows.reduce((sum, row) => sum + row.services.length, 0)
+  const serviceRevenue = invoiceRows.reduce((sum, row) => sum + row.serviceRevenue, 0)
+  const tips = invoiceRows.reduce((sum, row) => sum + row.tips, 0)
+  const serviceCommission = invoiceRows.reduce((sum, row) => sum + row.serviceCommission, 0)
+  const totalSalary = tips + serviceCommission
+
+  const first = invoices[0]
+  const employee = getEmployeeById(employeeId)
+
+  return {
+    employeeId: employeeId || first?.employeeId || '',
+    employeeName: employee?.name ?? first?.employeeName ?? '—',
+    branchName: employee?.branchId
+      ? getBranchName(employee.branchId)
+      : first?.branchName ?? '—',
+    invoiceCount,
+    serviceCount,
+    serviceRevenue,
+    tips,
+    serviceCommission,
+    totalSalary,
+  }
+}
+
+/** Báo cáo tổng hợp theo nhân viên cho Admin (lọc theo khoảng ngày). */
+export function computeAdminEmployeeReports(invoices, filters) {
+  const { fromDate, toDate, branchId, employeeId, cycle = PAY_CYCLES.FULL } = filters
+  const filtered = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId })
+  const employeeGroups = groupInvoicesByEmployee(filtered)
+  const targetEmployeeIds = employeeId ? [employeeId] : [...employeeGroups.keys()]
+
+  const employees = targetEmployeeIds
+    .map((id) => buildAdminEmployeeSummary(employeeGroups.get(id) ?? [], id))
+    .filter((row) => row.invoiceCount > 0)
+    .sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'vi'))
+
+  const periodTotals = employees.reduce(
+    (acc, row) => {
+      acc.serviceRevenue += row.serviceRevenue
+      acc.tips += row.tips
+      acc.serviceCommission += row.serviceCommission
+      acc.totalSalary += row.totalSalary
+      acc.invoiceCount += row.invoiceCount
+      return acc
+    },
+    { invoiceCount: 0, serviceRevenue: 0, tips: 0, serviceCommission: 0, totalSalary: 0 },
+  )
+
+  return {
+    fromDate,
+    toDate,
+    cycleLabel: getPayCycleLabel(cycle),
+    employees,
+    periodTotals,
+  }
+}
+
+/** Chi tiết doanh số/lương theo từng ngày của một nhân viên. */
+export function computeEmployeeDailyReports(invoices, employeeId, filters) {
+  const { fromDate, toDate, branchId, cycle = PAY_CYCLES.FULL } = filters
+  const filtered = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId })
+  const employeeGroups = groupInvoicesByEmployee(filtered)
+  const employeeInvoices = employeeGroups.get(employeeId) ?? []
+
+  const invoiceRows = [...employeeInvoices]
+    .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt ?? '').localeCompare(b.createdAt ?? ''))
+    .map((invoice) => buildInvoiceSalaryRow(invoice, employeeId))
+
+  const summary = buildAdminEmployeeSummary(employeeInvoices, employeeId)
+  const days = buildDailySalaryRows(invoiceRows)
+
+  return {
+    ...summary,
+    cycleLabel: getPayCycleLabel(cycle),
+    days,
+    periodTotals: {
+      serviceRevenue: summary.serviceRevenue,
+      tips: summary.tips,
+      serviceCommission: summary.serviceCommission,
+      totalSalary: summary.totalSalary,
+    },
+  }
+}

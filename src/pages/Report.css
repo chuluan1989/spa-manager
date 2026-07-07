@@ -388,6 +388,62 @@
   color: #0f4c81;
 }
 
+.admin-employee-report {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-employee-report__source {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.admin-employee-report__summary-table tfoot td {
+  background: #f0f7ff;
+  border-top: 2px solid #dbeafe;
+}
+
+.admin-employee-report__totals-row td {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.admin-employee-report__detail-btn {
+  padding: 6px 12px;
+  border: 1px solid #1565a8;
+  border-radius: 8px;
+  background: #fff;
+  color: #1565a8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-employee-report__detail-btn:hover {
+  background: #f0f7ff;
+}
+
+.admin-employee-report__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-employee-report__detail-header h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-employee-report__detail-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
 @media (max-width: 768px) {
   .report__header {
     flex-direction: column;
