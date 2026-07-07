@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { ArrowLeft, Briefcase, Building2, Lock, MapPin, Phone, UserRound, Users } from 'lucide-react'
+import { ArrowLeft, Briefcase, Building2, Lock, Phone, UserRound, Users } from 'lucide-react'
 import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
-import BranchContactsFooter from '../components/common/BranchContactsFooter'
 import { ROLES } from '../constants/auth'
 import { verifyLogin } from '../constants/loginCredentials'
 import { getActiveBranches } from '../constants/branches'
-import { BRANCH_CONTACTS, BRAND_SLOGAN, SYSTEM_HOTLINE } from '../constants/branchContacts'
+import { BRAND_SLOGAN, SYSTEM_HOTLINE } from '../constants/branchContacts'
 import { getActiveEmployeesByBranch } from '../utils/employeeStorage'
 import './Login.css'
 
@@ -46,59 +45,42 @@ export default function Login({ onLogin, onBack }) {
 
   return (
     <div className="login">
-      <div className="login__bg" aria-hidden="true" />
-      <div className="login__overlay" aria-hidden="true" />
-
       <div className="login__layout">
         <aside className="login__hero">
-          {onBack && (
-            <button type="button" className="login__back" onClick={onBack}>
-              <ArrowLeft size={16} strokeWidth={2.25} />
-              Quay lại
-            </button>
-          )}
-
-          <div className="login__brand">
-            <KhoeSpaLogo size={140} className="login__logo" />
-            <h1 className="login__name">Khoẻ Spa</h1>
-            <p className="login__slogan">{BRAND_SLOGAN}</p>
+          <div className="login__hero-media" aria-hidden="true">
+            <img src="/assets/spa-hero.png" alt="" className="login__hero-image" />
+            <div className="login__hero-overlay" />
           </div>
 
-          <a href={`tel:${SYSTEM_HOTLINE.replace(/\./g, '')}`} className="login__hotline">
-            <Phone size={18} />
-            <span>Hotline hệ thống</span>
-            <strong>{SYSTEM_HOTLINE}</strong>
-          </a>
+          <div className="login__hero-content">
+            {onBack && (
+              <button type="button" className="login__back" onClick={onBack}>
+                <ArrowLeft size={16} strokeWidth={2.25} />
+                Quay lại
+              </button>
+            )}
 
-          <div className="login__branches">
-            <h2 className="login__branches-title">Hệ thống chi nhánh</h2>
-            <ul className="login__branch-list">
-              {BRANCH_CONTACTS.map((item) => (
-                <li key={item.id} className="login__branch-item">
-                  <div className="login__branch-badge">{item.label}</div>
-                  <div className="login__branch-body">
-                    <p className="login__branch-address">
-                      <MapPin size={14} aria-hidden />
-                      {item.address}
-                    </p>
-                    <a href={`tel:${item.phone.replace(/[\s.]/g, '')}`} className="login__branch-phone">
-                      <Phone size={14} aria-hidden />
-                      {item.phone}
-                    </a>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="login__brand">
+              <KhoeSpaLogo size={192} className="login__logo" priority />
+              <h1 className="login__name">Khoẻ Spa</h1>
+              <p className="login__slogan">{BRAND_SLOGAN}</p>
+            </div>
+
+            <a href={`tel:${SYSTEM_HOTLINE.replace(/\./g, '')}`} className="login__hotline">
+              <Phone size={18} />
+              <span>Hotline</span>
+              <strong>{SYSTEM_HOTLINE}</strong>
+            </a>
           </div>
         </aside>
 
         <main className="login__main">
           <div className="login__card">
             <div className="login__card-brand">
-              <KhoeSpaLogo size={56} />
+              <KhoeSpaLogo size={52} />
               <div>
-                <h2 className="login__card-title">Đăng nhập</h2>
-                <p className="login__card-sub">Phần mềm quản lý vận hành Khoẻ Spa</p>
+                <h2 className="login__card-title">Khoẻ Spa Manager</h2>
+                <p className="login__card-sub">Đăng nhập hệ thống quản trị</p>
               </div>
             </div>
 
@@ -192,12 +174,12 @@ export default function Login({ onLogin, onBack }) {
 
               <button type="submit" className="login__submit ks-btn-primary" disabled={!role}>
                 <Briefcase size={18} strokeWidth={2.25} />
-                Đăng nhập hệ thống
+                Đăng nhập
               </button>
             </form>
           </div>
 
-          <BranchContactsFooter variant="light" />
+          <p className="login__footer-note">© 2026 Khoẻ Spa · {BRAND_SLOGAN}</p>
         </main>
       </div>
     </div>

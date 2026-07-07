@@ -1,0 +1,116 @@
+.branch-grid {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.branch-grid--cols-auto {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.branch-grid--cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.branch-grid__card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.branch-grid--dark .branch-grid__card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+}
+
+.branch-grid--light .branch-grid__card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.branch-grid__label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.branch-grid--dark .branch-grid__label {
+  color: var(--ks-gold-hover, #e6c25a);
+}
+
+.branch-grid--light .branch-grid__label {
+  color: #8b6914;
+}
+
+.branch-grid__address,
+.branch-grid__phone {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.branch-grid--dark .branch-grid__address {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.branch-grid--light .branch-grid__address {
+  color: #555;
+}
+
+.branch-grid__address svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  opacity: 0.85;
+}
+
+.branch-grid--dark .branch-grid__address svg,
+.branch-grid--dark .branch-grid__phone svg {
+  color: var(--ks-gold, #d4af37);
+}
+
+.branch-grid--light .branch-grid__address svg,
+.branch-grid--light .branch-grid__phone svg {
+  color: #8b6914;
+}
+
+.branch-grid__phone {
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.branch-grid--dark .branch-grid__phone {
+  color: #fff;
+}
+
+.branch-grid--light .branch-grid__phone {
+  color: #111;
+}
+
+.branch-grid--dark .branch-grid__phone:hover {
+  color: var(--ks-gold-hover, #e6c25a);
+}
+
+.branch-grid--light .branch-grid__phone:hover {
+  color: #8b6914;
+}
+
+@media (max-width: 1024px) {
+  .branch-grid--cols-auto {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .branch-grid--cols-auto,
+  .branch-grid--cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
