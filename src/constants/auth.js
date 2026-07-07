@@ -107,7 +107,7 @@ export function canAccessEmployeesPage(role = getCurrentUserRole()) {
 }
 
 export function canAccessInvoicesPage(role = getCurrentUserRole()) {
-  return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER
+  return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE
 }
 
 export function canAccessExpensesPage(role = getCurrentUserRole()) {
@@ -169,14 +169,23 @@ export function canViewReport(role = getCurrentUserRole()) {
 }
 
 export function canViewOverviewReport(role = getCurrentUserRole()) {
-  return hasPermission(PERMISSION_KEYS.VIEW_REPORT, role) && role !== ROLES.EMPLOYEE
+  return role === ROLES.EMPLOYEE || hasPermission(PERMISSION_KEYS.VIEW_REPORT, role)
 }
 
 export function canAddInvoice(role = getCurrentUserRole()) {
+  if (role === ROLES.EMPLOYEE) return true
   return hasPermission(PERMISSION_KEYS.ADD_INVOICE, role)
 }
 
-export function canEditInvoice(role = getCurrentUserRole()) {
+/**
+ * Nhân viên chỉ được sửa hóa đơn do chính mình tạo (employeeId trùng
+ * với tài khoản đang đăng nhập). Admin/Quản lý chi nhánh dùng quyền
+ * cấu hình sẵn (không phụ thuộc invoice cụ thể) như trước.
+ */
+export function canEditInvoice(invoice = null, role = getCurrentUserRole()) {
+  if (role === ROLES.EMPLOYEE) {
+    return Boolean(invoice) && invoice.employeeId === getCurrentUserEmployeeId()
+  }
   return hasPermission(PERMISSION_KEYS.EDIT_INVOICE, role)
 }
 
@@ -188,14 +197,23 @@ export function canAccessSettingsPage(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
 
+/** Chỉ Nhân viên có màn "Hồ sơ cá nhân" (Admin/Quản lý sửa hồ sơ trong Cài đặt). */
+export function canAccessMyProfilePage(role = getCurrentUserRole()) {
+  return role === ROLES.EMPLOYEE
+}
+
 export function getVisibleNavItems(role = getCurrentUserRole()) {
   let items = NAV_ITEMS
 
   if (role === ROLES.EMPLOYEE) {
-    items = items.filter((item) => ['dashboard', 'reports'].includes(item.id))
+    items = items.filter((item) => ['dashboard', 'invoices', 'reports', 'profile'].includes(item.id))
   }
 
-  if (role !== ROLES.ADMIN && role !== ROLES.BRANCH_MANAGER) {
+  if (role !== ROLES.EMPLOYEE) {
+    items = items.filter((item) => item.id !== 'profile')
+  }
+
+  if (role !== ROLES.ADMIN && role !== ROLES.BRANCH_MANAGER && role !== ROLES.EMPLOYEE) {
     items = items.filter((item) => !['invoices', 'expenses', 'employees'].includes(item.id))
   }
 

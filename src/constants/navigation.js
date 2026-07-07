@@ -4,5 +4,6 @@ export const NAV_ITEMS = [
   { id: 'expenses', label: 'Chi phí', icon: 'expense' },
   { id: 'employees', label: 'Nhân viên', icon: 'employee' },
   { id: 'reports', label: 'Báo cáo', icon: 'report' },
+  { id: 'profile', label: 'Hồ sơ cá nhân', icon: 'profile' },
   { id: 'settings', label: 'Quản trị hệ thống', icon: 'settings' },
 ]

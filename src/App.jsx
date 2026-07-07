@@ -4,8 +4,10 @@ import {
   canAccessEmployeesPage,
   canAccessExpensesPage,
   canAccessInvoicesPage,
+  canAccessMyProfilePage,
   canAccessSettingsPage,
   canViewReport,
+  getCurrentUserEmployeeId,
   isEmployee,
 } from './constants/auth'
 import Dashboard from './pages/Dashboard'
@@ -13,11 +15,13 @@ import Employees from './pages/Employees'
 import Expenses from './pages/Expenses'
 import Invoice from './pages/Invoice'
 import Login from './pages/Login'
+import MyProfile from './pages/MyProfile'
 import Report from './pages/Report'
 import Settings from './pages/Settings'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncMissingBranchCredentials } from './utils/credentialsStorage'
 import { syncAllCustomBranchPricing } from './utils/branchPricingStorage'
+import { getEmployeeById, isEmployeeProfileComplete } from './utils/employeeStorage'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -25,6 +29,7 @@ const PAGES = {
   expenses: Expenses,
   employees: Employees,
   reports: Report,
+  profile: MyProfile,
   settings: Settings,
 }
 
@@ -39,6 +44,7 @@ function canAccessPage(pageId) {
   if (pageId === 'invoices') return canAccessInvoicesPage()
   if (pageId === 'expenses') return canAccessExpensesPage()
   if (pageId === 'reports') return canViewReport()
+  if (pageId === 'profile') return canAccessMyProfilePage()
   return true
 }
 
@@ -49,6 +55,7 @@ function App() {
   })
   const [activePage, setActivePage] = useState(() => getDefaultPage(loadCurrentUser()))
   const [authReady, setAuthReady] = useState(false)
+  const [profileTick, setProfileTick] = useState(0)
 
   useEffect(() => {
     clearLegacySession()
@@ -79,6 +86,21 @@ function App() {
         }}
       />
     )
+  }
+
+  if (isEmployee()) {
+    const myEmployee = getEmployeeById(getCurrentUserEmployeeId())
+    if (!isEmployeeProfileComplete(myEmployee)) {
+      return (
+        <div className="app-onboarding" style={{ padding: 24 }}>
+          <MyProfile
+            key={profileTick}
+            mandatory
+            onCompleted={() => setProfileTick((tick) => tick + 1)}
+          />
+        </div>
+      )
+    }
   }
 
   const handleNavigate = (pageId) => {

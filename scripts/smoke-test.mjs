@@ -63,8 +63,22 @@ const { computeSalaryReport, getPayPeriodRange, PAY_CYCLES } = await import('../
 const { verifyLogin, ADMIN_BRANCH } = await import('../src/constants/loginCredentials.js')
 const { ROLES } = await import('../src/constants/auth.js')
 const { saveCurrentUser, loadCurrentUser, clearCurrentUser } = await import('../src/utils/authStorage.js')
-const { canAccessEmployeesPage, canAccessInvoicesPage, canDeleteInvoice, filterByUserScope } = await import('../src/constants/auth.js')
-const { saveInvoice, loadInvoices } = await import('../src/utils/invoiceStorage.js')
+const {
+  canAccessEmployeesPage,
+  canAccessInvoicesPage,
+  canAddInvoice,
+  canDeleteInvoice,
+  canEditInvoice,
+  filterByUserScope,
+} = await import('../src/constants/auth.js')
+const { saveInvoice, updateInvoice, loadInvoices } = await import('../src/utils/invoiceStorage.js')
+const {
+  getEmployeeById,
+  isEmployeeProfileComplete,
+  updateEmployee,
+  updateOwnEmployeeProfile,
+} = await import('../src/utils/employeeStorage.js')
+const { isValidCccd, isValidVietnamesePhone } = await import('../src/utils/validators.js')
 const { ensureCredentialsHashed } = await import('../src/utils/credentialsStorage.js')
 const { validateImportPayload } = await import('../src/utils/dataBackup.js')
 const { SUPPORT_EMPLOYEE_COMMISSION_RATE } = await import('../src/constants/salary.js')
@@ -176,7 +190,19 @@ test('permissions: role access matrix', () => {
   assert.equal(canDeleteInvoice(), false)
 
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
-  assert.equal(canAccessInvoicesPage(), false)
+  assert.equal(canAccessInvoicesPage(), true)
+  assert.equal(canAddInvoice(), true)
+  assert.equal(canDeleteInvoice(), false)
+  assert.equal(
+    canEditInvoice({ employeeId: 'vinh-long-linh' }),
+    true,
+    'employee sửa được hóa đơn do chính mình tạo',
+  )
+  assert.equal(
+    canEditInvoice({ employeeId: 'other-employee' }),
+    false,
+    'employee không được sửa hóa đơn của nhân viên khác',
+  )
   assert.equal(filterByUserScope([{ branchId: 'vinh-long', employeeId: 'vinh-long-linh' }]).length, 1)
   assert.equal(filterByUserScope([{ branchId: 'vinh-long', employeeId: 'other' }]).length, 0)
   clearCurrentUser()
@@ -217,6 +243,183 @@ test('invoice storage: branch manager can save scoped invoice', () => {
   })
   assert.equal(result.success, true)
   assert.equal(loadInvoices().length, 1)
+  clearCurrentUser()
+})
+
+test('invoice storage: employee create is forced to own branch/employee', () => {
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  localStorage.setItem('spa-manager-invoices', JSON.stringify([]))
+  const result = saveInvoice({
+    id: 'test-inv-employee',
+    branchId: 'tra-vinh',
+    branchName: 'Trà Vinh',
+    employeeId: 'someone-else',
+    employeeName: 'Someone Else',
+    supportEmployeeId: 'support-x',
+    supportEmployeeName: 'Support X',
+    serviceIds: ['svc'],
+    services: [{ id: 'svc', name: 'DV', price: 150000, commissionPercent: 10, commissionAmount: 15000 }],
+    tips: 0,
+    total: 150000,
+    serviceTotal: 150000,
+    commission: 15000,
+    date: '2026-07-05',
+    createdAt: new Date().toISOString(),
+  })
+  assert.equal(result.success, true)
+  assert.equal(result.invoice.branchId, 'vinh-long')
+  assert.equal(result.invoice.employeeId, 'vinh-long-linh')
+  assert.equal(result.invoice.supportEmployeeId, '')
+  clearCurrentUser()
+})
+
+test('invoice storage: employee cannot edit another employee\'s invoice', () => {
+  setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
+  localStorage.setItem('spa-manager-invoices', JSON.stringify([]))
+  saveInvoice({
+    id: 'inv-owned-by-other',
+    branchId: 'vinh-long',
+    branchName: 'Vĩnh Long',
+    employeeId: 'other-employee',
+    employeeName: 'Other',
+    serviceIds: ['svc'],
+    services: [{ id: 'svc', name: 'DV', price: 150000, commissionPercent: 10, commissionAmount: 15000 }],
+    tips: 0,
+    total: 150000,
+    serviceTotal: 150000,
+    commission: 15000,
+    date: '2026-07-05',
+    createdAt: new Date().toISOString(),
+  })
+  clearCurrentUser()
+
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  const result = updateInvoice('inv-owned-by-other', { customerName: 'Hack' })
+  assert.equal(result.success, false)
+  clearCurrentUser()
+})
+
+test('invoice storage: employee edit cannot reassign branch/employee via forged data', () => {
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  localStorage.setItem('spa-manager-invoices', JSON.stringify([]))
+  const created = saveInvoice({
+    id: 'inv-own',
+    branchId: 'vinh-long',
+    employeeId: 'vinh-long-linh',
+    serviceIds: ['svc'],
+    services: [{ id: 'svc', name: 'DV', price: 150000, commissionPercent: 10, commissionAmount: 15000 }],
+    tips: 0,
+    total: 150000,
+    serviceTotal: 150000,
+    commission: 15000,
+    date: '2026-07-05',
+    createdAt: new Date().toISOString(),
+  })
+  assert.equal(created.success, true)
+
+  const result = updateInvoice('inv-own', {
+    customerName: 'Khách mới',
+    branchId: 'tra-vinh',
+    employeeId: 'someone-else',
+    supportEmployeeId: 'support-x',
+  })
+  assert.equal(result.success, true)
+  assert.equal(result.invoice.customerName, 'Khách mới')
+  assert.equal(result.invoice.branchId, 'vinh-long')
+  assert.equal(result.invoice.employeeId, 'vinh-long-linh')
+  assert.equal(result.invoice.supportEmployeeId, '')
+  clearCurrentUser()
+})
+
+test('validators: cccd must be exactly 12 digits', () => {
+  assert.equal(isValidCccd(''), true, 'CCCD trống vẫn hợp lệ (không bắt buộc)')
+  assert.equal(isValidCccd('123456789012'), true)
+  assert.equal(isValidCccd('12345'), false)
+  assert.equal(isValidCccd('12345678901a'), false)
+})
+
+test('validators: phone format', () => {
+  assert.equal(isValidVietnamesePhone('0901234567'), true)
+  assert.equal(isValidVietnamesePhone('84901234567'), true)
+  assert.equal(isValidVietnamesePhone('12345'), false)
+  assert.equal(isValidVietnamesePhone(''), false)
+})
+
+test('employee profile: incomplete profile requires phone', () => {
+  assert.equal(isEmployeeProfileComplete({ name: 'Linh', phone: '' }), false)
+  assert.equal(isEmployeeProfileComplete({ name: 'Linh', phone: '0901234567' }), true)
+  assert.equal(isEmployeeProfileComplete(null), false)
+})
+
+test('employee self profile: employee updates own profile successfully', () => {
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  const result = updateOwnEmployeeProfile('vinh-long-linh', {
+    name: 'Linh',
+    phone: '0901234567',
+    cccd: '079123456789',
+    bankName: 'Vietcombank',
+    bankAccount: '0011002233',
+    emergencyContactName: 'Chị gái',
+    emergencyContactPhone: '0909876543',
+  })
+  assert.equal(result.success, true)
+  assert.equal(result.employee.phone, '0901234567')
+  assert.equal(result.employee.bankName, 'Vietcombank')
+  assert.equal(getEmployeeById('vinh-long-linh').cccd, '079123456789')
+  clearCurrentUser()
+})
+
+test('employee self profile: rejects missing name/phone and invalid cccd', () => {
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  const noPhone = updateOwnEmployeeProfile('vinh-long-linh', { name: 'Linh', phone: '' })
+  assert.equal(noPhone.success, false)
+
+  const badCccd = updateOwnEmployeeProfile('vinh-long-linh', {
+    name: 'Linh',
+    phone: '0901234567',
+    cccd: '12345',
+  })
+  assert.equal(badCccd.success, false)
+  clearCurrentUser()
+})
+
+test('employee self profile: cannot edit another employee\'s profile', () => {
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  const result = updateOwnEmployeeProfile('vinh-long-tho', { name: 'Hack', phone: '0901234567' })
+  assert.equal(result.success, false)
+  clearCurrentUser()
+})
+
+test('employee self profile: cannot change role-managed fields via forged payload', () => {
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  const before = getEmployeeById('vinh-long-linh')
+  const result = updateOwnEmployeeProfile('vinh-long-linh', {
+    name: 'Linh',
+    phone: '0901234567',
+    branchId: 'tra-vinh',
+    position: 'Quản lý',
+    status: 'resigned',
+    startDate: '2020-01-01',
+  })
+  assert.equal(result.success, true)
+  assert.equal(result.employee.branchId, before.branchId)
+  assert.equal(result.employee.position, before.position)
+  assert.equal(result.employee.status, before.status)
+  assert.equal(result.employee.startDate, before.startDate)
+  clearCurrentUser()
+})
+
+test('employee self profile: non-employee roles are denied', () => {
+  setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
+  const result = updateOwnEmployeeProfile('vinh-long-linh', { name: 'X', phone: '0901234567' })
+  assert.equal(result.success, false)
+  clearCurrentUser()
+
+  // Admin/Quản lý vẫn sửa được toàn bộ hồ sơ qua updateEmployee như trước.
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  const adminResult = updateEmployee('vinh-long-linh', { position: 'KTV Body' })
+  assert.equal(adminResult.success, true)
+  assert.equal(adminResult.employee.position, 'KTV Body')
   clearCurrentUser()
 })
 

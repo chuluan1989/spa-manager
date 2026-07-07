@@ -1,5 +1,37 @@
-import { canAddInvoice, canDeleteInvoice, canEditInvoice, filterByUserBranch, getCurrentUserBranch, isAdmin } from '../constants/auth'
+import {
+  canAddInvoice,
+  canDeleteInvoice,
+  canEditInvoice,
+  filterByUserBranch,
+  getCurrentUserBranch,
+  getCurrentUserEmployeeId,
+  isAdmin,
+  isEmployee,
+} from '../constants/auth'
+import { getBranchName } from './branchStorage'
+import { getEmployeeById } from './employeeStorage'
 import { getSelectedServiceDetails } from './invoice'
+
+const EMPLOYEE_EDITABLE_INVOICE_FIELDS = [
+  'date',
+  'customerName',
+  'serviceIds',
+  'services',
+  'tips',
+  'paymentMethod',
+  'note',
+  'serviceTotal',
+  'total',
+  'commission',
+]
+
+function pickEmployeeEditableInvoiceFields(data) {
+  const picked = {}
+  for (const key of EMPLOYEE_EDITABLE_INVOICE_FIELDS) {
+    if (data[key] !== undefined) picked[key] = data[key]
+  }
+  return picked
+}
 
 const STORAGE_KEY = 'spa-manager-invoices'
 
@@ -75,12 +107,30 @@ export function saveInvoice(invoice) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn.' }
   }
 
-  const branchId = invoice.branchId ?? ''
+  let payload = invoice
+
+  // Nhân viên chỉ được tạo hóa đơn cho chính mình, tại chi nhánh của mình.
+  // Ép cứng ở storage layer để chặn mọi thao tác sửa qua code/browser.
+  if (isEmployee()) {
+    const employeeId = getCurrentUserEmployeeId()
+    const branchId = getCurrentUserBranch()
+    payload = {
+      ...invoice,
+      branchId,
+      branchName: getBranchName(branchId),
+      employeeId,
+      employeeName: getEmployeeById(employeeId)?.name ?? invoice.employeeName ?? '',
+      supportEmployeeId: '',
+      supportEmployeeName: '',
+    }
+  }
+
+  const branchId = payload.branchId ?? ''
   if (!isAdmin() && branchId !== getCurrentUserBranch()) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
   }
 
-  const snapshot = ensureInvoiceSnapshot(invoice)
+  const snapshot = ensureInvoiceSnapshot(payload)
   const invoices = loadInvoices()
   invoices.unshift(snapshot)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
@@ -88,10 +138,6 @@ export function saveInvoice(invoice) {
 }
 
 export function updateInvoice(id, data) {
-  if (!canEditInvoice()) {
-    return { success: false, error: 'Bạn không có quyền sửa hóa đơn.' }
-  }
-
   const invoices = loadInvoices()
   const index = invoices.findIndex((invoice) => invoice.id === id)
   if (index === -1) {
@@ -99,14 +145,34 @@ export function updateInvoice(id, data) {
   }
 
   const current = invoices[index]
+
+  if (!canEditInvoice(current)) {
+    return { success: false, error: 'Bạn không có quyền sửa hóa đơn.' }
+  }
+
   const scoped = filterByUserBranch([current])
   if (!isAdmin() && scoped.length === 0) {
     return { success: false, error: 'Bạn không có quyền sửa hóa đơn này.' }
   }
 
+  // Nhân viên chỉ được sửa nội dung dịch vụ/khách/tips/thanh toán/ghi chú;
+  // không được đổi chi nhánh, nhân viên chính, nhân viên hỗ trợ — kể cả khi
+  // dữ liệu gửi lên (qua code/browser) cố tình chứa các trường này.
+  const safeData = isEmployee()
+    ? {
+        ...pickEmployeeEditableInvoiceFields(data),
+        branchId: current.branchId,
+        branchName: current.branchName,
+        employeeId: current.employeeId,
+        employeeName: current.employeeName,
+        supportEmployeeId: current.supportEmployeeId,
+        supportEmployeeName: current.supportEmployeeName,
+      }
+    : data
+
   const updated = ensureInvoiceSnapshot({
     ...current,
-    ...data,
+    ...safeData,
     id: current.id,
     createdAt: current.createdAt,
     updatedAt: new Date().toISOString(),

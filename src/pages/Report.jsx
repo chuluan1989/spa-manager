@@ -57,6 +57,42 @@ const REPORT_TABS = {
   SALARY: 'salary',
 }
 
+/**
+ * Nhân viên chỉ được xem tổng doanh thu chi nhánh ở mức tổng quan,
+ * không xem chi tiết chi phí/lợi nhuận/hoa hồng hay dữ liệu từng nhân viên khác.
+ */
+function EmployeeBranchOverview({ filters, updateFilter, report }) {
+  return (
+    <>
+      <section className="report__filters">
+        <label className="report__field">
+          <span>Từ ngày</span>
+          <input
+            type="date"
+            value={filters.fromDate}
+            onChange={(e) => updateFilter('fromDate', e.target.value)}
+          />
+        </label>
+        <label className="report__field">
+          <span>Đến ngày</span>
+          <input
+            type="date"
+            value={filters.toDate}
+            onChange={(e) => updateFilter('toDate', e.target.value)}
+          />
+        </label>
+      </section>
+
+      <section className="report__summary">
+        <div className="report-card report-card--blue">
+          <p className="report-card__label">Tổng doanh thu chi nhánh</p>
+          <p className="report-card__value">{formatCurrency(report.summary.revenue)}</p>
+        </div>
+      </section>
+    </>
+  )
+}
+
 export default function Report() {
   const [activeTab, setActiveTab] = useState(
     isEmployee() ? REPORT_TABS.SALARY : REPORT_TABS.OVERVIEW,
@@ -133,7 +169,9 @@ export default function Report() {
           <h2 className="report__title">Báo cáo</h2>
           <p className="report__subtitle">
             {activeTab === REPORT_TABS.OVERVIEW
-              ? 'Thống kê từ hóa đơn và chi phí đã lưu'
+              ? (isEmployee()
+                ? 'Tổng quan doanh thu chi nhánh'
+                : 'Thống kê từ hóa đơn và chi phí đã lưu')
               : 'Báo cáo lương nhân viên theo chu kỳ từ hóa đơn đã lưu'}
           </p>
         </div>
@@ -170,6 +208,8 @@ export default function Report() {
 
       {activeTab === REPORT_TABS.SALARY || !canViewOverviewReport() ? (
         <EmployeeSalaryPanel />
+      ) : isEmployee() ? (
+        <EmployeeBranchOverview filters={filters} updateFilter={updateFilter} report={report} />
       ) : (
         <>
       <section className="report__filters">

@@ -11,9 +11,9 @@ export default function InvoiceList({
   onDelete,
   onEdit,
   allowDelete = false,
-  allowEdit = false,
+  canEdit = () => false,
 }) {
-  const showActions = allowDelete || allowEdit
+  const showActions = allowDelete || invoices.some((inv) => canEdit(inv))
 
   if (invoices.length === 0) {
     return (
@@ -82,7 +82,7 @@ export default function InvoiceList({
                   </td>
                   {showActions && (
                     <td className="invoice-list__action">
-                      {allowEdit && (
+                      {canEdit(inv) && (
                         <button
                           type="button"
                           className="invoice-list__edit"

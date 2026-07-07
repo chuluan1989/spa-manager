@@ -7,6 +7,9 @@ import {
   filterByUserBranch,
   getCurrentUserBranch,
   getCurrentUserBranchName,
+  getCurrentUserName,
+  getScopedEmployeeId,
+  isEmployee,
 } from '../constants/auth'
 import { getActiveBranches, getBranchById, isSupportBranchEnabled } from '../constants/branches'
 import {
@@ -38,7 +41,7 @@ import './Invoice.css'
 const INITIAL_FORM = () => ({
   date: getTodayDate(),
   branchId: canSelectBranch() ? '' : getCurrentUserBranch(),
-  employeeId: '',
+  employeeId: getScopedEmployeeId(''),
   supportEmployeeId: '',
   customerName: '',
   note: '',
@@ -46,6 +49,7 @@ const INITIAL_FORM = () => ({
 
 export default function Invoice() {
   const lockedBranch = !canSelectBranch()
+  const lockedEmployee = isEmployee()
   const activeBranchName = getCurrentUserBranchName()
   const [form, setForm] = useState(INITIAL_FORM())
   const [selectedIds, setSelectedIds] = useState([])
@@ -113,7 +117,7 @@ export default function Invoice() {
     [form.branchId],
   )
 
-  const showSupportField = isSupportBranchEnabled(form.branchId)
+  const showSupportField = !lockedEmployee && isSupportBranchEnabled(form.branchId)
 
   const supportEmployees = useMemo(
     () => (showSupportField ? getSupportEligibleEmployees(form.employeeId) : []),
@@ -126,7 +130,12 @@ export default function Invoice() {
   }
 
   const handleBranchChange = (branchId) => {
-    setForm((prev) => ({ ...prev, branchId, employeeId: '', supportEmployeeId: '' }))
+    setForm((prev) => ({
+      ...prev,
+      branchId,
+      employeeId: lockedEmployee ? prev.employeeId : '',
+      supportEmployeeId: '',
+    }))
     setSelectedIds([])
     setFallbackServices([])
     setErrors((prev) => ({ ...prev, branchId: undefined, employeeId: undefined, supportEmployeeId: undefined }))
@@ -283,7 +292,7 @@ export default function Invoice() {
   }
 
   const handleEdit = (invoice) => {
-    if (!canEditInvoice()) {
+    if (!canEditInvoice(invoice)) {
       showToast('Bạn không có quyền sửa hóa đơn.')
       return
     }
@@ -293,7 +302,7 @@ export default function Invoice() {
     setForm({
       date: invoice.date,
       branchId: invoice.branchId,
-      employeeId: invoice.employeeId,
+      employeeId: lockedEmployee ? getScopedEmployeeId('') : invoice.employeeId,
       supportEmployeeId: invoice.supportEmployeeId ?? '',
       customerName: invoice.customerName ?? '',
       note: invoice.note ?? '',
@@ -379,23 +388,29 @@ export default function Invoice() {
                 ) : null}
                 <label className="invoice__field">
                   <span>Nhân viên chính</span>
-                  <select
-                    value={form.employeeId}
-                    onChange={(e) => handleEmployeeChange(e.target.value)}
-                    disabled={!form.branchId}
-                    className={errors.employeeId ? 'invoice__input--error' : ''}
-                  >
-                    <option value="" disabled>
-                      {form.branchId ? 'Chọn nhân viên' : 'Chọn chi nhánh trước'}
-                    </option>
-                    {branchEmployees.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.employeeId && (
-                    <span className="invoice__error">{errors.employeeId}</span>
+                  {lockedEmployee ? (
+                    <input type="text" value={getCurrentUserName()} disabled readOnly />
+                  ) : (
+                    <>
+                      <select
+                        value={form.employeeId}
+                        onChange={(e) => handleEmployeeChange(e.target.value)}
+                        disabled={!form.branchId}
+                        className={errors.employeeId ? 'invoice__input--error' : ''}
+                      >
+                        <option value="" disabled>
+                          {form.branchId ? 'Chọn nhân viên' : 'Chọn chi nhánh trước'}
+                        </option>
+                        {branchEmployees.map((e) => (
+                          <option key={e.id} value={e.id}>
+                            {e.name}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.employeeId && (
+                        <span className="invoice__error">{errors.employeeId}</span>
+                      )}
+                    </>
                   )}
                 </label>
                 {showSupportField && (
@@ -555,7 +570,7 @@ export default function Invoice() {
         onDelete={handleDelete}
         onEdit={handleEdit}
         allowDelete={canDeleteInvoice()}
-        allowEdit={canEditInvoice()}
+        canEdit={(inv) => canEditInvoice(inv)}
       />
     </div>
   )

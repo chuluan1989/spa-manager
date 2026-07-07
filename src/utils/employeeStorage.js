@@ -7,6 +7,7 @@ import {
   isSessionAdmin,
   PERMISSION_KEYS,
 } from './storageAccess'
+import { validateEmployeeSelfProfile } from './validators'
 
 import { ROLES } from '../constants/roles'
 
@@ -45,13 +46,37 @@ export const EMPTY_EMPLOYEE_FORM = {
   cccdIssuePlace: '',
   cccdAddress: '',
   currentAddress: '',
+  bankName: '',
+  bankAccount: '',
+  emergencyContactName: '',
+  emergencyContactPhone: '',
   branchId: '',
   position: '',
   startDate: '',
   status: EMPLOYEE_STATUS.ACTIVE,
   note: '',
   avatar: '',
+  cccdFrontImage: '',
+  cccdBackImage: '',
 }
+
+/** Các trường nhân viên được tự cập nhật trong "Hồ sơ cá nhân". */
+export const EMPLOYEE_SELF_SERVICE_FIELDS = [
+  'name',
+  'phone',
+  'cccd',
+  'cccdIssueDate',
+  'cccdIssuePlace',
+  'cccdAddress',
+  'currentAddress',
+  'bankName',
+  'bankAccount',
+  'emergencyContactName',
+  'emergencyContactPhone',
+  'avatar',
+  'cccdFrontImage',
+  'cccdBackImage',
+]
 
 function slugify(name) {
   return name
@@ -82,12 +107,18 @@ export function normalizeEmployee(employee) {
     cccdIssuePlace: employee.cccdIssuePlace ?? '',
     cccdAddress: employee.cccdAddress ?? '',
     currentAddress: employee.currentAddress ?? '',
+    bankName: employee.bankName ?? '',
+    bankAccount: employee.bankAccount ?? '',
+    emergencyContactName: employee.emergencyContactName ?? '',
+    emergencyContactPhone: employee.emergencyContactPhone ?? '',
     branchId: employee.branchId ?? '',
     position: employee.position ?? '',
     startDate: employee.startDate ?? '',
     status: normalizeStatus(employee.status),
     note: employee.note ?? '',
     avatar: employee.avatar ?? '',
+    cccdFrontImage: employee.cccdFrontImage ?? '',
+    cccdBackImage: employee.cccdBackImage ?? '',
   }
 }
 
@@ -187,6 +218,12 @@ export function isEmployeeInBranch(employeeId, branchId) {
   )
 }
 
+/** Hồ sơ được xem là đầy đủ khi có tối thiểu Họ tên và SĐT hợp lệ. */
+export function isEmployeeProfileComplete(employee) {
+  if (!employee) return false
+  return Boolean(employee.name?.trim()) && Boolean(employee.phone?.trim())
+}
+
 function sanitizeEmployeeData(data) {
   return {
     name: data.name?.trim() ?? '',
@@ -199,13 +236,27 @@ function sanitizeEmployeeData(data) {
     cccdIssuePlace: data.cccdIssuePlace?.trim() ?? '',
     cccdAddress: data.cccdAddress ?? '',
     currentAddress: data.currentAddress ?? '',
+    bankName: data.bankName?.trim() ?? '',
+    bankAccount: data.bankAccount?.trim() ?? '',
+    emergencyContactName: data.emergencyContactName?.trim() ?? '',
+    emergencyContactPhone: data.emergencyContactPhone?.trim() ?? '',
     branchId: data.branchId ?? '',
     position: data.position?.trim() ?? '',
     startDate: data.startDate ?? '',
     status: normalizeStatus(data.status),
     note: data.note?.trim() ?? '',
     avatar: data.avatar ?? '',
+    cccdFrontImage: data.cccdFrontImage ?? '',
+    cccdBackImage: data.cccdBackImage ?? '',
   }
+}
+
+function pickFields(data, fields) {
+  const picked = {}
+  for (const key of fields) {
+    if (data[key] !== undefined) picked[key] = data[key]
+  }
+  return picked
 }
 
 export function readAvatarFile(file) {
@@ -279,6 +330,41 @@ export function updateEmployee(id, data) {
   })
   saveEmployees(employees)
   return { success: true, employee: employees[index] }
+}
+
+/**
+ * Nhân viên tự cập nhật hồ sơ cá nhân của chính mình. Chỉ được đổi các
+ * trường trong EMPLOYEE_SELF_SERVICE_FIELDS — vai trò, chi nhánh, chức vụ,
+ * ngày vào làm, trạng thái làm việc... không thể bị thay đổi qua đường này
+ * dù dữ liệu gửi lên (qua code/browser) có cố tình chứa các trường đó.
+ */
+export function updateOwnEmployeeProfile(id, data) {
+  const user = getSessionUser()
+  if (user?.role !== ROLES.EMPLOYEE || user.employeeId !== id) {
+    return denyAccess('Bạn chỉ được sửa hồ sơ của chính mình.')
+  }
+
+  const employees = loadEmployees()
+  const index = employees.findIndex((e) => e.id === id)
+  if (index === -1) {
+    return denyAccess('Không tìm thấy hồ sơ nhân viên.')
+  }
+
+  const current = employees[index]
+  const picked = pickFields(data, EMPLOYEE_SELF_SERVICE_FIELDS)
+  const errors = validateEmployeeSelfProfile({ ...current, ...picked })
+  if (Object.keys(errors).length > 0) {
+    return { success: false, errors, error: Object.values(errors)[0] }
+  }
+
+  const sanitized = sanitizeEmployeeData({ ...current, ...picked })
+  const updated = normalizeEmployee({
+    ...current,
+    ...pickFields(sanitized, EMPLOYEE_SELF_SERVICE_FIELDS),
+  })
+  employees[index] = updated
+  saveEmployees(employees)
+  return { success: true, employee: updated }
 }
 
 export function deleteEmployee(id) {
