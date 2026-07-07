@@ -92,10 +92,16 @@ const {
   getEmployeeProfileStatus,
   isEmployeeProfileComplete,
   transferEmployee,
+  softDeleteEmployee,
   updateEmployee,
   updateOwnEmployeeProfile,
 } = await import('../src/utils/employeeStorage.js')
 const { getEmployeeLifetimeStats } = await import('../src/utils/employeeStats.js')
+const {
+  computeEmployeeListStats,
+  computeEmployeePeriodStats,
+  computeEmployeeTodayStats,
+} = await import('../src/utils/employeeHubStats.js')
 const { redactEmployeeForViewer } = await import('../src/utils/employeeVisibility.js')
 const { isValidCccd, isValidVietnamesePhone } = await import('../src/utils/validators.js')
 const { ensureCredentialsHashed, verifyBranchPassword } = await import('../src/utils/credentialsStorage.js')
@@ -1017,14 +1023,66 @@ test('transferEmployee: ghi lịch sử chi nhánh, không mất dữ liệu h�
   const before = getEmployeeById('vinh-long-linh')
   assert.equal(before.branchHistory.length, 0)
 
-  const result = transferEmployee('vinh-long-linh', 'tra-vinh')
+  const result = transferEmployee('vinh-long-linh', 'tra-vinh', {
+    transferDate: '2026-07-01',
+    note: 'Chuyển theo nhu cầu',
+  })
   assert.equal(result.success, true)
   assert.equal(result.employee.branchId, 'tra-vinh')
   assert.equal(result.employee.branchHistory.length, 1)
-  assert.equal(result.employee.branchHistory[0].branchId, 'vinh-long')
+  assert.equal(result.employee.branchHistory[0].fromBranchId, 'vinh-long')
+  assert.equal(result.employee.branchHistory[0].toBranchId, 'tra-vinh')
+  assert.equal(result.employee.branchHistory[0].transferDate, '2026-07-01')
+  assert.equal(result.employee.branchHistory[0].note, 'Chuyển theo nhu cầu')
   assert.equal(result.employee.name, before.name, 'Không mất dữ liệu hồ sơ khi chuyển chi nhánh')
   assert.equal(result.employee.cccd, before.cccd)
   clearCurrentUser()
+})
+
+test('softDeleteEmployee: đặt trạng thái nghỉ việc, giữ hồ sơ', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  const before = getEmployeeById('vinh-long-linh')
+  const result = softDeleteEmployee('vinh-long-linh')
+  assert.equal(result.success, true)
+  assert.equal(result.employee.status, 'resigned')
+  assert.equal(result.employee.name, before.name)
+  assert.equal(result.employee.phone, before.phone, 'SĐT vẫn còn sau xóa mềm')
+  clearCurrentUser()
+})
+
+test('computeEmployeeListStats: tổng hợp doanh số tháng theo nhân viên', () => {
+  const invoices = [
+    {
+      id: 'hub-inv-1',
+      branchId: 'vinh-long',
+      employeeId: 'vinh-long-linh',
+      date: '2026-07-05',
+      serviceTotal: 200000,
+      tips: 10000,
+      commission: 20000,
+      services: [{ id: 's1', name: 'DV', price: 200000, commissionPercent: 10, commissionAmount: 20000 }],
+    },
+    {
+      id: 'hub-inv-2',
+      branchId: 'vinh-long',
+      employeeId: 'vinh-long-linh',
+      date: '2026-07-06',
+      serviceTotal: 100000,
+      tips: 5000,
+      commission: 10000,
+      services: [{ id: 's2', name: 'DV2', price: 100000, commissionPercent: 10, commissionAmount: 10000 }],
+    },
+  ]
+  const map = computeEmployeeListStats(invoices, ['vinh-long-linh'], '2026-07')
+  const stats = map.get('vinh-long-linh')
+  assert.equal(stats.invoiceCount, 2)
+  assert.equal(stats.serviceRevenue, 300000)
+  assert.equal(stats.tips, 15000)
+  assert.equal(stats.serviceCommission, 30000)
+  assert.equal(stats.totalSalary, 45000)
+
+  const today = computeEmployeeTodayStats(invoices, 'vinh-long-linh')
+  assert.equal(today.invoiceCount, 0, 'Không có HĐ hôm nay trong fixture')
 })
 
 test('getEmployeeLifetimeStats: tổng hợp doanh thu/tour/tips/hoa hồng/lương trọn đời', () => {

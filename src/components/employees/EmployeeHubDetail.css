@@ -1,0 +1,241 @@
+.employee-hub-detail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.employee-hub-detail--empty {
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: var(--ks-text-muted);
+  text-align: center;
+  border: 1px dashed var(--ks-border-subtle);
+  border-radius: var(--ks-radius-md);
+  background: var(--ks-card);
+}
+
+.employee-hub-detail__tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 16px;
+  background: var(--ks-input-bg);
+  border-radius: var(--ks-radius-md);
+  overflow-x: auto;
+}
+
+.employee-hub-detail__tab {
+  flex: 1;
+  min-width: max-content;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--ks-radius-sm);
+  background: transparent;
+  color: var(--ks-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.employee-hub-detail__tab--active {
+  background: linear-gradient(135deg, var(--ks-gold) 0%, var(--ks-gold-dark) 100%);
+  color: #14100a;
+}
+
+.employee-hub-detail__panel {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.employee-hub-detail__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.employee-hub-stat {
+  padding: 12px 14px;
+  border: 1px solid var(--ks-border-subtle);
+  border-radius: var(--ks-radius-sm);
+  background: var(--ks-input-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-hub-stat span {
+  font-size: 11px;
+  color: var(--ks-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.employee-hub-stat strong {
+  font-size: 15px;
+  color: var(--ks-text);
+}
+
+.employee-hub-stat--gold strong { color: var(--ks-gold-hover); }
+.employee-hub-stat--tips strong { color: var(--ks-success); }
+.employee-hub-stat--commission strong { color: var(--ks-gold); }
+.employee-hub-stat--salary strong { color: var(--ks-gold-hover); font-size: 17px; }
+
+.employee-hub-detail__empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--ks-text-muted);
+  font-size: 14px;
+}
+
+.employee-hub-detail__cycle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.employee-hub-detail__cycle button {
+  padding: 8px 12px;
+  border: 1px solid var(--ks-border-subtle);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ks-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.employee-hub-detail__cycle button.is-active {
+  border-color: var(--ks-gold);
+  color: var(--ks-gold-hover);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.employee-hub-sales-day,
+.employee-hub-salary-day {
+  margin-bottom: 16px;
+  border: 1px solid var(--ks-border-subtle);
+  border-radius: var(--ks-radius-md);
+  overflow: hidden;
+  background: var(--ks-card);
+}
+
+.employee-hub-sales-day h4,
+.employee-hub-salary-day h4 {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+  background: rgba(212, 175, 55, 0.08);
+  color: var(--ks-gold-hover);
+  border-bottom: 1px solid var(--ks-border-subtle);
+}
+
+.employee-hub-sales-inv {
+  padding: 12px 14px;
+  border-bottom: 1px dashed var(--ks-border-subtle);
+}
+
+.employee-hub-sales-inv__time {
+  font-weight: 700;
+  color: var(--ks-gold);
+  margin-bottom: 8px;
+}
+
+.employee-hub-sales-inv__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.employee-hub-sales-inv__grid span {
+  display: block;
+  font-size: 11px;
+  color: var(--ks-text-subtle);
+}
+
+.employee-hub-sales-inv__grid strong {
+  font-size: 13px;
+  color: var(--ks-text);
+}
+
+.employee-hub-sales-inv__grid .is-tips {
+  color: var(--ks-success);
+}
+
+.employee-hub-sales-day__total {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--ks-text-muted);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.employee-hub-salary-day__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--ks-border-subtle);
+}
+
+.employee-hub-salary-day__row--total {
+  background: rgba(212, 175, 55, 0.08);
+  font-weight: 700;
+}
+
+.employee-hub-salary-day__row .is-tips {
+  color: var(--ks-success);
+}
+
+.employee-hub-history-block {
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid var(--ks-border-subtle);
+  border-radius: var(--ks-radius-sm);
+  background: var(--ks-input-bg);
+}
+
+.employee-hub-history-block h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--ks-gold);
+}
+
+.employee-hub-history-block p {
+  margin: 0;
+  color: var(--ks-text);
+}
+
+.employee-hub-history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.employee-hub-history-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--ks-text-muted);
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--ks-border-subtle);
+}
+
+.employee-hub-history-list strong {
+  color: var(--ks-text);
+}
+
+.employee-hub-history-list em {
+  font-style: normal;
+  color: var(--ks-text-subtle);
+  font-size: 12px;
+}

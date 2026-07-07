@@ -3,6 +3,15 @@ import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
 const TABLE = 'employees'
 
+export async function fetchEmployeesFiltered({ branchId } = {}) {
+  if (!isSupabaseConfigured) return null
+  let query = supabase.from(TABLE).select('*').order('name', { ascending: true })
+  if (branchId) query = query.eq('branch_id', branchId)
+  const { data, error } = await query
+  if (error) throw error
+  return rowsToCamel(data ?? [])
+}
+
 export async function fetchEmployees() {
   if (!isSupabaseConfigured) return null
   const { data, error } = await supabase.from(TABLE).select('*')

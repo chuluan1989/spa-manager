@@ -268,7 +268,7 @@ function buildDailySalaryRows(invoiceRows) {
     })
 }
 
-function buildAdminEmployeeSummary(invoices, employeeId) {
+export function buildAdminEmployeeSummary(invoices, employeeId) {
   const invoiceRows = [...invoices]
     .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt ?? '').localeCompare(b.createdAt ?? ''))
     .map((invoice) => buildInvoiceSalaryRow(invoice, employeeId))

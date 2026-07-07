@@ -595,7 +595,7 @@ export function deleteEmployee(id) {
   return { success: true, employees: next }
 }
 
-export function transferEmployee(id, newBranchId) {
+export function transferEmployee(id, newBranchId, options = {}) {
   if (!hasSessionPermission(PERMISSION_KEYS.TRANSFER_EMPLOYEE)) {
     return denyAccess('Chỉ Admin mới được chuyển chi nhánh nhân viên.')
   }
@@ -605,11 +605,18 @@ export function transferEmployee(id, newBranchId) {
     return denyAccess('Chỉ Admin mới được chuyển chi nhánh nhân viên.')
   }
 
+  const { transferDate, note = '' } = options
   const current = getEmployeeById(id)
   if (current && current.branchId && current.branchId !== newBranchId) {
     const historyEntry = {
+      fromBranchId: current.branchId,
+      fromBranchName: resolveBranchName(current.branchId),
+      toBranchId: newBranchId,
+      toBranchName: resolveBranchName(newBranchId),
       branchId: current.branchId,
       branchName: resolveBranchName(current.branchId),
+      transferDate: transferDate || new Date().toISOString().slice(0, 10),
+      note: note.trim(),
       changedAt: new Date().toISOString(),
     }
     return updateEmployee(id, {
@@ -619,6 +626,25 @@ export function transferEmployee(id, newBranchId) {
   }
 
   return updateEmployee(id, { branchId: newBranchId })
+}
+
+/** Xóa mềm — đặt trạng thái nghỉ việc, giữ dữ liệu và doanh số lịch sử. */
+export function softDeleteEmployee(id) {
+  if (!hasSessionPermission(PERMISSION_KEYS.DELETE_EMPLOYEE)) {
+    return denyAccess('Chỉ Admin mới được xóa nhân viên.')
+  }
+
+  const current = getEmployeeById(id)
+  if (!current) {
+    return denyAccess('Không tìm thấy nhân viên.')
+  }
+
+  return updateEmployee(id, {
+    status: EMPLOYEE_STATUS.RESIGNED,
+    note: current.note
+      ? `${current.note}\n[Đã ẩn khỏi danh sách ${new Date().toISOString().slice(0, 10)}]`
+      : `[Đã ẩn khỏi danh sách ${new Date().toISOString().slice(0, 10)}]`,
+  })
 }
 
 export function getBranchName(branchId) {
