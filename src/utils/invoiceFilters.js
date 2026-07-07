@@ -51,13 +51,11 @@ export function sortInvoicesDesc(invoices) {
 }
 
 function buildInvoiceSearchHaystack(invoice) {
-  const services = getInvoiceServiceDetails(invoice)
   return [
     invoice.id ?? '',
     invoice.customerName ?? '',
     invoice.customerPhone ?? '',
-    invoice.employeeName ?? '',
-    ...services.map((service) => service.name ?? ''),
+    invoice.note ?? '',
   ].join(' ').toLowerCase()
 }
 
@@ -80,11 +78,7 @@ export function filterInvoices(invoices, filters) {
     if (toDate && invoice.date > toDate) return false
     if (branchId && invoice.branchId !== branchId) return false
 
-    if (employeeId) {
-      const matchesPrimary = invoice.employeeId === employeeId
-      const matchesSupport = invoice.supportEmployeeId === employeeId
-      if (!matchesPrimary && !matchesSupport) return false
-    }
+    if (employeeId && invoice.employeeId !== employeeId) return false
 
     if (paymentMethod && invoice.paymentMethod !== paymentMethod) return false
 
@@ -147,5 +141,12 @@ export function paginateInvoices(invoices, page, pageSize = INVOICE_PAGE_SIZE) {
 }
 
 export function hasActiveInvoiceFilters(filters) {
-  return Boolean(filters.serviceId)
+  return Boolean(
+    filters.fromDate
+    || filters.toDate
+    || filters.branchId
+    || filters.employeeId
+    || filters.serviceId
+    || filters.search?.trim(),
+  )
 }

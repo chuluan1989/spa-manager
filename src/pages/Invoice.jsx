@@ -446,6 +446,8 @@ export default function Invoice() {
             filters={effectiveListFilters}
             onChange={setListFilters}
             onReset={resetListFilters}
+            lockedBranch={lockedBranch}
+            branchName={activeBranchName}
             resultCount={filteredInvoices.length}
             serviceOptions={filterServiceOptions}
           />
