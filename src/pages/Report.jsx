@@ -165,7 +165,7 @@ export default function Report() {
     { label: 'Tổng doanh thu', value: formatCurrency(report.summary.revenue), variant: 'blue' },
     { label: 'Tổng chi phí', value: formatCurrency(report.summary.expenses), variant: 'orange' },
     { label: 'Lợi nhuận', value: formatCurrency(report.summary.profit), variant: 'green' },
-    { label: 'Tổng tiền dịch vụ', value: formatCurrency(report.summary.serviceTotal), variant: 'slate' },
+    { label: 'Tổng thanh toán', value: formatCurrency(report.summary.serviceTotal), variant: 'slate' },
     { label: 'Tổng tips', value: formatCurrency(report.summary.tips), variant: 'orange' },
     { label: 'Tổng hoa hồng dịch vụ', value: formatCurrency(report.summary.commission), variant: 'purple' },
     { label: 'Tổng số hóa đơn', value: String(report.summary.invoiceCount), variant: 'slate' },

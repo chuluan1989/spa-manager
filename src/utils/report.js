@@ -1,4 +1,4 @@
-import { getInvoiceServiceDetails, getInvoiceServiceTotal, invoiceHasDiscount } from './invoice'
+import { getInvoiceServiceDetails, getInvoiceServiceTotal, getInvoicePayment, getInvoiceTips, invoiceHasDiscount } from './invoice'
 import {
   computeExpenseByBranch,
   computeExpenseSummary,
@@ -21,23 +21,19 @@ export function filterInvoices(invoices, { fromDate, toDate, branchId, employeeI
   })
 }
 
-function getInvoiceTips(invoice) {
-  return Number.isFinite(invoice.tips) ? invoice.tips : 0
-}
-
 function getInvoiceServiceCommission(invoice) {
   return getInvoiceServiceDetails(invoice)
     .reduce((sum, service) => sum + (service.commissionAmount ?? 0), 0)
 }
 
-function getInvoiceTotal(invoice) {
-  return Number.isFinite(invoice.total) ? invoice.total : 0
+function getInvoiceRevenue(invoice) {
+  return getInvoicePayment(invoice)
 }
 
 export function computeReportSummary(invoices) {
   return invoices.reduce(
     (acc, inv) => {
-      acc.revenue += getInvoiceTotal(inv)
+      acc.revenue += getInvoiceRevenue(inv)
       acc.serviceTotal += getInvoiceServiceTotal(inv)
       acc.tips += getInvoiceTips(inv)
       acc.commission += getInvoiceServiceCommission(inv)
@@ -65,7 +61,7 @@ export function computeBranchReport(invoices) {
     }
 
     current.invoiceCount += 1
-    current.revenue += getInvoiceTotal(inv)
+    current.revenue += getInvoiceRevenue(inv)
     current.tips += getInvoiceTips(inv)
     current.commission += getInvoiceServiceCommission(inv)
     map.set(key, current)
@@ -121,7 +117,7 @@ export function computeEmployeeReport(invoices) {
     }
 
     current.invoiceCount += 1
-    current.revenue += getInvoiceTotal(inv)
+    current.revenue += getInvoiceRevenue(inv)
     current.tips += getInvoiceTips(inv)
     current.commission += getInvoiceServiceCommission(inv)
     map.set(key, current)
@@ -180,7 +176,7 @@ export function computeTopEmployeesByServiceCount(invoices) {
 
     current.invoiceCount += 1
     current.serviceCount += services.length
-    current.revenue += getInvoiceTotal(inv)
+    current.revenue += getInvoiceRevenue(inv)
     current.tips += getInvoiceTips(inv)
     current.commission += getInvoiceServiceCommission(inv)
     map.set(key, current)

@@ -70,6 +70,10 @@
   background: #f8fafc;
 }
 
+.invoice-list__payment {
+  color: #1565a8;
+}
+
 .invoice-list__index,
 .invoice-list__time {
   white-space: nowrap;

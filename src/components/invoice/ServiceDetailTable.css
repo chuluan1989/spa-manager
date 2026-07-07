@@ -71,6 +71,15 @@
   white-space: nowrap;
 }
 
+.service-detail__discount {
+  color: #dc2626;
+}
+
+.service-detail__payment {
+  color: #1565a8;
+  font-weight: 700;
+}
+
 .service-detail__commission {
   color: #16a34a;
 }
@@ -85,13 +94,15 @@
 }
 
 .service-detail__table th:nth-child(3),
-.service-detail__table th:nth-child(5),
+.service-detail__table th:nth-child(4),
+.service-detail__table th:nth-child(6),
 .service-detail__table td:nth-child(3),
-.service-detail__table td:nth-child(5) {
+.service-detail__table td:nth-child(4),
+.service-detail__table td:nth-child(6) {
   text-align: right;
 }
 
-.service-detail__table th:nth-child(4),
-.service-detail__table td:nth-child(4) {
+.service-detail__table th:nth-child(5),
+.service-detail__table td:nth-child(5) {
   text-align: center;
 }

@@ -1,5 +1,5 @@
 import { getActiveEmployeesByBranch, getAllActiveEmployees } from './employeeStorage'
-import { getInvoiceServiceDetails } from './invoice'
+import { getInvoicePayment, getInvoiceServiceDetails, getInvoiceTips } from './invoice'
 import { getMonthStartDate, getTodayDate } from './invoiceStorage'
 import { sumExpenseAmount } from './expenseStorage'
 import { computeBranchReport } from './report'
@@ -16,14 +16,6 @@ export const ADMIN_DASHBOARD_BRANCHES = [
 function getInvoiceServiceCommission(invoice) {
   return getInvoiceServiceDetails(invoice)
     .reduce((sum, service) => sum + Number(service.commissionAmount ?? 0), 0)
-}
-
-function getInvoiceTips(invoice) {
-  return Number.isFinite(invoice.tips) ? invoice.tips : 0
-}
-
-function getInvoiceTotal(invoice) {
-  return Number.isFinite(invoice.total) ? invoice.total : 0
 }
 
 function getEmployeePay(invoice) {
@@ -64,8 +56,8 @@ function computeBranchCardStats(branchId, displayName, todayInvoices, monthInvoi
   const branchMonth = monthInvoices.filter((invoice) => invoice.branchId === branchId)
   const branchMonthExpenses = monthExpenses.filter((expense) => expense.branchId === branchId)
 
-  const todayRevenue = branchToday.reduce((sum, inv) => sum + getInvoiceTotal(inv), 0)
-  const monthRevenue = branchMonth.reduce((sum, inv) => sum + getInvoiceTotal(inv), 0)
+  const todayRevenue = branchToday.reduce((sum, inv) => sum + getInvoicePayment(inv), 0)
+  const monthRevenue = branchMonth.reduce((sum, inv) => sum + getInvoicePayment(inv), 0)
   const monthTips = branchMonth.reduce((sum, inv) => sum + getInvoiceTips(inv), 0)
   const monthCommission = branchMonth.reduce((sum, inv) => sum + getInvoiceServiceCommission(inv), 0)
   const monthEmployeePay = branchMonth.reduce((sum, inv) => sum + getEmployeePay(inv), 0)
@@ -94,8 +86,8 @@ export function computeAdminDashboardStats(invoices, expenses) {
   const monthInvoices = filterByDateRange(invoices, monthStart, today)
   const monthExpenses = filterByDateRange(expenses, monthStart, today)
 
-  const todayRevenue = todayInvoices.reduce((sum, inv) => sum + getInvoiceTotal(inv), 0)
-  const monthRevenue = monthInvoices.reduce((sum, inv) => sum + getInvoiceTotal(inv), 0)
+  const todayRevenue = todayInvoices.reduce((sum, inv) => sum + getInvoicePayment(inv), 0)
+  const monthRevenue = monthInvoices.reduce((sum, inv) => sum + getInvoicePayment(inv), 0)
   const monthTips = monthInvoices.reduce((sum, inv) => sum + getInvoiceTips(inv), 0)
   const monthCommission = monthInvoices.reduce((sum, inv) => sum + getInvoiceServiceCommission(inv), 0)
   const monthSalaryDue = monthInvoices.reduce((sum, inv) => sum + getEmployeePay(inv), 0)

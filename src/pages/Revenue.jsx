@@ -46,7 +46,7 @@ export default function Revenue() {
 
   const summaryCards = [
     { label: 'Tổng doanh thu', value: formatCurrency(report.summary.revenue), variant: 'blue' },
-    { label: 'Doanh thu dịch vụ', value: formatCurrency(report.summary.serviceTotal), variant: 'slate' },
+    { label: 'Tổng thanh toán', value: formatCurrency(report.summary.serviceTotal), variant: 'slate' },
     { label: 'Tổng tips', value: formatCurrency(report.summary.tips), variant: 'orange' },
     { label: 'Tổng hoa hồng', value: formatCurrency(report.summary.commission), variant: 'purple' },
     { label: 'Số hóa đơn', value: String(report.summary.invoiceCount), variant: 'slate' },

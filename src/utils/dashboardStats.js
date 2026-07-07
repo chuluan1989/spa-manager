@@ -6,7 +6,11 @@ import {
   isAdmin,
   isEmployee,
 } from '../constants/auth'
-import { getInvoiceServiceDetails } from './invoice'
+import {
+  getInvoicePayment,
+  getInvoiceServiceDetails,
+  getInvoiceTips,
+} from './invoice'
 import { getMonthStartDate, getTodayDate } from './invoiceStorage'
 import { sumExpenseAmount } from './expenseStorage'
 import {
@@ -18,14 +22,6 @@ import {
 function getInvoiceServiceCommission(invoice) {
   return getInvoiceServiceDetails(invoice)
     .reduce((sum, service) => sum + Number(service.commissionAmount ?? 0), 0)
-}
-
-function getInvoiceTips(invoice) {
-  return Number.isFinite(invoice.tips) ? invoice.tips : 0
-}
-
-function getInvoiceTotal(invoice) {
-  return Number.isFinite(invoice.total) ? invoice.total : 0
 }
 
 function getEmployeePay(invoice) {
@@ -60,8 +56,8 @@ export function computeDashboardStats(invoices, expenses) {
   const monthInvoices = filterByDateRange(scopedInvoices, monthStart, today)
   const monthExpenses = filterByDateRange(scopedExpenses, monthStart, today)
 
-  const todayRevenue = todayInvoices.reduce((sum, inv) => sum + getInvoiceTotal(inv), 0)
-  const monthRevenue = monthInvoices.reduce((sum, inv) => sum + getInvoiceTotal(inv), 0)
+  const todayRevenue = todayInvoices.reduce((sum, inv) => sum + getInvoicePayment(inv), 0)
+  const monthRevenue = monthInvoices.reduce((sum, inv) => sum + getInvoicePayment(inv), 0)
   const monthExpenseTotal = sumExpenseAmount(monthExpenses)
   const monthServiceCommission = monthInvoices.reduce(
     (sum, inv) => sum + getInvoiceServiceCommission(inv),

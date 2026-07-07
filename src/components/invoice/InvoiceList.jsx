@@ -3,6 +3,8 @@ import {
   formatCurrency,
   getInvoiceServiceDetails,
   getInvoiceServiceTotal,
+  getInvoicePayment,
+  getInvoiceCustomerTotal,
   invoiceHasDiscount,
 } from '../../utils/invoice'
 import {
@@ -88,8 +90,9 @@ export default function InvoiceList({
               <th>SĐT khách</th>
               <th>Dịch vụ đã làm</th>
               <th>Giá từng DV</th>
+              <th>Thanh toán</th>
               <th>Tips</th>
-              <th>Tổng HĐ</th>
+              <th>Tổng KH TT</th>
               <th>Hoa hồng</th>
               <th>Ghi chú</th>
               <th>Người nhập</th>
@@ -102,6 +105,8 @@ export default function InvoiceList({
             {pagination.items.map((inv, index) => {
               const services = getInvoiceServiceDetails(inv)
               const tips = Number.isFinite(inv.tips) ? inv.tips : 0
+              const payment = getInvoicePayment(inv)
+              const customerTotal = getInvoiceCustomerTotal(inv)
               const rowNumber = (pagination.page - 1) * pagination.pageSize + index + 1
 
               return (
@@ -125,9 +130,10 @@ export default function InvoiceList({
                   <td className="invoice-list__service-prices">
                     <ServicePrices services={services} />
                   </td>
+                  <td className="invoice-list__money invoice-list__payment">{formatCurrency(payment)}</td>
                   <td className="invoice-list__money">{formatCurrency(tips)}</td>
                   <td className="invoice-list__money invoice-list__total">
-                    {formatCurrency(inv.total)}
+                    {formatCurrency(customerTotal)}
                   </td>
                   <td className="invoice-list__money invoice-list__commission">
                     {formatCurrency(inv.commission)}
@@ -171,10 +177,13 @@ export default function InvoiceList({
           </tbody>
           <tfoot>
             <tr className="invoice-list__totals-row">
-              <td colSpan={10}><strong>Tổng theo bộ lọc</strong></td>
+              <td colSpan={10}><strong>Tổng theo bộ lọc (doanh thu = thanh toán)</strong></td>
+              <td className="invoice-list__money invoice-list__payment">
+                <strong>{formatCurrency(totals.revenue)}</strong>
+              </td>
               <td className="invoice-list__money"><strong>{formatCurrency(totals.tips)}</strong></td>
               <td className="invoice-list__money invoice-list__total">
-                <strong>{formatCurrency(totals.revenue)}</strong>
+                <strong>{formatCurrency(totals.customerTotal)}</strong>
               </td>
               <td className="invoice-list__money invoice-list__commission">
                 <strong>{formatCurrency(totals.commission)}</strong>

@@ -616,7 +616,7 @@ export default function Invoice() {
                 })}
               </div>
 
-              <ServiceDetailTable items={selectedDetails} totals={totals} />
+              <ServiceDetailTable items={totals.services?.length ? totals.services : selectedDetails} totals={totals} />
             </section>
           </div>
 

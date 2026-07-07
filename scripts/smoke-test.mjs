@@ -104,6 +104,26 @@ const { SUPPORT_EMPLOYEE_COMMISSION_RATE } = await import('../src/constants/sala
 
 console.log('\nSpa Manager — smoke tests\n')
 
+test('invoice payment flow: giá vé - khuyến mãi = thanh toán, thanh toán + tips = tổng KH', () => {
+  const totals = calculateInvoiceTotals(
+    ['vip'],
+    100000,
+    'vinh-long',
+    [{ id: 'vip', name: 'Body VIP', price: 300000, commissionPercent: 20, commissionAmount: 60000 }],
+    'Vĩnh Long',
+    '50000',
+  )
+  assert.equal(totals.originalServiceTotal, 300000)
+  assert.equal(totals.discountAmount, 50000)
+  assert.equal(totals.payment, 250000)
+  assert.equal(totals.serviceTotal, 250000)
+  assert.equal(totals.tips, 100000)
+  assert.equal(totals.customerTotal, 350000)
+  assert.equal(totals.total, 350000)
+  assert.equal(totals.serviceCommission, 50000)
+  assert.equal(totals.commission, 150000)
+})
+
 test('invoice discount: 20% reduces revenue and commission, tips unchanged', () => {
   const totals = calculateInvoiceTotals(
     ['body-vip'],
@@ -341,7 +361,7 @@ test('invoice filters: date, branch, employee, service, payment, search', async 
 
   const totals = computeInvoiceListTotals(filtered)
   assert.equal(totals.count, 1)
-  assert.equal(totals.revenue, 210000)
+  assert.equal(totals.revenue, 200000)
 
   const page = paginateInvoices(sorted, 1, 1)
   assert.equal(page.items.length, 1)
@@ -1032,19 +1052,21 @@ test('tips count 100% toward employee pay', () => {
   assert.equal(totals.commission, 87800)
 })
 
-test('report profit subtracts commission and tips', () => {
+test('report profit subtracts commission and tips from payment revenue', () => {
   const invoices = [{
     id: '1',
     branchId: 'vinh-long',
     total: 239000,
     tips: 50000,
+    serviceTotal: 189000,
     services: [{ id: 'a', price: 189000, commissionAmount: 37800, commissionPercent: 20 }],
   }]
   const summary = computeReportSummary(invoices)
   const report = computeReportData(invoices, [], { fromDate: '', toDate: '', branchId: '', employeeId: '' })
+  assert.equal(summary.revenue, 189000)
   assert.equal(summary.commission, 37800)
   assert.equal(summary.tips, 50000)
-  assert.equal(report.summary.profit, 239000 - 37800 - 50000)
+  assert.equal(report.summary.profit, 189000 - 37800 - 50000)
 })
 
 async function testAsync(name, fn) {

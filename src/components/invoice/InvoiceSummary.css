@@ -8,6 +8,35 @@
   top: 32px;
 }
 
+.invoice-summary__flow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.invoice-summary__arrow {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 0;
+}
+
+.invoice-summary__hint {
+  margin: -4px 0 4px;
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: right;
+}
+
+.invoice-summary__row--payment .invoice-summary__value {
+  color: #1565a8;
+  font-weight: 700;
+}
+
 .invoice-summary__title {
   margin: 0 0 20px;
   font-size: 16px;

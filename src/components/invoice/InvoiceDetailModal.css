@@ -125,6 +125,11 @@
   font-weight: 700;
 }
 
+.invoice-detail-modal__payment {
+  color: #1565a8;
+  font-weight: 700;
+}
+
 .invoice-detail-modal__total {
   color: #1565a8;
   font-weight: 700;

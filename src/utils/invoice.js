@@ -173,7 +173,8 @@ export function calculateInvoiceTotals(
   )
   const serviceTotal = services.reduce((sum, service) => sum + Number(service.price ?? 0), 0)
   const tipsValue = parseTips(tips)
-  const total = serviceTotal + tipsValue
+  const payment = serviceTotal
+  const customerTotal = payment + tipsValue
   const serviceCommission = calculateServiceCommissionFromDetails(services)
   const commission = serviceCommission + tipsValue
 
@@ -184,8 +185,10 @@ export function calculateInvoiceTotals(
     discountValue: parsed.value,
     discountAmount,
     serviceTotal,
+    payment,
     tips: tipsValue,
-    total,
+    total: customerTotal,
+    customerTotal,
     commission,
     serviceCommission,
     services,
@@ -243,6 +246,21 @@ export function formatServiceLine(service) {
     ? ` (gốc ${formatCurrency(original).replace(' ₫', 'đ')})`
     : ''
   return `${service.name}: ${price}${promoNote} | HH ${service.commissionPercent}% = ${commission}`
+}
+
+export function getInvoiceTips(invoice) {
+  return Number.isFinite(invoice?.tips) ? invoice.tips : 0
+}
+
+/** Thanh toán = Giá vé − Khuyến mãi (doanh thu ghi nhận, không gồm Tips). */
+export function getInvoicePayment(invoice) {
+  return getInvoiceServiceTotal(invoice)
+}
+
+/** Tổng khách thanh toán = Thanh toán + Tips. */
+export function getInvoiceCustomerTotal(invoice) {
+  if (Number.isFinite(invoice?.total)) return invoice.total
+  return getInvoicePayment(invoice) + getInvoiceTips(invoice)
 }
 
 export function getInvoiceServiceTotal(invoice) {
