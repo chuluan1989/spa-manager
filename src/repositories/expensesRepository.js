@@ -3,6 +3,23 @@ import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
 const TABLE = 'expenses'
 
+export async function fetchExpensesFiltered({ fromDate = '', toDate = '', branchId = '' } = {}) {
+  if (!isSupabaseConfigured) return null
+
+  let query = supabase
+    .from(TABLE)
+    .select('*')
+    .order('date', { ascending: true })
+
+  if (fromDate) query = query.gte('date', fromDate)
+  if (toDate) query = query.lte('date', toDate)
+  if (branchId) query = query.eq('branch_id', branchId)
+
+  const { data, error } = await query
+  if (error) throw error
+  return rowsToCamel(data ?? [])
+}
+
 export async function fetchExpenses() {
   if (!isSupabaseConfigured) return null
   const { data, error } = await supabase.from(TABLE).select('*')

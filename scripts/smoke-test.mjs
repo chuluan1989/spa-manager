@@ -102,6 +102,12 @@ const {
   computeEmployeePeriodStats,
   computeEmployeeTodayStats,
 } = await import('../src/utils/employeeHubStats.js')
+const {
+  buildBranchDrillRows,
+  buildDrillDownSummary,
+  buildEmployeeDrillRows,
+  countUniqueCustomers,
+} = await import('../src/utils/drillDownReport.js')
 const { redactEmployeeForViewer } = await import('../src/utils/employeeVisibility.js')
 const { isValidCccd, isValidVietnamesePhone } = await import('../src/utils/validators.js')
 const { ensureCredentialsHashed, verifyBranchPassword } = await import('../src/utils/credentialsStorage.js')
@@ -1083,6 +1089,82 @@ test('computeEmployeeListStats: tổng hợp doanh số tháng theo nhân viên'
 
   const today = computeEmployeeTodayStats(invoices, 'vinh-long-linh')
   assert.equal(today.invoiceCount, 0, 'Không có HĐ hôm nay trong fixture')
+})
+
+test('drillDownReport: tổng hợp cấp hệ thống và drill theo chi nhánh/nhân viên', () => {
+  const invoices = [
+    {
+      id: 'drill-inv-1',
+      branchId: 'vinh-long',
+      branchName: 'Vĩnh Long',
+      employeeId: 'vinh-long-linh',
+      employeeName: 'Linh',
+      date: '2026-07-05',
+      serviceTotal: 300000,
+      originalServiceTotal: 350000,
+      discountAmount: 50000,
+      tips: 100000,
+      commission: 50000,
+      customerName: 'Nguyễn Văn A',
+      customerPhone: '0901111111',
+      services: [{ id: 's1', name: 'Body VIP', price: 300000, commissionAmount: 50000 }],
+    },
+    {
+      id: 'drill-inv-2',
+      branchId: 'tra-vinh',
+      branchName: 'Trà Vinh',
+      employeeId: 'tra-vinh-emp',
+      employeeName: 'Mai',
+      date: '2026-07-06',
+      serviceTotal: 200000,
+      originalServiceTotal: 200000,
+      tips: 20000,
+      commission: 20000,
+      customerName: 'Trần B',
+      services: [{ id: 's2', name: 'Body', price: 200000, commissionAmount: 20000 }],
+    },
+  ]
+  const expenses = [
+    { id: 'exp-1', branchId: 'vinh-long', date: '2026-07-05', amount: 500000 },
+  ]
+
+  const summary = buildDrillDownSummary(invoices, expenses, {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-31',
+  })
+  assert.equal(summary.invoiceCount, 2)
+  assert.equal(summary.ticketRevenue, 550000)
+  assert.equal(summary.tips, 120000)
+  assert.equal(summary.discount, 50000)
+  assert.equal(summary.commission, 70000)
+  assert.equal(summary.expenses, 500000)
+  assert.equal(summary.customerCount, 2)
+
+  const branches = buildBranchDrillRows(invoices, expenses, {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-31',
+  })
+  assert.equal(branches.length, 2)
+  assert.equal(branches[0].branchId, 'vinh-long')
+  assert.equal(branches[0].expenses, 500000)
+
+  const employees = buildEmployeeDrillRows(invoices, {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-31',
+    branchId: 'vinh-long',
+  })
+  assert.equal(employees.length, 1)
+  assert.equal(employees[0].employeeId, 'vinh-long-linh')
+  assert.equal(employees[0].salary, employees[0].commission + employees[0].tips)
+})
+
+test('countUniqueCustomers: đếm khách theo SĐT hoặc tên', () => {
+  const count = countUniqueCustomers([
+    { id: '1', customerName: 'A', customerPhone: '0901234567' },
+    { id: '2', customerName: 'A', customerPhone: '0901234567' },
+    { id: '3', customerName: 'B', customerPhone: '' },
+  ])
+  assert.equal(count, 2)
 })
 
 test('getEmployeeLifetimeStats: tổng hợp doanh thu/tour/tips/hoa hồng/lương trọn đời', () => {
