@@ -73,6 +73,9 @@ function CccdImageField({ value, readOnly, onChange, onRemove }) {
               Xóa ảnh
             </button>
           )}
+          <p className="employee-profile__upload-hint">
+            Ảnh JPG/PNG, tối đa 15MB — ảnh trên 2MB sẽ tự động được nén.
+          </p>
         </div>
       )}
     </div>
@@ -164,6 +167,9 @@ export default function EmployeeProfileForm({
                   Xóa ảnh
                 </button>
               )}
+              <p className="employee-profile__upload-hint">
+                Ảnh JPG/PNG, tối đa 15MB — ảnh trên 2MB sẽ tự động được nén.
+              </p>
             </div>
           )}
         </div>

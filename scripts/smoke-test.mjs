@@ -406,6 +406,63 @@ test('employee self profile: rejects missing name/phone and invalid cccd', () =>
   clearCurrentUser()
 })
 
+test('employee self profile: CCCD/avatar images persist as base64 through save + reload', () => {
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  const fakeBase64Front = 'data:image/jpeg;base64,frontimagedata=='
+  const fakeBase64Back = 'data:image/jpeg;base64,backimagedata=='
+  const fakeAvatar = 'data:image/jpeg;base64,avatarimagedata=='
+
+  const result = updateOwnEmployeeProfile('vinh-long-linh', {
+    name: 'Linh',
+    phone: '0901234567',
+    cccd: '079123456789',
+    avatar: fakeAvatar,
+    cccdFrontImage: fakeBase64Front,
+    cccdBackImage: fakeBase64Back,
+  })
+  assert.equal(result.success, true)
+  assert.equal(result.employee.avatar, fakeAvatar)
+  assert.equal(result.employee.cccdFrontImage, fakeBase64Front)
+  assert.equal(result.employee.cccdBackImage, fakeBase64Back)
+
+  // Giả lập "refresh trang": đọc lại từ localStorage bằng một lần load mới.
+  const reloaded = getEmployeeById('vinh-long-linh')
+  assert.equal(reloaded.avatar, fakeAvatar, 'Ảnh đại diện phải còn sau khi tải lại')
+  assert.equal(reloaded.cccdFrontImage, fakeBase64Front, 'Ảnh CCCD mặt trước phải còn sau khi tải lại')
+  assert.equal(reloaded.cccdBackImage, fakeBase64Back, 'Ảnh CCCD mặt sau phải còn sau khi tải lại')
+  clearCurrentUser()
+})
+
+test('employee self profile: storage quota errors are returned gracefully, not thrown', () => {
+  setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  const originalSetItem = localStorage.setItem.bind(localStorage)
+  localStorage.setItem = () => {
+    const error = new Error('Quota exceeded')
+    error.name = 'QuotaExceededError'
+    throw error
+  }
+
+  let threw = false
+  let result
+  try {
+    result = updateOwnEmployeeProfile('vinh-long-linh', {
+      name: 'Linh',
+      phone: '0901234567',
+      cccd: '079123456789',
+      avatar: 'data:image/jpeg;base64,huge==',
+    })
+  } catch {
+    threw = true
+  } finally {
+    localStorage.setItem = originalSetItem
+  }
+
+  assert.equal(threw, false, 'Lỗi vượt hạn mức localStorage không được làm crash ứng dụng')
+  assert.equal(result.success, false)
+  assert.ok(result.error?.length > 0, 'Phải có thông báo lỗi rõ ràng cho người dùng')
+  clearCurrentUser()
+})
+
 test('employee profile permissions: manager cannot view sensitive info, admin sees all', () => {
   setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
   assert.equal(canViewEmployeeCccd(), false)

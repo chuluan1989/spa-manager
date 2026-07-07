@@ -83,6 +83,9 @@ function ImageUploadField({ label, value, onChange, onError }) {
               Xóa ảnh
             </button>
           )}
+          <p className="employee-profile__upload-hint">
+            Ảnh JPG/PNG, tối đa 15MB — ảnh trên 2MB sẽ tự động được nén.
+          </p>
         </div>
       </div>
     </Field>
@@ -369,6 +372,9 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
                 Xóa ảnh
               </button>
             )}
+            <p className="employee-profile__upload-hint">
+              Ảnh JPG/PNG, tối đa 15MB — ảnh trên 2MB sẽ tự động được nén.
+            </p>
           </div>
         </div>
 

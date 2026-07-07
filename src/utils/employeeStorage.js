@@ -24,7 +24,16 @@ export const GENDER_OPTIONS = [
 ]
 
 const STORAGE_KEY = 'spa-manager-employees'
-const MAX_AVATAR_BYTES = 300 * 1024
+// Ảnh vượt quá ngưỡng này (2MB) sẽ được tự động nén (resize + giảm chất
+// lượng JPEG) trước khi lưu, thay vì bị từ chối như trước đây.
+const COMPRESS_THRESHOLD_BYTES = 2 * 1024 * 1024
+// Kích thước Base64 mong muốn sau khi nén, để tránh làm đầy localStorage.
+const TARGET_COMPRESSED_BYTES = 1.5 * 1024 * 1024
+// Chặn hẳn các file quá khổ (ảnh RAW/scan cực lớn) mà nén cũng khó xử lý mượt.
+const HARD_MAX_UPLOAD_BYTES = 15 * 1024 * 1024
+const MAX_IMAGE_DIMENSION = 1920
+const MIN_IMAGE_DIMENSION = 640
+const MIN_JPEG_QUALITY = 0.4
 
 const DEFAULT_EMPLOYEE_NAMES = {
   'vinh-long': ['Linh', 'Thơ', 'Bơ', 'Đậu', 'Diệu', 'Thảo', 'Trâm'],
@@ -168,7 +177,16 @@ export function loadEmployees() {
 }
 
 export function saveEmployees(employees) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(employees))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(employees))
+  } catch (error) {
+    if (error?.name === 'QuotaExceededError' || error?.code === 22) {
+      throw new Error(
+        'Dung lượng lưu trữ của trình duyệt đã đầy. Vui lòng xoá bớt ảnh cũ hoặc chọn ảnh nhỏ hơn rồi thử lại.',
+      )
+    }
+    throw error
+  }
   return employees
 }
 
@@ -270,25 +288,104 @@ function pickFields(data, fields) {
   return picked
 }
 
-export function readAvatarFile(file) {
+function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
-    if (!file) {
-      resolve('')
-      return
-    }
-    if (!file.type.startsWith('image/')) {
-      reject(new Error('Vui lòng chọn file ảnh'))
-      return
-    }
-    if (file.size > MAX_AVATAR_BYTES) {
-      reject(new Error('Ảnh không được vượt quá 300KB'))
-      return
-    }
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result)
     reader.onerror = () => reject(new Error('Không đọc được file ảnh'))
     reader.readAsDataURL(file)
   })
+}
+
+function loadImageElement(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('File ảnh bị lỗi hoặc không đúng định dạng'))
+    img.src = dataUrl
+  })
+}
+
+function estimateDataUrlBytes(dataUrl) {
+  const commaIndex = dataUrl.indexOf(',')
+  const base64 = commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl
+  return Math.ceil((base64.length * 3) / 4)
+}
+
+function drawToDataUrl(img, width, height, quality) {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(img, 0, 0, width, height)
+  return canvas.toDataURL('image/jpeg', quality)
+}
+
+/** Resize + giảm chất lượng JPEG cho tới khi đạt dung lượng mục tiêu. */
+function compressImageElement(img) {
+  let width = img.naturalWidth || img.width
+  let height = img.naturalHeight || img.height
+
+  if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+    if (width >= height) {
+      height = Math.round((height * MAX_IMAGE_DIMENSION) / width)
+      width = MAX_IMAGE_DIMENSION
+    } else {
+      width = Math.round((width * MAX_IMAGE_DIMENSION) / height)
+      height = MAX_IMAGE_DIMENSION
+    }
+  }
+
+  let quality = 0.85
+  let output = drawToDataUrl(img, width, height, quality)
+
+  let guard = 0
+  while (
+    estimateDataUrlBytes(output) > TARGET_COMPRESSED_BYTES
+    && (quality > MIN_JPEG_QUALITY || width > MIN_IMAGE_DIMENSION)
+    && guard < 20
+  ) {
+    if (quality > MIN_JPEG_QUALITY) {
+      quality = Math.max(MIN_JPEG_QUALITY, quality - 0.1)
+    } else {
+      width = Math.round(width * 0.85)
+      height = Math.round(height * 0.85)
+    }
+    output = drawToDataUrl(img, width, height, quality)
+    guard += 1
+  }
+
+  return output
+}
+
+/**
+ * Đọc file ảnh (avatar, CCCD mặt trước/sau...) và trả về chuỗi Base64
+ * (Data URL) để lưu trực tiếp vào localStorage — không bao giờ lưu File
+ * object. Ảnh lớn hơn 2MB sẽ được tự động nén (resize + giảm chất lượng
+ * JPEG) trước khi lưu để tránh mất dữ liệu hoặc vượt hạn mức localStorage.
+ */
+export async function readAvatarFile(file) {
+  if (!file) return ''
+  if (!file.type?.startsWith('image/')) {
+    throw new Error('Vui lòng chọn file ảnh (JPG, PNG...)')
+  }
+  if (file.size > HARD_MAX_UPLOAD_BYTES) {
+    throw new Error('Ảnh quá lớn (tối đa 15MB), vui lòng chọn ảnh khác')
+  }
+
+  const dataUrl = await readFileAsDataUrl(file)
+
+  if (file.size <= COMPRESS_THRESHOLD_BYTES) {
+    return dataUrl
+  }
+
+  try {
+    const img = await loadImageElement(dataUrl)
+    return compressImageElement(img)
+  } catch {
+    // Nếu nén thất bại vì lý do bất kỳ, vẫn dùng ảnh gốc thay vì chặn người dùng.
+    return dataUrl
+  }
 }
 
 export function addEmployee(data) {
@@ -307,7 +404,11 @@ export function addEmployee(data) {
     ...sanitized,
   })
   employees.push(employee)
-  saveEmployees(employees)
+  try {
+    saveEmployees(employees)
+  } catch (error) {
+    return denyAccess(error.message)
+  }
   return { success: true, employee }
 }
 
@@ -339,7 +440,11 @@ export function updateEmployee(id, data) {
     ...current,
     ...sanitized,
   })
-  saveEmployees(employees)
+  try {
+    saveEmployees(employees)
+  } catch (error) {
+    return denyAccess(error.message)
+  }
   return { success: true, employee: employees[index] }
 }
 
@@ -374,7 +479,11 @@ export function updateOwnEmployeeProfile(id, data) {
     ...pickFields(sanitized, EMPLOYEE_SELF_SERVICE_FIELDS),
   })
   employees[index] = updated
-  saveEmployees(employees)
+  try {
+    saveEmployees(employees)
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
   return { success: true, employee: updated }
 }
 
