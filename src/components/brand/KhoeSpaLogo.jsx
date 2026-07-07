@@ -1,13 +1,12 @@
-import khoeSpaLogo from '../../assets/khoe-spa-logo.png'
-
 /**
- * Logo thương hiệu Khoẻ Spa (ảnh gốc: nền đen, biểu tượng + chữ vàng).
- * Dùng chung cho trang giới thiệu, trang đăng nhập và có thể mở rộng sau này.
+ * Logo thương hiệu Khoẻ Spa (nền trong suốt, biểu tượng + chữ vàng).
+ * File gốc: /public/assets/logo.png — dùng chung cho trang đăng nhập,
+ * trang giới thiệu và các vị trí thương hiệu khác trong hệ thống.
  */
 export default function KhoeSpaLogo({ size = 56, className = '' }) {
   return (
     <img
-      src={khoeSpaLogo}
+      src="/assets/logo.png"
       alt="Khoẻ Spa"
       className={`khoe-spa-logo ${className}`.trim()}
       style={{ height: size, width: 'auto' }}
