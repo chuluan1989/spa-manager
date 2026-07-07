@@ -97,7 +97,7 @@ function EmployeeBranchOverview({ filters, updateFilter, report }) {
   )
 }
 
-export default function Report() {
+export default function Report({ onNavigate }) {
   const [activeTab, setActiveTab] = useState(
     isEmployee() ? REPORT_TABS.SALARY : REPORT_TABS.OVERVIEW,
   )
@@ -218,7 +218,7 @@ export default function Report() {
       </nav>
 
       {activeTab === REPORT_TABS.SALARY || !canViewOverviewReport() ? (
-        isEmployee() ? <EmployeeSalaryPanel /> : <AdminEmployeeReport />
+        isEmployee() ? <EmployeeSalaryPanel /> : <AdminEmployeeReport onNavigate={onNavigate} />
       ) : isEmployee() ? (
         <EmployeeBranchOverview filters={filters} updateFilter={updateFilter} report={report} />
       ) : (

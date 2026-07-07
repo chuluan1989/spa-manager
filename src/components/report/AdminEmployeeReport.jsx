@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import BranchBanner from '../common/BranchBanner'
-import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
+import AdminEmployeeDetail from './AdminEmployeeDetail'
 import {
+  canDeleteInvoice,
+  canEditInvoice,
   canSelectBranch,
   getCurrentUserBranch,
   getCurrentUserBranchName,
@@ -9,98 +11,23 @@ import {
 } from '../../constants/auth'
 import { loadBranches } from '../../constants/branches'
 import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../../utils/employeeStorage'
+import { getActiveServicesForBranch, loadServices } from '../../utils/serviceStorage'
 import { formatCurrency } from '../../utils/invoice'
-import { loadInvoices } from '../../utils/invoiceStorage'
+import { isSupabaseConfigured } from '../../lib/supabaseClient'
+import { fetchInvoicesFiltered } from '../../repositories/invoicesRepository'
+import { deleteInvoice } from '../../utils/invoiceStorage'
+import { setInvoiceEditPrefill } from '../../utils/navigationPrefill'
+import { computeEmployeeInvoiceDetailReport } from '../../utils/employeeInvoiceReport'
 import {
   PAY_CYCLE_OPTIONS,
   PAY_CYCLES,
   computeAdminEmployeeReports,
-  computeEmployeeDailyReports,
   formatDisplayDate,
   getCurrentMonthValue,
   getPayPeriodRange,
 } from '../../utils/salaryReport'
 
-function DailyDetailTable({ detail }) {
-  if (!detail) return null
-
-  return (
-    <section className="admin-employee-report__detail">
-      <div className="admin-employee-report__detail-header">
-        <h3>Chi tiết: {detail.employeeName}</h3>
-        <p>
-          {detail.branchName} — {detail.cycleLabel}
-        </p>
-      </div>
-
-      {detail.days.length === 0 ? (
-        <p className="report-table-card__empty">Chưa có dữ liệu trong kỳ này</p>
-      ) : (
-        <>
-          {detail.days.map((day) => (
-            <article key={day.date} className="salary-report__day">
-              <h4 className="salary-report__day-title">
-                Ngày {day.displayDate} — {day.invoiceCount} hóa đơn/tour
-              </h4>
-              <div className="report-table-card__wrap">
-                <table className="report-table-card__table salary-report__table">
-                  <thead>
-                    <tr>
-                      <th>Dịch vụ đã làm</th>
-                      <th>Số lượng</th>
-                      <th>Doanh số dịch vụ</th>
-                      <th>Hoa hồng</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {day.services.map((service) => (
-                      <tr key={`${day.date}-${service.serviceId || service.serviceName}`}>
-                        <td>{service.serviceName}</td>
-                        <td className="report-table-card__num">{service.quantity}</td>
-                        <td className="report-table-card__money">{formatCurrency(service.revenue)}</td>
-                        <td className="report-table-card__money report-table-card__commission">
-                          {formatCurrency(service.commission)}
-                        </td>
-                      </tr>
-                    ))}
-                    <tr className="salary-report__row-tips">
-                      <td colSpan={3}>Tips trong ngày</td>
-                      <td className="report-table-card__money">{formatCurrency(day.tips)}</td>
-                    </tr>
-                    <tr className="salary-report__row-total">
-                      <td colSpan={3}><strong>Hoa hồng trong ngày</strong></td>
-                      <td className="report-table-card__money report-table-card__commission">
-                        <strong>{formatCurrency(day.serviceCommission)}</strong>
-                      </td>
-                    </tr>
-                    <tr className="salary-report__row-total">
-                      <td colSpan={3}><strong>Tổng lương ngày</strong></td>
-                      <td className="report-table-card__money salary-report__salary">
-                        <strong>{formatCurrency(day.totalSalary)}</strong>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </article>
-          ))}
-
-          <div className="salary-report__period-total">
-            <h4 className="salary-report__period-total-title">Tổng cuối kỳ — {detail.employeeName}</h4>
-            <div className="salary-report__period-total-grid">
-              <div><span>Tổng doanh số kỳ</span><strong>{formatCurrency(detail.periodTotals.serviceRevenue)}</strong></div>
-              <div><span>Tổng tips kỳ</span><strong>{formatCurrency(detail.periodTotals.tips)}</strong></div>
-              <div><span>Tổng hoa hồng kỳ</span><strong className="salary-report__commission">{formatCurrency(detail.periodTotals.serviceCommission)}</strong></div>
-              <div><span>Tổng lương kỳ</span><strong className="salary-report__salary">{formatCurrency(detail.periodTotals.totalSalary)}</strong></div>
-            </div>
-          </div>
-        </>
-      )}
-    </section>
-  )
-}
-
-export default function AdminEmployeeReport() {
+export default function AdminEmployeeReport({ onNavigate }) {
   const lockedBranch = !canSelectBranch()
   const initialMonth = getCurrentMonthValue()
   const initialRange = getPayPeriodRange(initialMonth, PAY_CYCLES.PERIOD_1)
@@ -113,11 +40,15 @@ export default function AdminEmployeeReport() {
     employeeId: '',
     cycle: PAY_CYCLES.PERIOD_1,
     discountFilter: '',
+    customerSearch: '',
+    serviceId: '',
   }))
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
-
-  const syncVersion = useDataSyncVersion()
-  const invoices = useMemo(() => loadInvoices(), [syncVersion])
+  const [invoices, setInvoices] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState('')
+  const [detailInvoice, setDetailInvoice] = useState(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const effectiveFilters = useMemo(
     () => ({
@@ -126,6 +57,36 @@ export default function AdminEmployeeReport() {
     }),
     [filters, lockedBranch],
   )
+
+  const loadFromSupabase = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setFetchError('Supabase chưa cấu hình — báo cáo nhân viên yêu cầu dữ liệu Cloud.')
+      setInvoices([])
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    setFetchError('')
+    try {
+      const data = await fetchInvoicesFiltered({
+        fromDate: effectiveFilters.fromDate,
+        toDate: effectiveFilters.toDate,
+        branchId: effectiveFilters.branchId,
+        customerSearch: effectiveFilters.customerSearch,
+      })
+      setInvoices(Array.isArray(data) ? data : [])
+    } catch (error) {
+      setFetchError(error?.message ?? 'Không thể tải hóa đơn từ Supabase.')
+      setInvoices([])
+    } finally {
+      setLoading(false)
+    }
+  }, [effectiveFilters, refreshKey])
+
+  useEffect(() => {
+    loadFromSupabase()
+  }, [loadFromSupabase])
 
   const branchEmployees = useMemo(
     () => (
@@ -136,6 +97,13 @@ export default function AdminEmployeeReport() {
     [effectiveFilters.branchId],
   )
 
+  const serviceOptions = useMemo(() => {
+    if (effectiveFilters.branchId) {
+      return getActiveServicesForBranch(effectiveFilters.branchId)
+    }
+    return loadServices().filter((service) => service.isActive !== false)
+  }, [effectiveFilters.branchId])
+
   const report = useMemo(
     () => computeAdminEmployeeReports(invoices, effectiveFilters),
     [invoices, effectiveFilters],
@@ -143,7 +111,7 @@ export default function AdminEmployeeReport() {
 
   const selectedDetail = useMemo(() => {
     if (!selectedEmployeeId) return null
-    return computeEmployeeDailyReports(invoices, selectedEmployeeId, effectiveFilters)
+    return computeEmployeeInvoiceDetailReport(invoices, selectedEmployeeId, effectiveFilters)
   }, [invoices, selectedEmployeeId, effectiveFilters])
 
   const updateFilter = (field, value) => {
@@ -163,13 +131,32 @@ export default function AdminEmployeeReport() {
   }
 
   const handleBranchChange = (branchId) => {
-    setFilters((prev) => ({ ...prev, branchId, employeeId: '' }))
+    setFilters((prev) => ({ ...prev, branchId, employeeId: '', serviceId: '' }))
     setSelectedEmployeeId('')
   }
 
   const handleDateChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }))
     setSelectedEmployeeId('')
+  }
+
+  const handleEditInvoice = (invoice) => {
+    setDetailInvoice(null)
+    setInvoiceEditPrefill(invoice.id)
+    onNavigate?.('invoices')
+  }
+
+  const handleDeleteInvoice = async (invoice) => {
+    if (!canDeleteInvoice()) return
+    if (!window.confirm(`Xóa hóa đơn khách "${invoice.customerName || '—'}" ngày ${invoice.date}?`)) return
+
+    const result = deleteInvoice(invoice.id)
+    if (!result.success) {
+      window.alert(result.error ?? 'Không thể xóa hóa đơn.')
+      return
+    }
+    setDetailInvoice(null)
+    setRefreshKey((key) => key + 1)
   }
 
   return (
@@ -237,6 +224,26 @@ export default function AdminEmployeeReport() {
         </label>
 
         <label className="report__field">
+          <span>Khách hàng</span>
+          <input
+            type="search"
+            placeholder="Tên hoặc SĐT..."
+            value={filters.customerSearch}
+            onChange={(e) => updateFilter('customerSearch', e.target.value)}
+          />
+        </label>
+
+        <label className="report__field">
+          <span>Dịch vụ</span>
+          <select value={filters.serviceId} onChange={(e) => updateFilter('serviceId', e.target.value)}>
+            <option value="">Tất cả dịch vụ</option>
+            {serviceOptions.map((service) => (
+              <option key={service.id} value={service.id}>{service.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="report__field">
           <span>Chu kỳ lương</span>
           <select value={filters.cycle} onChange={(e) => handleCycleChange(e.target.value)}>
             {PAY_CYCLE_OPTIONS.map((option) => (
@@ -258,14 +265,19 @@ export default function AdminEmployeeReport() {
       <p className="salary-report__period">
         Kỳ báo cáo: {report.cycleLabel} — {formatDisplayDate(report.fromDate)} đến {formatDisplayDate(report.toDate)}
         {isAdmin() && (
-          <span className="admin-employee-report__source"> · Dữ liệu từ hóa đơn/tour đã đồng bộ Cloud</span>
+          <span className="admin-employee-report__source"> · Dữ liệu trực tiếp từ Supabase</span>
         )}
+        {loading && <span className="admin-employee-report__loading"> · Đang tải...</span>}
       </p>
+
+      {fetchError && (
+        <div className="admin-employee-report__error" role="alert">{fetchError}</div>
+      )}
 
       <section className="report-table-card">
         <h3 className="report-table-card__title">Báo cáo nhân viên</h3>
 
-        {report.employees.length === 0 ? (
+        {!loading && report.employees.length === 0 ? (
           <p className="report-table-card__empty">Chưa có dữ liệu trong kỳ này</p>
         ) : (
           <div className="report-table-card__wrap">
@@ -276,16 +288,19 @@ export default function AdminEmployeeReport() {
                   <th>Chi nhánh</th>
                   <th>Số HĐ/Tour</th>
                   <th>Tổng dịch vụ</th>
-                  <th>Doanh số dịch vụ</th>
+                  <th>Doanh thu</th>
                   <th>Tips</th>
-                  <th>Hoa hồng DV</th>
+                  <th>Hoa hồng</th>
                   <th>Tổng lương</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
                 {report.employees.map((row) => (
-                  <tr key={row.employeeId || row.employeeName}>
+                  <tr
+                    key={row.employeeId || row.employeeName}
+                    className={selectedEmployeeId === row.employeeId ? 'admin-employee-report__row--active' : ''}
+                  >
                     <td>{row.employeeName}</td>
                     <td>{row.branchName}</td>
                     <td className="report-table-card__num">{row.invoiceCount}</td>
@@ -310,28 +325,40 @@ export default function AdminEmployeeReport() {
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="admin-employee-report__totals-row">
-                  <td colSpan={2}><strong>Tổng kỳ</strong></td>
-                  <td className="report-table-card__num"><strong>{report.periodTotals.invoiceCount}</strong></td>
-                  <td />
-                  <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.serviceRevenue)}</strong></td>
-                  <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.tips)}</strong></td>
-                  <td className="report-table-card__money report-table-card__commission">
-                    <strong>{formatCurrency(report.periodTotals.serviceCommission)}</strong>
-                  </td>
-                  <td className="report-table-card__money salary-report__salary">
-                    <strong>{formatCurrency(report.periodTotals.totalSalary)}</strong>
-                  </td>
-                  <td />
-                </tr>
-              </tfoot>
+              {report.employees.length > 0 && (
+                <tfoot>
+                  <tr className="admin-employee-report__totals-row">
+                    <td colSpan={2}><strong>Tổng kỳ</strong></td>
+                    <td className="report-table-card__num"><strong>{report.periodTotals.invoiceCount}</strong></td>
+                    <td />
+                    <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.serviceRevenue)}</strong></td>
+                    <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.tips)}</strong></td>
+                    <td className="report-table-card__money report-table-card__commission">
+                      <strong>{formatCurrency(report.periodTotals.serviceCommission)}</strong>
+                    </td>
+                    <td className="report-table-card__money salary-report__salary">
+                      <strong>{formatCurrency(report.periodTotals.totalSalary)}</strong>
+                    </td>
+                    <td />
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         )}
       </section>
 
-      <DailyDetailTable detail={selectedDetail} />
+      <AdminEmployeeDetail
+        detail={selectedDetail}
+        onClose={() => setSelectedEmployeeId('')}
+        onEdit={handleEditInvoice}
+        onDelete={handleDeleteInvoice}
+        allowDelete={canDeleteInvoice()}
+        detailInvoice={detailInvoice}
+        onViewInvoice={setDetailInvoice}
+        onCloseDetail={() => setDetailInvoice(null)}
+        canEditInvoice={canEditInvoice}
+      />
     </div>
   )
 }

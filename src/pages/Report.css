@@ -444,6 +444,262 @@
   color: var(--ks-text-muted);
 }
 
+.admin-employee-report__detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-employee-report__detail-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-employee-report__export-btn,
+.admin-employee-report__close-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.admin-employee-report__export-btn {
+  border: 1px solid var(--ks-border);
+  background: var(--ks-card);
+  color: var(--ks-gold-hover);
+}
+
+.admin-employee-report__export-btn:hover {
+  border-color: var(--ks-gold);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.admin-employee-report__close-btn {
+  border: 1px solid var(--ks-border-subtle);
+  background: transparent;
+  color: var(--ks-text-muted);
+}
+
+.admin-employee-report__loading {
+  color: var(--ks-gold);
+  font-size: 13px;
+}
+
+.admin-employee-report__error {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  font-size: 14px;
+}
+
+.admin-employee-report__row--active td {
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.employee-report-day {
+  border: 1px solid var(--ks-border-subtle);
+  border-radius: var(--ks-radius-md);
+  background: var(--ks-card);
+  overflow: hidden;
+}
+
+.employee-report-day__title {
+  margin: 0;
+  padding: 14px 18px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ks-gold-hover);
+  background: rgba(212, 175, 55, 0.08);
+  border-bottom: 1px solid var(--ks-border-subtle);
+  font-family: var(--ks-font-display);
+}
+
+.employee-report-day__invoices {
+  display: flex;
+  flex-direction: column;
+}
+
+.employee-invoice-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px dashed var(--ks-border-subtle);
+}
+
+.employee-invoice-row:last-child {
+  border-bottom: none;
+}
+
+.employee-invoice-row__main {
+  flex: 1;
+  padding: 14px 18px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  transition: background 0.15s;
+}
+
+.employee-invoice-row__main:hover {
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.employee-invoice-row__time {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ks-gold);
+  margin-bottom: 10px;
+}
+
+.employee-invoice-row__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 16px;
+}
+
+.employee-invoice-row__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.employee-invoice-row__field--wide {
+  grid-column: span 2;
+}
+
+.employee-invoice-row__label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ks-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.employee-invoice-row__value {
+  font-size: 14px;
+  color: var(--ks-text);
+  word-break: break-word;
+}
+
+.employee-invoice-row__payment {
+  color: var(--ks-gold-hover);
+  font-weight: 600;
+}
+
+.employee-invoice-row__tips {
+  color: var(--ks-success);
+  font-weight: 600;
+}
+
+.employee-invoice-row__commission {
+  color: var(--ks-gold);
+  font-weight: 600;
+}
+
+.employee-invoice-row__discount {
+  color: var(--ks-danger);
+}
+
+.employee-invoice-row__role {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--ks-gold);
+}
+
+.employee-invoice-row__actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-left: 1px solid var(--ks-border-subtle);
+}
+
+.employee-invoice-row__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ks-border-subtle);
+  border-radius: 8px;
+  background: var(--ks-input-bg);
+  color: var(--ks-text-muted);
+  cursor: pointer;
+}
+
+.employee-invoice-row__action:hover {
+  border-color: var(--ks-gold);
+  color: var(--ks-gold);
+}
+
+.employee-invoice-row__action--danger:hover {
+  border-color: var(--ks-danger);
+  color: var(--ks-danger);
+}
+
+.employee-report-day__totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(212, 175, 55, 0.06);
+  border-top: 1px solid var(--ks-border);
+}
+
+.employee-report-day__totals div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-report-day__totals span {
+  font-size: 12px;
+  color: var(--ks-text-muted);
+}
+
+.employee-report-day__totals strong {
+  font-size: 15px;
+  color: var(--ks-text);
+}
+
+@media (max-width: 768px) {
+  .employee-invoice-row {
+    flex-direction: column;
+  }
+
+  .employee-invoice-row__actions {
+    flex-direction: row;
+    border-left: none;
+    border-top: 1px solid var(--ks-border-subtle);
+    padding: 10px 18px;
+  }
+
+  .employee-invoice-row__field--wide {
+    grid-column: span 1;
+  }
+
+  .admin-employee-report__detail-header {
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 768px) {
   .report__header {
     flex-direction: column;

@@ -291,6 +291,61 @@ test('admin employee report: summary and daily breakdown', () => {
   assert.equal(daily.periodTotals.totalSalary, 175000)
 })
 
+test('admin employee report: invoice detail per customer tips', async () => {
+  const { computeEmployeeInvoiceDetailReport } = await import('../src/utils/employeeInvoiceReport.js')
+
+  const invoices = [
+    {
+      id: 'inv-a',
+      date: '2026-07-07',
+      invoiceTime: '08:30',
+      branchId: 'soc-trang',
+      branchName: 'Sóc Trăng',
+      employeeId: 'emp-main',
+      employeeName: 'Main',
+      customerName: 'Nguyễn Văn A',
+      tips: 100000,
+      originalServiceTotal: 300000,
+      discountAmount: 50000,
+      serviceTotal: 250000,
+      commission: 50000,
+      services: [{ id: 'svc-vip', name: 'Body VIP', price: 250000, commissionAmount: 50000 }],
+    },
+    {
+      id: 'inv-b',
+      date: '2026-07-07',
+      invoiceTime: '10:20',
+      branchId: 'soc-trang',
+      branchName: 'Sóc Trăng',
+      employeeId: 'emp-main',
+      employeeName: 'Main',
+      customerName: 'Trần Thị B',
+      tips: 20000,
+      originalServiceTotal: 180000,
+      discountAmount: 0,
+      serviceTotal: 180000,
+      commission: 36000,
+      services: [{ id: 'svc-foot', name: 'Foot', price: 180000, commissionAmount: 36000 }],
+    },
+  ]
+
+  const filters = {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-15',
+    branchId: '',
+    cycle: PAY_CYCLES.PERIOD_1,
+  }
+
+  const detail = computeEmployeeInvoiceDetailReport(invoices, 'emp-main', filters)
+  assert.equal(detail.days.length, 1)
+  assert.equal(detail.days[0].invoices.length, 2)
+  assert.equal(detail.days[0].invoices[0].tips, 100000)
+  assert.equal(detail.days[0].invoices[1].tips, 20000)
+  assert.equal(detail.days[0].tips, 120000)
+  assert.equal(detail.days[0].serviceRevenue, 430000)
+  assert.equal(detail.periodTotals.totalSalary, 206000)
+})
+
 test('admin employee report: empty period', () => {
   const summary = computeAdminEmployeeReports([], {
     fromDate: '2026-07-01',

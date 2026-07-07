@@ -68,7 +68,7 @@ function scaleCommissionAmount(amount, role) {
   return Math.round(amount * SUPPORT_EMPLOYEE_COMMISSION_RATE)
 }
 
-function filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId, discountFilter = '' }) {
+export function filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId, discountFilter = '' }) {
   return invoices.filter((invoice) => {
     if (fromDate && invoice.date < fromDate) return false
     if (toDate && invoice.date > toDate) return false

@@ -41,10 +41,12 @@ import {
   createInvoiceId,
   deleteInvoice,
   getTodayDate,
+  getInvoiceById,
   loadInvoices,
   saveInvoice,
   updateInvoice,
 } from '../utils/invoiceStorage'
+import { consumeInvoiceEditPrefill } from '../utils/navigationPrefill'
 import './Invoice.css'
 
 const INITIAL_FILTERS = () => ({
@@ -410,6 +412,17 @@ export default function Invoice() {
     setActiveTab('create')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+
+  useEffect(() => {
+    const editId = consumeInvoiceEditPrefill()
+    if (!editId) return
+    const invoice = getInvoiceById(editId)
+    if (invoice) {
+      handleEdit(invoice)
+    }
+  // Chạy một lần khi mở trang từ báo cáo nhân viên
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleDelete = (id) => {
     if (!canDeleteInvoice()) {

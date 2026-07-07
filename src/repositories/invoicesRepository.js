@@ -41,6 +41,38 @@ async function upsertInvoiceRows(rows) {
   if (error) throw error
 }
 
+export async function fetchInvoicesFiltered(filters = {}) {
+  if (!isSupabaseConfigured) return null
+
+  const {
+    fromDate = '',
+    toDate = '',
+    branchId = '',
+    employeeId = '',
+    customerSearch = '',
+  } = filters
+
+  let query = supabase
+    .from(TABLE)
+    .select('*')
+    .order('date', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  if (fromDate) query = query.gte('date', fromDate)
+  if (toDate) query = query.lte('date', toDate)
+  if (branchId) query = query.eq('branch_id', branchId)
+  if (employeeId) {
+    query = query.or(`employee_id.eq.${employeeId},support_employee_id.eq.${employeeId}`)
+  }
+  if (customerSearch.trim()) {
+    query = query.ilike('customer_name', `%${customerSearch.trim()}%`)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return rowsToCamel(data ?? [])
+}
+
 export async function fetchInvoices() {
   if (!isSupabaseConfigured) return null
   const { data, error } = await supabase
