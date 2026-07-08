@@ -1,9 +1,11 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
+import { getEmployeeById } from '../utils/employeeStorage'
 import { getTodayDate } from '../utils/invoiceStorage'
-import { objectToSnakeRow, rowsToCamel } from './caseUtils'
+import { rowToCamel } from './caseUtils'
 
-const ATTENDANCE_TABLE = 'employee_attendance'
+const ATTENDANCE_TABLE = 'attendance'
 const LOG_TABLE = 'attendance_edit_logs'
+const DATE_COLUMN = 'attendance_date'
 
 function sortAttendanceDesc(rows) {
   return [...rows].sort((a, b) => {
@@ -13,34 +15,62 @@ function sortAttendanceDesc(rows) {
   })
 }
 
+/** Map DB row (attendance) → model JS dùng chung toàn app. */
+export function normalizeAttendanceRow(row) {
+  if (!row || typeof row !== 'object') return row
+  const camel = rowToCamel(row)
+  const employeeId = camel.employeeId ?? ''
+  const employee = employeeId ? getEmployeeById(employeeId) : null
+
+  return {
+    id: camel.id ?? '',
+    employeeId,
+    branchId: camel.branchId ?? '',
+    date: camel.attendanceDate ?? camel.date ?? '',
+    status: camel.status ?? '',
+    reason: camel.reason ?? '',
+    note: camel.note ?? '',
+    penaltyAmount: Number(camel.penaltyAmount ?? 0),
+    submittedAt: camel.createdAt ?? camel.submittedAt ?? '',
+    updatedAt: camel.updatedAt ?? camel.createdAt ?? camel.submittedAt ?? '',
+    createdBy: camel.createdBy ?? '',
+    submittedBy: camel.createdBy ?? camel.submittedBy ?? '',
+    employeeName: camel.employeeName ?? employee?.name ?? '',
+  }
+}
+
+function normalizeAttendanceRows(rows) {
+  return sortAttendanceDesc((rows ?? []).map(normalizeAttendanceRow))
+}
+
 function buildAttendanceInsertRow(record) {
-  return objectToSnakeRow({
+  const now = new Date().toISOString()
+  return {
     id: record.id,
-    date: record.date,
-    branchId: record.branchId ?? null,
-    employeeId: record.employeeId,
-    employeeName: record.employeeName ?? '',
+    employee_id: record.employeeId,
+    branch_id: record.branchId ?? null,
+    [DATE_COLUMN]: record.date,
     status: record.status ?? '',
     reason: record.reason ?? '',
-    note: record.note ?? '',
-    penaltyAmount: Number(record.penaltyAmount ?? 0),
-    submittedAt: record.submittedAt ?? new Date().toISOString(),
-    submittedBy: record.submittedBy ?? record.employeeId ?? '',
-    createdBy: record.createdBy ?? record.employeeId ?? record.submittedBy ?? '',
-    updatedAt: new Date().toISOString(),
-  })
+    penalty_amount: Number(record.penaltyAmount ?? 0),
+    created_at: record.submittedAt ?? now,
+    updated_at: now,
+    created_by: record.createdBy ?? record.employeeId ?? '',
+  }
+}
+
+function buildAttendanceUpdateRow(record) {
+  return {
+    branch_id: record.branchId ?? null,
+    status: record.status ?? '',
+    reason: record.reason ?? '',
+    penalty_amount: Number(record.penaltyAmount ?? 0),
+    updated_at: new Date().toISOString(),
+  }
 }
 
 async function runInsert(row) {
   return supabase.from(ATTENDANCE_TABLE).insert(row).select('*').single()
-}
-
-function stripOptionalColumns(row, errorMessage = '') {
-  const next = { ...row }
-  if (/branch_name|column/.test(errorMessage)) delete next.branch_name
-  if (/created_by|column/.test(errorMessage)) delete next.created_by
-  if (/employee_name|column/.test(errorMessage)) delete next.employee_name
-  return next
 }
 
 export async function fetchAttendanceServerDate() {
@@ -66,10 +96,10 @@ export async function fetchAttendanceByEmployeeAndDate(employeeId, date) {
     .from(ATTENDANCE_TABLE)
     .select('*')
     .eq('employee_id', employeeId)
-    .eq('date', date)
+    .eq(DATE_COLUMN, date)
     .maybeSingle()
   if (error) throw error
-  return data ? rowsToCamel([data])[0] : null
+  return data ? normalizeAttendanceRow(data) : null
 }
 
 export async function fetchAttendanceFiltered({
@@ -85,19 +115,19 @@ export async function fetchAttendanceFiltered({
   let query = supabase
     .from(ATTENDANCE_TABLE)
     .select('*')
-    .order('date', { ascending: false })
-    .order('submitted_at', { ascending: false })
+    .order(DATE_COLUMN, { ascending: false })
+    .order('created_at', { ascending: false })
 
-  if (date) query = query.eq('date', date)
-  if (fromDate) query = query.gte('date', fromDate)
-  if (toDate) query = query.lte('date', toDate)
+  if (date) query = query.eq(DATE_COLUMN, date)
+  if (fromDate) query = query.gte(DATE_COLUMN, fromDate)
+  if (toDate) query = query.lte(DATE_COLUMN, toDate)
   if (branchId) query = query.eq('branch_id', branchId)
   if (employeeId) query = query.eq('employee_id', employeeId)
   if (status) query = query.eq('status', status)
 
   const { data, error } = await query
   if (error) throw error
-  return sortAttendanceDesc(rowsToCamel(data ?? []))
+  return normalizeAttendanceRows(data ?? [])
 }
 
 export async function fetchAttendanceForEmployeeMonth(employeeId, monthPrefix) {
@@ -114,8 +144,11 @@ export async function insertAttendanceRecord(record, { onForeignKeyError } = {})
   if (!record.employeeId) {
     throw new Error('Thiếu employee_id khi lưu chấm công.')
   }
+  if (!record.date) {
+    throw new Error('Thiếu attendance_date khi lưu chấm công.')
+  }
 
-  let row = buildAttendanceInsertRow(record)
+  const row = buildAttendanceInsertRow(record)
   let { data, error } = await runInsert(row)
 
   if (error && /foreign key|violates foreign key/i.test(error.message ?? '')) {
@@ -125,25 +158,15 @@ export async function insertAttendanceRecord(record, { onForeignKeyError } = {})
     }
   }
 
-  if (error && /branch_name|created_by|employee_name|column/.test(error.message ?? '')) {
-    row = stripOptionalColumns(row, error.message ?? '')
-    const retry = await runInsert(row)
-    data = retry.data
-    error = retry.error
-  }
-
   if (error) throw error
-  return rowsToCamel([data])[0]
+  return normalizeAttendanceRow(data)
 }
 
 export async function updateAttendanceRecord(record) {
   if (!isSupabaseConfigured || !record?.id) {
     throw new Error('Supabase chưa cấu hình.')
   }
-  const row = objectToSnakeRow({
-    ...record,
-    updatedAt: new Date().toISOString(),
-  })
+  const row = buildAttendanceUpdateRow(record)
   const { data, error } = await supabase
     .from(ATTENDANCE_TABLE)
     .update(row)
@@ -151,18 +174,25 @@ export async function updateAttendanceRecord(record) {
     .select('*')
     .single()
   if (error) throw error
-  return rowsToCamel([data])[0]
+  return normalizeAttendanceRow(data)
 }
 
 export async function insertAttendanceEditLogs(logs) {
   if (!isSupabaseConfigured || !Array.isArray(logs) || logs.length === 0) return []
-  const rows = logs.map((log) => objectToSnakeRow({
-    ...log,
-    editedAt: log.editedAt ?? new Date().toISOString(),
+  const rows = logs.map((log) => ({
+    id: log.id,
+    attendance_id: log.attendanceId,
+    editor_id: log.editorId ?? '',
+    editor_name: log.editorName ?? '',
+    edited_at: log.editedAt ?? new Date().toISOString(),
+    field_name: log.fieldName ?? '',
+    old_value: log.oldValue ?? '',
+    new_value: log.newValue ?? '',
+    note: log.note ?? '',
   }))
   const { data, error } = await supabase.from(LOG_TABLE).insert(rows).select('*')
   if (error) throw error
-  return rowsToCamel(data ?? [])
+  return (data ?? []).map(rowToCamel)
 }
 
 export async function fetchAttendanceEditLogs(attendanceId) {
@@ -173,7 +203,7 @@ export async function fetchAttendanceEditLogs(attendanceId) {
     .eq('attendance_id', attendanceId)
     .order('edited_at', { ascending: false })
   if (error) throw error
-  return rowsToCamel(data ?? [])
+  return (data ?? []).map(rowToCamel)
 }
 
 export function subscribeAttendanceChanges(onChange) {

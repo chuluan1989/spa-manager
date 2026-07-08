@@ -2461,6 +2461,38 @@ test('employee attendance form: không còn prop onSkip', async () => {
   assert.match(landingSource, /Vào điểm danh/)
 })
 
+test('attendance repository: dùng bảng attendance, không employee_attendance', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const repoPath = path.join(process.cwd(), 'src/repositories/attendanceRepository.js')
+  const repoSource = fs.readFileSync(repoPath, 'utf8')
+  const migrationPath = path.join(process.cwd(), 'supabase/migrations/0024_create_attendance.sql')
+  const migrationSource = fs.readFileSync(migrationPath, 'utf8')
+
+  assert.match(repoSource, /ATTENDANCE_TABLE = 'attendance'/)
+  assert.match(repoSource, /attendance_date/)
+  assert.doesNotMatch(repoSource, /employee_attendance/)
+  assert.match(migrationSource, /create table if not exists public\.attendance/)
+  assert.match(migrationSource, /attendance_date/)
+
+  const { normalizeAttendanceRow } = await import('../src/repositories/attendanceRepository.js')
+  const row = normalizeAttendanceRow({
+    id: 'att-1',
+    employee_id: 'tram-spa-thanh',
+    branch_id: 'tram-spa',
+    attendance_date: '2026-07-08',
+    status: 'on_time',
+    reason: '',
+    penalty_amount: 0,
+    created_at: '2026-07-08T08:00:00.000Z',
+    updated_at: '2026-07-08T08:00:00.000Z',
+    created_by: 'tram-spa-thanh',
+  })
+  assert.equal(row.date, '2026-07-08')
+  assert.equal(row.employeeId, 'tram-spa-thanh')
+  assert.equal(row.submittedAt, '2026-07-08T08:00:00.000Z')
+})
+
 test('invoice sort: hóa đơn mới nhất nằm trên cùng theo created_at', async () => {
   const { sortInvoicesDesc, compareInvoicesDesc } = await import('../src/utils/invoiceFilters.js')
 
