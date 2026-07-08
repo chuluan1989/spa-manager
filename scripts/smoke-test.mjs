@@ -2609,4 +2609,9 @@ test('bootstrap: repairCanonicalBranchMapping chỉ chạy một lần', async (
   assert.equal(second.skipped, true)
 })
 
+test('App: import không crash (useMemo phải được import)', async () => {
+  const App = (await import('../src/App.jsx')).default
+  assert.equal(typeof App, 'function')
+})
+
 process.exit(failed > 0 ? 1 : 0)
