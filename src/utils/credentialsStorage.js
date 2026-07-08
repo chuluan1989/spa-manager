@@ -171,6 +171,7 @@ export async function syncEmployeeCredentialsFromEmployees() {
       || current.branchId !== nextEntry.branchId
       || current.name !== nextEntry.name
       || !isPasswordHash(current.password)
+      || !(await verifyPassword(plainPassword, current.password))
     ) {
       credentials.employees[employee.id] = nextEntry
       changed = true

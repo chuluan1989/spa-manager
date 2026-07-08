@@ -180,6 +180,11 @@ function normalizePermissions(data = {}) {
       ...new Set([...(merged[PERMISSION_KEYS.MANAGE_EMPLOYEES] ?? []), ROLES.BRANCH_MANAGER]),
     ]
   }
+  if (!merged[PERMISSION_KEYS.VIEW_ATTENDANCE]?.includes(ROLES.EMPLOYEE)) {
+    merged[PERMISSION_KEYS.VIEW_ATTENDANCE] = [
+      ...new Set([...(merged[PERMISSION_KEYS.VIEW_ATTENDANCE] ?? []), ROLES.EMPLOYEE]),
+    ]
+  }
   return merged
 }
 

@@ -514,7 +514,7 @@ test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh G
   assert.equal(login3.user.branch, 'gia-lai-3')
 })
 
-test('employee login: CN1/CN3/CN8 credentials sync and password validation', async () => {
+test('employee login: Cần Thơ / Gia Lai 1 / Gia Lai 2 credentials sync and password validation', async () => {
   const { verifyLogin, computeEmployeeDefaultPassword } = await import('../src/constants/loginCredentials.js')
   const { syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } = await import('../src/utils/credentialsStorage.js')
   const { syncMissingDefaultEmployees } = await import('../src/utils/employeeStorage.js')
@@ -530,7 +530,7 @@ test('employee login: CN1/CN3/CN8 credentials sync and password validation', asy
     employeeId: 'tram-spa-thanh',
     password: computeEmployeeDefaultPassword('Thanh', getBranchName('tram-spa')),
   })
-  assert.equal(cn1.ok, true, 'CN1 employee must login')
+  assert.equal(cn1.ok, true, 'Cần Thơ (Trạm Spa) employee must login')
   assert.equal(cn1.user.employeeId, 'tram-spa-thanh')
 
   const cn3 = await verifyLogin({
@@ -539,15 +539,15 @@ test('employee login: CN1/CN3/CN8 credentials sync and password validation', asy
     employeeId: 'gia-lai-1-huong',
     password: computeEmployeeDefaultPassword('Hương', getBranchName('gia-lai-1')),
   })
-  assert.equal(cn3.ok, true, 'CN3 employee must login')
+  assert.equal(cn3.ok, true, 'Gia Lai 1 employee must login')
 
-  const cn8 = await verifyLogin({
+  const cn2 = await verifyLogin({
     role: ROLES.EMPLOYEE,
-    branch: 'gia-lai-3',
-    employeeId: 'gia-lai-3-thao',
-    password: computeEmployeeDefaultPassword('Thảo', getBranchName('gia-lai-3')),
+    branch: 'gia-lai-2',
+    employeeId: 'gia-lai-2-lan',
+    password: computeEmployeeDefaultPassword('Lan', getBranchName('gia-lai-2')),
   })
-  assert.equal(cn8.ok, true, 'CN8 employee must login')
+  assert.equal(cn2.ok, true, 'Gia Lai 2 employee must login')
 
   const wrong = await verifyLogin({
     role: ROLES.EMPLOYEE,

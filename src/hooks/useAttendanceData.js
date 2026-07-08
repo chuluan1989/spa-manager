@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchAttendanceFiltered, subscribeAttendanceChanges } from '../repositories/attendanceRepository'
+import { subscribeToDataSync } from '../utils/supabaseSync'
 
 export function useAttendanceData(filters) {
   const [records, setRecords] = useState([])
@@ -25,6 +26,10 @@ export function useAttendanceData(filters) {
   }, [reload])
 
   useEffect(() => subscribeAttendanceChanges(() => {
+    reload()
+  }), [reload])
+
+  useEffect(() => subscribeToDataSync(() => {
     reload()
   }), [reload])
 

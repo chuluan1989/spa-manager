@@ -201,7 +201,14 @@ export async function pullAllFromSupabase() {
     {
       name: 'credentials',
       fetch: fetchCredentials,
-      apply: (data) => saveCredentials(data, CACHE_ONLY),
+      apply: (data) => {
+        const local = loadCredentials()
+        saveCredentials({
+          admin: data?.admin ?? local.admin,
+          branches: { ...local.branches, ...(data?.branches ?? {}) },
+          employees: { ...local.employees, ...(data?.employees ?? {}) },
+        }, CACHE_ONLY)
+      },
     },
     {
       name: 'permissions',

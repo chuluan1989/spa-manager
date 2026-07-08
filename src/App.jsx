@@ -41,7 +41,7 @@ import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { getEmployeeById, syncMissingDefaultEmployees } from './utils/employeeStorage'
 import { isEmployeeProfileLocked } from './utils/employeeProfilePolicy'
 import { isSupabaseConfigured } from './lib/supabaseClient'
-import { runInitialSync, startAutoSync } from './utils/supabaseSync'
+import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -102,12 +102,14 @@ function App() {
       syncMissingDefaultBranches()
       syncMissingDefaultEmployees()
       await Promise.all([ensureCredentialsHashed(), syncMissingBranchCredentials()])
-      await syncEmployeeCredentialsFromEmployees()
       syncAllCustomBranchPricing()
 
       if (isSupabaseConfigured) {
         await runInitialSync()
       }
+
+      await syncEmployeeCredentialsFromEmployees()
+      notifyDataSynced(['employees', 'credentials'])
 
       if (cancelled) return
       setAuthReady(true)
