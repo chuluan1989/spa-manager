@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fetchAttendanceFiltered, subscribeAttendanceChanges } from '../repositories/attendanceRepository'
-import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
+import { fetchInvoicesFiltered, subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import {
   fetchPayrollAdjustments,
   fetchPayrollAuditLogs,
@@ -8,9 +8,17 @@ import {
   subscribePayrollChanges,
 } from '../repositories/payrollRepository'
 import { loadEmployees } from '../utils/employeeStorage'
+import { loadInvoices } from '../utils/invoiceStorage'
 import { computePayrollReport } from '../utils/payrollEngine'
-import { getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
+import { filterSalaryInvoices, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
+
+function resolveInvoiceRows(remoteRows, { fromDate, toDate, branchId, employeeId }) {
+  if (Array.isArray(remoteRows) && remoteRows.length > 0) {
+    return remoteRows
+  }
+  return filterSalaryInvoices(loadInvoices(), { fromDate, toDate, branchId, employeeId })
+}
 
 export function usePayrollData({ month, branchId = '', employeeId = '' }) {
   const [invoices, setInvoices] = useState([])
@@ -33,8 +41,8 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
     setError('')
     try {
       const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
-      const [invoiceRows, attendanceRows, adjustmentRows, lockRows, auditRows] = await Promise.all([
-        fetchInvoicesFiltered({ fromDate, toDate, branchId, employeeId }) ?? [],
+      const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows] = await Promise.all([
+        fetchInvoicesFiltered({ fromDate, toDate, branchId, employeeId }),
         fetchAttendanceFiltered({ fromDate, toDate, branchId, employeeId }),
         fetchPayrollAdjustments({ month, branchId, employeeId }),
         fetchPayrollLocks({ month }),
@@ -42,7 +50,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
       ])
       if (!mountedRef.current) return
       setEmployees(loadEmployees())
-      setInvoices(invoiceRows ?? [])
+      setInvoices(resolveInvoiceRows(remoteInvoices, { fromDate, toDate, branchId, employeeId }))
       setAttendance(attendanceRows ?? [])
       setAdjustments(adjustmentRows ?? [])
       setLocks(lockRows ?? [])
@@ -52,7 +60,8 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
       if (!mountedRef.current) return
       setError(err?.message ?? 'Không thể tải dữ liệu lương.')
       if (!silent) {
-        setInvoices([])
+        const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
+        setInvoices(filterSalaryInvoices(loadInvoices(), { fromDate, toDate, branchId, employeeId }))
         setAttendance([])
         setAdjustments([])
         setLocks([])
@@ -77,10 +86,12 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
     const onLiveChange = () => reload({ silent: true })
     const unsubPayroll = subscribePayrollChanges(onLiveChange)
     const unsubAttendance = subscribeAttendanceChanges(onLiveChange)
+    const unsubInvoices = subscribeInvoicesChanges(onLiveChange)
     const unsubDataSync = subscribeToDataSync(onLiveChange)
     return () => {
       unsubPayroll()
       unsubAttendance()
+      unsubInvoices()
       unsubDataSync()
     }
   }, [reload])

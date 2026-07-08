@@ -1,9 +1,11 @@
 import { ADMIN_BRANCH } from '../constants/roles'
-import { loadBranches } from './branchStorage'
-import { formatLastLogin, getAccountMeta, loadAccountMetadata } from './accountMetadataStorage'
-import { hashPassword, isPasswordHash, verifyPassword } from './passwordHash'
-import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { computeEmployeeDefaultPassword } from '../constants/loginCredentials'
 import { upsertCredentials } from '../repositories/credentialsRepository'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { getBranchName, loadBranches } from './branchStorage'
+import { formatLastLogin, getAccountMeta, loadAccountMetadata } from './accountMetadataStorage'
+import { isEmployeeLoginEligible, loadEmployees } from './employeeStorage'
+import { hashPassword, isPasswordHash, verifyPassword } from './passwordHash'
 
 const STORAGE_KEY = 'spa-manager-credentials'
 
@@ -32,6 +34,7 @@ function buildDefaultCredentials() {
   return {
     admin: DEFAULT_ADMIN_PASSWORD,
     branches: { ...DEFAULT_BRANCH_PASSWORDS },
+    employees: {},
   }
 }
 
@@ -44,6 +47,7 @@ async function normalizeStoredPassword(value) {
 async function normalizeCredentials(data) {
   const admin = await normalizeStoredPassword(data.admin ?? DEFAULT_ADMIN_PASSWORD)
   const branches = {}
+  const employees = {}
 
   for (const [branchId, password] of Object.entries({
     ...DEFAULT_BRANCH_PASSWORDS,
@@ -52,7 +56,16 @@ async function normalizeCredentials(data) {
     branches[branchId] = await normalizeStoredPassword(password)
   }
 
-  return { admin, branches }
+  for (const [employeeId, entry] of Object.entries(data.employees ?? {})) {
+    if (!entry?.password) continue
+    employees[employeeId] = {
+      branchId: entry.branchId ?? '',
+      name: entry.name ?? '',
+      password: await normalizeStoredPassword(entry.password),
+    }
+  }
+
+  return { admin, branches, employees }
 }
 
 export function loadCredentials() {
@@ -67,6 +80,7 @@ export function loadCredentials() {
     return {
       admin: data.admin ?? DEFAULT_ADMIN_PASSWORD,
       branches: { ...DEFAULT_BRANCH_PASSWORDS, ...(data.branches ?? {}) },
+      employees: data.employees ?? {},
     }
   } catch {
     return buildDefaultCredentials()
@@ -77,6 +91,7 @@ export async function ensureCredentialsHashed() {
   const current = loadCredentials()
   const needsHash = !isPasswordHash(current.admin)
     || Object.values(current.branches).some((password) => !isPasswordHash(password))
+    || Object.values(current.employees ?? {}).some((entry) => entry?.password && !isPasswordHash(entry.password))
 
   if (!needsHash) return current
 
@@ -86,9 +101,11 @@ export async function ensureCredentialsHashed() {
 }
 
 export function saveCredentials(credentials, { skipRemoteSync = false } = {}) {
+  const current = loadCredentials()
   const normalized = {
     admin: credentials.admin ?? DEFAULT_ADMIN_PASSWORD,
-    branches: { ...loadCredentials().branches, ...(credentials.branches ?? {}) },
+    branches: { ...current.branches, ...(credentials.branches ?? {}) },
+    employees: { ...current.employees, ...(credentials.employees ?? {}) },
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   if (!skipRemoteSync) pushCredentialsToSupabase(normalized)
@@ -96,9 +113,11 @@ export function saveCredentials(credentials, { skipRemoteSync = false } = {}) {
 }
 
 export async function saveCredentialsHashed(credentials, { skipRemoteSync = false } = {}) {
+  const current = loadCredentials()
   const normalized = await normalizeCredentials({
     admin: credentials.admin ?? DEFAULT_ADMIN_PASSWORD,
-    branches: { ...loadCredentials().branches, ...(credentials.branches ?? {}) },
+    branches: { ...current.branches, ...(credentials.branches ?? {}) },
+    employees: { ...current.employees, ...(credentials.employees ?? {}) },
   })
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   if (!skipRemoteSync) pushCredentialsToSupabase(normalized)
@@ -121,6 +140,48 @@ export async function verifyAdminPassword(password) {
 export async function verifyBranchPassword(branchId, password) {
   const credentials = await ensureCredentialsHashed()
   return verifyPassword(password, credentials.branches[branchId] ?? '')
+}
+
+export async function verifyEmployeePassword(employeeId, password) {
+  const credentials = await ensureCredentialsHashed()
+  const entry = credentials.employees?.[employeeId]
+  if (!entry?.password) return false
+  return verifyPassword(password.trim().toLowerCase(), entry.password)
+}
+
+export async function syncEmployeeCredentialsFromEmployees() {
+  const employees = loadEmployees().filter(isEmployeeLoginEligible)
+  const credentials = await ensureCredentialsHashed()
+  credentials.employees = credentials.employees ?? {}
+  let changed = false
+
+  for (const employee of employees) {
+    const plainPassword = computeEmployeeDefaultPassword(
+      employee.name,
+      getBranchName(employee.branchId),
+    )
+    const nextEntry = {
+      branchId: employee.branchId,
+      name: employee.name,
+      password: await hashPassword(plainPassword),
+    }
+    const current = credentials.employees[employee.id]
+    if (
+      !current
+      || current.branchId !== nextEntry.branchId
+      || current.name !== nextEntry.name
+      || !isPasswordHash(current.password)
+    ) {
+      credentials.employees[employee.id] = nextEntry
+      changed = true
+    }
+  }
+
+  if (changed) {
+    saveCredentials(credentials)
+  }
+
+  return credentials
 }
 
 export async function updateAdminPassword(password) {

@@ -75,6 +75,53 @@ function buildEditLogs(attendanceId, editor, changes, editNote = '') {
   }))
 }
 
+export async function adminCreateAttendance({
+  employeeId,
+  employeeName,
+  branchId,
+  date,
+  status,
+  reason = '',
+  note = '',
+  editor,
+}) {
+  const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
+  if (existing) {
+    throw new Error('Nhân viên đã có bản ghi chấm công trong ngày này.')
+  }
+
+  const monthPrefix = getMonthPrefixFromDate(date)
+  const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
+  const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+
+  const saved = await insertAttendanceRecord({
+    id: createAttendanceId(),
+    date,
+    branchId,
+    employeeId,
+    employeeName,
+    status,
+    reason: reason.trim(),
+    note: note.trim(),
+    penaltyAmount,
+    submittedAt: new Date().toISOString(),
+    submittedBy: editor?.editorName ?? 'Admin',
+  })
+
+  await insertAttendanceEditLogs([{
+    id: createAttendanceLogId(),
+    attendanceId: saved.id,
+    editorId: editor?.editorId ?? 'admin',
+    editorName: editor?.editorName ?? 'Admin',
+    fieldName: 'create',
+    oldValue: '',
+    newValue: status,
+    note: note.trim(),
+  }])
+
+  return saved
+}
+
 export async function adminUpdateAttendance({
   record,
   nextStatus,

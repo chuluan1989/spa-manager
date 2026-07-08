@@ -35,10 +35,10 @@ import Settings from './pages/Settings'
 import EmployeeAttendanceGate from './components/attendance/EmployeeAttendanceGate'
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
-import { ensureCredentialsHashed, syncMissingBranchCredentials } from './utils/credentialsStorage'
+import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } from './utils/credentialsStorage'
 import { syncAllCustomBranchPricing } from './utils/branchPricingStorage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
-import { getEmployeeById } from './utils/employeeStorage'
+import { getEmployeeById, syncMissingDefaultEmployees } from './utils/employeeStorage'
 import { isEmployeeProfileLocked } from './utils/employeeProfilePolicy'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync } from './utils/supabaseSync'
@@ -100,7 +100,9 @@ function App() {
     async function bootstrap() {
       clearLegacySession()
       syncMissingDefaultBranches()
+      syncMissingDefaultEmployees()
       await Promise.all([ensureCredentialsHashed(), syncMissingBranchCredentials()])
+      await syncEmployeeCredentialsFromEmployees()
       syncAllCustomBranchPricing()
 
       if (isSupabaseConfigured) {

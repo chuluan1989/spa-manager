@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
+import { getTodayDate } from '../utils/invoiceStorage'
 import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
 const ATTENDANCE_TABLE = 'employee_attendance'
@@ -14,14 +15,18 @@ function sortAttendanceDesc(rows) {
 
 export async function fetchAttendanceServerDate() {
   if (!isSupabaseConfigured) {
-    throw new Error('Supabase chưa cấu hình — không thể lấy ngày server.')
+    return { date: getTodayDate(), timestamp: new Date().toISOString() }
   }
-  const { data, error } = await supabase.rpc('get_attendance_server_date')
-  if (error) throw error
-  const payload = data ?? {}
-  return {
-    date: payload.date ?? '',
-    timestamp: payload.timestamp ?? '',
+  try {
+    const { data, error } = await supabase.rpc('get_attendance_server_date')
+    if (error) throw error
+    const payload = data ?? {}
+    return {
+      date: payload.date ?? getTodayDate(),
+      timestamp: payload.timestamp ?? new Date().toISOString(),
+    }
+  } catch {
+    return { date: getTodayDate(), timestamp: new Date().toISOString() }
   }
 }
 

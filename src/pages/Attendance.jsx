@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
+import AttendanceCreateModal from '../components/attendance/AttendanceCreateModal'
 import AttendanceEditModal from '../components/attendance/AttendanceEditModal'
+import AttendanceEmployeeView from '../components/attendance/AttendanceEmployeeView'
+import AttendanceMonthMatrix from '../components/attendance/AttendanceMonthMatrix'
 import ErpBranchCardGrid from '../components/erp/ErpBranchCardGrid'
 import ErpBreadcrumb from '../components/erp/ErpBreadcrumb'
 import ErpFilterBar from '../components/erp/ErpFilterBar'
@@ -7,13 +10,15 @@ import ErpKpiGrid from '../components/erp/ErpKpiGrid'
 import ErpPageHeader from '../components/erp/ErpPageHeader'
 import {
   canAccessAttendancePage,
+  canEditAttendance,
   canSelectBranch,
   getCurrentUserBranch,
   isAdmin,
+  isEmployee,
 } from '../constants/auth'
 import { getActiveBranches } from '../constants/branches'
-import { getAttendanceStatusLabel } from '../constants/attendanceTypes'
-import { loadEmployees } from '../utils/employeeStorage'
+import { getAttendancePermitLabel, getAttendanceStatusLabel } from '../constants/attendanceTypes'
+import { isEmployeeLoginEligible, loadEmployees } from '../utils/employeeStorage'
 import { formatCurrency } from '../utils/invoice'
 import { getTodayDate } from '../utils/invoiceStorage'
 import { useAttendanceData } from '../hooks/useAttendanceData'
@@ -21,6 +26,8 @@ import { buildAttendanceStats } from '../utils/attendancePenalties'
 import { getBranchName } from '../utils/branchStorage'
 import {
   aggregateAttendanceBranchSummaries,
+  buildAttendanceDayRoster,
+  buildAttendanceMonthMatrix,
   formatAttendanceBranchStats,
 } from '../utils/attendanceViewHelpers'
 import { fetchAttendanceServerDate } from '../repositories/attendanceRepository'
@@ -34,7 +41,18 @@ function formatDate(value) {
   return `${d}/${m}/${y}`
 }
 
+function formatDateTime(value) {
+  if (!value) return '—'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return '—'
+  return parsed.toLocaleString('vi-VN')
+}
+
 export default function Attendance() {
+  if (isEmployee()) {
+    return <AttendanceEmployeeView />
+  }
+
   if (!canAccessAttendancePage()) {
     return (
       <div className="attendance-page">
@@ -54,6 +72,7 @@ function AttendancePage() {
   const [branchId, setBranchId] = useState(isAdmin() ? '' : getCurrentUserBranch())
   const [employeeId, setEmployeeId] = useState('')
   const [editingRecord, setEditingRecord] = useState(null)
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     fetchAttendanceServerDate()
@@ -119,10 +138,22 @@ function AttendancePage() {
 
   const employees = useMemo(() => {
     const scopedBranch = canSelectBranch() ? branchId : getCurrentUserBranch()
-    return loadEmployees().filter((employee) =>
-      !scopedBranch || employee.branchId === scopedBranch,
-    )
+    return loadEmployees().filter((employee) => {
+      if (!isEmployeeLoginEligible(employee)) return false
+      return !scopedBranch || employee.branchId === scopedBranch
+    })
   }, [branchId])
+
+  const dayRoster = useMemo(() => {
+    if (screen !== 'today') return []
+    const targetDate = todayDate || getTodayDate()
+    return buildAttendanceDayRoster(employees, records, targetDate)
+  }, [screen, todayDate, employees, records])
+
+  const monthMatrix = useMemo(
+    () => buildAttendanceMonthMatrix(employees, records, month),
+    [employees, records, month],
+  )
 
   const breadcrumbItems = useMemo(() => {
     const items = [{ id: 'att', label: 'Chấm công', onClick: () => { setLevel(LEVEL.BRANCHES); setBranchId('') } }]
@@ -206,6 +237,11 @@ function AttendancePage() {
                 ))}
               </select>
             </label>
+            {canEditAttendance(branchId || getCurrentUserBranch()) && (
+              <button type="button" className="attendance-page__add" onClick={() => setCreating(true)}>
+                + Thêm chấm công
+              </button>
+            )}
           </section>
 
           <section className="attendance-page__stats">
@@ -222,40 +258,59 @@ function AttendancePage() {
           {error && <p className="attendance-page__error" role="alert">{error}</p>}
           {loading && <p className="attendance-page__loading">Đang tải dữ liệu chấm công...</p>}
 
-          {!loading && (
+          {!loading && screen === 'month' && (
+            <AttendanceMonthMatrix days={monthMatrix.days} rows={monthMatrix.rows} />
+          )}
+
+          {!loading && screen === 'today' && (
             <div className="attendance-page__table-wrap">
               <table className="attendance-page__table">
                 <thead>
                   <tr>
                     <th>Ngày</th>
-                    <th>Nhân viên</th>
                     <th>Chi nhánh</th>
+                    <th>Nhân viên</th>
                     <th>Trạng thái</th>
-                    <th>Lý do</th>
-                    <th>Tiền trừ</th>
-                    <th>Giờ điểm danh</th>
+                    <th>Có phép / Không phép</th>
+                    <th>Số tiền phạt</th>
+                    <th>Ghi chú</th>
+                    <th>Người cập nhật</th>
+                    <th>Thời gian cập nhật</th>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {records.length === 0 && (
+                  {dayRoster.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="attendance-page__empty">Chưa có dữ liệu điểm danh.</td>
+                      <td colSpan={10} className="attendance-page__empty">Chưa có nhân viên trong phạm vi.</td>
                     </tr>
                   )}
-                  {records.map((record) => (
-                    <tr key={record.id}>
-                      <td>{formatDate(record.date)}</td>
-                      <td>{record.employeeName}</td>
-                      <td>{getBranchName(record.branchId) || record.branchId}</td>
-                      <td>{getAttendanceStatusLabel(record.status)}</td>
-                      <td>{record.reason || '—'}</td>
-                      <td className="is-money">{formatCurrency(record.penaltyAmount)}</td>
-                      <td>{record.submittedAt ? new Date(record.submittedAt).toLocaleTimeString('vi-VN') : '—'}</td>
+                  {dayRoster.map((row) => (
+                    <tr key={row.employeeId} className={row.record ? '' : 'is-missing'}>
+                      <td>{formatDate(row.date)}</td>
+                      <td>{getBranchName(row.branchId) || row.branchId}</td>
+                      <td>{row.employeeName}</td>
+                      <td>{row.record ? getAttendanceStatusLabel(row.status) : 'Chưa chấm công'}</td>
+                      <td>{row.record ? getAttendancePermitLabel(row.status) : '—'}</td>
+                      <td className="is-money">{formatCurrency(row.penaltyAmount)}</td>
+                      <td>{row.note || row.reason || '—'}</td>
+                      <td>{row.submittedBy || '—'}</td>
+                      <td>{formatDateTime(row.updatedAt || row.submittedAt)}</td>
                       <td>
-                        <button type="button" className="attendance-page__edit" onClick={() => setEditingRecord(record)}>
-                          Chi tiết
-                        </button>
+                        {row.record ? (
+                          <button type="button" className="attendance-page__edit" onClick={() => setEditingRecord(row.record)}>
+                            Chi tiết
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="attendance-page__edit"
+                            onClick={() => setCreating(true)}
+                            disabled={!canEditAttendance(row.branchId)}
+                          >
+                            Thêm
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -264,6 +319,16 @@ function AttendancePage() {
             </div>
           )}
         </>
+      )}
+
+      {creating && (
+        <AttendanceCreateModal
+          employees={employees}
+          defaultBranchId={branchId || getCurrentUserBranch()}
+          defaultDate={todayDate || getTodayDate()}
+          onClose={() => setCreating(false)}
+          onSaved={reload}
+        />
       )}
 
       {editingRecord && (

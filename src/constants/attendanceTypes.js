@@ -40,3 +40,14 @@ export function getAttendanceStatusLabel(statusId) {
 export function getAttendanceStatusConfig(statusId) {
   return ATTENDANCE_STATUS_OPTIONS.find((item) => item.id === statusId) ?? null
 }
+
+export function getAttendancePermitLabel(statusId) {
+  const config = getAttendanceStatusConfig(statusId)
+  if (!config) return '—'
+  if (config.statGroup === 'on_time') return '—'
+  if (config.statGroup?.includes('permitted') || config.statGroup === 'weekend') return 'Có phép'
+  if (config.statGroup?.includes('unpermitted') || config.statGroup === 'late' || config.statGroup === 'early') {
+    return 'Không phép'
+  }
+  return '—'
+}

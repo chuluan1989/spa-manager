@@ -308,3 +308,100 @@
   font: inherit;
   cursor: pointer;
 }
+
+.attendance-gate-warning {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 10px 16px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+  text-align: center;
+}
+
+.attendance-page__self-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.attendance-page__self-head h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+}
+
+.attendance-page__today-badge {
+  align-self: flex-start;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #111;
+  color: #d4af37;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.attendance-page__month-filter {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.attendance-page__add {
+  align-self: end;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #111;
+  color: #d4af37;
+  font: inherit;
+  cursor: pointer;
+}
+
+.attendance-page__matrix-wrap {
+  overflow-x: auto;
+  border: 1px solid #eef0f3;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.attendance-page__matrix {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.attendance-page__matrix th,
+.attendance-page__matrix td {
+  border: 1px solid #f3f4f6;
+  padding: 8px 6px;
+  text-align: center;
+  vertical-align: top;
+}
+
+.attendance-page__matrix-name {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  text-align: left;
+  font-weight: 600;
+  min-width: 120px;
+}
+
+.attendance-page__matrix-cell.has-data {
+  background: #fffbeb;
+}
+
+.attendance-page__matrix-cell small {
+  display: block;
+  color: #dc2626;
+  margin-top: 2px;
+}
+
+.attendance-page__table tr.is-missing td {
+  background: #fef2f2;
+}

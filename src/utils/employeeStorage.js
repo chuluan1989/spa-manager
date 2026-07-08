@@ -71,6 +71,9 @@ const DEFAULT_EMPLOYEE_NAMES = {
   'soc-trang': ['Chị 7', 'Bảo Trân', 'Tịnh', 'Ly Ly', 'Quyên', 'An Nhỏ'],
   'tram-spa': ['Thanh', 'Nhu Hà', 'Trúc Ly', 'Cherry', 'Lan Anh'],
   'song-khoe-spa': ['Úc', 'Hải Anh', 'Di Di', 'Ngân', 'Ánh'],
+  'gia-lai-1': ['Hương', 'My', 'Trang', 'Ngọc', 'Vy'],
+  'gia-lai-2': ['Lan', 'Hoa', 'Phượng', 'Thúy'],
+  'gia-lai-3': ['Thảo', 'Vy', 'Kim', 'Nhi', 'Hạnh'],
 }
 
 export const EMPTY_EMPLOYEE_FORM = {
@@ -255,6 +258,15 @@ export function saveEmployees(employees) {
     throw error
   }
   return employees
+}
+
+export function syncMissingDefaultEmployees() {
+  const existing = loadEmployees()
+  const existingIds = new Set(existing.map((employee) => employee.id))
+  const missing = buildDefaultEmployees().filter((employee) => !existingIds.has(employee.id))
+  if (!missing.length) return false
+  saveEmployees([...existing, ...missing])
+  return true
 }
 
 export function getEmployeeById(id) {

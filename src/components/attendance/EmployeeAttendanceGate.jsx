@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { isEmployee, getCurrentUserEmployeeId } from '../../constants/auth'
-import { isSupabaseConfigured } from '../../lib/supabaseClient'
 import { getEmployeeById } from '../../utils/employeeStorage'
 import { isEmployeeProfileLocked } from '../../utils/employeeProfilePolicy'
+import { getTodayDate } from '../../utils/invoiceStorage'
 import AttendanceCheckInModal from './AttendanceCheckInModal'
 import {
   fetchAttendanceByEmployeeAndDate,
@@ -12,7 +12,7 @@ import {
 export default function EmployeeAttendanceGate({ children }) {
   const [state, setState] = useState('loading')
   const [serverDate, setServerDate] = useState('')
-  const [error, setError] = useState('')
+  const [warning, setWarning] = useState('')
 
   useEffect(() => {
     if (!isEmployee()) {
@@ -29,27 +29,28 @@ export default function EmployeeAttendanceGate({ children }) {
         return
       }
 
-      if (!isSupabaseConfigured) {
-        if (!cancelled) {
-          setError('Chấm công yêu cầu Supabase. Liên hệ quản trị viên.')
-          setState('error')
-        }
-        return
-      }
-
+      let date = getTodayDate()
       try {
         const server = await fetchAttendanceServerDate()
-        const employeeId = getCurrentUserEmployeeId()
-        const existing = await fetchAttendanceByEmployeeAndDate(employeeId, server.date)
-        if (cancelled) return
-        setServerDate(server.date)
-        setState(existing ? 'ready' : 'required')
-      } catch (err) {
+        if (server?.date) date = server.date
+      } catch {
         if (!cancelled) {
-          setError(err?.message ?? 'Không thể kiểm tra điểm danh.')
-          setState('error')
+          setWarning('Không lấy được ngày server — dùng ngày máy cục bộ.')
         }
       }
+
+      let existing = null
+      try {
+        existing = await fetchAttendanceByEmployeeAndDate(getCurrentUserEmployeeId(), date)
+      } catch {
+        if (!cancelled) {
+          setWarning('Không kiểm tra được điểm danh — vui lòng chấm công ngay.')
+        }
+      }
+
+      if (cancelled) return
+      setServerDate(date)
+      setState(existing ? 'ready' : 'required')
     }
 
     checkAttendance()
@@ -66,16 +67,13 @@ export default function EmployeeAttendanceGate({ children }) {
     )
   }
 
-  if (state === 'error') {
-    return (
-      <div className="app-loading" style={{ padding: 24, textAlign: 'center', color: '#b91c1c', minHeight: '100vh' }}>
-        {error}
-      </div>
-    )
-  }
-
   return (
     <>
+      {warning && (
+        <div className="attendance-gate-warning" role="status">
+          {warning}
+        </div>
+      )}
       {children}
       {state === 'required' && (
         <AttendanceCheckInModal

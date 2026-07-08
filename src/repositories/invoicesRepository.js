@@ -100,3 +100,22 @@ export async function deleteInvoiceRow(id) {
   const { error } = await supabase.from(TABLE).delete().eq('id', id)
   if (error) throw error
 }
+
+export function subscribeInvoicesChanges(onChange) {
+  if (!isSupabaseConfigured || typeof onChange !== 'function') {
+    return () => {}
+  }
+
+  const channel = supabase
+    .channel('spa-invoices-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: TABLE },
+      () => onChange(),
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}

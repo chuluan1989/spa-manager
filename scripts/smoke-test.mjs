@@ -514,6 +514,51 @@ test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh G
   assert.equal(login3.user.branch, 'gia-lai-3')
 })
 
+test('employee login: CN1/CN3/CN8 credentials sync and password validation', async () => {
+  const { verifyLogin, computeEmployeeDefaultPassword } = await import('../src/constants/loginCredentials.js')
+  const { syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } = await import('../src/utils/credentialsStorage.js')
+  const { syncMissingDefaultEmployees } = await import('../src/utils/employeeStorage.js')
+  const { getBranchName } = await import('../src/utils/branchStorage.js')
+
+  syncMissingDefaultEmployees()
+  await syncMissingBranchCredentials()
+  await syncEmployeeCredentialsFromEmployees()
+
+  const cn1 = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'tram-spa',
+    employeeId: 'tram-spa-thanh',
+    password: computeEmployeeDefaultPassword('Thanh', getBranchName('tram-spa')),
+  })
+  assert.equal(cn1.ok, true, 'CN1 employee must login')
+  assert.equal(cn1.user.employeeId, 'tram-spa-thanh')
+
+  const cn3 = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'gia-lai-1',
+    employeeId: 'gia-lai-1-huong',
+    password: computeEmployeeDefaultPassword('Hương', getBranchName('gia-lai-1')),
+  })
+  assert.equal(cn3.ok, true, 'CN3 employee must login')
+
+  const cn8 = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'gia-lai-3',
+    employeeId: 'gia-lai-3-thao',
+    password: computeEmployeeDefaultPassword('Thảo', getBranchName('gia-lai-3')),
+  })
+  assert.equal(cn8.ok, true, 'CN8 employee must login')
+
+  const wrong = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'tram-spa',
+    employeeId: 'tram-spa-thanh',
+    password: 'wrong-password',
+  })
+  assert.equal(wrong.ok, false)
+  assert.equal(wrong.field, 'password')
+})
+
 test('branches: đồng bộ chi nhánh mặc định không làm mất chi nhánh cũ / dữ liệu tuỳ chỉnh', () => {
   // Giả lập người dùng cũ: localStorage chỉ có các chi nhánh cũ (chưa có Gia Lai),
   // và một chi nhánh đã có tuỳ chỉnh riêng (đổi tên, khoá...).
