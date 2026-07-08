@@ -1550,9 +1550,11 @@ test('branch commission policy: Gia Lai 2 = 40% tất cả dịch vụ', () => {
     ['gl-combo-relax-90'],
     0,
     'gia-lai-2',
-    [{ id: 'gl-combo-relax-90', name: 'Combo Relax 90', price: 500000 }],
+    [],
+    'Gia Lai 2',
   )
-  assert.equal(totals.serviceCommission, 200000)
+  assert.equal(totals.originalServiceTotal, 399000)
+  assert.equal(totals.serviceCommission, 159600)
   assert.equal(totals.services[0].commissionPercent, 40)
 })
 
@@ -2173,7 +2175,7 @@ test('branch pricing isolation: CN1–CN8 không lẫn catalog Gia Lai', async (
   for (const { id, serviceId, expectedPrice } of flatBranches) {
     const services = getActiveServicesForBranch(id)
     assert.ok(BRANCH_PAYROLL_DISPLAY[id], `Phải có nhãn CN cho ${id}`)
-    assert.ok(getCatalogGroupsForBranch(id).length >= 4, `${id} phải có nhóm dịch vụ từ danh mục v2`)
+    assert.equal(getCatalogGroupsForBranch(id).length, 0, `${id} dùng bảng giá phẳng, không có nhóm Gia Lai`)
     const match = services.find((s) => s.id === serviceId)
     assert.ok(match, `${id} phải có dịch vụ ${serviceId}`)
     assert.equal(match.price, expectedPrice, `${id} sai giá ${serviceId}`)
@@ -2201,24 +2203,25 @@ test('service catalog v2: admin thêm nhóm và giá có hiệu lực trên hóa
     addService,
     addDuration,
     setBranchDurationPrice,
-    getCatalogGroupsForBranch,
   } = await import('../src/utils/serviceCatalogV2Storage.js')
   const { getActiveServicesForBranch } = await import('../src/utils/serviceStorage.js')
+  const { getCatalogGroupsForBranch } = await import('../src/utils/branchPricingStorage.js')
   const { calculateInvoiceTotals } = await import('../src/utils/invoice.js')
 
   ensureServiceCatalogV2Migrated()
-  const category = addCategory({ name: 'TEST GROUP' })
-  const service = addService({ categoryId: category.id, name: 'Dịch vụ test' })
-  const duration = addDuration({ serviceId: service.id, durationMinutes: 45 })
-  setBranchDurationPrice('tram-spa', duration.id, { price: 123000, commissionPercent: 10 })
+  const branchId = 'gia-lai-1'
+  const category = addCategory({ branchId, name: 'TEST GROUP' })
+  const service = addService({ branchId, categoryId: category.id, name: 'Dịch vụ test' })
+  const duration = addDuration({ branchId, serviceId: service.id, durationMinutes: 45 })
+  setBranchDurationPrice(branchId, duration.id, { price: 123000, commissionPercent: 10 })
 
-  const groups = getCatalogGroupsForBranch('tram-spa')
+  const groups = getCatalogGroupsForBranch(branchId)
   assert.ok(groups.some((group) => group.id === category.id), 'Hóa đơn phải thấy nhóm mới')
 
-  const services = getActiveServicesForBranch('tram-spa')
+  const services = getActiveServicesForBranch(branchId)
   assert.ok(services.some((row) => row.id === duration.id), 'Hóa đơn phải thấy dịch vụ mới')
 
-  const totals = calculateInvoiceTotals([duration.id], 0, 'tram-spa', [], '', '')
+  const totals = calculateInvoiceTotals([duration.id], 0, branchId, [], '', '')
   assert.equal(totals.originalServiceTotal, 123000)
 })
 

@@ -1,9 +1,10 @@
 import { getBranchById, loadBranches } from './branchStorage'
 import {
+  ensureAllBranchCatalogsSeeded,
   ensureServiceCatalogV2Migrated,
   getActiveServicesForBranchV2,
   getCatalogGroupsForBranchV2,
-  isServiceCatalogV2Ready,
+  isBranchCatalogReady,
 } from './serviceCatalogV2Storage'
 import { isGroupedCatalogBranch } from '../constants/giaLaiBranches'
 import {
@@ -149,8 +150,8 @@ export function getDefaultServicesForBranch(branchId) {
 }
 
 export function getCatalogGroupsForBranch(branchId) {
-  ensureServiceCatalogV2Migrated()
-  if (isServiceCatalogV2Ready()) {
+  ensureAllBranchCatalogsSeeded()
+  if (isBranchCatalogReady(branchId)) {
     return getCatalogGroupsForBranchV2(branchId)
   }
 
@@ -163,8 +164,8 @@ export function getCatalogGroupsForBranch(branchId) {
 }
 
 export function getServicesForBranch(branchId, { includeInactive = false } = {}) {
-  ensureServiceCatalogV2Migrated()
-  if (isServiceCatalogV2Ready()) {
+  ensureAllBranchCatalogsSeeded()
+  if (isBranchCatalogReady(branchId)) {
     const services = getActiveServicesForBranchV2(branchId)
     if (includeInactive) return services
     return services.filter((service) => service.status === 'active')

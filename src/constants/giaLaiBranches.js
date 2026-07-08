@@ -7,6 +7,7 @@ export const GIA_LAI_CN8_BRANCH_ID = 'gia-lai-3'
 /** Chi nhánh dùng catalog Gia Lai đầy đủ (giá Pleiku). */
 export const GIA_LAI_CATALOG_BRANCH_IDS = [
   GIA_LAI_CN3_BRANCH_ID,
+  'gia-lai-2',
   GIA_LAI_CN8_BRANCH_ID,
 ]
 

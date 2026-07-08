@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
+import { getActiveBranches } from '../../constants/branches'
 import {
   addCategory,
   addDuration,
@@ -29,10 +31,12 @@ function MoveButtons({ onUp, onDown, disableUp, disableDown }) {
 }
 
 export default function ServiceCatalogTab({ showToast }) {
+  const branches = useMemo(() => getActiveBranches(), [])
+  const [branchId, setBranchId] = useState(() => branches[0]?.id ?? '')
   const [revision, setRevision] = useState(0)
   const [modal, setModal] = useState(null)
 
-  const tree = useMemo(() => getCatalogAdminTree(), [revision])
+  const tree = useMemo(() => (branchId ? getCatalogAdminTree(branchId) : []), [branchId, revision])
 
   const refresh = () => setRevision((value) => value + 1)
 
@@ -40,7 +44,7 @@ export default function ServiceCatalogTab({ showToast }) {
   const closeModal = () => setModal(null)
 
   const handleSaveModal = () => {
-    if (!modal) return
+    if (!modal || !branchId) return
     const name = modal.name?.trim()
     if (!name && modal.type !== 'duration') {
       showToast('Vui lòng nhập tên')
@@ -48,27 +52,27 @@ export default function ServiceCatalogTab({ showToast }) {
     }
 
     if (modal.type === 'category-add') {
-      addCategory({ name })
+      addCategory({ branchId, name })
       showToast('Đã thêm nhóm dịch vụ')
     }
     if (modal.type === 'category-edit') {
-      updateCategory(modal.id, { name })
+      updateCategory(branchId, modal.id, { name })
       showToast('Đã cập nhật nhóm')
     }
     if (modal.type === 'service-add') {
-      addService({ categoryId: modal.categoryId, name })
+      addService({ branchId, categoryId: modal.categoryId, name })
       showToast('Đã thêm dịch vụ')
     }
     if (modal.type === 'service-edit') {
-      updateService(modal.id, { name })
+      updateService(branchId, modal.id, { name })
       showToast('Đã cập nhật dịch vụ')
     }
     if (modal.type === 'duration-add') {
-      addDuration({ serviceId: modal.serviceId, durationMinutes: modal.durationMinutes })
+      addDuration({ branchId, serviceId: modal.serviceId, durationMinutes: modal.durationMinutes })
       showToast('Đã thêm thời lượng')
     }
     if (modal.type === 'duration-edit') {
-      updateDuration(modal.id, { durationMinutes: modal.durationMinutes })
+      updateDuration(branchId, modal.id, { durationMinutes: modal.durationMinutes })
       showToast('Đã cập nhật thời lượng')
     }
 
@@ -82,7 +86,7 @@ export default function ServiceCatalogTab({ showToast }) {
     const target = index + direction
     if (target < 0 || target >= ids.length) return
     ;[ids[index], ids[target]] = [ids[target], ids[index]]
-    reorderCategories(ids)
+    reorderCategories(branchId, ids)
     refresh()
   }
 
@@ -94,7 +98,7 @@ export default function ServiceCatalogTab({ showToast }) {
     const target = index + direction
     if (target < 0 || target >= ids.length) return
     ;[ids[index], ids[target]] = [ids[target], ids[index]]
-    reorderServices(categoryId, ids)
+    reorderServices(branchId, categoryId, ids)
     refresh()
   }
 
@@ -106,7 +110,7 @@ export default function ServiceCatalogTab({ showToast }) {
     const target = index + direction
     if (target < 0 || target >= ids.length) return
     ;[ids[index], ids[target]] = [ids[target], ids[index]]
-    reorderDurations(serviceId, ids)
+    reorderDurations(branchId, serviceId, ids)
     refresh()
   }
 
@@ -114,17 +118,30 @@ export default function ServiceCatalogTab({ showToast }) {
     <section className="settings__card svc-catalog">
       <div className="settings__card-header">
         <div>
-          <h3 className="settings__card-title">Danh mục dịch vụ</h3>
+          <h3 className="settings__card-title">Danh mục dịch vụ theo chi nhánh</h3>
           <p className="settings__hint settings__hint--inline">
-            Quản lý nhóm → dịch vụ → thời lượng. Thay đổi có hiệu lực ngay trên Hóa đơn.
+            Mỗi chi nhánh có catalog riêng. Thay đổi chỉ áp dụng cho chi nhánh đang chọn.
           </p>
         </div>
-        <button type="button" className="settings__btn settings__btn--primary" onClick={() => openModal('category-add', { name: '' })}>
+        <button type="button" className="settings__btn settings__btn--primary" onClick={() => openModal('category-add', { name: '' })} disabled={!branchId}>
           + Thêm nhóm
         </button>
       </div>
 
-      {tree.length === 0 && <p className="svc-catalog__empty">Chưa có danh mục dịch vụ.</p>}
+      <div className="settings__branch-pricing-toolbar">
+        <label className="settings__field">
+          <span>Chi nhánh</span>
+          <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id}>
+                {getPayrollBranchDisplayTitle(branch.id, branch.name)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {tree.length === 0 && <p className="svc-catalog__empty">Chưa có danh mục dịch vụ cho chi nhánh này.</p>}
 
       {tree.map((category, categoryIndex) => (
         <article key={category.id} className="svc-catalog__group">
@@ -143,7 +160,7 @@ export default function ServiceCatalogTab({ showToast }) {
                 type="button"
                 className="settings__btn settings__btn--small settings__btn--danger"
                 onClick={() => {
-                  const result = deleteCategory(category.id)
+                  const result = deleteCategory(branchId, category.id)
                   showToast(result.ok ? 'Đã xóa nhóm' : result.error)
                   refresh()
                 }}
@@ -170,13 +187,13 @@ export default function ServiceCatalogTab({ showToast }) {
                     type="button"
                     className="settings__btn settings__btn--small"
                     onClick={() => {
-                      setServiceVisibility(service.id, service.status === ITEM_STATUS.ACTIVE ? ITEM_STATUS.INACTIVE : ITEM_STATUS.ACTIVE)
+                      setServiceVisibility(branchId, service.id, service.status === ITEM_STATUS.ACTIVE ? ITEM_STATUS.INACTIVE : ITEM_STATUS.ACTIVE)
                       refresh()
                     }}
                   >
                     {service.status === ITEM_STATUS.ACTIVE ? 'Ẩn' : 'Hiện'}
                   </button>
-                  <button type="button" className="settings__btn settings__btn--small settings__btn--danger" onClick={() => { deleteService(service.id); refresh() }}>Xóa</button>
+                  <button type="button" className="settings__btn settings__btn--small settings__btn--danger" onClick={() => { deleteService(branchId, service.id); refresh() }}>Xóa</button>
                 </div>
               </div>
 
@@ -197,13 +214,13 @@ export default function ServiceCatalogTab({ showToast }) {
                         type="button"
                         className="settings__btn settings__btn--small"
                         onClick={() => {
-                          setDurationVisibility(duration.id, duration.status === ITEM_STATUS.ACTIVE ? ITEM_STATUS.INACTIVE : ITEM_STATUS.ACTIVE)
+                          setDurationVisibility(branchId, duration.id, duration.status === ITEM_STATUS.ACTIVE ? ITEM_STATUS.INACTIVE : ITEM_STATUS.ACTIVE)
                           refresh()
                         }}
                       >
                         {duration.status === ITEM_STATUS.ACTIVE ? 'Ẩn' : 'Hiện'}
                       </button>
-                      <button type="button" className="settings__btn settings__btn--small settings__btn--danger" onClick={() => { deleteDuration(duration.id); refresh() }}>Xóa</button>
+                      <button type="button" className="settings__btn settings__btn--small settings__btn--danger" onClick={() => { deleteDuration(branchId, duration.id); refresh() }}>Xóa</button>
                     </div>
                   </li>
                 ))}

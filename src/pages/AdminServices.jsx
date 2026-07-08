@@ -30,7 +30,7 @@ export default function AdminServices() {
       <header className="admin-section__header">
         <h2 className="admin-section__title">Dịch vụ</h2>
         <p className="admin-section__subtitle">
-          Trung tâm quản lý danh mục dịch vụ và bảng giá theo chi nhánh.
+          Mỗi chi nhánh có bảng giá riêng — danh mục, giá và thời lượng không dùng chung.
         </p>
       </header>
 
@@ -41,7 +41,7 @@ export default function AdminServices() {
             className={`app-tabs__btn ${tab === 'catalog' ? 'app-tabs__btn--active' : ''}`}
             onClick={() => setTab('catalog')}
           >
-            Danh mục dịch vụ
+            Danh mục chi nhánh
           </button>
         )}
         <button

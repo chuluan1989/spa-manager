@@ -26,15 +26,16 @@ import { loadInvoices, replaceAllInvoices } from './invoiceStorage'
 import { loadExpenses, normalizeExpense, saveExpenses } from './expenseStorage'
 import { loadServices, normalizeService, saveServices } from './serviceStorage'
 import {
-  fetchServiceCatalogV2Remote,
-  upsertServiceCatalogV2Remote,
-} from '../repositories/serviceCatalogV2Repository'
-import { loadBranchPricingMap, saveBranchPricingMap } from './branchPricingStorage'
+  fetchBranchCatalogsRemote,
+  upsertBranchCatalogsRemote,
+} from '../repositories/branchCatalogRepository'
 import {
-  applyRemoteServiceCatalogV2,
+  applyRemoteBranchCatalogs,
+  ensureAllBranchCatalogsSeeded,
+  loadBranchCatalogsMap,
   loadBranchServicePricesV2,
-  loadServiceCatalogV2,
 } from './serviceCatalogV2Storage'
+import { loadBranchPricingMap, saveBranchPricingMap } from './branchPricingStorage'
 import { loadCredentials, saveCredentials } from './credentialsStorage'
 import {
   collectPermissionsSnapshot,
@@ -113,7 +114,7 @@ import { notifyDataSynced, SYNC_EVENT } from './dataSyncEvents'
 const DEFAULT_SYNC_INTERVAL_MS = 30000
 // Các bảng bật Realtime — khi có thay đổi (thiết bị khác ghi lên Supabase),
 // kéo lại dữ liệu gần như ngay lập tức thay vì chờ tới vòng polling kế tiếp.
-const REALTIME_TABLES = ['branches', 'employees', 'services', 'branch_pricing', 'branch_commission_policies', 'invoices', 'expenses', 'service_categories', 'catalog_services', 'service_durations', 'branch_service_prices']
+const REALTIME_TABLES = ['branches', 'employees', 'services', 'branch_pricing', 'branch_commission_policies', 'branch_catalogs', 'invoices', 'expenses', 'service_categories', 'catalog_services', 'service_durations', 'branch_service_prices']
 const REALTIME_DEBOUNCE_MS = 400
 
 let syncTimerId = null
@@ -207,10 +208,10 @@ export async function pullAllFromSupabase() {
     },
     {
       name: 'serviceCatalogV2',
-      fetch: fetchServiceCatalogV2Remote,
+      fetch: fetchBranchCatalogsRemote,
       apply: (data) => {
-        if (!data?.catalog?.categories?.length) return
-        applyRemoteServiceCatalogV2(data)
+        if (!data?.catalogs) return
+        applyRemoteBranchCatalogs(data)
       },
     },
     {
@@ -310,7 +311,7 @@ export async function pushLocalToSupabase() {
     ['services', () => upsertServices(snapshot.services)],
     ['branchPricing', () => upsertBranchPricingMap(snapshot.branchPricing)],
     ['commissionPolicies', () => upsertCommissionPolicyMap(snapshot.commissionPolicies ?? loadCommissionPolicyMap())],
-    ['serviceCatalogV2', () => upsertServiceCatalogV2Remote(loadServiceCatalogV2(), loadBranchServicePricesV2())],
+    ['serviceCatalogV2', () => upsertBranchCatalogsRemote(loadBranchCatalogsMap(), loadBranchServicePricesV2())],
     ['employees', () => upsertEmployees(snapshot.employees)],
     ['invoices', () => upsertInvoices(snapshot.invoices)],
     ['expenses', () => upsertExpenses(snapshot.expenses)],
