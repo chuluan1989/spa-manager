@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_OPTIONS } from '../../constants/attendanceTypes'
-import { getCurrentUserBranch, getCurrentUserEmployeeId, getCurrentUserName } from '../../constants/auth'
+import { getCurrentUserEmployeeId, getCurrentUserName } from '../../constants/auth'
 import { getEmployeeById } from '../../utils/employeeStorage'
 import { getTodayDate } from '../../utils/invoiceStorage'
 import { submitEmployeeAttendance } from '../../utils/attendanceService'
@@ -9,6 +9,7 @@ import './AttendanceCheckInModal.css'
 export default function AttendanceCheckInForm({ onSuccess }) {
   const employeeId = getCurrentUserEmployeeId()
   const employee = getEmployeeById(employeeId)
+  const displayName = employee?.name ?? getCurrentUserName()
   const [status, setStatus] = useState('')
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
@@ -41,19 +42,13 @@ export default function AttendanceCheckInForm({ onSuccess }) {
       return
     }
 
-    const branchId = employee?.branchId || getCurrentUserBranch()
-
     setSubmitting(true)
     setError('')
     try {
       await submitEmployeeAttendance({
         employeeId,
-        employeeName: employee?.name ?? getCurrentUserName(),
-        branchId,
         status,
         reason: needsReason ? reason.trim() : '',
-        note: '',
-        submittedBy: getCurrentUserName(),
       })
       setSubmitting(false)
       onSuccess?.()
@@ -80,7 +75,7 @@ export default function AttendanceCheckInForm({ onSuccess }) {
     <form className="attendance-checkin__panel attendance-checkin__panel--inline" onSubmit={handleFormSubmit}>
       <header className="attendance-checkin__header">
         <h2 id="attendance-checkin-title">Điểm danh hôm nay</h2>
-        <p>Ngày {today} · {employee?.name ?? getCurrentUserName()}</p>
+        <p>Ngày {today} · {displayName}</p>
       </header>
 
       <div className="attendance-checkin__options">

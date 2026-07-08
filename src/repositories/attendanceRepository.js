@@ -13,6 +13,36 @@ function sortAttendanceDesc(rows) {
   })
 }
 
+function buildAttendanceInsertRow(record) {
+  return objectToSnakeRow({
+    id: record.id,
+    date: record.date,
+    branchId: record.branchId ?? null,
+    employeeId: record.employeeId,
+    employeeName: record.employeeName ?? '',
+    status: record.status ?? '',
+    reason: record.reason ?? '',
+    note: record.note ?? '',
+    penaltyAmount: Number(record.penaltyAmount ?? 0),
+    submittedAt: record.submittedAt ?? new Date().toISOString(),
+    submittedBy: record.submittedBy ?? record.employeeId ?? '',
+    createdBy: record.createdBy ?? record.employeeId ?? record.submittedBy ?? '',
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+async function runInsert(row) {
+  return supabase.from(ATTENDANCE_TABLE).insert(row).select('*').single()
+}
+
+function stripOptionalColumns(row, errorMessage = '') {
+  const next = { ...row }
+  if (/branch_name|column/.test(errorMessage)) delete next.branch_name
+  if (/created_by|column/.test(errorMessage)) delete next.created_by
+  if (/employee_name|column/.test(errorMessage)) delete next.employee_name
+  return next
+}
+
 export async function fetchAttendanceServerDate() {
   if (!isSupabaseConfigured) {
     return { date: getTodayDate(), timestamp: new Date().toISOString() }
@@ -77,33 +107,27 @@ export async function fetchAttendanceForEmployeeMonth(employeeId, monthPrefix) {
   return fetchAttendanceFiltered({ fromDate, toDate, employeeId })
 }
 
-export async function insertAttendanceRecord(record) {
+export async function insertAttendanceRecord(record, { onForeignKeyError } = {}) {
   if (!isSupabaseConfigured || !record?.id) {
     throw new Error('Supabase chưa cấu hình.')
   }
-  const { branchName: _branchName, ...rest } = record
-  const row = objectToSnakeRow({
-    ...rest,
-    createdBy: rest.createdBy ?? rest.submittedBy ?? '',
-    submittedAt: rest.submittedAt ?? new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  })
-  let { data, error } = await supabase
-    .from(ATTENDANCE_TABLE)
-    .insert(row)
-    .select('*')
-    .single()
-
-  if (error && /branch_name|column/.test(error.message ?? '')) {
-    delete row.branch_name
-    const retry = await supabase.from(ATTENDANCE_TABLE).insert(row).select('*').single()
-    data = retry.data
-    error = retry.error
+  if (!record.employeeId) {
+    throw new Error('Thiếu employee_id khi lưu chấm công.')
   }
 
-  if (error && /created_by|column/.test(error.message ?? '')) {
-    delete row.created_by
-    const retry = await supabase.from(ATTENDANCE_TABLE).insert(row).select('*').single()
+  let row = buildAttendanceInsertRow(record)
+  let { data, error } = await runInsert(row)
+
+  if (error && /foreign key|violates foreign key/i.test(error.message ?? '')) {
+    if (typeof onForeignKeyError === 'function') {
+      await onForeignKeyError()
+      ;({ data, error } = await runInsert(row))
+    }
+  }
+
+  if (error && /branch_name|created_by|employee_name|column/.test(error.message ?? '')) {
+    row = stripOptionalColumns(row, error.message ?? '')
+    const retry = await runInsert(row)
     data = retry.data
     error = retry.error
   }

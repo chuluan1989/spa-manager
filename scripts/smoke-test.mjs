@@ -2429,10 +2429,7 @@ test('employee attendance flow: Supabase-only, không bypass session', async () 
   await assert.rejects(
     () => submitEmployeeAttendance({
       employeeId: 'emp-a',
-      employeeName: 'Lan',
-      branchId: 'vinh-long',
       status: ATTENDANCE_STATUS.ON_TIME,
-      submittedBy: 'Lan',
     }),
     /Supabase/,
     'Phải lưu Supabase — không bypass LocalStorage',

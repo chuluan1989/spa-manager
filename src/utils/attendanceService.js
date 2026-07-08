@@ -6,9 +6,9 @@ import {
 import { notifyDataSynced } from './dataSyncEvents'
 import { getBranchById, getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
-import { upsertEmployeeMinimal } from '../repositories/employeesRepository'
-import { upsertBranches } from '../repositories/branchesRepository'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { upsertBranchMinimal } from '../repositories/branchesRepository'
+import { upsertEmployeeMinimal } from '../repositories/employeesRepository'
 import {
   createAttendanceId,
   createAttendanceLogId,
@@ -40,8 +40,14 @@ function parseAttendanceError(error) {
   if (/duplicate key|unique constraint|đã điểm danh/i.test(message)) {
     return 'Bạn đã điểm danh hôm nay. Không thể điểm danh lại.'
   }
-  if (/foreign key|violates foreign key|employees|branches/i.test(message)) {
-    return 'Dữ liệu nhân viên/chi nhánh chưa đồng bộ. Vui lòng thử lại sau vài giây.'
+  if (/foreign key|violates foreign key/i.test(message)) {
+    if (/employee_id|employees/i.test(message)) {
+      return 'Không lưu được chấm công: mã nhân viên chưa có trên máy chủ.'
+    }
+    if (/branch_id|branches/i.test(message)) {
+      return 'Không lưu được chấm công: mã chi nhánh chưa có trên máy chủ.'
+    }
+    return 'Không lưu được chấm công. Liên hệ quản trị viên.'
   }
   if (/quá lâu|timeout/i.test(message)) {
     return message
@@ -52,39 +58,43 @@ function parseAttendanceError(error) {
   return message || 'Không thể lưu điểm danh. Vui lòng thử lại.'
 }
 
-async function ensureBranchSyncedForAttendance(branchId) {
-  if (!isSupabaseConfigured || !branchId) return
+async function ensureAttendanceForeignKeys(employeeId) {
+  if (!isSupabaseConfigured || !employeeId) {
+    throw new Error('Không xác định được nhân viên.')
+  }
+
+  const employee = getEmployeeById(employeeId)
+  if (!employee?.id) {
+    throw new Error('Không tìm thấy hồ sơ nhân viên.')
+  }
+
+  const branchId = employee.branchId ?? ''
+  if (!branchId) {
+    throw new Error('Nhân viên chưa được gán chi nhánh.')
+  }
+
   const branch = getBranchById(branchId)
   if (!branch?.id) {
-    throw new Error('Không tìm thấy chi nhánh.')
+    throw new Error('Không tìm thấy chi nhánh của nhân viên.')
   }
-  await withTimeout(
-    upsertBranches([branch]),
-    ATTENDANCE_SYNC_TIMEOUT_MS,
-    'Đồng bộ chi nhánh quá lâu. Kiểm tra mạng và thử lại.',
-  )
-}
 
-async function ensureEmployeeSyncedForAttendance(employeeId, branchId) {
-  if (!isSupabaseConfigured || !employeeId) return
-  const employee = getEmployeeById(employeeId)
-  if (!employee) {
-    throw new Error('Không tìm thấy hồ sơ nhân viên. Liên hệ quản trị viên.')
-  }
-  const resolvedBranchId = branchId || employee.branchId || ''
-  if (resolvedBranchId) {
-    await ensureBranchSyncedForAttendance(resolvedBranchId)
-  }
+  await withTimeout(
+    upsertBranchMinimal(branch),
+    ATTENDANCE_SYNC_TIMEOUT_MS,
+    'Không thể chuẩn bị chi nhánh trên máy chủ. Kiểm tra mạng và thử lại.',
+  )
   await withTimeout(
     upsertEmployeeMinimal({
       id: employee.id,
-      branchId: resolvedBranchId,
-      name: employee.name,
+      branchId,
+      name: employee.name ?? '',
       status: employee.status ?? 'active',
     }),
     ATTENDANCE_SYNC_TIMEOUT_MS,
-    'Đồng bộ nhân viên quá lâu. Kiểm tra mạng và thử lại.',
+    'Không thể chuẩn bị hồ sơ nhân viên trên máy chủ. Kiểm tra mạng và thử lại.',
   )
+
+  return { employee, branchId }
 }
 
 export async function getServerAttendanceDate() {
@@ -109,12 +119,9 @@ export async function hasCheckedInToday(employeeId) {
 
 export async function submitEmployeeAttendance({
   employeeId,
-  employeeName,
-  branchId,
   status,
   reason = '',
   note = '',
-  submittedBy,
 }) {
   if (!isSupabaseConfigured) {
     throw new Error('Hệ thống chưa kết nối máy chủ. Liên hệ quản trị viên.')
@@ -122,47 +129,46 @@ export async function submitEmployeeAttendance({
   if (!employeeId) {
     throw new Error('Không xác định được nhân viên.')
   }
-
-  const resolvedBranchId = branchId || getEmployeeById(employeeId)?.branchId || ''
-  if (!resolvedBranchId) {
-    throw new Error('Không xác định được chi nhánh.')
+  if (!status) {
+    throw new Error('Vui lòng chọn trạng thái điểm danh.')
   }
 
+  let employee
+  let branchId
   try {
-    await ensureEmployeeSyncedForAttendance(employeeId, resolvedBranchId)
+    ;({ employee, branchId } = await ensureAttendanceForeignKeys(employeeId))
   } catch (err) {
     throw new Error(parseAttendanceError(err))
   }
-
-  const branchName = getBranchName(resolvedBranchId)
 
   try {
     const saved = await withTimeout(
       (async () => {
         const { date, timestamp } = await getServerAttendanceDate()
-        const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
+        const existing = await fetchAttendanceByEmployeeAndDate(employee.id, date)
         if (existing) {
           throw new Error('Bạn đã điểm danh hôm nay. Không thể điểm danh lại.')
         }
 
         const monthPrefix = getMonthPrefixFromDate(date)
-        const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
+        const monthRecords = await fetchAttendanceForEmployeeMonth(employee.id, monthPrefix)
         const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
 
         return insertAttendanceRecord({
           id: createAttendanceId(),
           date,
-          branchId: resolvedBranchId,
-          branchName,
-          employeeId,
-          employeeName,
+          branchId,
+          employeeId: employee.id,
+          employeeName: employee.name ?? '',
           status,
           reason: reason.trim(),
           note: note.trim(),
           penaltyAmount,
           submittedAt: timestamp || new Date().toISOString(),
-          submittedBy,
-          createdBy: submittedBy,
+          submittedBy: employee.id,
+          createdBy: employee.id,
+        }, {
+          onForeignKeyError: () => ensureAttendanceForeignKeys(employee.id),
         })
       })(),
       ATTENDANCE_SAVE_TIMEOUT_MS,
@@ -198,6 +204,11 @@ export async function adminCreateAttendance({
   note = '',
   editor,
 }) {
+  const resolvedBranchId = branchId || getEmployeeById(employeeId)?.branchId || ''
+  if (resolvedBranchId) {
+    await ensureAttendanceForeignKeys(employeeId)
+  }
+
   const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
   if (existing) {
     throw new Error('Nhân viên đã có bản ghi chấm công trong ngày này.')
@@ -210,17 +221,18 @@ export async function adminCreateAttendance({
   const saved = await insertAttendanceRecord({
     id: createAttendanceId(),
     date,
-    branchId,
-    branchName: getBranchName(branchId),
+    branchId: resolvedBranchId || branchId,
     employeeId,
-    employeeName,
+    employeeName: employeeName ?? getEmployeeById(employeeId)?.name ?? '',
     status,
     reason: reason.trim(),
     note: note.trim(),
     penaltyAmount,
     submittedAt: new Date().toISOString(),
-    submittedBy: editor?.editorName ?? 'Admin',
-    createdBy: editor?.editorName ?? 'Admin',
+    submittedBy: editor?.editorId ?? editor?.editorName ?? 'admin',
+    createdBy: editor?.editorId ?? editor?.editorName ?? 'admin',
+  }, {
+    onForeignKeyError: () => ensureAttendanceForeignKeys(employeeId),
   })
 
   notifyDataSynced(['attendance'])

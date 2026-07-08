@@ -24,6 +24,33 @@ export async function upsertBranches(branches) {
   if (error) throw error
 }
 
+/** Chỉ cột Supabase — đủ FK trước khi chấm công. */
+export async function upsertBranchMinimal(branch) {
+  if (!isSupabaseConfigured || !branch?.id) return
+
+  const extendedRow = objectToSnakeRow({
+    id: branch.id,
+    name: branch.name ?? '',
+    status: branch.status ?? 'active',
+    priceGroupId: branch.priceGroupId ?? 'standard',
+    supportEnabled: Boolean(branch.supportEnabled),
+    sortOrder: Number.isFinite(Number(branch.sortOrder)) ? Number(branch.sortOrder) : 99,
+    address: branch.address ?? '',
+    hotline: branch.hotline ?? '',
+    updatedAt: new Date().toISOString(),
+  })
+
+  let { error } = await supabase.from(TABLE).upsert(extendedRow, { onConflict: 'id' })
+  if (error && /column|sort_order|address|hotline/.test(error.message ?? '')) {
+    const baseRow = { ...extendedRow }
+    delete baseRow.sort_order
+    delete baseRow.address
+    delete baseRow.hotline
+    ;({ error } = await supabase.from(TABLE).upsert(baseRow, { onConflict: 'id' }))
+  }
+  if (error) throw error
+}
+
 export async function countBranches() {
   if (!isSupabaseConfigured) return 0
   const { count, error } = await supabase.from(TABLE).select('id', { count: 'exact', head: true })
