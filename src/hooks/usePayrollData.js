@@ -9,40 +9,11 @@ import {
   fetchPayrollLocks,
   subscribePayrollChanges,
 } from '../repositories/payrollRepository'
-import { loadEmployees, normalizeEmployee } from '../utils/employeeStorage'
-import { loadInvoices } from '../utils/invoiceStorage'
+import { normalizeEmployee } from '../utils/employeeStorage'
 import { computePayrollReport } from '../utils/payrollEngine'
 import { employeeBelongsToBranch } from '../utils/branchEmployeeMatch'
-import { filterSalaryInvoices, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
+import { getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
-
-function mergeEmployeeSources(remoteRows, branchId) {
-  const localRows = loadEmployees()
-    .filter((row) => !branchId || employeeBelongsToBranch(row, branchId))
-    .map((row) => normalizeEmployee(row))
-  const map = new Map()
-  for (const row of localRows) {
-    if (row?.id) map.set(row.id, row)
-  }
-  for (const row of remoteRows ?? []) {
-    if (row?.id) map.set(row.id, normalizeEmployee(row))
-  }
-  return [...map.values()]
-}
-
-function mergeInvoiceSources(remoteRows, scope) {
-  const localRows = filterSalaryInvoices(loadInvoices(), scope)
-  const merged = new Map()
-
-  for (const row of localRows) {
-    if (row?.id) merged.set(row.id, row)
-  }
-  for (const row of remoteRows ?? []) {
-    if (row?.id) merged.set(row.id, row)
-  }
-
-  return [...merged.values()]
-}
 
 export function usePayrollData({ month, branchId = '', employeeId = '' }) {
   const [invoices, setInvoices] = useState([])
@@ -56,7 +27,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
   const [liveUpdatedAt, setLiveUpdatedAt] = useState(null)
   const mountedRef = useRef(true)
 
-  const [employees, setEmployees] = useState(() => loadEmployees())
+  const [employees, setEmployees] = useState([])
 
   const reload = useCallback(async ({ silent = false } = {}) => {
     if (!mountedRef.current) return
@@ -64,6 +35,10 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
     else setLoading(true)
     setError('')
     try {
+      if (!isSupabaseConfigured) {
+        throw new Error('Supabase chưa cấu hình. Không thể tải dữ liệu lương.')
+      }
+
       const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
       const scope = { fromDate, toDate, branchId, employeeId }
       const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows, remoteEmployees] = await Promise.all([
@@ -72,13 +47,16 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
         fetchPayrollAdjustments({ month, branchId, employeeId }),
         fetchPayrollLocks({ month }),
         fetchPayrollAuditLogs({ limit: 300 }),
-        isSupabaseConfigured
-          ? fetchEmployeesFiltered({})
-          : Promise.resolve(null),
+        fetchEmployeesFiltered({}),
       ])
       if (!mountedRef.current) return
-      setEmployees(mergeEmployeeSources(remoteEmployees, branchId))
-      setInvoices(mergeInvoiceSources(remoteInvoices, scope))
+
+      const nextEmployees = (remoteEmployees ?? [])
+        .map((row) => normalizeEmployee(row))
+        .filter((row) => !branchId || employeeBelongsToBranch(row, branchId))
+
+      setEmployees(nextEmployees)
+      setInvoices(Array.isArray(remoteInvoices) ? remoteInvoices : [])
       setAttendance(attendanceRows ?? [])
       setAdjustments(adjustmentRows ?? [])
       setLocks(lockRows ?? [])
@@ -88,9 +66,8 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
       if (!mountedRef.current) return
       setError(err?.message ?? 'Không thể tải dữ liệu lương.')
       if (!silent) {
-        const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
-        setEmployees(mergeEmployeeSources([], branchId))
-        setInvoices(mergeInvoiceSources([], { fromDate, toDate, branchId, employeeId }))
+        setEmployees([])
+        setInvoices([])
         setAttendance([])
         setAdjustments([])
         setLocks([])

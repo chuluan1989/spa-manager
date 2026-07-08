@@ -56,24 +56,15 @@ export function useDrillDownData(filters) {
       setError('')
 
       try {
+        if (!isSupabaseConfigured) {
+          throw new Error('Supabase chưa cấu hình. Không thể tải dữ liệu tổng quan.')
+        }
         const result = await fetchReportPeriodData(scopedFilters)
         if (cancelled) return
 
-        let nextInvoices = filterEmployeeReportInvoices(result.invoices, scopedFilters)
-        setInvoices(nextInvoices)
+        setInvoices(filterEmployeeReportInvoices(result.invoices, scopedFilters))
         setExpenses(result.expenses)
-
-        if (result.source === 'local' && isSupabaseConfigured) {
-          setError('Supabase chưa phản hồi — đang dùng dữ liệu cục bộ.')
-        } else if (result.source === 'local-fallback') {
-          setError(result.error?.message
-            ? `${result.error.message} — đang dùng dữ liệu cục bộ.`
-            : 'Không tải được Cloud — đang dùng dữ liệu cục bộ.')
-        } else if (result.source === 'local' && !isSupabaseConfigured) {
-          setError('Supabase chưa cấu hình — đang dùng dữ liệu cục bộ.')
-        } else {
-          setError('')
-        }
+        setError('')
       } catch (err) {
         if (!cancelled) {
           setError(err?.message ?? 'Không thể tải dữ liệu báo cáo.')

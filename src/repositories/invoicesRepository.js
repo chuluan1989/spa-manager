@@ -2,6 +2,8 @@ import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
 const TABLE = 'invoices'
+
+/** Cột có thể thiếu trên production — chỉ strip khi UPSERT, KHÔNG dùng trong ORDER BY. */
 const OPTIONAL_INVOICE_COLUMNS = [
   'customer_phone',
   'customer_requested',
@@ -42,8 +44,14 @@ async function upsertInvoiceRows(rows) {
   if (error) throw error
 }
 
+/**
+ * Lấy hóa đơn từ Supabase.
+ * Sort: created_at DESC, date DESC — KHÔNG order theo invoice_time (cột có thể không tồn tại).
+ */
 export async function fetchInvoicesFiltered(filters = {}) {
-  if (!isSupabaseConfigured) return null
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase chưa cấu hình. Không thể tải hóa đơn.')
+  }
 
   const {
     fromDate = '',
@@ -58,7 +66,6 @@ export async function fetchInvoicesFiltered(filters = {}) {
     .select('*')
     .order('created_at', { ascending: false })
     .order('date', { ascending: false })
-    .order('invoice_time', { ascending: false })
 
   if (fromDate) query = query.gte('date', fromDate)
   if (toDate) query = query.lte('date', toDate)
@@ -76,13 +83,16 @@ export async function fetchInvoicesFiltered(filters = {}) {
 }
 
 export async function fetchInvoices() {
-  if (!isSupabaseConfigured) return null
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase chưa cấu hình. Không thể tải hóa đơn.')
+  }
   const { data, error } = await supabase
     .from(TABLE)
     .select('*')
     .order('created_at', { ascending: false })
+    .order('date', { ascending: false })
   if (error) throw error
-  return rowsToCamel(data)
+  return rowsToCamel(data ?? [])
 }
 
 export async function upsertInvoice(invoice) {

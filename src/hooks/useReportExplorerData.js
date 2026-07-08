@@ -106,15 +106,7 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
           buildDrillDownSummary(previous.invoices, previous.expenses, filters),
         )
 
-        if (current.source === 'local-fallback') {
-          setError(current.error?.message
-            ? `${current.error.message} — đang dùng dữ liệu cục bộ.`
-            : 'Không tải được Cloud — đang dùng dữ liệu cục bộ.')
-        } else if (current.source === 'local' && !isSupabaseConfigured) {
-          setError('Supabase chưa cấu hình — đang dùng dữ liệu cục bộ.')
-        } else {
-          setError('')
-        }
+        setError('')
       } catch (err) {
         if (!cancelled) {
           setError(err?.message ?? 'Không thể tải dữ liệu báo cáo.')

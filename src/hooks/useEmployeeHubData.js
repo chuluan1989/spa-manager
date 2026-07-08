@@ -2,10 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { fetchEmployeesFiltered } from '../repositories/employeesRepository'
 import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
-import { loadEmployees, normalizeEmployee } from '../utils/employeeStorage'
-import { loadInvoices } from '../utils/invoiceStorage'
+import { normalizeEmployee } from '../utils/employeeStorage'
 import { employeeBelongsToBranch } from '../utils/branchEmployeeMatch'
-import { filterSalaryInvoices, getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
+import { getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 
 export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } = {}) {
   const [employees, setEmployees] = useState([])
@@ -26,20 +25,11 @@ export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } 
       const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
       const scope = { fromDate, toDate, branchId: branchId || '' }
 
-      if (!isSupabaseConfigured) {
-        const localEmployees = loadEmployees()
-          .filter((row) => !branchId || employeeBelongsToBranch(row, branchId))
-          .map((row) => normalizeEmployee(row))
-        const localInvoices = filterSalaryInvoices(loadInvoices(), scope)
-        if (!cancelled) {
-          setEmployees(localEmployees)
-          setInvoices(localInvoices)
-          setLoading(false)
-        }
-        return
-      }
-
       try {
+        if (!isSupabaseConfigured) {
+          throw new Error('Supabase chưa cấu hình. Không thể tải dữ liệu nhân viên.')
+        }
+
         const [employeeRows, invoiceRows] = await Promise.all([
           fetchEmployeesFiltered({}),
           fetchInvoicesFiltered(scope),
@@ -51,15 +41,12 @@ export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } 
           .map((row) => normalizeEmployee(row))
           .filter((row) => !branchId || employeeBelongsToBranch(row, branchId)))
         setInvoices(Array.isArray(invoiceRows) ? invoiceRows : [])
+        setError('')
       } catch (err) {
         if (!cancelled) {
           setError(err?.message ?? 'Không thể tải dữ liệu nhân viên từ Supabase.')
-          const localEmployees = loadEmployees()
-            .filter((row) => !branchId || employeeBelongsToBranch(row, branchId))
-            .map((row) => normalizeEmployee(row))
-          const localInvoices = filterSalaryInvoices(loadInvoices(), scope)
-          setEmployees(localEmployees)
-          setInvoices(localInvoices)
+          setEmployees([])
+          setInvoices([])
         }
       } finally {
         if (!cancelled) setLoading(false)

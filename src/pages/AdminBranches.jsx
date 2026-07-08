@@ -21,12 +21,14 @@ import {
   unlockBranch,
   updateBranch,
 } from '../utils/branchStorage'
-import { loadEmployees, normalizeEmployee } from '../utils/employeeStorage'
+import { normalizeEmployee } from '../utils/employeeStorage'
 import { countEmployeesForBranch } from '../utils/branchEmployeeMatch'
 import { deleteBranch } from '../utils/branchLifecycle'
 import { canDeleteBranch, BRANCH_DELETE_BLOCKED_MESSAGE } from '../utils/branchDeleteGuard'
 import { registerBranchCredential, updateBranchPassword } from '../utils/credentialsStorage'
 import { assignBranchManager, getAccountMeta, getBranchManagerAssignments } from '../utils/accountMetadataStorage'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { fetchEmployeesFiltered } from '../repositories/employeesRepository'
 import './AdminBranches.css'
 
 const EMPTY_FORM = {
@@ -53,6 +55,8 @@ export default function AdminBranches() {
   const readOnly = !canManageBranches()
   const syncVersion = useDataSyncVersion()
   const [branches, setBranches] = useState(() => getCanonicalBranchesForDisplay())
+  const [cloudEmployees, setCloudEmployees] = useState([])
+  const [employeesError, setEmployeesError] = useState('')
   const [selectedBranchId, setSelectedBranchId] = useState('')
   const [detailTab, setDetailTab] = useState('overview')
   const [editModal, setEditModal] = useState(null)
@@ -63,15 +67,35 @@ export default function AdminBranches() {
 
   const refresh = () => setBranches(getCanonicalBranchesForDisplay())
 
-  const employeeCounts = useMemo(() => {
-    const employees = loadEmployees().map((row) => normalizeEmployee(row))
-    return Object.fromEntries(
-      branches.map((branch) => [branch.id, countEmployeesForBranch(employees, branch.id)]),
-    )
-  }, [branches, syncVersion])
+  const employeeCounts = useMemo(() => Object.fromEntries(
+    branches.map((branch) => [branch.id, countEmployeesForBranch(cloudEmployees, branch.id)]),
+  ), [branches, cloudEmployees])
 
   useEffect(() => {
     if (syncVersion > 0) refresh()
+  }, [syncVersion])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadEmployeesFromCloud() {
+      setEmployeesError('')
+      if (!isSupabaseConfigured) {
+        setEmployeesError('Supabase chưa cấu hình. Không thể tải nhân viên.')
+        setCloudEmployees([])
+        return
+      }
+      try {
+        const rows = await fetchEmployeesFiltered({})
+        if (cancelled) return
+        setCloudEmployees((rows ?? []).map((row) => normalizeEmployee(row)))
+      } catch (err) {
+        if (cancelled) return
+        setEmployeesError(err?.message ?? 'Không thể tải nhân viên từ Supabase.')
+        setCloudEmployees([])
+      }
+    }
+    loadEmployeesFromCloud()
+    return () => { cancelled = true }
   }, [syncVersion])
 
   const priceGroups = useMemo(() => getPriceGroupsWithBranchLabels(), [branches])
@@ -215,6 +239,9 @@ export default function AdminBranches() {
           <p className="admin-branches__subtitle">
             Quản lý chi nhánh theo <code>branch_id</code> — thứ tự hiển thị chỉ dùng <code>sort_order</code>
           </p>
+          {employeesError && (
+            <p className="admin-branches__hint admin-branches__hint--error">{employeesError}</p>
+          )}
         </div>
         {!readOnly && isAdmin() && (
           <button type="button" className="admin-branches__btn admin-branches__btn--primary" onClick={openAdd}>

@@ -7,7 +7,7 @@ import {
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { fetchExpenses } from '../repositories/expensesRepository'
 import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
-import { loadExpenses, saveExpenses, normalizeExpense } from '../utils/expenseStorage'
+import { saveExpenses, normalizeExpense } from '../utils/expenseStorage'
 import { useDataSyncVersion } from './useDataSyncVersion'
 import { getMonthStartDate, getTodayDate } from '../utils/invoiceStorage'
 
@@ -48,33 +48,29 @@ export function useExpensesData(filters) {
       setError('')
 
       try {
-        if (isSupabaseConfigured) {
-          const [expenseRows, invoiceRows] = await Promise.all([
-            fetchExpenses(),
-            fetchInvoicesFiltered({
-              fromDate: scopedFilters.fromDate || '',
-              toDate: scopedFilters.toDate || '',
-              branchId: scopedFilters.branchId || '',
-            }),
-          ])
-
-          if (cancelled) return
-
-          const normalized = (expenseRows ?? []).map(normalizeExpense)
-          setAllExpenses(normalized)
-          setAllInvoices(invoiceRows ?? [])
-          saveExpenses(normalized)
-        } else {
-          const local = loadExpenses()
-          if (cancelled) return
-          setAllExpenses(local)
-          setAllInvoices([])
-          setError('Supabase chưa cấu hình — đang dùng dữ liệu cục bộ.')
+        if (!isSupabaseConfigured) {
+          throw new Error('Supabase chưa cấu hình. Không thể tải chi phí.')
         }
+
+        const [expenseRows, invoiceRows] = await Promise.all([
+          fetchExpenses(),
+          fetchInvoicesFiltered({
+            fromDate: scopedFilters.fromDate || '',
+            toDate: scopedFilters.toDate || '',
+            branchId: scopedFilters.branchId || '',
+          }),
+        ])
+
+        if (cancelled) return
+
+        const normalized = (expenseRows ?? []).map(normalizeExpense)
+        setAllExpenses(normalized)
+        setAllInvoices(invoiceRows ?? [])
+        saveExpenses(normalized)
+        setError('')
       } catch (err) {
         if (cancelled) return
-        const local = loadExpenses()
-        setAllExpenses(local)
+        setAllExpenses([])
         setAllInvoices([])
         setError(err?.message || 'Không thể tải chi phí từ Supabase.')
       } finally {

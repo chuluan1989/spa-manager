@@ -2611,6 +2611,26 @@ test('invoice sort: hóa đơn mới nhất nằm trên cùng theo created_at', 
   assert.ok(compareInvoicesDesc(invoices[2], invoices[1]) > 0)
 })
 
+test('admin cloud data: không order invoice_time, không fallback local invoices', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const invoicesRepo = fs.readFileSync(path.join(process.cwd(), 'src/repositories/invoicesRepository.js'), 'utf8')
+  const reportFetcher = fs.readFileSync(path.join(process.cwd(), 'src/utils/reportDataFetcher.js'), 'utf8')
+  const invoiceFetcher = fs.readFileSync(path.join(process.cwd(), 'src/utils/invoiceDataFetcher.js'), 'utf8')
+  const payrollHook = fs.readFileSync(path.join(process.cwd(), 'src/hooks/usePayrollData.js'), 'utf8')
+  const drillHook = fs.readFileSync(path.join(process.cwd(), 'src/hooks/useDrillDownData.js'), 'utf8')
+
+  assert.doesNotMatch(invoicesRepo, /\.order\(['"]invoice_time['"]/)
+  assert.match(invoicesRepo, /\.order\(['"]created_at['"]/)
+  assert.doesNotMatch(reportFetcher, /loadInvoices/)
+  assert.doesNotMatch(reportFetcher, /local-fallback/)
+  assert.doesNotMatch(invoiceFetcher, /loadInvoices/)
+  assert.doesNotMatch(invoiceFetcher, /local-fallback/)
+  assert.doesNotMatch(payrollHook, /loadInvoices/)
+  assert.doesNotMatch(payrollHook, /mergeInvoiceSources/)
+  assert.doesNotMatch(drillHook, /đang dùng dữ liệu cục bộ/)
+})
+
 test('employee profile policy: banner, lock after deadline, and permissions', async () => {
   const {
     computeProfileCompletionPercent,

@@ -56,9 +56,7 @@ export function useCustomersData(appliedFilters = buildDefaultCustomerFilters())
         })
         if (!cancelled) {
           setInvoices(result.invoices)
-          if (result.source === 'local-fallback') {
-            setError('Không tải được Cloud — đang dùng dữ liệu cục bộ.')
-          }
+          setError('')
         }
       } catch (err) {
         if (!cancelled) {
