@@ -4,6 +4,7 @@ import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 const TABLE = 'invoices'
 const OPTIONAL_INVOICE_COLUMNS = [
   'customer_phone',
+  'customer_requested',
   'invoice_time',
   'entered_by',
   'discount_input',

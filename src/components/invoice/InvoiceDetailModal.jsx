@@ -42,6 +42,9 @@ export default function InvoiceDetailModal({ invoice, onClose, onEdit, canEdit }
               <div><dt>Nhân viên</dt><dd>{invoice.employeeName || '—'}</dd></div>
               <div><dt>Tên khách</dt><dd>{invoice.customerName || '—'}</dd></div>
               <div><dt>SĐT khách</dt><dd>{invoice.customerPhone || '—'}</dd></div>
+              {invoice.customerRequested && (
+                <div><dt>Loại khách</dt><dd><span className="invoice-detail-modal__request-badge">Khách yêu cầu</span></dd></div>
+              )}
             </dl>
           </section>
 

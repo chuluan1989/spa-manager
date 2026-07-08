@@ -55,7 +55,7 @@ const TABLE_COLUMNS = {
 const EXPENSE_OPTIONAL_COLUMNS = ['expense_time', 'paid_by', 'receipt_image', 'entered_by_id']
 
 const INVOICE_OPTIONAL_COLUMNS = [
-  'customer_name', 'customer_phone', 'note', 'invoice_time', 'entered_by',
+  'customer_name', 'customer_phone', 'customer_requested', 'note', 'invoice_time', 'entered_by',
   'discount_type', 'discount_value', 'discount_amount',
 ]
 

@@ -287,6 +287,7 @@ export default function AdminEmployeeReport({ onNavigate }) {
                   <th>Nhân viên</th>
                   <th>Chi nhánh</th>
                   <th>Số HĐ/Tour</th>
+                  <th>Khách yêu cầu</th>
                   <th>Tổng dịch vụ</th>
                   <th>Doanh thu tiền vé</th>
                   <th>Tips</th>
@@ -304,6 +305,7 @@ export default function AdminEmployeeReport({ onNavigate }) {
                     <td>{row.employeeName}</td>
                     <td>{row.branchName}</td>
                     <td className="report-table-card__num">{row.invoiceCount}</td>
+                    <td className="report-table-card__num">{row.customerRequestedCount ?? 0}</td>
                     <td className="report-table-card__num">{row.serviceCount}</td>
                     <td className="report-table-card__money">{formatCurrency(row.serviceRevenue)}</td>
                     <td className="report-table-card__money">{formatCurrency(row.tips)}</td>
@@ -330,6 +332,7 @@ export default function AdminEmployeeReport({ onNavigate }) {
                   <tr className="admin-employee-report__totals-row">
                     <td colSpan={2}><strong>Tổng kỳ</strong></td>
                     <td className="report-table-card__num"><strong>{report.periodTotals.invoiceCount}</strong></td>
+                    <td className="report-table-card__num"><strong>{report.periodTotals.customerRequestedCount ?? 0}</strong></td>
                     <td />
                     <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.serviceRevenue)}</strong></td>
                     <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.tips)}</strong></td>

@@ -1,3 +1,43 @@
+.legacy-sync__recovery {
+  margin-bottom: 32px;
+  padding: 20px 22px;
+  border: 1px solid var(--ks-border);
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-card);
+  box-shadow: var(--ks-shadow-card);
+}
+
+.legacy-sync__recovery-header {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+  color: var(--ks-gold);
+}
+
+.legacy-sync__recovery-title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: var(--ks-text);
+}
+
+.legacy-sync__recovery-desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ks-text-muted);
+  line-height: 1.55;
+}
+
+.legacy-sync__recovery-pre {
+  margin: 0;
+  padding: 12px;
+  background: var(--ks-input-bg);
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-x: auto;
+  color: var(--ks-text-muted);
+}
+
 .legacy-sync {
   max-width: 960px;
 }

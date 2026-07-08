@@ -12,6 +12,9 @@ function InvoiceRow({ item, onView, onEdit, onDelete, allowDelete }) {
           <div className="employee-invoice-row__field">
             <span className="employee-invoice-row__label">Khách</span>
             <span className="employee-invoice-row__value">{item.customerName}</span>
+            {item.customerRequested && (
+              <span className="employee-invoice-row__request-badge">Khách yêu cầu</span>
+            )}
           </div>
           <div className="employee-invoice-row__field employee-invoice-row__field--wide">
             <span className="employee-invoice-row__label">Dịch vụ</span>
@@ -124,6 +127,7 @@ export default function AdminEmployeeDetail({
 
               <div className="employee-report-day__totals">
                 <div><span>Tổng hóa đơn</span><strong>{day.invoiceCount}</strong></div>
+                <div><span>Khách yêu cầu</span><strong>{day.customerRequestedCount ?? 0}</strong></div>
                 <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(day.serviceRevenue)}</strong></div>
                 <div><span>Tổng Tips</span><strong className="employee-invoice-row__tips">{formatCurrency(day.tips)}</strong></div>
                 <div><span>Tổng hoa hồng</span><strong className="employee-invoice-row__commission">{formatCurrency(day.serviceCommission)}</strong></div>
@@ -136,6 +140,7 @@ export default function AdminEmployeeDetail({
             <h4 className="salary-report__period-total-title">Tổng cuối kỳ — {detail.employeeName}</h4>
             <div className="salary-report__period-total-grid">
               <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(detail.periodTotals.serviceRevenue)}</strong></div>
+              <div><span>Khách yêu cầu</span><strong>{detail.periodTotals.customerRequestedCount ?? 0}</strong></div>
               <div><span>Tổng Tips</span><strong className="employee-invoice-row__tips">{formatCurrency(detail.periodTotals.tips)}</strong></div>
               <div><span>Tổng hoa hồng</span><strong className="salary-report__commission">{formatCurrency(detail.periodTotals.serviceCommission)}</strong></div>
               <div><span>Tổng lương</span><strong className="salary-report__salary">{formatCurrency(detail.periodTotals.totalSalary)}</strong></div>

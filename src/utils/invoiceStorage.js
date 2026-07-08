@@ -12,6 +12,7 @@ import {
 import { getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
 import { getSelectedServiceDetails } from './invoice'
+import { normalizeCustomerPhone } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteInvoiceRow, upsertInvoice } from '../repositories/invoicesRepository'
 import { notifyDataSynced } from './dataSyncEvents'
@@ -35,6 +36,7 @@ const EMPLOYEE_EDITABLE_INVOICE_FIELDS = [
   'invoiceTime',
   'customerName',
   'customerPhone',
+  'customerRequested',
   'serviceIds',
   'services',
   'tips',
@@ -72,6 +74,15 @@ export function getMonthStartDate(date = new Date()) {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
   return `${y}-${m}-01`
+}
+
+function normalizeInvoiceCustomerFields(invoice) {
+  return {
+    ...invoice,
+    customerName: String(invoice.customerName ?? '').trim(),
+    customerPhone: normalizeCustomerPhone(invoice.customerPhone ?? ''),
+    customerRequested: Boolean(invoice.customerRequested),
+  }
 }
 
 function ensureInvoiceSnapshot(invoice) {
@@ -162,11 +173,11 @@ export function saveInvoice(invoice) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
   }
 
-  const snapshot = ensureInvoiceSnapshot({
+  const snapshot = normalizeInvoiceCustomerFields(ensureInvoiceSnapshot({
     ...payload,
     enteredBy: payload.enteredBy ?? getCurrentUserName(),
     createdAt: payload.createdAt ?? new Date().toISOString(),
-  })
+  }))
   const invoices = loadInvoices()
   invoices.unshift(snapshot)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
@@ -208,13 +219,13 @@ export function updateInvoice(id, data) {
       }
     : data
 
-  const updated = ensureInvoiceSnapshot({
+  const updated = normalizeInvoiceCustomerFields(ensureInvoiceSnapshot({
     ...current,
     ...safeData,
     id: current.id,
     createdAt: current.createdAt,
     updatedAt: new Date().toISOString(),
-  })
+  }))
 
   invoices[index] = updated
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))

@@ -16,6 +16,26 @@ export function isValidVietnamesePhone(phone) {
   return false
 }
 
+/** Chuẩn hóa SĐT khách hàng — chỉ giữ chữ số. */
+export function normalizeCustomerPhone(phone) {
+  return String(phone ?? '').replace(/\D/g, '')
+}
+
+/** SĐT khách trên hóa đơn: tối thiểu 9 số. */
+export function isValidCustomerPhone(phone) {
+  return normalizeCustomerPhone(phone).length >= 9
+}
+
+/** Chỉ cho nhập số, dấu chấm hoặc khoảng trắng khi gõ SĐT khách. */
+export function sanitizeCustomerPhoneInput(value) {
+  const raw = String(value ?? '')
+  if (raw === '') return ''
+  return /^[\d.\s]+$/.test(raw) ? raw : raw.replace(/[^\d.\s]/g, '')
+}
+
+export const INVOICE_CUSTOMER_REQUIRED_MESSAGE =
+  'Vui lòng nhập đầy đủ tên khách hàng và SĐT khách hàng trước khi lưu hóa đơn.'
+
 /**
  * Validate dữ liệu hồ sơ cá nhân nhân viên tự cập nhật.
  * Bắt buộc: Họ tên, SĐT (đúng định dạng), CCCD (đúng 12 số).

@@ -539,6 +539,17 @@
   color: var(--ks-gold);
 }
 
+.employee-invoice-row__request-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #111827;
+  color: #d4af37;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .employee-invoice-row__actions {
   display: flex;
   flex-direction: column;

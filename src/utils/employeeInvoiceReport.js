@@ -86,6 +86,7 @@ export function buildEmployeeInvoiceDetailItem(invoice, employeeId) {
     invoiceTime: readInvoiceTime(invoice),
     customerName: invoice.customerName || '—',
     customerPhone: invoice.customerPhone || '',
+    customerRequested: Boolean(invoice.customerRequested),
     serviceNames: services.map((service) => service.name).join(', ') || '—',
     ticketPrice: getInvoiceOriginalServiceTotal(invoice),
     discount: getInvoiceDiscountAmount(invoice),
@@ -117,6 +118,7 @@ function buildDayGroups(invoiceItems) {
     .map(([date, items]) => {
       const sorted = sortInvoiceItems(items)
       const invoiceCount = sorted.length
+      const customerRequestedCount = sorted.filter((row) => row.customerRequested).length
       const serviceRevenue = sorted.reduce((sum, row) => sum + row.payment, 0)
       const tips = sorted.reduce((sum, row) => sum + row.tips, 0)
       const serviceCommission = sorted.reduce((sum, row) => sum + row.commission, 0)
@@ -127,6 +129,7 @@ function buildDayGroups(invoiceItems) {
         displayDate: formatDisplayDate(date),
         invoices: sorted,
         invoiceCount,
+        customerRequestedCount,
         serviceRevenue,
         tips,
         serviceCommission,
@@ -153,13 +156,14 @@ export function computeEmployeeInvoiceDetailReport(invoices, employeeId, filters
   const periodTotals = days.reduce(
     (acc, day) => {
       acc.invoiceCount += day.invoiceCount
+      acc.customerRequestedCount += day.customerRequestedCount
       acc.serviceRevenue += day.serviceRevenue
       acc.tips += day.tips
       acc.serviceCommission += day.serviceCommission
       acc.totalSalary += day.totalSalary
       return acc
     },
-    { invoiceCount: 0, serviceRevenue: 0, tips: 0, serviceCommission: 0, totalSalary: 0 },
+    { invoiceCount: 0, customerRequestedCount: 0, serviceRevenue: 0, tips: 0, serviceCommission: 0, totalSalary: 0 },
   )
 
   const first = employeeInvoices[0]

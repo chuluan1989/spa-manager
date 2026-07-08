@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { formatPhoneDisplay } from '../../utils/customerAnalytics'
 import {
   formatCurrency,
   getInvoiceDiscountAmount,
@@ -66,6 +66,8 @@ export default function InvoiceList({
               <th className="is-center">Giờ</th>
               <th>Chi nhánh</th>
               <th>NV thực hiện</th>
+              <th>Tên khách</th>
+              <th>SĐT khách</th>
               <th>Dịch vụ đã làm</th>
               <th className="is-money">Giá vé</th>
               <th className="is-money">Khuyến mãi</th>
@@ -73,8 +75,6 @@ export default function InvoiceList({
               <th className="is-money">Tips</th>
               <th className="is-money">Tổng khách trả</th>
               <th>Ghi chú</th>
-              <th>Tên khách</th>
-              <th>SĐT khách</th>
               <th className="is-actions">Thao tác</th>
             </tr>
           </thead>
@@ -96,6 +96,15 @@ export default function InvoiceList({
                   <td className="is-center">{readInvoiceTime(inv)}</td>
                   <td className="invoice-list__branch">{inv.branchName}</td>
                   <td>{inv.employeeName}</td>
+                  <td className="invoice-list__customer">
+                    {inv.customerName || '—'}
+                    {inv.customerRequested && (
+                      <span className="invoice-list__request-badge">Khách yêu cầu</span>
+                    )}
+                  </td>
+                  <td className="invoice-list__phone">
+                    {inv.customerPhone ? formatPhoneDisplay(inv.customerPhone) : '—'}
+                  </td>
                   <td className="invoice-list__services" title={services.map((s) => s.name).join(', ')}>
                     {formatServiceSummary(services)}
                     {hasDiscount && <span className="invoice-list__km-badge">KM</span>}
@@ -108,8 +117,6 @@ export default function InvoiceList({
                   <td className="is-money">{formatCurrency(tips)}</td>
                   <td className="is-money invoice-list__customer-total">{formatCurrency(customerTotal)}</td>
                   <td className="invoice-list__note">{inv.note || '—'}</td>
-                  <td className="invoice-list__customer">{inv.customerName || '—'}</td>
-                  <td className="invoice-list__phone">{inv.customerPhone || '—'}</td>
                   <td className="invoice-list__actions">
                     <button
                       type="button"
@@ -143,7 +150,7 @@ export default function InvoiceList({
           </tbody>
           <tfoot>
             <tr className="invoice-list__totals-row">
-              <td colSpan={6}><strong>Tổng ({totals.count})</strong></td>
+              <td colSpan={8}><strong>Tổng ({totals.count})</strong></td>
               <td className="is-money"><strong>{formatCurrency(totals.ticketPrice)}</strong></td>
               <td className="is-money"><strong>{totals.discount > 0 ? `−${formatCurrency(totals.discount)}` : '—'}</strong></td>
               <td className="is-money"><strong>{formatCurrency(totals.ticketRevenue)}</strong></td>
@@ -151,7 +158,7 @@ export default function InvoiceList({
               <td className="is-money invoice-list__customer-total">
                 <strong>{formatCurrency(totals.customerTotal)}</strong>
               </td>
-              <td colSpan={4} />
+              <td colSpan={2} />
             </tr>
           </tfoot>
         </table>

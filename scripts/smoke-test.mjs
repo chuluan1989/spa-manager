@@ -823,6 +823,47 @@ test('validators: phone format', () => {
   assert.equal(isValidVietnamesePhone(''), false)
 })
 
+test('validators: customer phone for invoice', async () => {
+  const {
+    normalizeCustomerPhone,
+    isValidCustomerPhone,
+    sanitizeCustomerPhoneInput,
+    INVOICE_CUSTOMER_REQUIRED_MESSAGE,
+  } = await import('../src/utils/validators.js')
+
+  assert.equal(normalizeCustomerPhone('0774.099.777'), '0774099777')
+  assert.equal(isValidCustomerPhone('0774 099 777'), true)
+  assert.equal(isValidCustomerPhone('12345678'), false)
+  assert.equal(sanitizeCustomerPhoneInput('0774abc'), '0774')
+  assert.match(INVOICE_CUSTOMER_REQUIRED_MESSAGE, /tên khách hàng/)
+})
+
+test('invoice storage: normalize customer phone on save', () => {
+  setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  const result = saveInvoice({
+    id: 'inv-phone-1',
+    date: '2026-07-08',
+    branchId: 'vinh-long',
+    branchName: 'Vĩnh Long',
+    employeeId: 'e1',
+    employeeName: 'NV A',
+    customerName: 'Lan',
+    customerPhone: '0774.099.777',
+    customerRequested: true,
+    serviceIds: ['s1'],
+    services: [{ id: 's1', name: 'Body', price: 200000, commissionAmount: 40000, commissionPercent: 20 }],
+    tips: 0,
+    serviceTotal: 200000,
+    total: 200000,
+    commission: 40000,
+    createdAt: new Date().toISOString(),
+  })
+  assert.equal(result.success, true)
+  assert.equal(result.invoice.customerPhone, '0774099777')
+  assert.equal(result.invoice.customerRequested, true)
+  clearCurrentUser()
+})
+
 test('employee profile: incomplete profile requires name, phone and cccd', () => {
   assert.equal(isEmployeeProfileComplete({ name: 'Linh', phone: '', cccd: '' }), false)
   assert.equal(

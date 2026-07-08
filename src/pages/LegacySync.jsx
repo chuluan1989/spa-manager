@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { CloudUpload, Search, Download, Upload, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { CloudUpload, Search, Download, Upload, AlertCircle, CheckCircle2, Loader2, ShieldAlert, RefreshCw } from 'lucide-react'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { getCurrentUser, isAdmin } from '../constants/auth'
 import {
@@ -11,6 +11,14 @@ import {
   isLegacyImportCompleted,
   loadLegacyImportLogs,
 } from '../utils/legacyStorageScanner'
+import {
+  auditAllStorage,
+  downloadAuditReport,
+  formatAuditReport,
+  recoverInvoices,
+  KNOWN_STORAGE_KEYS,
+} from '../utils/dataRecovery'
+import { notifyDataSynced } from '../utils/dataSyncEvents'
 import './LegacySync.css'
 
 function formatBytes(bytes) {
@@ -30,9 +38,54 @@ export default function LegacySync() {
   const [uploadedJson, setUploadedJson] = useState(null)
   const [uploadFileName, setUploadFileName] = useState('')
   const [error, setError] = useState('')
+  const [audit, setAudit] = useState(null)
+  const [auditing, setAuditing] = useState(false)
+  const [recovering, setRecovering] = useState(false)
+  const [recoverResult, setRecoverResult] = useState(null)
 
   const importLogs = loadLegacyImportLogs()
   const importCompleted = isLegacyImportCompleted()
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__spaRecovery = { auditAllStorage, recoverInvoices, formatAuditReport, KNOWN_STORAGE_KEYS }
+    }
+  }, [])
+
+  async function handleAudit() {
+    setAuditing(true)
+    setError('')
+    setRecoverResult(null)
+    try {
+      const result = await auditAllStorage()
+      setAudit(result)
+    } catch (err) {
+      setError(err?.message ?? String(err))
+    } finally {
+      setAuditing(false)
+    }
+  }
+
+  async function handleRecover(dryRun = false) {
+    if (!dryRun && !window.confirm(
+      'Khôi phục hóa đơn từ backup/legacy vào spa-manager-invoices?\n\n'
+      + 'Hệ thống sẽ tự backup snapshot trước khi ghi. Không xóa key cũ.',
+    )) return
+
+    setRecovering(true)
+    setError('')
+    try {
+      const result = recoverInvoices('merge-all', { dryRun })
+      setRecoverResult(result)
+      if (!dryRun && result.success) {
+        notifyDataSynced(['invoices'])
+      }
+    } catch (err) {
+      setError(err?.message ?? String(err))
+    } finally {
+      setRecovering(false)
+    }
+  }
 
   async function handleCheck() {
     setChecking(true)
@@ -94,10 +147,20 @@ export default function LegacySync() {
   if (!isSupabaseConfigured) {
     return (
       <div className="legacy-sync">
+        <RecoveryPanel
+          audit={audit}
+          auditing={auditing}
+          recovering={recovering}
+          recoverResult={recoverResult}
+          onAudit={handleAudit}
+          onRecover={handleRecover}
+          onDownload={() => audit && downloadAuditReport(audit)}
+        />
         <h2 className="legacy-sync__title">Đồng bộ dữ liệu cũ</h2>
         <p className="legacy-sync__warn">
-          Supabase chưa được cấu hình. Liên hệ Admin để bật đồng bộ Cloud trước khi import dữ liệu cũ.
+          Supabase chưa được cấu hình. Vẫn có thể quét & khôi phục LocalStorage ở panel phía trên.
         </p>
+        {error && <div className="legacy-sync__error">{error}</div>}
       </div>
     )
   }
@@ -108,6 +171,16 @@ export default function LegacySync() {
 
   return (
     <div className="legacy-sync">
+      <RecoveryPanel
+        audit={audit}
+        auditing={auditing}
+        recovering={recovering}
+        recoverResult={recoverResult}
+        onAudit={handleAudit}
+        onRecover={handleRecover}
+        onDownload={() => audit && downloadAuditReport(audit)}
+      />
+
       <header className="legacy-sync__header">
         <CloudUpload size={28} aria-hidden />
         <div>
@@ -303,4 +376,108 @@ export default function LegacySync() {
       )}
     </div>
   )
+}
+
+function RecoveryPanel({ audit, auditing, recovering, recoverResult, onAudit, onRecover, onDownload }) {
+  const diagnosis = audit?.diagnosis
+
+  return (
+    <section className="legacy-sync__recovery">
+      <div className="legacy-sync__recovery-header">
+        <ShieldAlert size={26} aria-hidden />
+        <div>
+          <h2 className="legacy-sync__recovery-title">Recovery — Khôi phục dữ liệu</h2>
+          <p className="legacy-sync__recovery-desc">
+            Quét toàn bộ localStorage, sessionStorage, IndexedDB, cache và Supabase (chỉ đọc).
+            Không ghi đè cho đến khi bạn bấm Khôi phục.
+          </p>
+        </div>
+      </div>
+
+      <div className="legacy-sync__actions">
+        <button type="button" className="legacy-sync__btn legacy-sync__btn--primary" onClick={onAudit} disabled={auditing}>
+          {auditing ? <Loader2 className="legacy-sync__spin" size={18} /> : <Search size={18} />}
+          Quét dữ liệu (read-only)
+        </button>
+        <button type="button" className="legacy-sync__btn" onClick={() => onRecover(true)} disabled={recovering || !audit}>
+          Xem trước khôi phục
+        </button>
+        <button type="button" className="legacy-sync__btn legacy-sync__btn--accent" onClick={() => onRecover(false)} disabled={recovering || !audit}>
+          {recovering ? <Loader2 className="legacy-sync__spin" size={18} /> : <RefreshCw size={18} />}
+          Khôi phục hóa đơn
+        </button>
+        <button type="button" className="legacy-sync__btn" onClick={onDownload} disabled={!audit}>
+          <Download size={18} />
+          Tải báo cáo .txt
+        </button>
+      </div>
+
+      {audit && (
+        <>
+          <div className="legacy-sync__stats">
+            <div><span>UI đang đọc (hóa đơn)</span><strong>{audit.appReadable.invoices}</strong></div>
+            <div><span>Backup pre-import</span><strong>{countBackupInvoices(audit)}</strong></div>
+            <div><span>Legacy scan</span><strong>{audit.legacyScan.counts.invoices}</strong></div>
+            <div><span>Supabase</span><strong>{audit.supabase?.invoices ?? '—'}</strong></div>
+            <div><span>Khôi phục ước tính</span><strong>{diagnosis?.recoveryPercent ?? 0}%</strong></div>
+          </div>
+
+          {diagnosis?.causes?.length > 0 && (
+            <div className="legacy-sync__important" role="alert">
+              <strong>Chẩn đoán</strong>
+              <ul>
+                {diagnosis.causes.map((cause) => (
+                  <li key={cause}>{cause}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="legacy-sync__table-wrap">
+            <table className="legacy-sync__table">
+              <thead>
+                <tr>
+                  <th>Khu vực</th>
+                  <th>Key</th>
+                  <th>Dung lượng</th>
+                  <th>Kiểu</th>
+                  <th>Số bản ghi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...audit.localStorage, ...audit.sessionStorage].map((row) => (
+                  <tr key={`${row.area}-${row.key}`}>
+                    <td>{row.area}</td>
+                    <td><code>{row.key}</code></td>
+                    <td>{formatBytes(row.byteSize)}</td>
+                    <td>{row.dataType}</td>
+                    <td>{row.recordCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {recoverResult && (
+        <div className={`legacy-sync__panel ${recoverResult.success ? 'legacy-sync__panel--success' : 'legacy-sync__panel--error'}`}>
+          <h3>{recoverResult.success ? 'Khôi phục thành công' : 'Không khôi phục được'}</h3>
+          <pre className="legacy-sync__recovery-pre">{JSON.stringify(recoverResult.report, null, 2)}</pre>
+          {recoverResult.error && <p>{recoverResult.error}</p>}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function countBackupInvoices(audit) {
+  const row = audit.localStorage.find((r) => r.key === 'spa-manager-pre-import-backup')
+  if (!row) return 0
+  try {
+    const raw = localStorage.getItem('spa-manager-pre-import-backup')
+    return JSON.parse(raw)?.invoices?.length ?? 0
+  } catch {
+    return row.recordCount ?? 0
+  }
 }

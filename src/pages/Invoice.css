@@ -247,6 +247,37 @@
   grid-column: 1 / -1;
 }
 
+.invoice__field--checkbox {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fffbeb;
+  cursor: pointer;
+}
+
+.invoice__field--checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #b8962e;
+}
+
+.invoice__field--checkbox span {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.invoice__subsection-title {
+  margin: 18px 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
 .invoice__payment {
   border: none;
   margin: 0;

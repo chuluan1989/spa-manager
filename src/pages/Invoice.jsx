@@ -44,6 +44,12 @@ import {
   saveInvoice,
   updateInvoice,
 } from '../utils/invoiceStorage'
+import {
+  INVOICE_CUSTOMER_REQUIRED_MESSAGE,
+  isValidCustomerPhone,
+  normalizeCustomerPhone,
+  sanitizeCustomerPhoneInput,
+} from '../utils/validators'
 import { consumeInvoiceEditPrefill } from '../utils/navigationPrefill'
 import './Invoice.css'
 
@@ -65,6 +71,7 @@ const INITIAL_FORM = () => ({
   employeeId: getScopedEmployeeId(''),
   customerName: '',
   customerPhone: '',
+  customerRequested: false,
   note: '',
 })
 
@@ -239,10 +246,19 @@ export default function Invoice() {
   const validate = () => {
     const next = {}
     const branchId = lockedBranch ? getCurrentUserBranch() : form.branchId
+    const customerName = form.customerName.trim()
+    const customerPhone = form.customerPhone.trim()
+
+    if (!customerName || !customerPhone) {
+      next.customerRequired = INVOICE_CUSTOMER_REQUIRED_MESSAGE
+    } else if (!isValidCustomerPhone(customerPhone)) {
+      next.customerPhone = 'SĐT khách hàng phải có ít nhất 9 số'
+    }
+
     if (!branchId) next.branchId = 'Vui lòng chọn chi nhánh'
     if (!form.employeeId) {
       next.employeeId = 'Vui lòng chọn nhân viên'
-    } else     if (!isEmployeeInBranch(form.employeeId, branchId)) {
+    } else if (!isEmployeeInBranch(form.employeeId, branchId)) {
       next.employeeId = 'Nhân viên không thuộc chi nhánh đã chọn'
     }
     if (selectedIds.length === 0) next.services = 'Vui lòng chọn ít nhất 1 dịch vụ'
@@ -276,7 +292,8 @@ export default function Invoice() {
     supportEmployeeId: existingInvoice?.supportEmployeeId ?? '',
     supportEmployeeName: existingInvoice?.supportEmployeeName ?? '',
     customerName: form.customerName.trim(),
-    customerPhone: form.customerPhone.trim(),
+    customerPhone: normalizeCustomerPhone(form.customerPhone),
+    customerRequested: Boolean(form.customerRequested),
     serviceIds: selectedIds,
     services: totals.services ?? getSelectedServiceDetails(selectedIds, branchId, fallbackServices, branch.name),
     tips: totals.tips,
@@ -353,6 +370,7 @@ export default function Invoice() {
       employeeId: lockedEmployee ? getScopedEmployeeId('') : invoice.employeeId,
       customerName: invoice.customerName ?? '',
       customerPhone: invoice.customerPhone ?? '',
+      customerRequested: Boolean(invoice.customerRequested),
       note: invoice.note ?? '',
     })
     setSelectedIds(
@@ -471,7 +489,46 @@ export default function Invoice() {
       <div className="invoice__body">
         <div className="invoice__main">
           <section className="invoice__card invoice__form-section">
-            <h3 className="invoice__section-title">A. Thông tin chính</h3>
+            <h3 className="invoice__section-title">A. Thông tin khách hàng</h3>
+            {errors.customerRequired && (
+              <p className="invoice__error invoice__error--block">{errors.customerRequired}</p>
+            )}
+            <div className="invoice__fields invoice__fields--grid">
+              <label className="invoice__field">
+                <span>Tên khách hàng</span>
+                <input
+                  type="text"
+                  placeholder="Nhập tên khách hàng"
+                  value={form.customerName}
+                  onChange={(e) => updateForm('customerName', e.target.value)}
+                  className={errors.customerRequired ? 'invoice__input--error' : ''}
+                />
+              </label>
+              <label className="invoice__field">
+                <span>SĐT khách hàng</span>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="VD: 0774.099.777"
+                  value={form.customerPhone}
+                  onChange={(e) => updateForm('customerPhone', sanitizeCustomerPhoneInput(e.target.value))}
+                  className={errors.customerRequired || errors.customerPhone ? 'invoice__input--error' : ''}
+                />
+                {errors.customerPhone && <span className="invoice__error">{errors.customerPhone}</span>}
+              </label>
+              <label className="invoice__field invoice__field--checkbox invoice__field--full">
+                <input
+                  type="checkbox"
+                  checked={form.customerRequested}
+                  onChange={(e) => updateForm('customerRequested', e.target.checked)}
+                />
+                <span>Khách yêu cầu</span>
+              </label>
+            </div>
+          </section>
+
+          <section className="invoice__card invoice__form-section">
+            <h3 className="invoice__section-title">B. Thông tin dịch vụ</h3>
             <div className="invoice__fields invoice__fields--grid">
               {lockedBranch && <BranchBanner branchName={activeBranchName} />}
               <label className="invoice__field">
@@ -532,10 +589,8 @@ export default function Invoice() {
                 )}
               </label>
             </div>
-          </section>
 
-          <section className="invoice__card invoice__form-section">
-            <h3 className="invoice__section-title">B. Dịch vụ &amp; tiền</h3>
+            <h4 className="invoice__subsection-title">Dịch vụ</h4>
             {errors.services && (
               <p className="invoice__error invoice__error--block">{errors.services}</p>
             )}
@@ -621,40 +676,16 @@ export default function Invoice() {
                 </div>
               </div>
             </div>
-          </section>
 
-          <section className="invoice__card invoice__form-section">
-            <h3 className="invoice__section-title">C. Thông tin khách</h3>
-            <div className="invoice__fields invoice__fields--grid">
-              <label className="invoice__field">
-                <span>Tên khách</span>
-                <input
-                  type="text"
-                  placeholder="Nhập tên khách hàng"
-                  value={form.customerName}
-                  onChange={(e) => updateForm('customerName', e.target.value)}
-                />
-              </label>
-              <label className="invoice__field">
-                <span>SĐT khách</span>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="Nhập SĐT khách hàng"
-                  value={form.customerPhone}
-                  onChange={(e) => updateForm('customerPhone', e.target.value)}
-                />
-              </label>
-              <label className="invoice__field invoice__field--full">
-                <span>Ghi chú</span>
-                <textarea
-                  rows={3}
-                  placeholder="Ghi chú thêm..."
-                  value={form.note}
-                  onChange={(e) => updateForm('note', e.target.value)}
-                />
-              </label>
-            </div>
+            <label className="invoice__field invoice__field--full">
+              <span>Ghi chú</span>
+              <textarea
+                rows={3}
+                placeholder="Ghi chú thêm..."
+                value={form.note}
+                onChange={(e) => updateForm('note', e.target.value)}
+              />
+            </label>
           </section>
 
           <div className="invoice__actions">

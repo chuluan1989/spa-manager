@@ -129,6 +129,19 @@
   vertical-align: middle;
 }
 
+.invoice-list__request-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #111827;
+  color: #d4af37;
+  font-size: 9px;
+  font-weight: 700;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 .invoice-list__discount {
   color: #b45309;
 }

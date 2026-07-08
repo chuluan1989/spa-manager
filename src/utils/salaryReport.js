@@ -274,6 +274,7 @@ export function buildAdminEmployeeSummary(invoices, employeeId) {
     .map((invoice) => buildInvoiceSalaryRow(invoice, employeeId))
 
   const invoiceCount = invoiceRows.length
+  const customerRequestedCount = invoices.filter((invoice) => Boolean(invoice.customerRequested)).length
   const serviceCount = invoiceRows.reduce((sum, row) => sum + row.services.length, 0)
   const serviceRevenue = invoiceRows.reduce((sum, row) => sum + row.serviceRevenue, 0)
   const tips = invoiceRows.reduce((sum, row) => sum + row.tips, 0)
@@ -290,6 +291,7 @@ export function buildAdminEmployeeSummary(invoices, employeeId) {
       ? getBranchName(employee.branchId)
       : first?.branchName ?? '—',
     invoiceCount,
+    customerRequestedCount,
     serviceCount,
     serviceRevenue,
     tips,
@@ -317,9 +319,10 @@ export function computeAdminEmployeeReports(invoices, filters) {
       acc.serviceCommission += row.serviceCommission
       acc.totalSalary += row.totalSalary
       acc.invoiceCount += row.invoiceCount
+      acc.customerRequestedCount += row.customerRequestedCount
       return acc
     },
-    { invoiceCount: 0, serviceRevenue: 0, tips: 0, serviceCommission: 0, totalSalary: 0 },
+    { invoiceCount: 0, customerRequestedCount: 0, serviceRevenue: 0, tips: 0, serviceCommission: 0, totalSalary: 0 },
   )
 
   return {
