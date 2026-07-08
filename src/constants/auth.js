@@ -331,6 +331,26 @@ export function canAccessSettingsPage(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
 
+export function canManageServiceCatalog(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
+}
+
+export function canAccessServiceCatalogPage(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (role === ROLES.ADMIN) return true
+  if (role === ROLES.BRANCH_MANAGER) return Boolean(branchId)
+  return false
+}
+
+export function canViewBranchServicePricing(branchId, role = getCurrentUserRole(), userBranchId = getCurrentUserBranch()) {
+  if (role === ROLES.ADMIN) return true
+  if (role === ROLES.BRANCH_MANAGER) return branchId === userBranchId
+  return false
+}
+
+export function canEditBranchServicePricing(branchId, role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
+}
+
 /** Chỉ Nhân viên có màn "Hồ sơ cá nhân" (Admin/Quản lý sửa hồ sơ trong Cài đặt). */
 export function canAccessMyProfilePage(role = getCurrentUserRole()) {
   return role === ROLES.EMPLOYEE
@@ -344,6 +364,7 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
   if (role === ROLES.BRANCH_MANAGER) {
     const branchId = getCurrentUserBranch()
     return pickNavItems(NAV_ITEMS, BRANCH_MANAGER_NAV_ORDER).filter((item) => {
+      if (item.id === 'admin-services') return canAccessServiceCatalogPage(role, branchId)
       if (item.id === 'reports') return canViewReport(role, branchId)
       if (item.id === 'expenses') return canViewExpense(role, branchId)
       if (item.id === 'customers') return canAccessCustomersPage(role, branchId)

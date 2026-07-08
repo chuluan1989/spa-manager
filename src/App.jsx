@@ -13,6 +13,8 @@ import {
   canAccessLegacySyncPage,
   canAccessMyProfilePage,
   canAccessSettingsPage,
+  canAccessServiceCatalogPage,
+  canManageServiceCatalog,
   canViewReport,
   getCurrentUserEmployeeId,
   isEmployee,
@@ -37,6 +39,7 @@ import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } from './utils/credentialsStorage'
 import { syncAllCustomBranchPricing, stripFlatBranchGroupedCatalog } from './utils/branchPricingStorage'
+import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { getEmployeeById, syncMissingDefaultEmployees } from './utils/employeeStorage'
 import { isEmployeeProfileLocked } from './utils/employeeProfilePolicy'
@@ -69,7 +72,7 @@ function getDefaultPage(user) {
 
 function canAccessPage(pageId) {
   if (pageId === 'employees') return canAccessEmployeesPage()
-  if (pageId === 'admin-employees' || pageId === 'admin-services') return canAccessSettingsPage()
+  if (pageId === 'admin-services') return canAccessServiceCatalogPage()
   if (pageId === 'settings') return canAccessSettingsPage()
   if (pageId === 'revenue') return canViewReport()
   if (pageId === 'invoices') return canAccessInvoicesPage()
@@ -102,6 +105,7 @@ function App() {
       syncMissingDefaultBranches()
       syncMissingDefaultEmployees()
       stripFlatBranchGroupedCatalog()
+      ensureServiceCatalogV2Migrated()
       await Promise.all([ensureCredentialsHashed(), syncMissingBranchCredentials()])
       syncAllCustomBranchPricing()
 

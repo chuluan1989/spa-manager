@@ -25,7 +25,16 @@ import { loadEmployees, normalizeEmployee, saveEmployees } from './employeeStora
 import { loadInvoices, replaceAllInvoices } from './invoiceStorage'
 import { loadExpenses, normalizeExpense, saveExpenses } from './expenseStorage'
 import { loadServices, normalizeService, saveServices } from './serviceStorage'
+import {
+  fetchServiceCatalogV2Remote,
+  upsertServiceCatalogV2Remote,
+} from '../repositories/serviceCatalogV2Repository'
 import { loadBranchPricingMap, saveBranchPricingMap } from './branchPricingStorage'
+import {
+  applyRemoteServiceCatalogV2,
+  loadBranchServicePricesV2,
+  loadServiceCatalogV2,
+} from './serviceCatalogV2Storage'
 import { loadCredentials, saveCredentials } from './credentialsStorage'
 import {
   collectPermissionsSnapshot,
@@ -102,7 +111,7 @@ import { notifyDataSynced, SYNC_EVENT } from './dataSyncEvents'
 const DEFAULT_SYNC_INTERVAL_MS = 30000
 // Các bảng bật Realtime — khi có thay đổi (thiết bị khác ghi lên Supabase),
 // kéo lại dữ liệu gần như ngay lập tức thay vì chờ tới vòng polling kế tiếp.
-const REALTIME_TABLES = ['branches', 'employees', 'services', 'branch_pricing', 'invoices', 'expenses']
+const REALTIME_TABLES = ['branches', 'employees', 'services', 'branch_pricing', 'invoices', 'expenses', 'service_categories', 'catalog_services', 'service_durations', 'branch_service_prices']
 const REALTIME_DEBOUNCE_MS = 400
 
 let syncTimerId = null
@@ -180,6 +189,14 @@ export async function pullAllFromSupabase() {
           return
         }
         saveBranchPricingMap(data, CACHE_ONLY)
+      },
+    },
+    {
+      name: 'serviceCatalogV2',
+      fetch: fetchServiceCatalogV2Remote,
+      apply: (data) => {
+        if (!data?.catalog?.categories?.length) return
+        applyRemoteServiceCatalogV2(data)
       },
     },
     {
@@ -278,6 +295,7 @@ export async function pushLocalToSupabase() {
     ['branches', () => upsertBranches(snapshot.branches)],
     ['services', () => upsertServices(snapshot.services)],
     ['branchPricing', () => upsertBranchPricingMap(snapshot.branchPricing)],
+    ['serviceCatalogV2', () => upsertServiceCatalogV2Remote(loadServiceCatalogV2(), loadBranchServicePricesV2())],
     ['employees', () => upsertEmployees(snapshot.employees)],
     ['invoices', () => upsertInvoices(snapshot.invoices)],
     ['expenses', () => upsertExpenses(snapshot.expenses)],

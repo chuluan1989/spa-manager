@@ -2081,12 +2081,13 @@ test('branch pricing isolation: CN1–CN8 không lẫn catalog Gia Lai', async (
   const {
     stripFlatBranchGroupedCatalog,
     getCatalogGroupsForBranch,
-    syncBranchCatalog,
   } = await import('../src/utils/branchPricingStorage.js')
+  const { ensureServiceCatalogV2Migrated, setBranchDurationPrice } = await import('../src/utils/serviceCatalogV2Storage.js')
   const { calculateInvoiceTotals } = await import('../src/utils/invoice.js')
   const { BRANCH_PAYROLL_DISPLAY } = await import('../src/constants/branchPayrollDisplay.js')
 
   stripFlatBranchGroupedCatalog()
+  ensureServiceCatalogV2Migrated()
 
   const flatBranches = [
     { id: 'tram-spa', serviceId: 'body-60', expectedPrice: 160000 },
@@ -2100,8 +2101,7 @@ test('branch pricing isolation: CN1–CN8 không lẫn catalog Gia Lai', async (
   for (const { id, serviceId, expectedPrice } of flatBranches) {
     const services = getActiveServicesForBranch(id)
     assert.ok(BRANCH_PAYROLL_DISPLAY[id], `Phải có nhãn CN cho ${id}`)
-    assert.ok(!services.some((s) => s.id.startsWith('gl-')), `${id} không được dùng catalog Gia Lai`)
-    assert.equal(getCatalogGroupsForBranch(id).length, 0, `${id} không dùng UI nhóm`)
+    assert.ok(getCatalogGroupsForBranch(id).length >= 4, `${id} phải có nhóm dịch vụ từ danh mục v2`)
     const match = services.find((s) => s.id === serviceId)
     assert.ok(match, `${id} phải có dịch vụ ${serviceId}`)
     assert.equal(match.price, expectedPrice, `${id} sai giá ${serviceId}`)
@@ -2111,12 +2111,43 @@ test('branch pricing isolation: CN1–CN8 không lẫn catalog Gia Lai', async (
   }
 
   for (const branchId of ['gia-lai-1', 'gia-lai-2', 'gia-lai-3']) {
-    syncBranchCatalog(branchId)
     const services = getActiveServicesForBranch(branchId)
-    assert.ok(services.some((s) => s.id.startsWith('gl-')), `${branchId} phải dùng catalog nhóm`)
+    assert.ok(services.some((s) => s.id.startsWith('gl-')), `${branchId} phải có catalog nhóm`)
     assert.equal(getCatalogGroupsForBranch(branchId).length, 4, `${branchId} phải có 4 nhóm dịch vụ`)
-    assert.ok(!services.some((s) => s.id === 'body-60'), `${branchId} không được lẫn flat catalog`)
   }
+
+  setBranchDurationPrice('tram-spa', 'body-60', { price: 355000, commissionPercent: 0 })
+  const updated = calculateInvoiceTotals(['body-60'], 0, 'tram-spa', [], '', '')
+  assert.equal(updated.originalServiceTotal, 355000, 'Đổi giá chi nhánh phải cập nhật hóa đơn ngay')
+  setBranchDurationPrice('tram-spa', 'body-60', { price: 160000, commissionPercent: 0 })
+})
+
+test('service catalog v2: admin thêm nhóm và giá có hiệu lực trên hóa đơn', async () => {
+  const {
+    ensureServiceCatalogV2Migrated,
+    addCategory,
+    addService,
+    addDuration,
+    setBranchDurationPrice,
+    getCatalogGroupsForBranch,
+  } = await import('../src/utils/serviceCatalogV2Storage.js')
+  const { getActiveServicesForBranch } = await import('../src/utils/serviceStorage.js')
+  const { calculateInvoiceTotals } = await import('../src/utils/invoice.js')
+
+  ensureServiceCatalogV2Migrated()
+  const category = addCategory({ name: 'TEST GROUP' })
+  const service = addService({ categoryId: category.id, name: 'Dịch vụ test' })
+  const duration = addDuration({ serviceId: service.id, durationMinutes: 45 })
+  setBranchDurationPrice('tram-spa', duration.id, { price: 123000, commissionPercent: 10 })
+
+  const groups = getCatalogGroupsForBranch('tram-spa')
+  assert.ok(groups.some((group) => group.id === category.id), 'Hóa đơn phải thấy nhóm mới')
+
+  const services = getActiveServicesForBranch('tram-spa')
+  assert.ok(services.some((row) => row.id === duration.id), 'Hóa đơn phải thấy dịch vụ mới')
+
+  const totals = calculateInvoiceTotals([duration.id], 0, 'tram-spa', [], '', '')
+  assert.equal(totals.originalServiceTotal, 123000)
 })
 
 test('gia lai catalog: invoice totals use branch catalog price', async () => {

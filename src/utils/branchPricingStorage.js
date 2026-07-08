@@ -1,4 +1,10 @@
 import { getBranchById, loadBranches } from './branchStorage'
+import {
+  ensureServiceCatalogV2Migrated,
+  getActiveServicesForBranchV2,
+  getCatalogGroupsForBranchV2,
+  isServiceCatalogV2Ready,
+} from './serviceCatalogV2Storage'
 import { isGroupedCatalogBranch } from '../constants/giaLaiBranches'
 import {
   applyCatalogOverrides,
@@ -46,7 +52,7 @@ function normalizeBranchPricing(record) {
   }
 }
 
-function readBranchPricingMapRaw() {
+export function readBranchPricingMapRaw() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return {}
@@ -143,6 +149,11 @@ export function getDefaultServicesForBranch(branchId) {
 }
 
 export function getCatalogGroupsForBranch(branchId) {
+  ensureServiceCatalogV2Migrated()
+  if (isServiceCatalogV2Ready()) {
+    return getCatalogGroupsForBranchV2(branchId)
+  }
+
   if (!isGroupedCatalogBranch(branchId)) return []
 
   syncBranchCatalog(branchId)
@@ -152,6 +163,13 @@ export function getCatalogGroupsForBranch(branchId) {
 }
 
 export function getServicesForBranch(branchId, { includeInactive = false } = {}) {
+  ensureServiceCatalogV2Migrated()
+  if (isServiceCatalogV2Ready()) {
+    const services = getActiveServicesForBranchV2(branchId)
+    if (includeInactive) return services
+    return services.filter((service) => service.status === 'active')
+  }
+
   const branch = getBranchById(branchId)
   if (!branch) return []
 

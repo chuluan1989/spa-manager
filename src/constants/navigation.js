@@ -38,6 +38,7 @@ export const BRANCH_MANAGER_NAV_ORDER = [
   'employees',
   'salary',
   'expenses',
+  'admin-services',
   'attendance',
   'legacy-sync',
 ]

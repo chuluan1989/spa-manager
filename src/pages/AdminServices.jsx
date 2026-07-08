@@ -1,12 +1,17 @@
 import { useState } from 'react'
-import SettingsBranchPricingTab from '../components/settings/SettingsBranchPricingTab'
-import { canAccessSettingsPage } from '../constants/auth'
+import ServiceCatalogTab from '../components/services/ServiceCatalogTab'
+import BranchServicePricingTab from '../components/services/BranchServicePricingTab'
+import {
+  canAccessServiceCatalogPage,
+  canManageServiceCatalog,
+} from '../constants/auth'
 import './AdminSection.css'
 
 export default function AdminServices() {
   const [toast, setToast] = useState('')
+  const [tab, setTab] = useState(canManageServiceCatalog() ? 'catalog' : 'pricing')
 
-  if (!canAccessSettingsPage()) {
+  if (!canAccessServiceCatalogPage()) {
     return (
       <div className="admin-section admin-section--denied">
         <h2>Không có quyền truy cập</h2>
@@ -25,10 +30,35 @@ export default function AdminServices() {
       <header className="admin-section__header">
         <h2 className="admin-section__title">Dịch vụ</h2>
         <p className="admin-section__subtitle">
-          Quản lý bảng giá theo từng chi nhánh — Admin sửa giá tại đây, không sửa trong Hóa đơn.
+          Trung tâm quản lý danh mục dịch vụ và bảng giá theo chi nhánh.
         </p>
       </header>
-      <SettingsBranchPricingTab showToast={showToast} />
+
+      <nav className="app-tabs admin-section__tabs">
+        {canManageServiceCatalog() && (
+          <button
+            type="button"
+            className={`app-tabs__btn ${tab === 'catalog' ? 'app-tabs__btn--active' : ''}`}
+            onClick={() => setTab('catalog')}
+          >
+            Danh mục dịch vụ
+          </button>
+        )}
+        <button
+          type="button"
+          className={`app-tabs__btn ${tab === 'pricing' ? 'app-tabs__btn--active' : ''}`}
+          onClick={() => setTab('pricing')}
+        >
+          Bảng giá chi nhánh
+        </button>
+      </nav>
+
+      {tab === 'catalog' && canManageServiceCatalog() && (
+        <ServiceCatalogTab showToast={showToast} />
+      )}
+      {tab === 'pricing' && (
+        <BranchServicePricingTab showToast={showToast} readOnly={!canManageServiceCatalog()} />
+      )}
     </div>
   )
 }

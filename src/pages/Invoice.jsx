@@ -176,8 +176,6 @@ export default function Invoice() {
     [form.branchId, syncVersion],
   )
 
-  const usesGroupedCatalog = catalogGroups.length > 0
-
   const currentBranch = useMemo(
     () => getBranchById(form.branchId),
     [form.branchId],
@@ -627,22 +625,20 @@ export default function Invoice() {
               <p className="invoice__hint">Chọn chi nhánh trước.</p>
             ) : !form.employeeId ? (
               <p className="invoice__hint">Chọn nhân viên trước.</p>
+            ) : catalogGroups.length > 0 ? (
+              <GroupedServicePicker
+                groups={catalogGroups}
+                getCount={getServiceCount}
+                onAdd={addService}
+                onRemove={removeOneService}
+              />
             ) : (
-              usesGroupedCatalog ? (
-                <GroupedServicePicker
-                  groups={catalogGroups}
-                  getCount={getServiceCount}
-                  onAdd={addService}
-                  onRemove={removeOneService}
-                />
-              ) : (
-                <FlatServicePicker
-                  services={branchServices}
-                  getCount={getServiceCount}
-                  onAdd={addService}
-                  onRemove={removeOneService}
-                />
-              )
+              <FlatServicePicker
+                services={branchServices}
+                getCount={getServiceCount}
+                onAdd={addService}
+                onRemove={removeOneService}
+              />
             )}
 
             <ServiceDetailTable items={totals.services?.length ? totals.services : selectedDetails} totals={totals} />
