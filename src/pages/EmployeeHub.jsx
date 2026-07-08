@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Settings, Search, ChevronLeft } from 'lucide-react'
+import EmployeeProfileCompliancePanel from '../components/employees/EmployeeProfileCompliancePanel'
 import ErpBreadcrumb from '../components/erp/ErpBreadcrumb'
 import ErpPageHeader from '../components/erp/ErpPageHeader'
 import { getActiveBranches, getBranchById } from '../constants/branches'
@@ -57,6 +58,7 @@ export default function EmployeeHub({ adminMode = false }) {
   const [showArchived, setShowArchived] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [toast, setToast] = useState('')
+  const [showProfileCompliance, setShowProfileCompliance] = useState(false)
   const [mobileView, setMobileView] = useState('branches')
 
   const fetchBranchId = selectedBranchId || undefined
@@ -166,11 +168,25 @@ export default function EmployeeHub({ adminMode = false }) {
                 Cài đặt nhân viên
               </button>
             )}
+            <button
+              type="button"
+              className={`employee-hub__settings-btn ${showProfileCompliance ? 'is-active' : ''}`}
+              onClick={() => setShowProfileCompliance((value) => !value)}
+            >
+              Theo dõi hồ sơ
+            </button>
           </>
         )}
       />
 
       <ErpBreadcrumb items={breadcrumbItems} />
+
+      {showProfileCompliance && (
+        <EmployeeProfileCompliancePanel
+          employees={employees}
+          branchId={selectedBranchId}
+        />
+      )}
 
       {error && <div className="employee-hub__error">{error}</div>}
 

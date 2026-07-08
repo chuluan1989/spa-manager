@@ -23,6 +23,7 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   allowManagerEditBranchInvoice: true,
   onlyAdminDeleteInvoice: true,
   requireCompleteProfileBeforeTour: true,
+  employeeProfileDeadline: '2026-07-10',
   realtimeEnabled: true,
   warnLegacyLocalStorage: true,
   vipCustomerThreshold: 10000000,
@@ -58,6 +59,8 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
     allowManagerEditBranchInvoice: Boolean(settings.allowManagerEditBranchInvoice),
     onlyAdminDeleteInvoice: Boolean(settings.onlyAdminDeleteInvoice),
     requireCompleteProfileBeforeTour: Boolean(settings.requireCompleteProfileBeforeTour),
+    employeeProfileDeadline: settings.employeeProfileDeadline?.trim?.()
+      || DEFAULT_SYSTEM_SETTINGS.employeeProfileDeadline,
     realtimeEnabled: Boolean(settings.realtimeEnabled),
     warnLegacyLocalStorage: Boolean(settings.warnLegacyLocalStorage),
     vipCustomerThreshold: Math.max(

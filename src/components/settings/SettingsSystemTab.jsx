@@ -102,6 +102,30 @@ export default function SettingsSystemTab({ showToast }) {
           <SettingToggle label="Bắt buộc hoàn thiện hồ sơ trước khi nhập tour" checked={settings.requireCompleteProfileBeforeTour} onChange={(v) => updateSetting('requireCompleteProfileBeforeTour', v)} />
         </div>
         <label className="settings__field">
+          <span className="settings__field-label">Hạn hoàn thiện hồ sơ nhân viên</span>
+          <input
+            type="date"
+            value={settings.employeeProfileDeadline ?? '2026-07-10'}
+            onChange={(event) => setSettings({
+              ...settings,
+              employeeProfileDeadline: event.target.value,
+            })}
+          />
+          <span className="settings__field-hint">Sau ngày này, nhân viên chưa hoàn thiện hồ sơ sẽ bị khóa tạo hóa đơn và chấm công.</span>
+        </label>
+        <div className="settings__actions-row">
+          <button
+            type="button"
+            className="settings__btn settings__btn--secondary"
+            onClick={() => {
+              saveSystemSettings(settings)
+              showToast('Đã lưu hạn hoàn thiện hồ sơ')
+            }}
+          >
+            Lưu hạn hồ sơ
+          </button>
+        </div>
+        <label className="settings__field">
           <span className="settings__field-label">Ngưỡng doanh thu Khách VIP (₫)</span>
           <input
             type="number"

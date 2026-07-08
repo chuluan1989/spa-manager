@@ -2085,4 +2085,46 @@ test('live payroll: attendance stats, tips breakdown, payment summary', async ()
   assert.ok(wallet.some((e) => e.source === 'attendance'))
 })
 
+test('employee profile policy: banner, lock after deadline, and permissions', async () => {
+  const {
+    computeProfileCompletionPercent,
+    getEmployeeProfileBannerMessage,
+    getEmployeeProfileCompliance,
+    getProfileComplianceFilterStatus,
+    isEmployeeProfileLocked,
+    isProfileDeadlinePassed,
+  } = await import('../src/utils/employeeProfilePolicy.js')
+  const { saveSystemSettings, loadSystemSettings } = await import('../src/utils/systemSettingsStorage.js')
+  const { canAddInvoice, canAccessAttendancePage } = await import('../src/constants/auth.js')
+  const { ROLES } = await import('../src/constants/roles.js')
+  const { saveCurrentUser } = await import('../src/utils/authStorage.js')
+
+  saveSystemSettings({ ...loadSystemSettings(), employeeProfileDeadline: '2026-01-01' })
+
+  const incomplete = {
+    id: 'emp-policy',
+    name: 'Lan',
+    phone: '0901111222',
+    branchId: 'vinh-long',
+    status: 'active',
+  }
+
+  assert.ok(computeProfileCompletionPercent(incomplete) < 100)
+  assert.equal(getProfileComplianceFilterStatus(incomplete, '2026-07-05'), 'incomplete')
+  assert.match(getEmployeeProfileBannerMessage(incomplete, '2026-07-05'), /10\/07\/2026/)
+  assert.equal(isEmployeeProfileLocked(incomplete, '2026-07-05'), false)
+  assert.equal(isEmployeeProfileLocked(incomplete, '2026-07-11'), true)
+  assert.equal(isProfileDeadlinePassed('2026-07-11', '2026-01-01'), true)
+
+  saveCurrentUser({
+    role: ROLES.EMPLOYEE,
+    branch: 'vinh-long',
+    employeeId: 'emp-policy',
+    name: 'Lan',
+  })
+
+  assert.equal(canAddInvoice(), false)
+  assert.equal(canAccessAttendancePage(), false)
+})
+
 process.exit(failed > 0 ? 1 : 0)

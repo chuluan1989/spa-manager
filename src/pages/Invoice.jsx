@@ -5,9 +5,11 @@ import {
   canDeleteInvoice,
   canEditInvoice,
   canSelectBranch,
+  canAddInvoice,
   filterByUserScope,
   getCurrentUserBranch,
   getCurrentUserBranchName,
+  getCurrentUserEmployeeId,
   getCurrentUserName,
   getScopedEmployeeId,
   isEmployee,
@@ -18,6 +20,7 @@ import {
   getEmployeeById,
   isEmployeeInBranch,
 } from '../utils/employeeStorage'
+import { getEmployeeProfileLockMessage, isEmployeeProfileLocked } from '../utils/employeeProfilePolicy'
 import { getActiveServicesForBranch } from '../utils/serviceStorage'
 import InvoiceDetailModal from '../components/invoice/InvoiceDetailModal'
 import GiaLaiServicePicker from '../components/invoice/GiaLaiServicePicker'
@@ -92,6 +95,9 @@ function readInvoiceTimeForForm(invoice) {
 export default function Invoice() {
   const lockedBranch = !canSelectBranch()
   const lockedEmployee = isEmployee()
+  const myEmployee = lockedEmployee ? getEmployeeById(getCurrentUserEmployeeId()) : null
+  const profileLocked = lockedEmployee && isEmployeeProfileLocked(myEmployee)
+  const canCreateInvoice = canAddInvoice()
   const activeBranchName = getCurrentUserBranchName()
   const [form, setForm] = useState(INITIAL_FORM())
   const [selectedIds, setSelectedIds] = useState([])
@@ -106,7 +112,13 @@ export default function Invoice() {
   const [detailInvoice, setDetailInvoice] = useState(null)
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState('')
-  const [activeTab, setActiveTab] = useState(() => (isEmployee() ? 'create' : 'list'))
+  const [activeTab, setActiveTab] = useState(() => {
+    if (isEmployee()) {
+      if (isEmployeeProfileLocked(getEmployeeById(getCurrentUserEmployeeId()))) return 'list'
+      return 'create'
+    }
+    return 'list'
+  })
 
   const syncVersion = useDataSyncVersion()
   useEffect(() => {
@@ -453,6 +465,7 @@ export default function Invoice() {
         >
           Danh sách hóa đơn
         </button>
+        {canCreateInvoice && (
         <button
           type="button"
           className={`app-tabs__btn ${activeTab === 'create' ? 'app-tabs__btn--active' : ''}`}
@@ -460,7 +473,14 @@ export default function Invoice() {
         >
           {editingId ? 'Sửa hóa đơn' : 'Tạo hóa đơn'}
         </button>
+        )}
       </div>
+
+      {profileLocked && (
+        <div className="invoice__profile-lock">
+          {getEmployeeProfileLockMessage()}
+        </div>
+      )}
 
       {activeTab === 'list' && (
         <>
@@ -487,7 +507,7 @@ export default function Invoice() {
         </>
       )}
 
-      {activeTab === 'create' && (
+      {activeTab === 'create' && canCreateInvoice && (
         <>
       <div className="invoice__body">
         <div className="invoice__main">

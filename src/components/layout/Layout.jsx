@@ -9,7 +9,7 @@ function getPageTitle(activeItem) {
   return item?.label ?? 'Tổng quan'
 }
 
-export default function Layout({ children, activeItem = 'dashboard', onNavigate, onLogout }) {
+export default function Layout({ children, activeItem = 'dashboard', onNavigate, onLogout, banner = null }) {
   return (
     <div className="layout">
       <Sidebar
@@ -20,7 +20,10 @@ export default function Layout({ children, activeItem = 'dashboard', onNavigate,
 
       <div className="layout__content">
         <AppHeader pageTitle={getPageTitle(activeItem)} />
-        <main className="layout__main">{children}</main>
+        <main className="layout__main">
+          {banner}
+          {children}
+        </main>
       </div>
     </div>
   )

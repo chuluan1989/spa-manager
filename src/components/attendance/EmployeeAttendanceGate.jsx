@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { isEmployee, getCurrentUserEmployeeId } from '../../constants/auth'
 import { isSupabaseConfigured } from '../../lib/supabaseClient'
+import { getEmployeeById } from '../../utils/employeeStorage'
+import { isEmployeeProfileLocked } from '../../utils/employeeProfilePolicy'
 import AttendanceCheckInModal from './AttendanceCheckInModal'
 import {
   fetchAttendanceByEmployeeAndDate,
@@ -21,6 +23,12 @@ export default function EmployeeAttendanceGate({ children }) {
     let cancelled = false
 
     async function checkAttendance() {
+      const employee = getEmployeeById(getCurrentUserEmployeeId())
+      if (isEmployeeProfileLocked(employee)) {
+        if (!cancelled) setState('ready')
+        return
+      }
+
       if (!isSupabaseConfigured) {
         if (!cancelled) {
           setError('Chấm công yêu cầu Supabase. Liên hệ quản trị viên.')
@@ -66,14 +74,15 @@ export default function EmployeeAttendanceGate({ children }) {
     )
   }
 
-  if (state === 'required') {
-    return (
-      <AttendanceCheckInModal
-        serverDate={serverDate}
-        onCompleted={() => setState('ready')}
-      />
-    )
-  }
-
-  return children
+  return (
+    <>
+      {children}
+      {state === 'required' && (
+        <AttendanceCheckInModal
+          serverDate={serverDate}
+          onCompleted={() => setState('ready')}
+        />
+      )}
+    </>
+  )
 }

@@ -8,6 +8,7 @@ import {
 import { ADMIN_BRANCH, ROLES } from './roles'
 import { getBranchName } from '../utils/branchStorage'
 import { getEmployeeById } from '../utils/employeeStorage'
+import { isEmployeeProfileLocked } from '../utils/employeeProfilePolicy'
 import { loadCurrentUser } from '../utils/authStorage'
 import { loadSystemSettings } from '../utils/systemSettingsStorage'
 import { checkPermission, hasPermission, PERMISSION_KEYS } from '../utils/permissionsStorage'
@@ -134,6 +135,10 @@ export function canManageCustomerCare(role = getCurrentUserRole(), branchId = ge
 }
 
 export function canAccessAttendancePage(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (role === ROLES.EMPLOYEE) {
+    const employee = getEmployeeById(getCurrentUserEmployeeId())
+    if (isEmployeeProfileLocked(employee)) return false
+  }
   return checkPermission(PERMISSION_KEYS.VIEW_ATTENDANCE, role, branchId)
 }
 
@@ -262,7 +267,12 @@ export function canViewSystemWide(role = getCurrentUserRole(), branchId = getCur
 }
 
 export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
-  return checkPermission(PERMISSION_KEYS.ADD_INVOICE, role, branchId)
+  if (!checkPermission(PERMISSION_KEYS.ADD_INVOICE, role, branchId)) return false
+  if (role === ROLES.EMPLOYEE) {
+    const employee = getEmployeeById(getCurrentUserEmployeeId())
+    if (isEmployeeProfileLocked(employee)) return false
+  }
+  return true
 }
 
 export function canEditInvoice(invoice = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
