@@ -332,6 +332,18 @@
   font-size: 13px;
 }
 
+.salary-audit__delete {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #dc2626;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .salary-modal {
   position: fixed;
   inset: 0;

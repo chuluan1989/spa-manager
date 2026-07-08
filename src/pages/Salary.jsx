@@ -265,7 +265,12 @@ function SalaryPage() {
       )}
 
       {!loading && !error && tab === 'history' && (
-        <PayrollAuditHistory logs={auditLogs} adjustments={adjustments} />
+        <PayrollAuditHistory
+          logs={auditLogs}
+          adjustments={adjustments}
+          locks={locks}
+          onReload={reload}
+        />
       )}
 
       <PayrollDetailModal
