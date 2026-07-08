@@ -23,7 +23,7 @@ import {
 import { getEmployeeProfileLockMessage, isEmployeeProfileLocked } from '../utils/employeeProfilePolicy'
 import { getActiveServicesForBranch } from '../utils/serviceStorage'
 import InvoiceDetailModal from '../components/invoice/InvoiceDetailModal'
-import GiaLaiServicePicker from '../components/invoice/GiaLaiServicePicker'
+import GroupedServicePicker from '../components/invoice/GroupedServicePicker'
 import InvoiceFilters from '../components/invoice/InvoiceFilters'
 import InvoiceList from '../components/invoice/InvoiceList'
 import InvoiceSummary from '../components/invoice/InvoiceSummary'
@@ -55,7 +55,7 @@ import {
   sanitizeCustomerPhoneInput,
 } from '../utils/validators'
 import { consumeInvoiceEditPrefill } from '../utils/navigationPrefill'
-import { isGiaLaiCatalogBranch } from '../utils/giaLaiCatalog'
+import { getCatalogGroupsForBranch } from '../utils/branchPricingStorage'
 import './Invoice.css'
 
 const INITIAL_FILTERS = () => ({
@@ -165,10 +165,8 @@ export default function Invoice() {
     setListPage(1)
   }, [effectiveListFilters])
 
-  const usesGiaLaiCatalog = isGiaLaiCatalogBranch(form.branchId)
-
-  const activeServices = useMemo(
-    () => getActiveServicesForBranch(form.branchId),
+  const catalogGroups = useMemo(
+    () => (form.branchId ? getCatalogGroupsForBranch(form.branchId) : []),
     [form.branchId],
   )
 
@@ -617,49 +615,17 @@ export default function Invoice() {
             {errors.services && (
               <p className="invoice__error invoice__error--block">{errors.services}</p>
             )}
-            {usesGiaLaiCatalog ? (
-              <GiaLaiServicePicker
+            {!form.branchId ? (
+              <p className="invoice__hint">Chọn chi nhánh trước.</p>
+            ) : !form.employeeId ? (
+              <p className="invoice__hint">Chọn nhân viên trước.</p>
+            ) : (
+              <GroupedServicePicker
+                groups={catalogGroups}
                 getCount={getServiceCount}
                 onAdd={addService}
                 onRemove={removeOneService}
               />
-            ) : (
-            <div className="invoice__services">
-              {activeServices.map((service) => {
-                const count = getServiceCount(service.id)
-                return (
-                  <div
-                    key={service.id}
-                    className={`invoice__service${count > 0 ? ' invoice__service--selected' : ''}`}
-                  >
-                    <div className="invoice__service-qty">
-                      <button
-                        type="button"
-                        className="invoice__service-qty-btn"
-                        disabled={count === 0}
-                        onClick={() => removeOneService(service.id)}
-                        aria-label={`Giảm ${service.name}`}
-                      >
-                        −
-                      </button>
-                      <span className="invoice__service-qty-value">{count}</span>
-                      <button
-                        type="button"
-                        className="invoice__service-qty-btn"
-                        onClick={() => addService(service.id)}
-                        aria-label={`Thêm ${service.name}`}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <span className="invoice__service-info">
-                      <span className="invoice__service-name">{service.name}</span>
-                      <span className="invoice__service-price">{formatCurrency(service.price)}</span>
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
             )}
 
             <ServiceDetailTable items={totals.services?.length ? totals.services : selectedDetails} totals={totals} />

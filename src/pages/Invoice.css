@@ -333,6 +333,15 @@
   color: #374151;
 }
 
+.invoice__hint {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 14px;
+}
+
 .invoice__payment {
   border: none;
   margin: 0;

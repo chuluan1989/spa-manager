@@ -1,11 +1,15 @@
 import { getBranchById, loadBranches } from './branchStorage'
 import {
-  buildGiaLaiCatalogOverrides,
-  getGiaLaiCatalogServicesForBranch,
-  isGiaLaiCatalogBranch,
-} from './giaLaiCatalog'
-import { GIA_LAI_CATALOG_VERSION, GIA_LAI_SERVICE_CATALOG } from '../constants/giaLaiServiceCatalog'
-import { GIA_LAI_CATALOG_BRANCH_IDS } from '../constants/giaLaiBranches'
+  applyCatalogOverrides,
+  branchHasGroupedCatalog,
+  buildCatalogOverrides,
+  flattenCatalog,
+  getCatalogGroups,
+  MASTER_CATALOG_VERSION,
+  MASTER_SERVICE_CATALOG,
+  mergeMissingCatalogOverrides,
+  resolveBranchCatalogOverrides,
+} from './serviceCatalog'
 import { getServicesForPriceList, loadServices } from './serviceStorage'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { upsertBranchPricingMap } from '../repositories/branchPricingRepository'
@@ -60,7 +64,7 @@ function readBranchPricingMapRaw() {
 }
 
 export function loadBranchPricingMap() {
-  syncAllGiaLaiBranchCatalogs()
+  syncAllBranchCatalogs()
   return readBranchPricingMapRaw()
 }
 
@@ -97,18 +101,28 @@ export function getDefaultServicesForBranch(branchId) {
   return getServicesForPriceList(branch.priceGroupId)
 }
 
+export function getCatalogGroupsForBranch(branchId) {
+  syncBranchCatalog(branchId)
+  const record = getBranchPricingRecord(branchId)
+  if (!branchHasGroupedCatalog(branchId, record)) return []
+  return getCatalogGroups(record.catalog, record.overrides)
+}
+
 export function getServicesForBranch(branchId, { includeInactive = false } = {}) {
   const branch = getBranchById(branchId)
   if (!branch) return []
 
-  if (isGiaLaiCatalogBranch(branchId)) {
-    syncGiaLaiBranchCatalog(branchId)
-    return getGiaLaiCatalogServicesForBranch(branchId)
+  syncBranchCatalog(branchId)
+  const record = getBranchPricingRecord(branchId)
+
+  if (branchHasGroupedCatalog(branchId, record)) {
+    const resolved = applyCatalogOverrides(record.catalog, record.overrides)
+    return flattenCatalog(resolved)
       .filter((service) => includeInactive || service.status === 'active')
       .sort((a, b) => a.name.localeCompare(b.name, 'vi'))
   }
 
-  let pricing = getBranchPricingRecord(branchId)
+  let pricing = record
   if (pricing.useCustom) {
     syncMissingOverridesForBranch(branchId)
     pricing = getBranchPricingRecord(branchId)
@@ -161,6 +175,60 @@ export function syncMissingOverridesForBranch(branchId) {
   }
 
   return changed
+}
+
+export function syncMissingCatalogOverrides(branchId) {
+  const map = readBranchPricingMapRaw()
+  const record = normalizeBranchPricing(map[branchId] ?? {})
+  if (!branchHasGroupedCatalog(branchId, record)) return false
+
+  const { overrides, changed } = mergeMissingCatalogOverrides(record.overrides, record.catalog)
+  if (!changed) return false
+
+  map[branchId] = { ...record, overrides }
+  saveBranchPricingMap(map)
+  return true
+}
+
+export function syncBranchCatalog(branchId) {
+  const branch = getBranchById(branchId)
+  if (!branch) return false
+
+  const map = readBranchPricingMapRaw()
+  const current = normalizeBranchPricing(map[branchId] ?? {})
+  const hasCatalog = branchHasGroupedCatalog(branchId, current)
+  const upToDate = hasCatalog && current.catalogVersion >= MASTER_CATALOG_VERSION
+
+  if (upToDate) {
+    return syncMissingCatalogOverrides(branchId)
+  }
+
+  const catalog = structuredClone(MASTER_SERVICE_CATALOG)
+  const overrides = resolveBranchCatalogOverrides(branchId, branch, current)
+  const { overrides: completeOverrides } = mergeMissingCatalogOverrides(overrides, catalog)
+
+  map[branchId] = {
+    useCustom: true,
+    catalogVersion: MASTER_CATALOG_VERSION,
+    catalog,
+    overrides: completeOverrides,
+  }
+  saveBranchPricingMap(map)
+  return true
+}
+
+export function syncAllBranchCatalogs() {
+  return loadBranches().some((branch) => syncBranchCatalog(branch.id))
+}
+
+/** @deprecated Use syncBranchCatalog */
+export function syncGiaLaiBranchCatalog(branchId) {
+  return syncBranchCatalog(branchId)
+}
+
+/** @deprecated Use syncAllBranchCatalogs */
+export function syncAllGiaLaiBranchCatalogs() {
+  return syncAllBranchCatalogs()
 }
 
 export function syncNewServiceToCustomBranchPricing(service) {
@@ -226,28 +294,4 @@ export function updateBranchServicePricing(branchId, serviceId, data) {
   map[branchId] = current
   saveBranchPricingMap(map)
   return current.overrides[serviceId]
-}
-
-export function syncGiaLaiBranchCatalog(branchId) {
-  if (!isGiaLaiCatalogBranch(branchId)) return false
-
-  const map = readBranchPricingMapRaw()
-  const current = normalizeBranchPricing(map[branchId] ?? {})
-  const needsUpdate = !current.catalog
-    || current.catalogVersion < GIA_LAI_CATALOG_VERSION
-
-  if (!needsUpdate) return false
-
-  map[branchId] = {
-    useCustom: true,
-    catalogVersion: GIA_LAI_CATALOG_VERSION,
-    catalog: GIA_LAI_SERVICE_CATALOG,
-    overrides: buildGiaLaiCatalogOverrides(GIA_LAI_SERVICE_CATALOG),
-  }
-  saveBranchPricingMap(map)
-  return true
-}
-
-export function syncAllGiaLaiBranchCatalogs() {
-  return GIA_LAI_CATALOG_BRANCH_IDS.some((branchId) => syncGiaLaiBranchCatalog(branchId))
 }
