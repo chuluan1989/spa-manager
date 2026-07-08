@@ -2353,13 +2353,30 @@ test('employee attendance gate: đăng nhập xong vào Hóa đơn, không kẹt
   } = await import('../src/utils/employeeAttendanceGate.js')
 
   clearEmployeeAttendanceGate('emp-a')
-  assert.equal(hasPassedEmployeeAttendanceGate('emp-a'), false)
+  assert.equal(hasPassedEmployeeAttendanceGate('emp-a', '2026-07-08'), false)
 
-  markEmployeeAttendanceGatePassed('emp-a')
-  assert.equal(hasPassedEmployeeAttendanceGate('emp-a'), true)
+  markEmployeeAttendanceGatePassed('emp-a', '2026-07-08')
+  assert.equal(hasPassedEmployeeAttendanceGate('emp-a', '2026-07-08'), true)
+  assert.equal(hasPassedEmployeeAttendanceGate('emp-a', '2026-07-09'), false, 'Ngày mới phải điểm danh lại')
 
   clearEmployeeAttendanceGate('emp-a')
-  assert.equal(hasPassedEmployeeAttendanceGate('emp-a'), false)
+  assert.equal(hasPassedEmployeeAttendanceGate('emp-a', '2026-07-08'), false)
+})
+
+test('invoice sort: hóa đơn mới nhất nằm trên cùng theo created_at', async () => {
+  const { sortInvoicesDesc, compareInvoicesDesc } = await import('../src/utils/invoiceFilters.js')
+
+  const invoices = [
+    { id: 'old', date: '2026-07-10', createdAt: '2026-07-10T08:00:00.000Z', invoiceTime: '08:00' },
+    { id: 'new', date: '2026-07-10', createdAt: '2026-07-10T18:00:00.000Z', invoiceTime: '18:00' },
+    { id: 'same-day-later', date: '2026-07-11', createdAt: '2026-07-11T09:00:00.000Z', invoiceTime: '09:00' },
+  ]
+
+  const sorted = sortInvoicesDesc(invoices)
+  assert.equal(sorted[0].id, 'same-day-later')
+  assert.equal(sorted[1].id, 'new')
+  assert.equal(sorted[2].id, 'old')
+  assert.ok(compareInvoicesDesc(invoices[2], invoices[1]) > 0)
 })
 
 test('employee profile policy: banner, lock after deadline, and permissions', async () => {

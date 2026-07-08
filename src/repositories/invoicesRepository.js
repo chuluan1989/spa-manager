@@ -56,8 +56,9 @@ export async function fetchInvoicesFiltered(filters = {}) {
   let query = supabase
     .from(TABLE)
     .select('*')
-    .order('date', { ascending: true })
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
+    .order('date', { ascending: false })
+    .order('invoice_time', { ascending: false })
 
   if (fromDate) query = query.gte('date', fromDate)
   if (toDate) query = query.lte('date', toDate)

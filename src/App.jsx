@@ -45,6 +45,8 @@ import {
   hasPassedEmployeeAttendanceGate,
   markEmployeeAttendanceGatePassed,
 } from './utils/employeeAttendanceGate'
+import { hasCheckedInToday } from './utils/attendanceService'
+import { getTodayDate } from './utils/invoiceStorage'
 import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
@@ -97,9 +99,47 @@ function App() {
   const [attendanceGatePassed, setAttendanceGatePassed] = useState(() => {
     const user = loadCurrentUser()
     if (user?.role !== ROLES.EMPLOYEE) return true
-    return hasPassedEmployeeAttendanceGate(user.employeeId)
+    return false
+  })
+  const [attendanceCheckReady, setAttendanceCheckReady] = useState(() => {
+    const user = loadCurrentUser()
+    return user?.role !== ROLES.EMPLOYEE
   })
   const syncVersion = useDataSyncVersion()
+
+  useEffect(() => {
+    if (!authReady || !currentUser) return
+    if (currentUser.role !== ROLES.EMPLOYEE) {
+      setAttendanceGatePassed(true)
+      setAttendanceCheckReady(true)
+      return undefined
+    }
+
+    let cancelled = false
+    async function checkTodayAttendance() {
+      setAttendanceCheckReady(false)
+      try {
+        const checkedIn = await hasCheckedInToday(currentUser.employeeId)
+        const passedSession = hasPassedEmployeeAttendanceGate(currentUser.employeeId, getTodayDate())
+        if (!cancelled) {
+          const passed = checkedIn || passedSession
+          setAttendanceGatePassed(passed)
+          if (passed) setActivePage('invoices')
+        }
+      } catch {
+        if (!cancelled) {
+          setAttendanceGatePassed(hasPassedEmployeeAttendanceGate(currentUser.employeeId, getTodayDate()))
+        }
+      } finally {
+        if (!cancelled) setAttendanceCheckReady(true)
+      }
+    }
+
+    checkTodayAttendance()
+    return () => {
+      cancelled = true
+    }
+  }, [authReady, currentUser])
 
   useEffect(() => {
     let cancelled = false
@@ -154,11 +194,12 @@ function App() {
           saveCurrentUser(user)
           setCurrentUser(user)
           if (user.role === ROLES.EMPLOYEE) {
-            const passed = hasPassedEmployeeAttendanceGate(user.employeeId)
-            setAttendanceGatePassed(passed)
+            setAttendanceGatePassed(false)
+            setAttendanceCheckReady(false)
             setActivePage('invoices')
           } else {
             setAttendanceGatePassed(true)
+            setAttendanceCheckReady(true)
             setActivePage(getDefaultPage(user))
           }
         }}
@@ -168,9 +209,17 @@ function App() {
 
   const completeAttendanceGate = () => {
     const employeeId = getCurrentUserEmployeeId()
-    markEmployeeAttendanceGatePassed(employeeId)
+    markEmployeeAttendanceGatePassed(employeeId, getTodayDate())
     setAttendanceGatePassed(true)
     setActivePage('invoices')
+  }
+
+  if (isEmployee() && !attendanceCheckReady) {
+    return (
+      <div className="app-loading" style={{ padding: 24, textAlign: 'center', color: '#6b7280', background: '#f4f5f7', minHeight: '100vh' }}>
+        Đang kiểm tra điểm danh...
+      </div>
+    )
   }
 
   if (isEmployee() && !attendanceGatePassed) {
@@ -189,6 +238,7 @@ function App() {
     clearCurrentUser()
     setCurrentUser(null)
     setAttendanceGatePassed(true)
+    setAttendanceCheckReady(true)
   }
 
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)

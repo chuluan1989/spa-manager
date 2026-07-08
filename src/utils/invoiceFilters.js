@@ -43,12 +43,30 @@ export function readInvoiceTime(invoice) {
   return `${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`
 }
 
+function invoiceSortTime(invoice) {
+  if (invoice?.invoiceTime && invoice.invoiceTime !== '—') return invoice.invoiceTime
+  if (!invoice?.createdAt) return '00:00'
+  const parsed = new Date(invoice.createdAt)
+  if (Number.isNaN(parsed.getTime())) return '00:00'
+  return `${String(parsed.getHours()).padStart(2, '0')}:${String(parsed.getMinutes()).padStart(2, '0')}`
+}
+
+export function compareInvoicesDesc(a, b) {
+  const aCreated = a?.createdAt ?? ''
+  const bCreated = b?.createdAt ?? ''
+  if (aCreated || bCreated) {
+    const createdCmp = bCreated.localeCompare(aCreated)
+    if (createdCmp !== 0) return createdCmp
+  }
+
+  const dateCmp = (b?.date ?? '').localeCompare(a?.date ?? '')
+  if (dateCmp !== 0) return dateCmp
+
+  return invoiceSortTime(b).localeCompare(invoiceSortTime(a))
+}
+
 export function sortInvoicesDesc(invoices) {
-  return [...invoices].sort((a, b) => {
-    const dateCmp = b.date.localeCompare(a.date)
-    if (dateCmp !== 0) return dateCmp
-    return (b.createdAt ?? '').localeCompare(a.createdAt ?? '')
-  })
+  return [...invoices].sort(compareInvoicesDesc)
 }
 
 function buildInvoiceSearchHaystack(invoice) {
