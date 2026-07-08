@@ -49,6 +49,9 @@ function parseAttendanceError(error) {
     }
     return 'Không lưu được chấm công. Liên hệ quản trị viên.'
   }
+  if (/schema cache|PGRST205|Could not find the table|RUN_ATTENDANCE_SETUP/i.test(message)) {
+    return 'Bảng chấm công chưa có trên Supabase. Admin chạy supabase/RUN_ATTENDANCE_SETUP.sql trong SQL Editor.'
+  }
   if (/quá lâu|timeout/i.test(message)) {
     return message
   }
