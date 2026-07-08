@@ -126,27 +126,35 @@ function App() {
     let stopSync = () => {}
 
     async function bootstrap() {
-      clearLegacySession()
-      repairCanonicalBranchMapping()
-      syncMissingDefaultBranches()
-      repairBranchIdReferences()
-      syncMissingDefaultEmployees()
-      stripFlatBranchGroupedCatalog()
-      ensureServiceCatalogV2Migrated()
-      await Promise.all([ensureCredentialsHashed(), syncMissingBranchCredentials()])
-      await repairEmployeeCredentials()
-      syncAllCustomBranchPricing()
+      try {
+        clearLegacySession()
+        try {
+          repairCanonicalBranchMapping()
+        } catch (repairError) {
+          console.warn('[Bootstrap] repairCanonicalBranchMapping:', repairError?.message)
+        }
+        syncMissingDefaultBranches()
+        repairBranchIdReferences()
+        syncMissingDefaultEmployees()
+        stripFlatBranchGroupedCatalog()
+        ensureServiceCatalogV2Migrated()
+        await Promise.all([ensureCredentialsHashed(), syncMissingBranchCredentials()])
+        await repairEmployeeCredentials()
+        syncAllCustomBranchPricing()
 
-      if (isSupabaseConfigured) {
-        await runInitialSync()
+        if (isSupabaseConfigured) {
+          await runInitialSync()
+        }
+
+        await syncEmployeeCredentialsFromEmployees()
+        notifyDataSynced(['employees', 'credentials'])
+      } catch (error) {
+        console.error('[Bootstrap] Lỗi khởi tạo — vẫn cho phép vào app:', error?.message ?? error)
+      } finally {
+        if (cancelled) return
+        setAuthReady(true)
+        stopSync = startAutoSync({ skipInitialPull: true })
       }
-
-      await syncEmployeeCredentialsFromEmployees()
-      notifyDataSynced(['employees', 'credentials'])
-
-      if (cancelled) return
-      setAuthReady(true)
-      stopSync = startAutoSync({ skipInitialPull: true })
     }
 
     bootstrap()

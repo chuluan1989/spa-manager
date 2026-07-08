@@ -2583,8 +2583,9 @@ test('canonical branches: repair mapping 8 chi nhánh và migrate gia-lai-3', as
   localStorage.setItem('spa-manager-employees', JSON.stringify([
     { id: 'gia-lai-3-thao', name: 'Thảo', branchId: 'gia-lai-3', status: 'active', phone: '0900000001' },
   ]))
+  localStorage.removeItem('spa-manager-canonical-repair-version')
 
-  repairCanonicalBranchMapping()
+  repairCanonicalBranchMapping({ force: true })
   const audit = auditCanonicalBranchMapping()
   assert.equal(audit.valid, true, audit.issues.map((i) => JSON.stringify(i)).join('; '))
 
@@ -2597,6 +2598,15 @@ test('canonical branches: repair mapping 8 chi nhánh và migrate gia-lai-3', as
   assert.equal(employee.branchId, 'gia-lai-2', 'Chỉ sửa branch_id, giữ employee_id và hồ sơ')
   assert.equal(employee.phone, '0900000001')
   assert.equal(employee.name, 'Thảo')
+})
+
+test('bootstrap: repairCanonicalBranchMapping chỉ chạy một lần', async () => {
+  const { repairCanonicalBranchMapping } = await import('../src/utils/canonicalBranchRepair.js')
+  localStorage.removeItem('spa-manager-canonical-repair-version')
+  const first = repairCanonicalBranchMapping({ force: true })
+  assert.equal(first.skipped, false)
+  const second = repairCanonicalBranchMapping()
+  assert.equal(second.skipped, true)
 })
 
 process.exit(failed > 0 ? 1 : 0)

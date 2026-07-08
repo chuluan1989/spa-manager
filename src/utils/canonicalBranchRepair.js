@@ -15,7 +15,7 @@ import {
   sortBranchesForDisplay,
 } from './branchStorage'
 import { loadBranchPricingMap, saveBranchPricingMap } from './branchPricingStorage'
-import { saveCommissionPolicyMap } from './commissionPolicyStorage'
+import { loadCommissionPolicyMap, saveCommissionPolicyMap } from './commissionPolicyStorage'
 import { loadCredentials, saveCredentials } from './credentialsStorage'
 import { loadEmployees, saveEmployees } from './employeeStorage'
 import { loadExpenses, saveExpenses } from './expenseStorage'
@@ -28,6 +28,8 @@ import {
 } from './serviceCatalogV2Storage'
 
 export const CANONICAL_REPAIR_BACKUP_KEY = 'spa-manager-canonical-repair-backup'
+const REPAIR_VERSION_KEY = 'spa-manager-canonical-repair-version'
+const CURRENT_REPAIR_VERSION = '2'
 
 function isEmptyValue(value) {
   if (value == null) return true
@@ -163,9 +165,19 @@ function repairPricingAndCatalogs() {
 }
 
 function repairCommissionPolicies() {
+  const current = loadCommissionPolicyMap()
   const defaults = buildDefaultCommissionPolicyMap(CANONICAL_BRANCH_IDS)
-  saveCommissionPolicyMap(defaults)
-  return Object.keys(defaults).length
+  const next = { ...current }
+  for (const branchId of CANONICAL_BRANCH_IDS) {
+    if (!next[branchId]) {
+      next[branchId] = defaults[branchId]
+    }
+  }
+  for (const deprecatedId of DEPRECATED_BRANCH_IDS) {
+    delete next[deprecatedId]
+  }
+  saveCommissionPolicyMap(next)
+  return Object.keys(next).length
 }
 
 function repairCredentials() {
@@ -210,16 +222,27 @@ function repairCredentials() {
 }
 
 /**
- * Sửa mapping dữ liệu gốc theo 8 chi nhánh chuẩn.
+ * Sửa mapping dữ liệu gốc theo 8 chi nhánh chuẩn — chỉ chạy một lần (hoặc khi audit fail).
  * - Backup trước khi sửa
  * - Chỉ cập nhật branch_id / branchName — không ghi đè hồ sơ nhân viên
  * - Gộp bảng giá/catalog từ chi nhánh lỗi (gia-lai-3) sang gia-lai-2
  */
-export function repairCanonicalBranchMapping() {
-  localStorage.setItem(
-    CANONICAL_REPAIR_BACKUP_KEY,
-    JSON.stringify(createBackupSnapshot()),
-  )
+export function repairCanonicalBranchMapping({ force = false } = {}) {
+  const repairDone = localStorage.getItem(REPAIR_VERSION_KEY) === CURRENT_REPAIR_VERSION
+  const audit = auditCanonicalBranchMapping()
+
+  if (!force && repairDone && audit.valid) {
+    return { skipped: true, branchCount: CANONICAL_BRANCH_IDS.length, audit }
+  }
+
+  try {
+    localStorage.setItem(
+      CANONICAL_REPAIR_BACKUP_KEY,
+      JSON.stringify(createBackupSnapshot()),
+    )
+  } catch (error) {
+    console.warn('[Repair] Không thể tạo backup — tiếp tục sửa:', error?.message)
+  }
 
   const existingById = Object.fromEntries(loadBranchesRaw().map((branch) => [branch.id, branch]))
   for (const deprecatedId of DEPRECATED_BRANCH_IDS) {
@@ -236,14 +259,17 @@ export function repairCanonicalBranchMapping() {
   saveBranches(buildCanonicalBranchList(existingById), { skipRemoteSync: true })
 
   const summary = {
+    skipped: false,
     employeesUpdated: repairEmployees(),
     ...repairInvoicesAndExpenses(),
     pricing: repairPricingAndCatalogs(),
     commissionPolicies: repairCommissionPolicies(),
     credentialsUpdated: repairCredentials(),
     branchCount: CANONICAL_BRANCH_IDS.length,
+    audit: auditCanonicalBranchMapping(),
   }
 
+  localStorage.setItem(REPAIR_VERSION_KEY, CURRENT_REPAIR_VERSION)
   return summary
 }
 

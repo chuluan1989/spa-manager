@@ -81,17 +81,26 @@ export async function insertAttendanceRecord(record) {
   if (!isSupabaseConfigured || !record?.id) {
     throw new Error('Supabase chưa cấu hình.')
   }
+  const { branchName: _branchName, ...rest } = record
   const row = objectToSnakeRow({
-    ...record,
-    createdBy: record.createdBy ?? record.submittedBy ?? '',
-    submittedAt: record.submittedAt ?? new Date().toISOString(),
+    ...rest,
+    createdBy: rest.createdBy ?? rest.submittedBy ?? '',
+    submittedAt: rest.submittedAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   })
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from(ATTENDANCE_TABLE)
     .insert(row)
     .select('*')
     .single()
+
+  if (error && /branch_name|column/.test(error.message ?? '')) {
+    delete row.branch_name
+    const retry = await supabase.from(ATTENDANCE_TABLE).insert(row).select('*').single()
+    data = retry.data
+    error = retry.error
+  }
+
   if (error) throw error
   return rowsToCamel([data])[0]
 }
