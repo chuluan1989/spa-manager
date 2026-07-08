@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Layout from './components/layout/Layout'
 import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
@@ -113,9 +113,13 @@ function App() {
       setAttendanceCheckReady(true)
       return
     }
-    setAttendanceGatePassed(false)
     setAttendanceCheckReady(true)
   }, [authReady, currentUser])
+
+  const completeAttendanceGate = useCallback(() => {
+    setAttendanceGatePassed(true)
+    setActivePage('invoices')
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -183,11 +187,6 @@ function App() {
         }}
       />
     )
-  }
-
-  const completeAttendanceGate = () => {
-    setAttendanceGatePassed(true)
-    setActivePage('invoices')
   }
 
   if (isEmployee() && !attendanceCheckReady) {

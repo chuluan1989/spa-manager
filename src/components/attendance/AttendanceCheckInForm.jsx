@@ -17,6 +17,7 @@ export default function AttendanceCheckInForm({ onSuccess }) {
   const today = getTodayDate()
   const isOnTime = status === ATTENDANCE_STATUS.ON_TIME
   const needsReason = Boolean(status) && !isOnTime
+  const canContinue = Boolean(status) && (!needsReason || reason.trim())
 
   const handleStatusChange = (nextStatus) => {
     setStatus(nextStatus)
@@ -33,6 +34,10 @@ export default function AttendanceCheckInForm({ onSuccess }) {
     }
     if (needsReason && !reason.trim()) {
       setError('Vui lòng nhập lý do.')
+      return
+    }
+    if (!employeeId) {
+      setError('Không xác định được tài khoản nhân viên. Vui lòng đăng nhập lại.')
       return
     }
 
@@ -56,31 +61,15 @@ export default function AttendanceCheckInForm({ onSuccess }) {
     }
   }
 
-  const handleOnTimeSelect = async () => {
-    setStatus(ATTENDANCE_STATUS.ON_TIME)
-    setReason('')
-    setError('')
-    setSubmitting(true)
-    try {
-      await submitEmployeeAttendance({
-        employeeId,
-        employeeName: employee?.name ?? getCurrentUserName(),
-        branchId: employee?.branchId ?? '',
-        status: ATTENDANCE_STATUS.ON_TIME,
-        reason: '',
-        note: '',
-        submittedBy: getCurrentUserName(),
-      })
-      onSuccess?.()
-    } catch (err) {
-      setError(err?.message ?? 'Không thể lưu điểm danh. Vui lòng thử lại.')
-    } finally {
-      setSubmitting(false)
+  const handleFormSubmit = (event) => {
+    event.preventDefault()
+    if (canContinue && !submitting) {
+      saveAttendance()
     }
   }
 
   return (
-    <div className="attendance-checkin__panel attendance-checkin__panel--inline">
+    <form className="attendance-checkin__panel attendance-checkin__panel--inline" onSubmit={handleFormSubmit}>
       <header className="attendance-checkin__header">
         <h2 id="attendance-checkin-title">Điểm danh hôm nay</h2>
         <p>Ngày {today} · {employee?.name ?? getCurrentUserName()}</p>
@@ -97,13 +86,7 @@ export default function AttendanceCheckInForm({ onSuccess }) {
               name="attendance-status"
               value={option.id}
               checked={status === option.id}
-              onChange={() => {
-                if (option.id === ATTENDANCE_STATUS.ON_TIME) {
-                  handleOnTimeSelect()
-                  return
-                }
-                handleStatusChange(option.id)
-              }}
+              onChange={() => handleStatusChange(option.id)}
               disabled={submitting}
             />
             <span>{option.label}</span>
@@ -121,6 +104,7 @@ export default function AttendanceCheckInForm({ onSuccess }) {
               onChange={(e) => setReason(e.target.value)}
               placeholder="Nhập lý do đi trễ / nghỉ / về sớm..."
               autoFocus
+              disabled={submitting}
             />
           </label>
         </div>
@@ -129,25 +113,28 @@ export default function AttendanceCheckInForm({ onSuccess }) {
       {error && (
         <div className="attendance-checkin__error-block" role="alert">
           <p className="attendance-checkin__error">{error}</p>
+          <button
+            type="button"
+            className="attendance-checkin__retry"
+            onClick={saveAttendance}
+            disabled={submitting || !canContinue}
+          >
+            Thử lại
+          </button>
         </div>
       )}
 
-      {needsReason && (
+      {status && (
         <footer className="attendance-checkin__footer">
           <button
-            type="button"
+            type="submit"
             className="attendance-checkin__submit"
-            disabled={submitting || !reason.trim()}
-            onClick={saveAttendance}
+            disabled={submitting || !canContinue}
           >
-            {submitting ? 'Đang lưu...' : 'Tiếp theo'}
+            {submitting ? 'Đang lưu...' : 'Tiếp tục'}
           </button>
         </footer>
       )}
-
-      {submitting && isOnTime && (
-        <p className="attendance-checkin__hint">Đang lưu điểm danh...</p>
-      )}
-    </div>
+    </form>
   )
 }

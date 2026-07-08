@@ -22,6 +22,8 @@ import {
   aggregateCustomerBranchSummaries,
   formatCustomerBranchStats,
 } from '../../utils/customerViewHelpers'
+import { exportCustomersCsv } from '../../utils/customerExport'
+import ExportActions from '../common/ExportActions'
 import '../erp/erp.css'
 import '../../pages/Customers.css'
 
@@ -136,6 +138,12 @@ export default function CustomersPageDrill() {
         title="Khách hàng"
         subtitle="CRM quản lý khách — drill-down: Tổng quan → Chi nhánh → Hồ sơ khách → Lịch sử dịch vụ."
         badge={{ value: customers.length, label: 'khách' }}
+        actions={(
+          <ExportActions
+            onExportExcel={() => exportCustomersCsv(filteredCustomers, branchScopedFilters)}
+            disabled={filteredCustomers.length === 0}
+          />
+        )}
       />
 
       {!isEmployee() && <ErpBreadcrumb items={breadcrumbItems} />}

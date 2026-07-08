@@ -6,16 +6,11 @@ import AttendanceMonthMatrix from '../components/attendance/AttendanceMonthMatri
 import ErpFilterBar from '../components/erp/ErpFilterBar'
 import ErpKpiGrid from '../components/erp/ErpKpiGrid'
 import ErpPageHeader from '../components/erp/ErpPageHeader'
-import {
-  canAccessAttendancePage,
-  canEditAttendance,
-  canSelectBranch,
-  getCurrentUserBranch,
-  isAdmin,
-  isEmployee,
-} from '../constants/auth'
+import { ATTENDANCE_STATUS_OPTIONS, getAttendancePermitLabel, getAttendanceStatusLabel } from '../constants/attendanceTypes'
+import { canAccessAttendancePage, canEditAttendance, canExportReport, canSelectBranch, getCurrentUserBranch, isAdmin, isEmployee } from '../constants/auth'
 import { getActiveBranches } from '../constants/branches'
-import { getAttendancePermitLabel, getAttendanceStatusLabel } from '../constants/attendanceTypes'
+import ExportActions from '../components/common/ExportActions'
+import { exportAttendanceCsv } from '../utils/attendanceExport'
 import { isEmployeeLoginEligible, loadEmployees } from '../utils/employeeStorage'
 import { formatCurrency } from '../utils/invoice'
 import { getTodayDate } from '../utils/invoiceStorage'
@@ -60,6 +55,7 @@ function AttendanceRecordsTable({
             <th>Nhân viên</th>
             <th>Trạng thái</th>
             <th>Có phép / Không phép</th>
+            <th>Lý do</th>
             <th>Số tiền phạt</th>
             <th>Ghi chú</th>
             <th>Người cập nhật</th>
@@ -70,7 +66,7 @@ function AttendanceRecordsTable({
         <tbody>
           {rows.length === 0 && (
             <tr>
-              <td colSpan={10} className="attendance-page__empty">{emptyMessage}</td>
+              <td colSpan={11} className="attendance-page__empty">{emptyMessage}</td>
             </tr>
           )}
           {rows.map((row) => (
@@ -80,8 +76,9 @@ function AttendanceRecordsTable({
               <td>{row.employeeName}</td>
               <td>{row.record ? getAttendanceStatusLabel(row.status) : (row.statusLabel ?? 'Chưa chấm công')}</td>
               <td>{row.record ? getAttendancePermitLabel(row.status) : '—'}</td>
+              <td>{row.reason || '—'}</td>
               <td className="is-money">{formatCurrency(row.penaltyAmount ?? 0)}</td>
-              <td>{row.note || row.reason || '—'}</td>
+              <td>{row.note || '—'}</td>
               <td>{row.submittedBy || '—'}</td>
               <td>{formatDateTime(row.updatedAt || row.submittedAt)}</td>
               <td>
@@ -126,11 +123,14 @@ export default function Attendance() {
 
 function AttendancePage() {
   const syncVersion = useDataSyncVersion()
-  const [screen, setScreen] = useState('today')
+  const [screen, setScreen] = useState('records')
   const [todayDate, setTodayDate] = useState('')
   const [month, setMonth] = useState(() => getTodayDate().slice(0, 7))
+  const [fromDate, setFromDate] = useState(() => `${getTodayDate().slice(0, 7)}-01`)
+  const [toDate, setToDate] = useState(() => getTodayDate())
   const [branchId, setBranchId] = useState(isAdmin() ? '' : getCurrentUserBranch())
   const [employeeId, setEmployeeId] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [editingRecord, setEditingRecord] = useState(null)
   const [creating, setCreating] = useState(false)
 
@@ -152,20 +152,32 @@ function AttendancePage() {
   }, [month])
 
   const filters = useMemo(() => {
+    const scopedBranch = canSelectBranch() ? branchId : getCurrentUserBranch()
     if (screen === 'today') {
       return {
         date: todayDate || getTodayDate(),
-        branchId: canSelectBranch() ? branchId : getCurrentUserBranch(),
+        branchId: scopedBranch,
         employeeId,
+        status: statusFilter,
+      }
+    }
+    if (screen === 'month') {
+      return {
+        fromDate: monthRange.fromDate,
+        toDate: monthRange.toDate,
+        branchId: scopedBranch,
+        employeeId,
+        status: statusFilter,
       }
     }
     return {
-      fromDate: monthRange.fromDate,
-      toDate: monthRange.toDate,
-      branchId: canSelectBranch() ? branchId : getCurrentUserBranch(),
+      fromDate,
+      toDate,
+      branchId: scopedBranch,
       employeeId,
+      status: statusFilter,
     }
-  }, [screen, todayDate, monthRange, branchId, employeeId])
+  }, [screen, todayDate, monthRange, fromDate, toDate, branchId, employeeId, statusFilter])
 
   const { records, loading, error, reload } = useAttendanceData(filters)
 
@@ -189,7 +201,7 @@ function AttendancePage() {
   }, [screen, todayDate, employees, records])
 
   const monthRows = useMemo(() => {
-    if (screen !== 'month') return []
+    if (screen === 'today') return []
     return [...records]
       .sort((a, b) => {
         const dateCompare = String(b.date).localeCompare(String(a.date))
@@ -224,26 +236,67 @@ function AttendancePage() {
     { label: 'Tổng phạt', value: formatCurrency(stats.totalPenalty), tone: 'penalty' },
   ], [stats])
 
+  const handleExport = () => {
+    if (!canExportReport()) return
+    exportAttendanceCsv(records, filters)
+  }
+
+  const applyMonthRange = () => {
+    setFromDate(`${month}-01`)
+    const [yearStr, monthStr] = month.split('-')
+    const lastDay = new Date(Number(yearStr), Number(monthStr), 0).getDate()
+    setToDate(`${month}-${String(lastDay).padStart(2, '0')}`)
+  }
+
   return (
     <div className="attendance-page erp-page">
       <ErpPageHeader
         title="Chấm công"
         subtitle="Điểm danh realtime — lọc theo ngày, tháng, chi nhánh và nhân viên."
         badge={{ value: todayDate ? formatDate(todayDate) : '…', label: 'Hôm nay' }}
+        actions={<ExportActions onExportExcel={handleExport} disabled={loading || records.length === 0} />}
       />
 
       <ErpFilterBar>
         <label>
           Tháng
-          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => {
+              setMonth(e.target.value)
+              if (screen === 'records') {
+                const nextMonth = e.target.value
+                setFromDate(`${nextMonth}-01`)
+                const [y, m] = nextMonth.split('-')
+                const lastDay = new Date(Number(y), Number(m), 0).getDate()
+                setToDate(`${nextMonth}-${String(lastDay).padStart(2, '0')}`)
+              }
+            }}
+          />
         </label>
+        {screen === 'records' && (
+          <>
+            <label>
+              Từ ngày
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            </label>
+            <label>
+              Đến ngày
+              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+            </label>
+          </>
+        )}
       </ErpFilterBar>
 
       <nav className="attendance-page__tabs">
+        <button type="button" className={screen === 'records' ? 'is-active' : ''} onClick={() => setScreen('records')}>
+          Toàn hệ thống
+        </button>
         <button type="button" className={screen === 'today' ? 'is-active' : ''} onClick={() => setScreen('today')}>
           Theo ngày
         </button>
-        <button type="button" className={screen === 'month' ? 'is-active' : ''} onClick={() => setScreen('month')}>
+        <button type="button" className={screen === 'month' ? 'is-active' : ''} onClick={() => { setScreen('month'); applyMonthRange() }}>
           Theo tháng
         </button>
       </nav>
@@ -266,6 +319,15 @@ function AttendancePage() {
             <option value="">Tất cả</option>
             {employees.map((employee) => (
               <option key={employee.id} value={employee.id}>{employee.name}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Trạng thái</span>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">Tất cả</option>
+            {ATTENDANCE_STATUS_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>{option.label}</option>
             ))}
           </select>
         </label>
@@ -302,17 +364,21 @@ function AttendancePage() {
         />
       )}
 
-      {!loading && screen === 'month' && (
+      {!loading && (screen === 'month' || screen === 'records') && (
         <>
           <AttendanceRecordsTable
             rows={monthRows}
-            emptyMessage="Chưa có bản ghi chấm công trong tháng này."
+            emptyMessage="Chưa có bản ghi chấm công trong phạm vi lọc."
             onEdit={setEditingRecord}
             onCreate={() => setCreating(true)}
             canEditRow={canEditAttendance}
           />
-          <h2 className="erp-section-title">Ma trận tháng</h2>
-          <AttendanceMonthMatrix days={monthMatrix.days} rows={monthMatrix.rows} />
+          {screen === 'month' && (
+            <>
+              <h2 className="erp-section-title">Ma trận tháng</h2>
+              <AttendanceMonthMatrix days={monthMatrix.days} rows={monthMatrix.rows} />
+            </>
+          )}
         </>
       )}
 

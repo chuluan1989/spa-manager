@@ -2443,6 +2443,7 @@ test('employee attendance form: không còn prop onSkip', async () => {
   const formSource = fs.readFileSync(formPath, 'utf8')
   const landingSource = fs.readFileSync(landingPath, 'utf8')
 
+  assert.match(formSource, /Tiếp tục/)
   assert.doesNotMatch(formSource, /onSkip/)
   assert.doesNotMatch(formSource, /Bỏ qua/)
   assert.doesNotMatch(landingSource, /Bỏ qua/)

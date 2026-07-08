@@ -1,5 +1,6 @@
 import BranchBanner from '../common/BranchBanner'
 import { canSelectBranch } from '../../constants/auth'
+import ExportActions from '../common/ExportActions'
 import { loadBranches } from '../../constants/branches'
 import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../../utils/employeeStorage'
 import { getMonthStartDate, getTodayDate } from '../../utils/invoiceStorage'
@@ -9,6 +10,7 @@ export default function InvoiceFilters({
   filters,
   onChange,
   onReset,
+  onExport,
   lockedBranch = false,
   branchName = '',
   resultCount = 0,
@@ -127,6 +129,7 @@ export default function InvoiceFilters({
         <button type="button" className="invoice-filters__reset" onClick={onReset}>
           Xóa bộ lọc
         </button>
+        {onExport && <ExportActions onExportExcel={onExport} className="invoice-filters__export" />}
       </div>
     </section>
   )

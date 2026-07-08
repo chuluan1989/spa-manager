@@ -4,6 +4,10 @@ import {
   recomputeMonthlyPenalties,
 } from './attendancePenalties'
 import { notifyDataSynced } from './dataSyncEvents'
+import { getBranchName } from './branchStorage'
+import { getEmployeeById } from './employeeStorage'
+import { upsertEmployee } from '../repositories/employeesRepository'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
 import {
   createAttendanceId,
   createAttendanceLogId,
@@ -14,6 +18,32 @@ import {
   insertAttendanceRecord,
   updateAttendanceRecord,
 } from '../repositories/attendanceRepository'
+
+function parseAttendanceError(error) {
+  const message = error?.message ?? String(error ?? '')
+  if (/Supabase chưa cấu hình/i.test(message)) {
+    return 'Hệ thống chưa kết nối máy chủ. Liên hệ quản trị viên.'
+  }
+  if (/duplicate key|unique constraint|đã điểm danh/i.test(message)) {
+    return 'Bạn đã điểm danh hôm nay. Không thể điểm danh lại.'
+  }
+  if (/foreign key|violates foreign key|employees|branches/i.test(message)) {
+    return 'Dữ liệu nhân viên/chi nhánh chưa đồng bộ. Vui lòng thử lại sau vài giây.'
+  }
+  if (/Failed to fetch|network|NetworkError/i.test(message)) {
+    return 'Mất kết nối mạng. Kiểm tra internet và thử lại.'
+  }
+  return message || 'Không thể lưu điểm danh. Vui lòng thử lại.'
+}
+
+async function ensureEmployeeSyncedForAttendance(employeeId) {
+  if (!isSupabaseConfigured || !employeeId) return
+  const employee = getEmployeeById(employeeId)
+  if (!employee) {
+    throw new Error('Không tìm thấy hồ sơ nhân viên. Liên hệ quản trị viên.')
+  }
+  await upsertEmployee(employee)
+}
 
 export async function getServerAttendanceDate() {
   const server = await fetchAttendanceServerDate()
@@ -38,32 +68,55 @@ export async function submitEmployeeAttendance({
   note = '',
   submittedBy,
 }) {
-  const { date, timestamp } = await getServerAttendanceDate()
-  const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
-  if (existing) {
-    throw new Error('Bạn đã điểm danh hôm nay. Không thể điểm danh lại.')
+  if (!isSupabaseConfigured) {
+    throw new Error('Hệ thống chưa kết nối máy chủ. Liên hệ quản trị viên.')
+  }
+  if (!employeeId) {
+    throw new Error('Không xác định được nhân viên.')
+  }
+  if (!branchId) {
+    throw new Error('Không xác định được chi nhánh.')
   }
 
-  const monthPrefix = getMonthPrefixFromDate(date)
-  const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
-  const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+  try {
+    await ensureEmployeeSyncedForAttendance(employeeId)
+  } catch (err) {
+    throw new Error(parseAttendanceError(err))
+  }
 
-  const saved = await insertAttendanceRecord({
-    id: createAttendanceId(),
-    date,
-    branchId,
-    employeeId,
-    employeeName,
-    status,
-    reason: reason.trim(),
-    note: note.trim(),
-    penaltyAmount,
-    submittedAt: timestamp || new Date().toISOString(),
-    submittedBy,
-    createdBy: submittedBy,
-  })
-  notifyDataSynced(['attendance'])
-  return saved
+  const branchName = getBranchName(branchId)
+
+  try {
+    const { date, timestamp } = await getServerAttendanceDate()
+    const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
+    if (existing) {
+      throw new Error('Bạn đã điểm danh hôm nay. Không thể điểm danh lại.')
+    }
+
+    const monthPrefix = getMonthPrefixFromDate(date)
+    const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
+    const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+
+    const saved = await insertAttendanceRecord({
+      id: createAttendanceId(),
+      date,
+      branchId,
+      branchName,
+      employeeId,
+      employeeName,
+      status,
+      reason: reason.trim(),
+      note: note.trim(),
+      penaltyAmount,
+      submittedAt: timestamp || new Date().toISOString(),
+      submittedBy,
+      createdBy: submittedBy,
+    })
+    notifyDataSynced(['attendance'])
+    return saved
+  } catch (err) {
+    throw new Error(parseAttendanceError(err))
+  }
 }
 
 function buildEditLogs(attendanceId, editor, changes, editNote = '') {
@@ -102,6 +155,7 @@ export async function adminCreateAttendance({
     id: createAttendanceId(),
     date,
     branchId,
+    branchName: getBranchName(branchId),
     employeeId,
     employeeName,
     status,

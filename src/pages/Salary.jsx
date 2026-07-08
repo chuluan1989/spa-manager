@@ -29,6 +29,8 @@ import {
 } from '../utils/payrollService'
 import { aggregateBranchSummaries, mergeEmployeePayrollRows } from '../utils/payrollViewHelpers'
 import { getCurrentMonthValue } from '../utils/salaryReport'
+import { exportPayrollCsv, exportPayrollPdf } from '../utils/salaryExport'
+import ExportActions from '../components/common/ExportActions'
 import './Salary.css'
 
 const LEVEL = {
@@ -320,6 +322,18 @@ function SalaryPage() {
             </select>
           </label>
         )}
+        <ExportActions
+          onExportExcel={() => exportPayrollCsv(
+            level === LEVEL.EMPLOYEES ? employeeRows : report.rows,
+            month,
+            fetchBranchId,
+          )}
+          onExportPdf={() => exportPayrollPdf(
+            level === LEVEL.EMPLOYEES ? employeeRows : report.rows,
+            month,
+          )}
+          disabled={(level === LEVEL.EMPLOYEES ? employeeRows : report.rows).length === 0}
+        />
       </div>
 
       {loading && <p className="salary-page__loading">Đang tải dữ liệu lương…</p>}

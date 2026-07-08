@@ -26,6 +26,8 @@ import {
 } from '../utils/employeeStorage'
 import { redactEmployeeForViewer } from '../utils/employeeVisibility'
 import { formatCurrency } from '../utils/invoice'
+import { exportEmployeeListCsv } from '../utils/employeeListExport'
+import ExportActions from '../components/common/ExportActions'
 import { getCurrentMonthValue } from '../utils/salaryReport'
 import EmployeeHubDetail from '../components/employees/EmployeeHubDetail'
 import EmployeeHubSettings from '../components/employees/EmployeeHubSettings'
@@ -175,6 +177,10 @@ export default function EmployeeHub({ adminMode = false }) {
             >
               Theo dõi hồ sơ
             </button>
+            <ExportActions
+              onExportExcel={() => exportEmployeeListCsv(filteredEmployees, statsMap, month)}
+              disabled={filteredEmployees.length === 0}
+            />
           </>
         )}
       />

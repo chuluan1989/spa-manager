@@ -48,6 +48,7 @@ export async function fetchAttendanceFiltered({
   branchId = '',
   employeeId = '',
   date = '',
+  status = '',
 } = {}) {
   if (!isSupabaseConfigured) return []
 
@@ -62,6 +63,7 @@ export async function fetchAttendanceFiltered({
   if (toDate) query = query.lte('date', toDate)
   if (branchId) query = query.eq('branch_id', branchId)
   if (employeeId) query = query.eq('employee_id', employeeId)
+  if (status) query = query.eq('status', status)
 
   const { data, error } = await query
   if (error) throw error

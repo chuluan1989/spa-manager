@@ -113,8 +113,30 @@
   font-size: 14px;
 }
 
-.attendance-checkin__error {
+.attendance-checkin__error-block {
   margin: 0 24px 12px;
+}
+
+.attendance-checkin__retry {
+  margin-top: 8px;
+  padding: 8px 14px;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.attendance-checkin__retry:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.attendance-checkin__error {
+  margin: 0;
   padding: 10px 12px;
   border-radius: 10px;
   background: #fef2f2;

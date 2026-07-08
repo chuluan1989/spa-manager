@@ -56,6 +56,7 @@ import {
   sanitizeCustomerPhoneInput,
 } from '../utils/validators'
 import { consumeInvoiceEditPrefill } from '../utils/navigationPrefill'
+import { exportInvoicesCsv } from '../utils/invoiceExport'
 import { getCatalogGroupsForBranch } from '../utils/branchPricingStorage'
 import './Invoice.css'
 
@@ -493,6 +494,7 @@ export default function Invoice() {
             filters={effectiveListFilters}
             onChange={setListFilters}
             onReset={resetListFilters}
+            onExport={() => exportInvoicesCsv(filteredInvoices, effectiveListFilters)}
             lockedBranch={lockedBranch}
             branchName={activeBranchName}
             resultCount={filteredInvoices.length}
