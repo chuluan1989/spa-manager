@@ -1,23 +1,13 @@
-export default function PayrollBreadcrumb({ items, onNavigate }) {
-  if (!items?.length) return null
+import ErpBreadcrumb from '../erp/ErpBreadcrumb'
 
-  return (
-    <nav className="salary-breadcrumb" aria-label="Điều hướng lương">
-      {items.map((item, index) => {
-        const isLast = index === items.length - 1
-        return (
-          <span key={item.id} className="salary-breadcrumb__item">
-            {index > 0 && <span className="salary-breadcrumb__sep">›</span>}
-            {isLast || !item.level ? (
-              <span className="salary-breadcrumb__current">{item.label}</span>
-            ) : (
-              <button type="button" onClick={() => onNavigate?.(item.level, item.meta)}>
-                {item.label}
-              </button>
-            )}
-          </span>
-        )
-      })}
-    </nav>
-  )
+/** @deprecated Use ErpBreadcrumb — kept for backward compatibility */
+export default function PayrollBreadcrumb(props) {
+  const items = (props.items ?? []).map((item) => ({
+    id: item.id,
+    label: item.label,
+    onClick: item.level
+      ? () => props.onNavigate?.(item.level, item.meta)
+      : undefined,
+  }))
+  return <ErpBreadcrumb items={items} onNavigate={(item) => item.onClick?.()} />
 }

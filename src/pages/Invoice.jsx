@@ -20,8 +20,7 @@ import {
 } from '../utils/employeeStorage'
 import { getActiveServicesForBranch } from '../utils/serviceStorage'
 import InvoiceDetailModal from '../components/invoice/InvoiceDetailModal'
-import InvoiceFilters from '../components/invoice/InvoiceFilters'
-import InvoiceList from '../components/invoice/InvoiceList'
+import InvoiceDrillList from '../components/invoice/InvoiceDrillList'
 import InvoiceSummary from '../components/invoice/InvoiceSummary'
 import ServiceDetailTable from '../components/invoice/ServiceDetailTable'
 import {
@@ -30,11 +29,6 @@ import {
   getInvoiceServiceDetails,
   getSelectedServiceDetails,
 } from '../utils/invoice'
-import {
-  filterInvoices,
-  hasActiveInvoiceFilters,
-  sortInvoicesDesc,
-} from '../utils/invoiceFilters'
 import {
   createInvoiceId,
   deleteInvoice,
@@ -122,11 +116,6 @@ export default function Invoice() {
       branchId: lockedBranch ? getCurrentUserBranch() : listFilters.branchId,
     }),
     [listFilters, lockedBranch],
-  )
-
-  const filteredInvoices = useMemo(
-    () => sortInvoicesDesc(filterInvoices(visibleInvoices, effectiveListFilters)),
-    [visibleInvoices, effectiveListFilters],
   )
 
   const filterServiceOptions = useMemo(() => {
@@ -426,10 +415,6 @@ export default function Invoice() {
     setListPage(1)
   }
 
-  const listEmptyMessage = hasActiveInvoiceFilters(effectiveListFilters)
-    ? 'Không có hóa đơn phù hợp với bộ lọc.'
-    : 'Chưa có hóa đơn nào.'
-
   return (
     <div className="invoice">
       {toast && <div className="invoice__toast">{toast}</div>}
@@ -459,29 +444,22 @@ export default function Invoice() {
       </div>
 
       {activeTab === 'list' && (
-        <>
-          <InvoiceFilters
-            filters={effectiveListFilters}
-            onChange={setListFilters}
-            onReset={resetListFilters}
-            lockedBranch={lockedBranch}
-            branchName={activeBranchName}
-            resultCount={filteredInvoices.length}
-            serviceOptions={filterServiceOptions}
-          />
-
-          <InvoiceList
-            invoices={filteredInvoices}
-            page={listPage}
-            onPageChange={setListPage}
-            onDelete={handleDelete}
-            onEdit={handleEdit}
-            onView={handleViewInvoice}
-            allowDelete={canDeleteInvoice()}
-            canEdit={(inv) => canEditInvoice(inv)}
-            emptyMessage={listEmptyMessage}
-          />
-        </>
+        <InvoiceDrillList
+          invoices={visibleInvoices}
+          filters={effectiveListFilters}
+          onChangeFilters={setListFilters}
+          onResetFilters={resetListFilters}
+          lockedBranch={lockedBranch}
+          branchName={activeBranchName}
+          serviceOptions={filterServiceOptions}
+          page={listPage}
+          onPageChange={setListPage}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          onView={handleViewInvoice}
+          allowDelete={canDeleteInvoice()}
+          canEdit={(inv) => canEditInvoice(inv)}
+        />
       )}
 
       {activeTab === 'create' && (

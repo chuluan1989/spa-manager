@@ -232,8 +232,8 @@ function SalaryPage() {
   )
 
   return (
-    <div className="salary-page">
-      <header className="salary-page__header">
+    <div className="salary-page erp-page">
+      <header className="salary-page__header erp-header">
         <div>
           <h1>Lương</h1>
           <p>Quản lý lương theo phân cấp — Hệ thống → Chi nhánh → Nhân viên → Chi tiết.</p>

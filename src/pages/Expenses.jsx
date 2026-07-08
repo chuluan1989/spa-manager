@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
+import ErpBreadcrumb from '../components/erp/ErpBreadcrumb'
+import ErpPageHeader from '../components/erp/ErpPageHeader'
 import ExpenseBranchDetail from '../components/expenses/ExpenseBranchDetail'
 import ExpenseBranchGrid from '../components/expenses/ExpenseBranchGrid'
 import ExpenseCategoryCards from '../components/expenses/ExpenseCategoryCards'
@@ -29,6 +31,7 @@ import {
   updateExpense,
 } from '../utils/expenseStorage'
 import { formatCurrency } from '../utils/invoice'
+import { getBranchName } from '../utils/branchStorage'
 import { getMonthStartDate, getTodayDate } from '../utils/invoiceStorage'
 import './Expenses.css'
 
@@ -167,22 +170,34 @@ export default function Expenses() {
   const canEdit = (expense) => canEditExpenseRecord(expense).allowed
   const canDelete = (expense) => canDeleteExpenseRecord(expense).allowed
 
+  const breadcrumbItems = useMemo(() => {
+    const items = [{ id: 'exp', label: 'Chi phí', onClick: () => { setScreen('overview'); setSelectedBranchId(''); setActiveCategoryId('') } }]
+    if (screen === 'overview' && isAdmin()) return items
+    if (selectedBranchId) {
+      items.push({ id: 'branch', label: getBranchName(selectedBranchId), onClick: () => setScreen('branch') })
+    }
+    if (screen === 'list') {
+      items.push({ id: 'list', label: 'Danh sách phiếu chi' })
+    }
+    return items
+  }, [screen, selectedBranchId])
+
   return (
-    <div className="expenses">
+    <div className="expenses erp-page">
       {toast && <div className="expenses__toast">{toast}</div>}
 
-      <header className="expenses__header">
-        <div>
-          <h2 className="expenses__title">Chi phí</h2>
-          <p className="expenses__subtitle">
-            Quản trị chi phí toàn hệ thống · Lợi nhuận dự kiến = Doanh thu tiền vé − Hoa hồng − Chi phí
-          </p>
-        </div>
-        <button type="button" className="expenses__add-btn" onClick={openCreateForm}>
-          <Plus size={18} />
-          Thêm chi phí
-        </button>
-      </header>
+      <ErpPageHeader
+        title="Chi phí"
+        subtitle="Quản trị chi phí — Tổng quan → Chi nhánh → Danh mục → Phiếu chi."
+        actions={(
+          <button type="button" className="expenses__add-btn" onClick={openCreateForm}>
+            <Plus size={18} />
+            Thêm chi phí
+          </button>
+        )}
+      />
+
+      {isAdmin() && <ErpBreadcrumb items={breadcrumbItems} />}
 
       {error && <div className="expenses__alert">{error}</div>}
       {loading && <div className="expenses__loading">Đang tải dữ liệu chi phí...</div>}

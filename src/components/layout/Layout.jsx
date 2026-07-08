@@ -2,6 +2,7 @@ import AppHeader from './AppHeader'
 import Sidebar from './Sidebar'
 import { NAV_ITEMS } from '../../constants/navigation'
 import './Layout.css'
+import '../erp/erp.css'
 
 function getPageTitle(activeItem) {
   const item = NAV_ITEMS.find((nav) => nav.id === activeItem)

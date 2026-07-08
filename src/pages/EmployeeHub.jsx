@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Settings, Search, ChevronLeft } from 'lucide-react'
+import ErpBreadcrumb from '../components/erp/ErpBreadcrumb'
+import ErpPageHeader from '../components/erp/ErpPageHeader'
 import { getActiveBranches, getBranchById } from '../constants/branches'
 import {
   canAccessEmployeesPage,
@@ -121,6 +123,20 @@ export default function EmployeeHub({ adminMode = false }) {
     reload()
   }
 
+  const breadcrumbItems = useMemo(() => {
+    const items = [{ id: 'emp', label: 'Nhân viên', onClick: () => { setSelectedBranchId(canSelectBranch() ? ALL_BRANCHES : getCurrentUserBranch()); setSelectedEmployeeId(''); setMobileView('branches') } }]
+    if (!selectedBranchId && canSelectBranch()) return items
+    items.push({
+      id: 'branch',
+      label: selectedBranchId ? (getBranchById(selectedBranchId)?.name ?? 'Chi nhánh') : 'Tất cả chi nhánh',
+      onClick: () => { setSelectedEmployeeId(''); setMobileView('list') },
+    })
+    if (selectedEmployee) {
+      items.push({ id: 'detail', label: selectedEmployee.name })
+    }
+    return items
+  }, [selectedBranchId, selectedEmployee])
+
   if (!allowed) {
     return (
       <div className="employee-hub employee-hub--denied">
@@ -130,35 +146,31 @@ export default function EmployeeHub({ adminMode = false }) {
   }
 
   return (
-    <div className="employee-hub">
+    <div className="employee-hub erp-page">
       {toast && <div className="employee-hub__toast">{toast}</div>}
 
-      <header className="employee-hub__header">
-        <div>
-          <h1 className="employee-hub__title">Nhân viên</h1>
-          <p className="employee-hub__subtitle">
-            {adminMode
-              ? 'Quản trị nhân sự theo chi nhánh — hồ sơ, doanh số và lương'
-              : 'Quản lý nhân viên chi nhánh — hồ sơ, doanh số và lương'}
-          </p>
-        </div>
-        <div className="employee-hub__header-actions">
-          <label className="employee-hub__month">
-            <span>Tháng</span>
-            <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
-          </label>
-          {showSettingsBtn && (
-            <button
-              type="button"
-              className="employee-hub__settings-btn"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings size={18} aria-hidden />
-              Cài đặt nhân viên
-            </button>
-          )}
-        </div>
-      </header>
+      <ErpPageHeader
+        title="Nhân viên"
+        subtitle={adminMode
+          ? 'Quản trị nhân sự — Chi nhánh → Danh sách → Hồ sơ → Lịch sử.'
+          : 'Quản lý nhân viên chi nhánh — drill-down hồ sơ & doanh số.'}
+        actions={(
+          <>
+            <label className="employee-hub__month">
+              <span>Tháng</span>
+              <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+            </label>
+            {showSettingsBtn && (
+              <button type="button" className="employee-hub__settings-btn" onClick={() => setSettingsOpen(true)}>
+                <Settings size={18} aria-hidden />
+                Cài đặt nhân viên
+              </button>
+            )}
+          </>
+        )}
+      />
+
+      <ErpBreadcrumb items={breadcrumbItems} />
 
       {error && <div className="employee-hub__error">{error}</div>}
 

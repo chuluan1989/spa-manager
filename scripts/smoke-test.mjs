@@ -1919,4 +1919,17 @@ test('payroll view helpers: branch drill-down aggregation', async () => {
   assert.equal(merged[0].employeeName, 'Lan')
 })
 
+test('customer view helpers: branch CRM aggregation', async () => {
+  const { aggregateCustomerBranchSummaries } = await import('../src/utils/customerViewHelpers.js')
+  const { CUSTOMER_SEGMENTS } = await import('../src/constants/customerTypes.js')
+
+  const branches = [{ id: 'b1', name: 'CN1' }]
+  const customers = [
+    { key: 'c1', branchIds: ['b1'], totalSpend: 1000000, totalTips: 50000, visitCount: 3, segment: CUSTOMER_SEGMENTS.VIP },
+  ]
+  const summaries = aggregateCustomerBranchSummaries(branches, customers)
+  assert.equal(summaries[0].employeeCount, 1)
+  assert.equal(summaries[0].vipCount, 1)
+})
+
 process.exit(failed > 0 ? 1 : 0)

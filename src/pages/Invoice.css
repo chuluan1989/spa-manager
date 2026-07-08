@@ -1,3 +1,58 @@
+.customers__quick-links {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.invoice-drill-emp {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.invoice-drill-emp__card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--ks-border, #eef0f3);
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.invoice-drill-emp__card:hover {
+  border-color: #d4af37;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .06);
+}
+
+.invoice-drill-emp__card strong {
+  font-size: 15px;
+}
+
+.invoice-drill-emp__card span {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.invoice-drill-emp__card div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.invoice-drill-emp__card small {
+  color: #6b7280;
+}
+
 .invoice__header {
   margin-bottom: 24px;
 }
