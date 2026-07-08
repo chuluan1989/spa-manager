@@ -68,7 +68,7 @@ function ImageUploadField({ label, value, onChange, onError, category, entityId 
         {value ? (
           <img src={value} alt={label} className="myprofile__image-preview" />
         ) : (
-          <div className="myprofile__image-placeholder">Chưa có ảnh</div>
+          <div className="myprofile__image-placeholder">Chưa cập nhật</div>
         )}
         <div className="employee-profile__avatar-actions">
           <label className="employee-profile__upload-btn">
@@ -152,15 +152,15 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
 
       {mandatory && (
         <div className="myprofile__banner">
-          Vui lòng cập nhật đầy đủ <strong>Họ tên</strong>, <strong>Số điện thoại</strong> và{' '}
-          <strong>Số CCCD</strong> để tiếp tục sử dụng hệ thống.
+          Chỉ cần <strong>Họ và tên</strong> và <strong>Số điện thoại</strong> để lưu hồ sơ.
+          Các thông tin khác có thể cập nhật sau. Vui lòng hoàn thiện hồ sơ trước 10/07.
         </div>
       )}
 
       <section className="myprofile__card">
         <h3 className="myprofile__card-title">Thông tin công việc</h3>
         <p className="myprofile__hint-block">
-          Các thông tin dưới đây chỉ Admin hoặc Quản lý chi nhánh mới có quyền chỉnh sửa.
+          Mã nhân viên, chi nhánh và trạng thái chỉ xem — không thể tự sửa.
         </p>
         <div className="employee-profile__grid">
           <Field label="Mã nhân viên">
@@ -168,12 +168,6 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
           </Field>
           <Field label="Chi nhánh">
             <div className="employee-profile__readonly">{getBranchName(employee.branchId)}</div>
-          </Field>
-          <Field label="Chức vụ">
-            <div className="employee-profile__readonly">{employee.position || '—'}</div>
-          </Field>
-          <Field label="Ngày vào làm">
-            <div className="employee-profile__readonly">{employee.startDate || '—'}</div>
           </Field>
           <Field label="Trạng thái">
             <div className="employee-profile__readonly">{getStatusLabel(employee.status)}</div>
@@ -211,6 +205,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
               type="date"
               value={form.dateOfBirth}
               onChange={(e) => updateField('dateOfBirth', e.target.value)}
+              placeholder="Chưa cập nhật"
             />
           </Field>
 
@@ -229,7 +224,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
               type="email"
               value={form.email}
               onChange={(e) => updateField('email', e.target.value)}
-              placeholder="Nhập email"
+              placeholder="Chưa cập nhật"
             />
           </Field>
         </div>
@@ -242,7 +237,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             <input
               value={form.cccd}
               onChange={(e) => updateField('cccd', e.target.value)}
-              placeholder="Nhập đúng 12 số"
+              placeholder="Chưa cập nhật"
               className={errors.cccd ? 'employee-profile__input--error' : ''}
             />
             {errors.cccd && <span className="employee-profile__error">{errors.cccd}</span>}
@@ -253,6 +248,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
               type="date"
               value={form.cccdIssueDate}
               onChange={(e) => updateField('cccdIssueDate', e.target.value)}
+              placeholder="Chưa cập nhật"
             />
           </Field>
 
@@ -260,7 +256,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             <input
               value={form.cccdIssuePlace}
               onChange={(e) => updateField('cccdIssuePlace', e.target.value)}
-              placeholder="Nhập nơi cấp CCCD"
+              placeholder="Chưa cập nhật"
             />
           </Field>
 
@@ -270,7 +266,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
               rows={3}
               value={form.cccdAddress}
               onChange={(e) => updateField('cccdAddress', e.target.value)}
-              placeholder="Nhập địa chỉ trên CCCD"
+              placeholder="Chưa cập nhật"
             />
           </Field>
         </div>
@@ -285,7 +281,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
               rows={3}
               value={form.currentAddress}
               onChange={(e) => updateField('currentAddress', e.target.value)}
-              placeholder="Nhập địa chỉ nơi ở hiện tại"
+              placeholder="Chưa cập nhật"
             />
           </Field>
 
@@ -293,7 +289,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             <input
               value={form.emergencyContactName}
               onChange={(e) => updateField('emergencyContactName', e.target.value)}
-              placeholder="Họ tên người liên hệ"
+              placeholder="Chưa cập nhật"
             />
           </Field>
 
@@ -301,7 +297,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             <input
               value={form.emergencyContactPhone}
               onChange={(e) => updateField('emergencyContactPhone', e.target.value)}
-              placeholder="Số điện thoại người liên hệ"
+              placeholder="Chưa cập nhật"
               className={errors.emergencyContactPhone ? 'employee-profile__input--error' : ''}
             />
             {errors.emergencyContactPhone && (
@@ -318,7 +314,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             <input
               value={form.bankName}
               onChange={(e) => updateField('bankName', e.target.value)}
-              placeholder="VD: Vietcombank"
+              placeholder="Chưa cập nhật"
             />
           </Field>
 
@@ -326,7 +322,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             <input
               value={form.bankAccountHolder}
               onChange={(e) => updateField('bankAccountHolder', e.target.value)}
-              placeholder="Tên chủ tài khoản"
+              placeholder="Chưa cập nhật"
             />
           </Field>
 
@@ -334,7 +330,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             <input
               value={form.bankAccount}
               onChange={(e) => updateField('bankAccount', e.target.value)}
-              placeholder="Nhập số tài khoản ngân hàng"
+              placeholder="Chưa cập nhật"
             />
           </Field>
         </div>

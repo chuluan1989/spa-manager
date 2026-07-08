@@ -525,9 +525,8 @@ export function updateEmployee(id, data) {
 
 /**
  * Nhân viên tự cập nhật hồ sơ cá nhân của chính mình. Chỉ được đổi các
- * trường trong EMPLOYEE_SELF_SERVICE_FIELDS — vai trò, chi nhánh, chức vụ,
- * ngày vào làm, trạng thái làm việc... không thể bị thay đổi qua đường này
- * dù dữ liệu gửi lên (qua code/browser) có cố tình chứa các trường đó.
+ * trường trong EMPLOYEE_SELF_SERVICE_FIELDS. Không đổi: mã NV, chi nhánh,
+ * chức vụ, ngày vào làm, trạng thái, vai trò (dù payload cố tình gửi lên).
  */
 export function updateOwnEmployeeProfile(id, data) {
   const user = getSessionUser()

@@ -1186,7 +1186,7 @@ test('employee self profile: employee updates own profile successfully', () => {
   clearCurrentUser()
 })
 
-test('employee self profile: rejects missing name/phone and invalid cccd', () => {
+test('employee self profile: chỉ bắt buộc họ tên + SĐT; CCCD được để trống', () => {
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
   const noPhone = updateOwnEmployeeProfile('vinh-long-linh', { name: 'Linh', phone: '' })
   assert.equal(noPhone.success, false)
@@ -1198,12 +1198,20 @@ test('employee self profile: rejects missing name/phone and invalid cccd', () =>
   })
   assert.equal(badCccd.success, false)
 
-  const missingCccd = updateOwnEmployeeProfile('vinh-long-linh', {
+  const namePhoneOnly = updateOwnEmployeeProfile('vinh-long-linh', {
     name: 'Linh',
     phone: '0901234567',
     cccd: '',
+    dateOfBirth: '',
+    currentAddress: '',
+    bankAccount: '',
+    bankName: '',
+    avatar: '',
+    cccdFrontImage: '',
+    cccdBackImage: '',
   })
-  assert.equal(missingCccd.success, false, 'CCCD nay la truong bat buoc')
+  assert.equal(namePhoneOnly.success, true, 'Chỉ cần họ tên + SĐT là lưu được')
+  assert.equal(namePhoneOnly.employee.cccd, '')
   clearCurrentUser()
 })
 
@@ -2682,7 +2690,10 @@ test('employee profile policy: banner, lock after deadline, and permissions', as
 
   assert.ok(computeProfileCompletionPercent(incomplete) < 100)
   assert.equal(getProfileComplianceFilterStatus(incomplete, '2026-07-05'), 'incomplete')
-  assert.match(getEmployeeProfileBannerMessage(incomplete, '2026-07-05'), /10\/07\/2026/)
+  assert.equal(
+    getEmployeeProfileBannerMessage(incomplete, '2026-07-05'),
+    'Vui lòng hoàn thiện hồ sơ trước 10/07.',
+  )
   assert.equal(isEmployeeProfileLocked(incomplete, '2026-07-05'), false)
   assert.equal(isEmployeeProfileLocked(incomplete, '2026-07-11'), true)
   assert.equal(isProfileDeadlinePassed('2026-07-11', '2026-01-01'), true)
