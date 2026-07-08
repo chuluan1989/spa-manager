@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { BRANCH_CONTACTS } from '../../constants/branchContacts'
+import { getBranchContactByBranchId } from '../../constants/branchContacts'
+import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import {
   getAccountList,
   updateAdminPassword,
@@ -101,9 +102,10 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
     ? accounts.filter((account) => account.branchId === branchFilter || account.id === 'admin')
     : accounts
 
-  const branchLabel = (branchId, index) => {
-    const contact = BRANCH_CONTACTS[index]
-    return contact ? `QL ${contact.label}` : `QL CN${index + 1}`
+  const branchLabel = (branch) => {
+    const contact = getBranchContactByBranchId(branch.id)
+    if (contact?.label) return `QL ${contact.label}`
+    return `QL ${getPayrollBranchDisplayTitle(branch.id, branch.name)}`
   }
 
   return (
@@ -184,7 +186,7 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
                 <th>Tính năng</th>
                 <th>Admin</th>
                 {branches.map((branch, index) => (
-                  <th key={branch.id}>{branchLabel(branch.id, index)}</th>
+                  <th key={branch.id}>{branchLabel(branch)}</th>
                 ))}
                 <th>Nhân viên</th>
               </tr>

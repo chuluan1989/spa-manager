@@ -505,12 +505,33 @@ test('branches: Gia Lai 1, 2 và 3 tồn tại với đúng nhóm bảng giá', 
   assert.equal(giaLai3.priceGroupId, PRICE_GROUP_IDS.STANDARD, 'Gia Lai 3 phải dùng nhóm bảng giá Khoẻ Spa')
 })
 
-test('branchContacts: đủ CN1 đến CN8', () => {
+test('branchContacts: map đúng theo branch_id, không theo index', async () => {
+  const { getBranchContactByBranchId } = await import('../src/constants/branchContacts.js')
+
   assert.equal(BRANCH_CONTACTS.length, 8)
-  const cn8 = BRANCH_CONTACTS.find((item) => item.label === 'CN8')
+  assert.equal(getBranchContactByBranchId('tram-spa')?.label, 'CN1')
+  assert.equal(getBranchContactByBranchId('soc-trang')?.label, 'CN2')
+  assert.equal(getBranchContactByBranchId('gia-lai-1')?.label, 'CN3')
+  assert.equal(getBranchContactByBranchId('vinh-long')?.label, 'CN4')
+  assert.equal(getBranchContactByBranchId('bac-lieu')?.label, 'CN5')
+  assert.equal(getBranchContactByBranchId('tra-vinh')?.label, 'CN6')
+  assert.equal(getBranchContactByBranchId('song-khoe-spa')?.label, 'CN7')
+
+  const cn8 = getBranchContactByBranchId('gia-lai-3')
   assert.ok(cn8, 'Phải có CN8')
   assert.match(cn8.address, /174 Tạ Quang Bửu/)
   assert.equal(cn8.phone, '0779.881.388')
+})
+
+test('branches: sort_order ổn định và matrix hiển thị đủ 9 chi nhánh', async () => {
+  const { loadBranches } = await import('../src/utils/branchStorage.js')
+  const { getMatrixBranches } = await import('../src/utils/permissionsStorage.js')
+
+  const branches = loadBranches()
+  assert.equal(branches.length, 9)
+  assert.equal(branches[0].id, 'tram-spa')
+  assert.equal(branches[3].id, 'vinh-long')
+  assert.equal(getMatrixBranches().length, 9)
 })
 
 test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh Gia Lai 1/2/3', async () => {

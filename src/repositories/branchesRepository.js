@@ -6,7 +6,11 @@ const TABLE = 'branches'
 /** Trả về `null` khi Supabase chưa cấu hình — gọi nơi khác phải tự fallback LocalStorage. */
 export async function fetchBranches() {
   if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase.from(TABLE).select('*').order('name', { ascending: true })
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true })
   if (error) throw error
   return rowsToCamel(data)
 }

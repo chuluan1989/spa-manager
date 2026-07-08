@@ -185,6 +185,26 @@ export async function syncEmployeeCredentialsFromEmployees() {
   return credentials
 }
 
+/** Đồng bộ credential một nhân viên sau khi đổi chi nhánh / tên. */
+export async function syncEmployeeCredentialForEmployee(employeeId) {
+  const employee = loadEmployees().find((item) => item.id === employeeId)
+  if (!employee || !isEmployeeLoginEligible(employee)) return null
+
+  const credentials = await ensureCredentialsHashed()
+  credentials.employees = credentials.employees ?? {}
+
+  const plainPassword = computeEmployeeDefaultPassword(
+    employee.name,
+    getBranchName(employee.branchId),
+  )
+  credentials.employees[employee.id] = {
+    branchId: employee.branchId,
+    name: employee.name,
+    password: await hashPassword(plainPassword),
+  }
+  return saveCredentials(credentials)
+}
+
 export async function updateAdminPassword(password) {
   const credentials = loadCredentials()
   credentials.admin = await hashPassword(password)

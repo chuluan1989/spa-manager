@@ -2,7 +2,7 @@ import { ROLES } from '../constants/roles'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { upsertBranchPermissions } from '../repositories/branchPermissionsRepository'
 import { upsertPermissions } from '../repositories/permissionsRepository'
-import { loadBranches } from './branchStorage'
+import { loadBranches, sortBranchesForDisplay } from './branchStorage'
 
 const STORAGE_KEY = 'spa-manager-permissions'
 const BRANCH_STORAGE_KEY = 'spa-manager-branch-permissions'
@@ -166,8 +166,12 @@ function defaultEmployeePermissionValue(permissionKey) {
   return (DEFAULT_PERMISSIONS[permissionKey] ?? []).includes(ROLES.EMPLOYEE)
 }
 
-export function getMatrixBranches(limit = 8) {
-  return loadBranches().slice(0, limit)
+export function getMatrixBranches() {
+  return loadBranches()
+}
+
+function getAllMatrixBranches() {
+  return sortBranchesForDisplay(loadBranches())
 }
 
 function normalizePermissions(data = {}) {
@@ -189,7 +193,7 @@ function normalizePermissions(data = {}) {
 }
 
 function normalizeBranchPermissions(data = {}) {
-  const branches = getMatrixBranches()
+  const branches = getAllMatrixBranches()
   const normalized = { ...data }
 
   for (const branch of branches) {

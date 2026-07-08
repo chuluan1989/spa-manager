@@ -32,7 +32,11 @@ export async function fetchEmployeesFiltered({ branchId } = {}) {
 
 export async function fetchEmployees() {
   if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase.from(TABLE).select('*')
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .order('branch_id', { ascending: true })
+    .order('name', { ascending: true })
   if (error) throw error
   return rowsToCamel(data)
 }

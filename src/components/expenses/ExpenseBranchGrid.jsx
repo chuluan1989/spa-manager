@@ -1,21 +1,23 @@
 import { getActiveBranches } from '../../constants/branches'
-import { BRANCH_CONTACTS } from '../../constants/branchContacts'
+import { getBranchContactByBranchId } from '../../constants/branchContacts'
+import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import { formatCurrency } from '../../utils/invoice'
 import './ExpenseModules.css'
 
-export function getBranchShortLabel(branch, index) {
-  return BRANCH_CONTACTS[index]?.label ?? branch.name
+export function getBranchShortLabel(branch) {
+  const contact = getBranchContactByBranchId(branch.id)
+  return contact?.label ?? getPayrollBranchDisplayTitle(branch.id, branch.name)
 }
 
 export default function ExpenseBranchGrid({ rows, onSelectBranch, activeBranchId = '' }) {
   const branches = getActiveBranches()
 
-  const mergedRows = branches.map((branch, index) => {
+  const mergedRows = branches.map((branch) => {
     const stats = rows.find((row) => row.branchId === branch.id)
     return {
       branchId: branch.id,
       branchName: branch.name,
-      shortLabel: getBranchShortLabel(branch, index),
+      shortLabel: getBranchShortLabel(branch),
       total: stats?.total ?? 0,
       count: stats?.count ?? 0,
       todayTotal: stats?.todayTotal ?? 0,

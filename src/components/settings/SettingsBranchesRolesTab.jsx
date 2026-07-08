@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react'
-import { BRANCH_CONTACTS } from '../../constants/branchContacts'
+import { getBranchContactByBranchId } from '../../constants/branchContacts'
+import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import { getPriceGroupsWithBranchLabels, PRICE_GROUPS } from '../../constants/priceGroups'
 import {
-  addBranch,
   BRANCH_STATUS,
   createBranchId,
-  getStatusLabel as getBranchStatusLabel,
-  loadBranches,
   updateBranch,
+  addBranch,
 } from '../../utils/branchStorage'
 import {
   assignBranchManager,
@@ -56,20 +55,18 @@ export default function SettingsBranchesRolesTab({ showToast, onDataChange }) {
     onDataChange?.()
   }
 
-  const getBranchContact = (index) => BRANCH_CONTACTS[index] ?? null
-
-  const openEdit = (branch, index) => {
-    const contact = getBranchContact(index)
+  const openEdit = (branch) => {
+    const contact = getBranchContactByBranchId(branch.id)
     setForm({
       name: branch.name,
       priceGroupId: branch.priceGroupId,
       status: branch.status,
       supportEnabled: branch.supportEnabled,
       password: '',
-      address: contact?.address ?? '',
-      hotline: contact?.phone ?? '',
+      address: branch.address || contact?.address || '',
+      hotline: branch.hotline || contact?.phone || '',
     })
-    setEditModal({ branch, index })
+    setEditModal({ branch })
   }
 
   const openPermissions = (branch) => {
@@ -101,6 +98,8 @@ export default function SettingsBranchesRolesTab({ showToast, onDataChange }) {
         priceGroupId: form.priceGroupId,
         status: form.status,
         supportEnabled: form.supportEnabled,
+        address: form.address,
+        hotline: form.hotline,
       })
       if (form.password?.trim()) {
         await updateBranchPassword(editModal.branch.id, form.password)
@@ -114,6 +113,8 @@ export default function SettingsBranchesRolesTab({ showToast, onDataChange }) {
         priceGroupId: form.priceGroupId,
         status: form.status,
         supportEnabled: form.supportEnabled,
+        address: form.address,
+        hotline: form.hotline,
       })
       await registerBranchCredential(id, form.password || `spa-${id}`)
       showToast('Đã thêm chi nhánh')
@@ -162,23 +163,25 @@ export default function SettingsBranchesRolesTab({ showToast, onDataChange }) {
           <h3 className="settings__card-title">Chi nhánh ({branches.length})</h3>
         </div>
         <div className="settings__branch-grid">
-          {branches.map((branch, index) => {
-            const contact = getBranchContact(index)
+          {branches.map((branch) => {
+            const contact = getBranchContactByBranchId(branch.id)
             const manager = managers[branch.id] || getAccountMeta(branch.id).managerName
+            const displayCode = contact?.label ?? getPayrollBranchDisplayTitle(branch.id, branch.name)
             return (
               <article key={branch.id} className="settings__branch-card">
                 <div className="settings__branch-card-head">
-                  <span className="settings__branch-code">{contact?.label ?? `CN${index + 1}`}</span>
+                  <span className="settings__branch-code">{displayCode}</span>
                   <span className={`settings__status settings__status--${branch.status === BRANCH_STATUS.ACTIVE ? 'active' : 'inactive'}`}>
                     {getBranchStatusLabel(branch.status)}
                   </span>
                 </div>
                 <h4 className="settings__branch-card-title">{branch.name}</h4>
-                <p className="settings__branch-card-meta">{contact?.address ?? '—'}</p>
-                <p className="settings__branch-card-meta">Hotline: {contact?.phone ?? '—'}</p>
+                <p className="settings__branch-card-meta">{branch.address || contact?.address || '—'}</p>
+                <p className="settings__branch-card-meta">Hotline: {branch.hotline || contact?.phone || '—'}</p>
+                <p className="settings__branch-card-meta">ID: {branch.id}</p>
                 <p className="settings__branch-card-meta">QL: {manager || 'Chưa gán'}</p>
                 <div className="settings__actions-cell">
-                  <button type="button" className="settings__btn settings__btn--small settings__btn--secondary" onClick={() => openEdit(branch, index)}>
+                  <button type="button" className="settings__btn settings__btn--small settings__btn--secondary" onClick={() => openEdit(branch)}>
                     Sửa
                   </button>
                   <button type="button" className="settings__btn settings__btn--small" onClick={() => openPermissions(branch)}>
@@ -230,6 +233,14 @@ export default function SettingsBranchesRolesTab({ showToast, onDataChange }) {
               <label className="settings__field settings__field--full">
                 <span>Tên chi nhánh</span>
                 <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </label>
+              <label className="settings__field settings__field--full">
+                <span>Địa chỉ</span>
+                <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              </label>
+              <label className="settings__field">
+                <span>Hotline</span>
+                <input value={form.hotline} onChange={(e) => setForm({ ...form, hotline: e.target.value })} />
               </label>
               <label className="settings__field">
                 <span>Nhóm giá</span>

@@ -98,14 +98,33 @@ export function updateBranchCommissionPolicy(branchId, patch) {
 
 export function applyRemoteCommissionPolicyMap(remoteMap) {
   if (!remoteMap || typeof remoteMap !== 'object') return loadCommissionPolicyMap()
+
+  let localRaw = {}
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) localRaw = JSON.parse(raw) ?? {}
+  } catch {
+    localRaw = {}
+  }
+
   const branchIds = loadBranches().map((branch) => branch.id)
   const defaults = buildDefaultCommissionPolicyMap(branchIds)
   const merged = { ...defaults }
 
   for (const branchId of branchIds) {
+    const localPolicy = localRaw[branchId]
+    const remotePolicy = remoteMap[branchId]
+    const localTime = Date.parse(localPolicy?.updatedAt ?? 0)
+    const remoteTime = Date.parse(remotePolicy?.updatedAt ?? 0)
+
+    let winner = remotePolicy
+    if (localPolicy && (!remotePolicy || localTime > remoteTime)) {
+      winner = localPolicy
+    }
+
     merged[branchId] = normalizeCommissionPolicy({
       ...defaults[branchId],
-      ...(remoteMap[branchId] ?? {}),
+      ...(winner ?? {}),
       branchId,
     })
   }

@@ -10,6 +10,7 @@ import {
 import { validateEmployeeSelfProfile } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteEmployeeRow, upsertEmployee } from '../repositories/employeesRepository'
+import { syncEmployeeCredentialForEmployee } from './credentialsStorage'
 
 import { appendEmployeeAuditLog, EMPLOYEE_AUDIT_ACTIONS } from './employeeAuditLog'
 import { canPermanentDeleteEmployee, PERMANENT_DELETE_BLOCKED_MESSAGE } from './employeeDeleteGuard'
@@ -496,6 +497,12 @@ export function updateEmployee(id, data) {
     return denyAccess(error.message)
   }
   pushEmployeeToSupabase(employees[index])
+
+  if (sanitized.branchId !== current.branchId || sanitized.name !== current.name) {
+    syncEmployeeCredentialForEmployee(id).catch((error) => {
+      console.warn('[Credentials] Không thể đồng bộ tài khoản nhân viên:', error?.message)
+    })
+  }
 
   if (sanitized.status !== current.status) {
     appendEmployeeAuditLog({

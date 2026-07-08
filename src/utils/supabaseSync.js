@@ -20,7 +20,7 @@ import { fetchBranchPermissions, upsertBranchPermissions } from '../repositories
 import { fetchAccountMetadata, upsertAccountMetadata } from '../repositories/accountMetadataRepository'
 import { fetchCommissionPolicyMap, upsertCommissionPolicyMap } from '../repositories/commissionPolicyRepository'
 
-import { loadBranches, normalizeBranch, saveBranches } from './branchStorage'
+import { loadBranches, normalizeBranch, saveBranches, sortBranchesForDisplay } from './branchStorage'
 import { loadEmployees, normalizeEmployee, saveEmployees } from './employeeStorage'
 import { loadInvoices, replaceAllInvoices } from './invoiceStorage'
 import { loadExpenses, normalizeExpense, saveExpenses } from './expenseStorage'
@@ -36,7 +36,7 @@ import {
   loadBranchServicePricesV2,
 } from './serviceCatalogV2Storage'
 import { loadBranchPricingMap, saveBranchPricingMap } from './branchPricingStorage'
-import { loadCredentials, saveCredentials } from './credentialsStorage'
+import { loadCredentials, saveCredentials, syncEmployeeCredentialsFromEmployees } from './credentialsStorage'
 import {
   collectPermissionsSnapshot,
   loadBranchPermissions,
@@ -159,7 +159,10 @@ export async function pullAllFromSupabase() {
           console.warn('[Supabase] Pull branches rỗng — giữ cache local')
           return
         }
-        saveBranches(data.map(normalizeBranch), CACHE_ONLY)
+        const merged = sortBranchesForDisplay(
+          mergeRemoteWithLocal(local, data).map(normalizeBranch),
+        )
+        saveBranches(merged, CACHE_ONLY)
       },
     },
     {
@@ -167,7 +170,12 @@ export async function pullAllFromSupabase() {
       fetch: fetchEmployees,
       apply: (data) => {
         const local = loadEmployees()
-        applyRemoteList(local, data, (merged) => saveEmployees(merged.map(normalizeEmployee)), 'employees')
+        applyRemoteList(local, data, (merged) => {
+          saveEmployees(merged.map(normalizeEmployee), CACHE_ONLY)
+          syncEmployeeCredentialsFromEmployees().catch((error) => {
+            console.warn('[Supabase] Không thể đồng bộ credential nhân viên:', error?.message)
+          })
+        }, 'employees')
       },
     },
     {
@@ -250,7 +258,19 @@ export async function pullAllFromSupabase() {
     {
       name: 'branchPermissions',
       fetch: fetchBranchPermissions,
-      apply: (data) => saveBranchPermissions(data, CACHE_ONLY),
+      apply: (data) => {
+        const local = loadBranchPermissions()
+        if (!shouldApplyRemoteMap(data, local)) {
+          console.warn('[Supabase] Pull branchPermissions rỗng — giữ cache local')
+          return
+        }
+        const merged = { ...local }
+        for (const [branchId, perms] of Object.entries(data ?? {})) {
+          if (!branchId || typeof perms !== 'object') continue
+          merged[branchId] = { ...(merged[branchId] ?? {}), ...perms }
+        }
+        saveBranchPermissions(merged, CACHE_ONLY)
+      },
     },
     {
       name: 'accountMetadata',

@@ -1,4 +1,6 @@
 import { PRICE_GROUP_IDS } from '../constants/priceGroupIds'
+import { getBranchContactByBranchId } from '../constants/branchContacts'
+import { getPayrollBranchSortOrder } from '../constants/branchPayrollDisplay'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { upsertBranches } from '../repositories/branchesRepository'
 
@@ -16,35 +18,71 @@ export const BRANCH_STATUS = {
 
 const STORAGE_KEY = 'spa-manager-branches'
 
-const DEFAULT_BRANCHES = [
-  { id: 'vinh-long', name: 'Vĩnh Long', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'tra-vinh', name: 'Trà Vinh', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'bac-lieu', name: 'Bạc Liêu', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'soc-trang', name: 'Sóc Trăng', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: true },
-  { id: 'tram-spa', name: 'Trạm Spa', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.TRAM_SPA, supportEnabled: true },
-  { id: 'song-khoe-spa', name: 'Sống Khoẻ Spa', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.SONG_KHOE_SPA, supportEnabled: true },
-  { id: 'gia-lai-1', name: 'Gia Lai 1', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'gia-lai-2', name: 'Gia Lai 2', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'gia-lai-3', name: 'Gia Lai 3', status: BRANCH_STATUS.ACTIVE, priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+const DEFAULT_BRANCH_DEFINITIONS = [
+  { id: 'tram-spa', name: 'Trạm Spa', priceGroupId: PRICE_GROUP_IDS.TRAM_SPA, supportEnabled: true },
+  { id: 'soc-trang', name: 'Sóc Trăng', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: true },
+  { id: 'gia-lai-1', name: 'Gia Lai 1', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+  { id: 'vinh-long', name: 'Vĩnh Long', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+  { id: 'bac-lieu', name: 'Bạc Liêu', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+  { id: 'tra-vinh', name: 'Trà Vinh', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+  { id: 'song-khoe-spa', name: 'Sống Khoẻ Spa', priceGroupId: PRICE_GROUP_IDS.SONG_KHOE_SPA, supportEnabled: true },
+  { id: 'gia-lai-3', name: 'Gia Lai 3', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
+  { id: 'gia-lai-2', name: 'Gia Lai 2', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
 ]
 
-export function normalizeBranch(branch) {
+function defaultContactFields(branchId) {
+  const contact = getBranchContactByBranchId(branchId)
   return {
-    id: branch.id,
-    name: branch.name?.trim() ?? '',
-    status: branch.status === BRANCH_STATUS.LOCKED ? BRANCH_STATUS.LOCKED : BRANCH_STATUS.ACTIVE,
-    priceGroupId: branch.priceGroupId ?? PRICE_GROUP_IDS.STANDARD,
-    supportEnabled: Boolean(branch.supportEnabled),
+    address: contact?.address ?? '',
+    hotline: contact?.phone ?? '',
   }
 }
 
+function buildDefaultBranch(definition) {
+  const contact = defaultContactFields(definition.id)
+  return normalizeBranch({
+    ...definition,
+    ...contact,
+    sortOrder: getPayrollBranchSortOrder(definition.id),
+    status: BRANCH_STATUS.ACTIVE,
+  })
+}
+
+const DEFAULT_BRANCHES = DEFAULT_BRANCH_DEFINITIONS.map(buildDefaultBranch)
+
+export function normalizeBranch(branch) {
+  const branchId = branch?.id ?? ''
+  const contact = defaultContactFields(branchId)
+  return {
+    id: branchId,
+    name: branch?.name?.trim() ?? '',
+    address: branch?.address?.trim() ?? contact.address,
+    hotline: branch?.hotline?.trim() ?? contact.hotline,
+    sortOrder: Number.isFinite(Number(branch?.sortOrder))
+      ? Number(branch.sortOrder)
+      : getPayrollBranchSortOrder(branchId),
+    status: branch?.status === BRANCH_STATUS.LOCKED ? BRANCH_STATUS.LOCKED : BRANCH_STATUS.ACTIVE,
+    priceGroupId: branch?.priceGroupId ?? PRICE_GROUP_IDS.STANDARD,
+    supportEnabled: Boolean(branch?.supportEnabled),
+    updatedAt: branch?.updatedAt ?? new Date().toISOString(),
+  }
+}
+
+export function sortBranchesForDisplay(branches) {
+  return [...branches].sort((a, b) => {
+    const orderDiff = (a.sortOrder ?? 99) - (b.sortOrder ?? 99)
+    if (orderDiff !== 0) return orderDiff
+    return (a.name ?? '').localeCompare(b.name ?? '', 'vi')
+  })
+}
+
 function seedDefaultBranches() {
-  const defaults = DEFAULT_BRANCHES.map(normalizeBranch)
+  const defaults = sortBranchesForDisplay(DEFAULT_BRANCHES.map(normalizeBranch))
   localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults))
   return defaults
 }
 
-export function loadBranches() {
+export function loadBranchesRaw() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return seedDefaultBranches()
@@ -52,25 +90,32 @@ export function loadBranches() {
     const data = JSON.parse(raw)
     if (!Array.isArray(data) || data.length === 0) return seedDefaultBranches()
 
-    const normalized = data.map(normalizeBranch)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-    return normalized
+    return sortBranchesForDisplay(data.map(normalizeBranch))
   } catch {
     return seedDefaultBranches()
   }
 }
 
+export function loadBranches() {
+  const normalized = loadBranchesRaw()
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+  return normalized
+}
+
 export function saveBranches(branches, { skipRemoteSync = false } = {}) {
-  const normalized = branches.map(normalizeBranch)
+  const normalized = sortBranchesForDisplay(
+    branches.map((branch) => normalizeBranch({
+      ...branch,
+      updatedAt: new Date().toISOString(),
+    })),
+  )
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   if (!skipRemoteSync) pushBranchesToSupabase(normalized)
   return normalized
 }
 
 /**
- * Bổ sung các chi nhánh mặc định mới (vd. khi hệ thống thêm chi nhánh mới
- * qua code) vào danh sách đã lưu trong localStorage của người dùng cũ,
- * mà không đụng tới hay xoá bất kỳ chi nhánh nào đã có sẵn.
+ * Bổ sung chi nhánh mặc định còn thiếu — không ghi đè chi nhánh đã có.
  */
 export function syncMissingDefaultBranches() {
   const branches = loadBranches()
@@ -78,7 +123,7 @@ export function syncMissingDefaultBranches() {
   const missing = DEFAULT_BRANCHES.filter((branch) => !existingIds.has(branch.id))
   if (missing.length === 0) return branches
 
-  const merged = [...branches, ...missing.map(normalizeBranch)]
+  const merged = sortBranchesForDisplay([...branches, ...missing.map(normalizeBranch)])
   saveBranches(merged)
   return merged
 }
@@ -143,6 +188,9 @@ export function addBranch(data) {
   const branch = normalizeBranch({
     id: data.id || createBranchId(data.name),
     name: data.name,
+    address: data.address,
+    hotline: data.hotline,
+    sortOrder: data.sortOrder ?? branches.length + 1,
     status: data.status ?? BRANCH_STATUS.ACTIVE,
     priceGroupId: data.priceGroupId ?? PRICE_GROUP_IDS.STANDARD,
     supportEnabled: data.supportEnabled ?? false,
@@ -159,6 +207,9 @@ export function updateBranch(id, data) {
 
   const current = branches[index]
   if (data.name !== undefined) current.name = data.name?.trim() ?? current.name
+  if (data.address !== undefined) current.address = data.address?.trim() ?? ''
+  if (data.hotline !== undefined) current.hotline = data.hotline?.trim() ?? ''
+  if (data.sortOrder !== undefined) current.sortOrder = Number(data.sortOrder) || current.sortOrder
   if (data.status !== undefined) {
     current.status = data.status === BRANCH_STATUS.LOCKED
       ? BRANCH_STATUS.LOCKED
@@ -167,7 +218,7 @@ export function updateBranch(id, data) {
   if (data.priceGroupId !== undefined) current.priceGroupId = data.priceGroupId
   if (data.supportEnabled !== undefined) current.supportEnabled = Boolean(data.supportEnabled)
 
-  branches[index] = normalizeBranch(current)
+  branches[index] = normalizeBranch({ ...current, updatedAt: new Date().toISOString() })
   saveBranches(branches)
   return branches[index]
 }
