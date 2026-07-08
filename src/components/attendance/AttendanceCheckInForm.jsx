@@ -6,7 +6,7 @@ import { getTodayDate } from '../../utils/invoiceStorage'
 import { submitEmployeeAttendance } from '../../utils/attendanceService'
 import './AttendanceCheckInModal.css'
 
-export default function AttendanceCheckInForm({ onSuccess, onSkip }) {
+export default function AttendanceCheckInForm({ onSuccess }) {
   const employeeId = getCurrentUserEmployeeId()
   const employee = getEmployeeById(employeeId)
   const [status, setStatus] = useState('')
@@ -129,13 +129,6 @@ export default function AttendanceCheckInForm({ onSuccess, onSkip }) {
       {error && (
         <div className="attendance-checkin__error-block" role="alert">
           <p className="attendance-checkin__error">{error}</p>
-          <button
-            type="button"
-            className="attendance-checkin__skip"
-            onClick={() => onSkip?.()}
-          >
-            Bỏ qua và vào Hóa đơn
-          </button>
         </div>
       )}
 

@@ -81,6 +81,7 @@ export async function insertAttendanceRecord(record) {
   }
   const row = objectToSnakeRow({
     ...record,
+    createdBy: record.createdBy ?? record.submittedBy ?? '',
     submittedAt: record.submittedAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   })

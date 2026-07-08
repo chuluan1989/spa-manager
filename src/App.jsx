@@ -43,13 +43,6 @@ import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { repairBranchIdReferences } from './utils/branchIdIntegrity'
 import { getEmployeeById, syncMissingDefaultEmployees } from './utils/employeeStorage'
-import {
-  clearEmployeeAttendanceGate,
-  hasPassedEmployeeAttendanceGate,
-  markEmployeeAttendanceGatePassed,
-} from './utils/employeeAttendanceGate'
-import { hasCheckedInToday } from './utils/attendanceService'
-import { getTodayDate } from './utils/invoiceStorage'
 import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
@@ -117,33 +110,10 @@ function App() {
     if (currentUser.role !== ROLES.EMPLOYEE) {
       setAttendanceGatePassed(true)
       setAttendanceCheckReady(true)
-      return undefined
+      return
     }
-
-    let cancelled = false
-    async function checkTodayAttendance() {
-      setAttendanceCheckReady(false)
-      try {
-        const checkedIn = await hasCheckedInToday(currentUser.employeeId)
-        const passedSession = hasPassedEmployeeAttendanceGate(currentUser.employeeId, getTodayDate())
-        if (!cancelled) {
-          const passed = checkedIn || passedSession
-          setAttendanceGatePassed(passed)
-          if (passed) setActivePage('invoices')
-        }
-      } catch {
-        if (!cancelled) {
-          setAttendanceGatePassed(hasPassedEmployeeAttendanceGate(currentUser.employeeId, getTodayDate()))
-        }
-      } finally {
-        if (!cancelled) setAttendanceCheckReady(true)
-      }
-    }
-
-    checkTodayAttendance()
-    return () => {
-      cancelled = true
-    }
+    setAttendanceGatePassed(false)
+    setAttendanceCheckReady(true)
   }, [authReady, currentUser])
 
   useEffect(() => {
@@ -201,8 +171,7 @@ function App() {
           setCurrentUser(user)
           if (user.role === ROLES.EMPLOYEE) {
             setAttendanceGatePassed(false)
-            setAttendanceCheckReady(false)
-            setActivePage('invoices')
+            setAttendanceCheckReady(true)
           } else {
             setAttendanceGatePassed(true)
             setAttendanceCheckReady(true)
@@ -214,8 +183,6 @@ function App() {
   }
 
   const completeAttendanceGate = () => {
-    const employeeId = getCurrentUserEmployeeId()
-    markEmployeeAttendanceGatePassed(employeeId, getTodayDate())
     setAttendanceGatePassed(true)
     setActivePage('invoices')
   }
@@ -238,9 +205,6 @@ function App() {
   }
 
   const handleLogout = () => {
-    if (currentUser?.employeeId) {
-      clearEmployeeAttendanceGate(currentUser.employeeId)
-    }
     clearCurrentUser()
     setCurrentUser(null)
     setAttendanceGatePassed(true)

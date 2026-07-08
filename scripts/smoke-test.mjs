@@ -2345,22 +2345,49 @@ test('live payroll: attendance stats, tips breakdown, payment summary', async ()
   assert.ok(wallet.some((e) => e.source === 'attendance'))
 })
 
-test('employee attendance gate: đăng nhập xong vào Hóa đơn, không kẹt màn hình', async () => {
-  const {
-    hasPassedEmployeeAttendanceGate,
-    markEmployeeAttendanceGatePassed,
-    clearEmployeeAttendanceGate,
-  } = await import('../src/utils/employeeAttendanceGate.js')
+test('employee attendance flow: Supabase-only, không bypass session', async () => {
+  const { hasCheckedInToday, submitEmployeeAttendance } = await import('../src/utils/attendanceService.js')
+  const { calculatePenaltyForNewRecord } = await import('../src/utils/attendancePenalties.js')
+  const { ATTENDANCE_STATUS } = await import('../src/constants/attendanceTypes.js')
+  const { computeAttendanceStats } = await import('../src/utils/payrollLiveHelpers.js')
 
-  clearEmployeeAttendanceGate('emp-a')
-  assert.equal(hasPassedEmployeeAttendanceGate('emp-a', '2026-07-08'), false)
+  assert.equal(await hasCheckedInToday('emp-a'), false, 'Chưa cấu hình Supabase → chưa có bản ghi')
 
-  markEmployeeAttendanceGatePassed('emp-a', '2026-07-08')
-  assert.equal(hasPassedEmployeeAttendanceGate('emp-a', '2026-07-08'), true)
-  assert.equal(hasPassedEmployeeAttendanceGate('emp-a', '2026-07-09'), false, 'Ngày mới phải điểm danh lại')
+  await assert.rejects(
+    () => submitEmployeeAttendance({
+      employeeId: 'emp-a',
+      employeeName: 'Lan',
+      branchId: 'vinh-long',
+      status: ATTENDANCE_STATUS.ON_TIME,
+      submittedBy: 'Lan',
+    }),
+    /Supabase/,
+    'Phải lưu Supabase — không bypass LocalStorage',
+  )
 
-  clearEmployeeAttendanceGate('emp-a')
-  assert.equal(hasPassedEmployeeAttendanceGate('emp-a', '2026-07-08'), false)
+  const penalty = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.ON_TIME, [], '2026-07-08')
+  assert.equal(penalty, 0, 'Đi làm đúng giờ → phạt = 0')
+
+  const stats = computeAttendanceStats([
+    { employeeId: 'e1', status: ATTENDANCE_STATUS.ON_TIME, penaltyAmount: 0, date: '2026-07-08' },
+  ], 'e1')
+  assert.equal(stats.workDays, 1)
+  assert.equal(stats.penaltyAmount, 0)
+})
+
+test('employee attendance form: không còn prop onSkip', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const formPath = path.join(process.cwd(), 'src/components/attendance/AttendanceCheckInForm.jsx')
+  const landingPath = path.join(process.cwd(), 'src/components/attendance/EmployeeAttendanceLanding.jsx')
+  const formSource = fs.readFileSync(formPath, 'utf8')
+  const landingSource = fs.readFileSync(landingPath, 'utf8')
+
+  assert.doesNotMatch(formSource, /onSkip/)
+  assert.doesNotMatch(formSource, /Bỏ qua/)
+  assert.doesNotMatch(landingSource, /Bỏ qua/)
+  assert.match(landingSource, /Đã điểm danh/)
+  assert.match(landingSource, /Vào điểm danh/)
 })
 
 test('invoice sort: hóa đơn mới nhất nằm trên cùng theo created_at', async () => {

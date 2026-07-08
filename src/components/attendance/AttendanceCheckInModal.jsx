@@ -6,10 +6,7 @@ export default function AttendanceCheckInModal({ serverDate, onCompleted }) {
   return (
     <div className="attendance-checkin" role="dialog" aria-modal="true" aria-labelledby="attendance-checkin-title">
       <div className="attendance-checkin__backdrop" />
-      <AttendanceCheckInForm
-        onSuccess={onCompleted}
-        onSkip={onCompleted}
-      />
+      <AttendanceCheckInForm onSuccess={onCompleted} />
     </div>
   )
 }

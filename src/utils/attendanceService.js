@@ -3,6 +3,7 @@ import {
   calculatePenaltyForNewRecord,
   recomputeMonthlyPenalties,
 } from './attendancePenalties'
+import { notifyDataSynced } from './dataSyncEvents'
 import {
   createAttendanceId,
   createAttendanceLogId,
@@ -47,7 +48,7 @@ export async function submitEmployeeAttendance({
   const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
   const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
 
-  return insertAttendanceRecord({
+  const saved = await insertAttendanceRecord({
     id: createAttendanceId(),
     date,
     branchId,
@@ -59,7 +60,10 @@ export async function submitEmployeeAttendance({
     penaltyAmount,
     submittedAt: timestamp || new Date().toISOString(),
     submittedBy,
+    createdBy: submittedBy,
   })
+  notifyDataSynced(['attendance'])
+  return saved
 }
 
 function buildEditLogs(attendanceId, editor, changes, editNote = '') {
@@ -106,7 +110,10 @@ export async function adminCreateAttendance({
     penaltyAmount,
     submittedAt: new Date().toISOString(),
     submittedBy: editor?.editorName ?? 'Admin',
+    createdBy: editor?.editorName ?? 'Admin',
   })
+
+  notifyDataSynced(['attendance'])
 
   await insertAttendanceEditLogs([{
     id: createAttendanceLogId(),
@@ -171,6 +178,8 @@ export async function adminUpdateAttendance({
     note: (nextNote ?? '').trim(),
     penaltyAmount: recomputedRecord.penaltyAmount ?? 0,
   })
+
+  notifyDataSynced(['attendance'])
 
   await insertAttendanceEditLogs(buildEditLogs(record.id, editor, changes, nextNote))
 
