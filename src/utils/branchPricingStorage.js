@@ -6,7 +6,7 @@ import {
   getCatalogGroupsForBranchV2,
   isBranchCatalogReady,
 } from './serviceCatalogV2Storage'
-import { isGroupedCatalogBranch } from '../constants/giaLaiBranches'
+import { isGiaLaiCatalogBranch, isGroupedCatalogBranch } from '../constants/giaLaiBranches'
 import {
   applyCatalogOverrides,
   branchHasGroupedCatalog,
@@ -155,7 +155,7 @@ export function getCatalogGroupsForBranch(branchId) {
     return getCatalogGroupsForBranchV2(branchId)
   }
 
-  if (!isGroupedCatalogBranch(branchId)) return []
+  if (!isGiaLaiCatalogBranch(branchId)) return []
 
   syncBranchCatalog(branchId)
   const record = getBranchPricingRecord(branchId)
@@ -174,7 +174,7 @@ export function getServicesForBranch(branchId, { includeInactive = false } = {})
   const branch = getBranchById(branchId)
   if (!branch) return []
 
-  if (isGroupedCatalogBranch(branchId)) {
+  if (isGiaLaiCatalogBranch(branchId)) {
     syncBranchCatalog(branchId)
   }
 
@@ -246,7 +246,7 @@ export function syncMissingOverridesForBranch(branchId) {
 }
 
 export function syncMissingCatalogOverrides(branchId) {
-  if (!isGroupedCatalogBranch(branchId)) return false
+  if (!isGiaLaiCatalogBranch(branchId)) return false
 
   const map = readBranchPricingMapRaw()
   const record = normalizeBranchPricing(map[branchId] ?? {})
@@ -261,7 +261,7 @@ export function syncMissingCatalogOverrides(branchId) {
 }
 
 export function syncBranchCatalog(branchId) {
-  if (!isGroupedCatalogBranch(branchId)) return false
+  if (!isGiaLaiCatalogBranch(branchId)) return false
 
   const branch = getBranchById(branchId)
   if (!branch) return false
@@ -291,7 +291,7 @@ export function syncBranchCatalog(branchId) {
 
 export function syncAllBranchCatalogs() {
   return loadBranches()
-    .filter((branch) => isGroupedCatalogBranch(branch.id))
+    .filter((branch) => isGiaLaiCatalogBranch(branch.id))
     .some((branch) => syncBranchCatalog(branch.id))
 }
 
@@ -341,7 +341,7 @@ export function syncAllCustomBranchPricing() {
 }
 
 export function enableCustomBranchPricing(branchId) {
-  if (isGroupedCatalogBranch(branchId)) {
+  if (isGiaLaiCatalogBranch(branchId)) {
     syncBranchCatalog(branchId)
     return getBranchPricingRecord(branchId)
   }
@@ -364,7 +364,7 @@ export function resetBranchPricingToDefault(branchId) {
   delete map[branchId]
   saveBranchPricingMap(map)
 
-  if (isGroupedCatalogBranch(branchId)) {
+  if (isGiaLaiCatalogBranch(branchId)) {
     syncBranchCatalog(branchId)
   }
 
@@ -374,7 +374,7 @@ export function resetBranchPricingToDefault(branchId) {
 export function updateBranchServicePricing(branchId, serviceId, data) {
   const map = readBranchPricingMapRaw()
 
-  if (isGroupedCatalogBranch(branchId)) {
+  if (isGiaLaiCatalogBranch(branchId)) {
     const current = normalizeBranchPricing(map[branchId] ?? {})
     if (!branchHasGroupedCatalog(branchId, current)) {
       syncBranchCatalog(branchId)

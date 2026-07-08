@@ -2,9 +2,9 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { notifyDataSynced } from './dataSyncEvents'
 import { loadBranches } from './branchStorage'
 import {
+  buildBranchCatalogPackage,
   buildFlatBranchCatalogPackage,
-  buildGiaLaiBranchCatalogPackage,
-  GIA_LAI_FORCE_RESEED_BRANCH_IDS,
+  FORCE_RESEED_BRANCH_IDS,
   shouldUseGroupedCatalogUI,
 } from './branchCatalogSeeds'
 import { isGroupedCatalogBranch } from '../constants/giaLaiBranches'
@@ -98,7 +98,7 @@ export function ensureBranchCatalogSeeded(branchId) {
 
   const map = loadBranchCatalogsMap()
   const existing = map[branchId]
-  const forceReseed = GIA_LAI_FORCE_RESEED_BRANCH_IDS.includes(branchId)
+  const forceReseed = FORCE_RESEED_BRANCH_IDS.includes(branchId)
 
   if (!forceReseed && existing?.categories?.length > 0) {
     return existing
@@ -109,7 +109,7 @@ export function ensureBranchCatalogSeeded(branchId) {
   let prices
 
   if (isGroupedCatalogBranch(branchId)) {
-    const seeded = buildGiaLaiBranchCatalogPackage()
+    const seeded = buildBranchCatalogPackage(branchId)
     catalog = seeded.catalog
     prices = seeded.prices
   } else {

@@ -11,11 +11,12 @@ export const GIA_LAI_CATALOG_BRANCH_IDS = [
   GIA_LAI_CN8_BRANCH_ID,
 ]
 
-/** Chi nhánh dùng UI nhóm dịch vụ (catalog Gia Lai). Gia Lai 1/2/3 — không áp dụng cho CN khác. */
+/** Chi nhánh dùng UI nhóm dịch vụ (4 nhóm trên hóa đơn). */
 export const GROUPED_CATALOG_BRANCH_IDS = [
   GIA_LAI_CN3_BRANCH_ID,
   'gia-lai-2',
   GIA_LAI_CN8_BRANCH_ID,
+  'tram-spa',
 ]
 
 export function isGiaLaiCatalogBranch(branchId) {

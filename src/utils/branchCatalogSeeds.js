@@ -1,5 +1,6 @@
 import { GIA_LAI_SERVICE_CATALOG } from '../constants/giaLaiServiceCatalog'
-import { isGroupedCatalogBranch } from '../constants/giaLaiBranches'
+import { TRAM_SPA_SERVICE_CATALOG } from '../constants/tramSpaServiceCatalog'
+import { isGiaLaiCatalogBranch, isGroupedCatalogBranch } from '../constants/giaLaiBranches'
 import { DEFAULT_PRICE_GROUPS } from '../constants/defaultPriceGroups'
 import { PRICE_GROUP_IDS } from '../constants/priceGroupIds'
 import { getBranchById } from './branchStorage'
@@ -18,7 +19,10 @@ function readLegacyBranchPricing(branchId) {
   }
 }
 
-/** Chi nhánh bắt buộc cập nhật catalog Gia Lai từ dữ liệu gốc. */
+/** Chi nhánh bắt buộc cập nhật catalog từ dữ liệu gốc (ghi đè catalog hiện có). */
+export const FORCE_RESEED_BRANCH_IDS = ['gia-lai-1', 'gia-lai-2', 'tram-spa']
+
+/** @deprecated Dùng FORCE_RESEED_BRANCH_IDS */
 export const GIA_LAI_FORCE_RESEED_BRANCH_IDS = ['gia-lai-1', 'gia-lai-2']
 
 function slugify(text) {
@@ -36,7 +40,7 @@ function parseDurationFromFlatId(serviceId) {
   return match ? Number(match[1]) : null
 }
 
-function walkGiaLaiCatalog(catalog, categories, services, durations) {
+function walkGroupedCatalog(catalog, categories, services, durations) {
   let categoryOrder = 0
   for (const group of catalog.groups ?? []) {
     categories.push({
@@ -110,7 +114,7 @@ function walkGiaLaiCatalog(catalog, categories, services, durations) {
   }
 }
 
-function collectGiaLaiPrices(catalog = GIA_LAI_SERVICE_CATALOG) {
+function collectGroupedPrices(catalog) {
   const prices = {}
   for (const group of catalog.groups ?? []) {
     for (const family of group.families ?? []) {
@@ -140,15 +144,29 @@ function collectGiaLaiPrices(catalog = GIA_LAI_SERVICE_CATALOG) {
   return prices
 }
 
-export function buildGiaLaiBranchCatalogPackage() {
+function buildGroupedCatalogPackage(catalog) {
   const categories = []
   const services = []
   const durations = []
-  walkGiaLaiCatalog(GIA_LAI_SERVICE_CATALOG, categories, services, durations)
+  walkGroupedCatalog(catalog, categories, services, durations)
   return {
     catalog: { version: 1, categories, services, durations },
-    prices: collectGiaLaiPrices(),
+    prices: collectGroupedPrices(catalog),
   }
+}
+
+export function buildGiaLaiBranchCatalogPackage() {
+  return buildGroupedCatalogPackage(GIA_LAI_SERVICE_CATALOG)
+}
+
+export function buildTramSpaBranchCatalogPackage() {
+  return buildGroupedCatalogPackage(TRAM_SPA_SERVICE_CATALOG)
+}
+
+export function buildBranchCatalogPackage(branchId) {
+  if (branchId === 'tram-spa') return buildTramSpaBranchCatalogPackage()
+  if (isGiaLaiCatalogBranch(branchId)) return buildGiaLaiBranchCatalogPackage()
+  throw new Error(`Không có catalog nhóm cho chi nhánh: ${branchId}`)
 }
 
 export function buildFlatBranchCatalogPackage(branchId) {
