@@ -554,6 +554,75 @@ test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh G
   assert.equal(login3.user.branch, 'gia-lai-3')
 })
 
+test('employee login: mật khẩu tên+chi nhánh và kiểm tra chi nhánh', async () => {
+  const { verifyLogin, computeEmployeeDefaultPassword, normalizeForPassword } = await import('../src/constants/loginCredentials.js')
+  const { syncEmployeeCredentialsFromEmployees, repairEmployeeCredentials } = await import('../src/utils/credentialsStorage.js')
+  const { syncMissingDefaultEmployees } = await import('../src/utils/employeeStorage.js')
+  const { getBranchName } = await import('../src/utils/branchStorage.js')
+  const { ROLES } = await import('../src/constants/auth.js')
+
+  syncMissingDefaultEmployees()
+  await repairEmployeeCredentials()
+  await syncEmployeeCredentialsFromEmployees()
+
+  assert.equal(computeEmployeeDefaultPassword('Thanh', 'Trạm Spa'), 'thanhtramspa')
+  assert.equal(computeEmployeeDefaultPassword('Nhu Hà', 'Trạm Spa'), 'nhuhatramspa')
+  assert.equal(computeEmployeeDefaultPassword('Bảo Trân', 'Sóc Trăng'), 'baotransoctrang')
+  assert.equal(computeEmployeeDefaultPassword('Linh', 'Vĩnh Long'), 'linhvinhlong')
+  assert.equal(normalizeForPassword('Trạm Spa'), 'tramspa')
+
+  const thanh = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'tram-spa',
+    employeeId: 'tram-spa-thanh',
+    password: 'thanhtramspa',
+  })
+  assert.equal(thanh.ok, true)
+  assert.equal(thanh.user.employeeId, 'tram-spa-thanh')
+
+  const nhuha = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'tram-spa',
+    employeeId: 'tram-spa-nhu-ha',
+    password: 'nhuhatramspa',
+  })
+  assert.equal(nhuha.ok, true)
+
+  const baotran = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'soc-trang',
+    employeeId: 'soc-trang-bao-tran',
+    password: 'baotransoctrang',
+  })
+  assert.equal(baotran.ok, true)
+
+  const linh = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'vinh-long',
+    employeeId: 'vinh-long-linh',
+    password: 'linhvinhlong',
+  })
+  assert.equal(linh.ok, true)
+
+  const wrongBranch = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'soc-trang',
+    employeeId: 'tram-spa-thanh',
+    password: 'thanhtramspa',
+  })
+  assert.equal(wrongBranch.ok, false)
+  assert.equal(wrongBranch.field, 'branch')
+
+  const wrongPassword = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'tram-spa',
+    employeeId: 'tram-spa-thanh',
+    password: 'wrong-password',
+  })
+  assert.equal(wrongPassword.ok, false)
+  assert.equal(wrongPassword.field, 'password')
+})
+
 test('employee login: Cần Thơ / Gia Lai 1 / Gia Lai 2 credentials sync and password validation', async () => {
   const { verifyLogin, computeEmployeeDefaultPassword } = await import('../src/constants/loginCredentials.js')
   const { syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } = await import('../src/utils/credentialsStorage.js')

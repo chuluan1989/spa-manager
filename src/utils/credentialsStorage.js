@@ -185,6 +185,42 @@ export async function syncEmployeeCredentialsFromEmployees() {
   return credentials
 }
 
+/** Sửa credentials sai branch_id / employee_id — không xóa nhân viên. */
+export async function repairEmployeeCredentials() {
+  const employees = loadEmployees()
+  const credentials = await ensureCredentialsHashed()
+  credentials.employees = credentials.employees ?? {}
+  let changed = false
+
+  for (const employee of employees) {
+    if (!isEmployeeLoginEligible(employee)) continue
+    const plainPassword = computeEmployeeDefaultPassword(
+      employee.name,
+      getBranchName(employee.branchId),
+    )
+    const current = credentials.employees[employee.id]
+    const needsCreate = !current
+    const wrongBranch = current?.branchId && current.branchId !== employee.branchId
+    const wrongName = current?.name && current.name !== employee.name
+    const wrongPassword = current?.password && !(await verifyPassword(plainPassword, current.password))
+
+    if (needsCreate || wrongBranch || wrongName || wrongPassword) {
+      credentials.employees[employee.id] = {
+        branchId: employee.branchId,
+        name: employee.name,
+        password: await hashPassword(plainPassword),
+      }
+      changed = true
+    }
+  }
+
+  if (changed) {
+    saveCredentials(credentials)
+  }
+
+  return { changed, credentials }
+}
+
 /** Đồng bộ credential một nhân viên sau khi đổi chi nhánh / tên. */
 export async function syncEmployeeCredentialForEmployee(employeeId) {
   const employee = loadEmployees().find((item) => item.id === employeeId)

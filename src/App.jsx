@@ -37,7 +37,7 @@ import AdminBranches from './pages/AdminBranches'
 import EmployeeAttendanceLanding from './components/attendance/EmployeeAttendanceLanding'
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
-import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } from './utils/credentialsStorage'
+import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials, repairEmployeeCredentials } from './utils/credentialsStorage'
 import { syncAllCustomBranchPricing, stripFlatBranchGroupedCatalog } from './utils/branchPricingStorage'
 import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
@@ -128,6 +128,7 @@ function App() {
       stripFlatBranchGroupedCatalog()
       ensureServiceCatalogV2Migrated()
       await Promise.all([ensureCredentialsHashed(), syncMissingBranchCredentials()])
+      await repairEmployeeCredentials()
       syncAllCustomBranchPricing()
 
       if (isSupabaseConfigured) {

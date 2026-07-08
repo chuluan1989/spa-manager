@@ -362,6 +362,53 @@
   border-bottom: 1px solid var(--ks-border-subtle);
 }
 
+.admin-branches__table-wrap--wide {
+  overflow-x: auto;
+}
+
+.admin-branches__table--compact {
+  font-size: 12px;
+}
+
+.admin-branches__table tr.is-selected {
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.admin-branches__link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ks-gold-dark);
+  cursor: pointer;
+}
+
+.admin-branches__employee-detail {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ks-border-subtle);
+}
+
+.admin-branches__employee-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.admin-branches__info-grid--compact {
+  margin-bottom: 16px;
+}
+
+.admin-branches__hint--error {
+  color: #b91c1c;
+}
+
+.admin-branches__tabs {
+  flex-wrap: wrap;
+}
+
 @media (max-width: 900px) {
   .admin-branches__layout {
     grid-template-columns: 1fr;

@@ -21,14 +21,16 @@ const COMMISSION_OPTIONS = [
   { value: COMMISSION.TWENTY, label: '20%' },
 ]
 
-export default function BranchServicePricingTab({ showToast, readOnly = false }) {
+export default function BranchServicePricingTab({ showToast, readOnly = false, fixedBranchId = '' }) {
   const branches = useMemo(() => {
     const all = getActiveBranches()
+    if (fixedBranchId) return all.filter((branch) => branch.id === fixedBranchId)
     if (isAdmin()) return all
     return all.filter((branch) => canViewBranchServicePricing(branch.id))
-  }, [])
+  }, [fixedBranchId])
 
   const [branchId, setBranchId] = useState(() => {
+    if (fixedBranchId) return fixedBranchId
     if (isAdmin()) return branches[0]?.id ?? ''
     return getCurrentUserBranch()
   })
@@ -84,20 +86,22 @@ export default function BranchServicePricingTab({ showToast, readOnly = false })
       </div>
 
       <div className="settings__branch-pricing-toolbar">
-        <label className="settings__field">
-          <span>Chi nhánh</span>
-          <select
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            disabled={!isAdmin()}
-          >
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {getPayrollBranchDisplayTitle(branch.id, branch.name)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!fixedBranchId && (
+          <label className="settings__field">
+            <span>Chi nhánh</span>
+            <select
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              disabled={!isAdmin()}
+            >
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {getPayrollBranchDisplayTitle(branch.id, branch.name)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       {groupedRows.map((category) => (

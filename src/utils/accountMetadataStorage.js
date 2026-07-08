@@ -114,6 +114,20 @@ export function isAccountLocked(accountKey) {
   return Boolean(getAccountMeta(accountKey).locked)
 }
 
+export function getEmployeeAccountKey(employeeId) {
+  return `employee:${employeeId}`
+}
+
+export function isEmployeeAccountLocked(employeeId) {
+  if (!employeeId) return false
+  return isAccountLocked(getEmployeeAccountKey(employeeId))
+}
+
+export function setEmployeeAccountLocked(employeeId, locked) {
+  if (!employeeId) return loadAccountMetadata()
+  return setAccountLocked(getEmployeeAccountKey(employeeId), locked)
+}
+
 export function removeAccountMetadataEntry(accountKey) {
   const metadata = loadAccountMetadata()
   if (!metadata[accountKey]) return metadata

@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import EmployeeProfileForm from '../employees/EmployeeProfileForm'
-import EmployeeProfileDetail from '../employees/EmployeeProfileDetail'
+import EmployeeHubDetail from '../employees/EmployeeHubDetail'
 import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
+import { useEmployeeHubData } from '../../hooks/useEmployeeHubData'
+import { useAttendanceData } from '../../hooks/useAttendanceData'
+import { usePayrollData } from '../../hooks/usePayrollData'
 import { loadBranches } from '../../utils/branchStorage'
 import {
   addEmployee,
@@ -20,12 +23,13 @@ import {
   updateEmployee,
 } from '../../utils/employeeStorage'
 import { PERMANENT_DELETE_BLOCKED_MESSAGE } from '../../utils/employeeDeleteGuard'
-import { updateEmployeePassword } from '../../utils/credentialsStorage'
-import {
-  getBranchPermissionMatrix,
-  PERMISSION_KEYS,
-  toggleBranchPermission,
-} from '../../utils/permissionsStorage'
+import { updateEmployeePassword, syncEmployeeCredentialForEmployee } from '../../utils/credentialsStorage'
+import { setEmployeeAccountLocked, isEmployeeAccountLocked } from '../../utils/accountMetadataStorage'
+import { computeEmployeeListStats } from '../../utils/employeeHubStats'
+import { computeEmployeePayrollRow } from '../../utils/payrollEngine'
+import { computeAttendanceStats } from '../../utils/payrollLiveHelpers'
+import { getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../../utils/salaryReport'
+import { formatCurrency } from '../../utils/invoice'
 import { isAdmin } from '../../constants/auth'
 
 const POSITION_SUGGESTIONS = [
@@ -48,23 +52,22 @@ const PROFILE_BADGE_TONE = {
   incomplete: 'warning',
 }
 
-const PERMISSION_ROWS = [
-  { key: PERMISSION_KEYS.EDIT_INVOICE, label: 'Sửa hóa đơn' },
-  { key: PERMISSION_KEYS.VIEW_REPORT, label: 'Xem báo cáo' },
-  { key: PERMISSION_KEYS.ADD_EXPENSE, label: 'Thêm chi phí' },
-  { key: PERMISSION_KEYS.VIEW_SALARY, label: 'Xem lương' },
-]
-
 export default function BranchEmployeesTab({ branchId, branchName, showToast, readOnly = false }) {
+  const month = getCurrentMonthValue()
+  const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
+
+  const { employees: hubEmployees, invoices, loading, reload } = useEmployeeHubData({ branchId, month })
+  const { records: attendanceRecords } = useAttendanceData({ branchId, fromDate, toDate })
+  const { adjustments } = usePayrollData({ month, branchId })
+
   const [employees, setEmployees] = useState(() => loadEmployees())
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState(EMPTY_EMPLOYEE_FORM)
   const [errors, setErrors] = useState({})
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [permOpen, setPermOpen] = useState(false)
   const [passwordForm, setPasswordForm] = useState({ password: '', confirm: '' })
-  const [matrixRevision, setMatrixRevision] = useState(0)
 
   const syncVersion = useDataSyncVersion()
   useEffect(() => {
@@ -72,26 +75,33 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
   }, [syncVersion])
 
   const branches = useMemo(() => loadBranches(), [employees])
-  const matrix = useMemo(() => getBranchPermissionMatrix(), [matrixRevision, branchId])
-
-  const branchPermissions = useMemo(() => {
-    return Object.fromEntries(
-      matrix.map((row) => [row.key, Boolean(row.branches?.[branchId])]),
-    )
-  }, [matrix, branchId])
 
   const branchEmployees = useMemo(() => {
+    const source = hubEmployees.length ? hubEmployees : employees.filter((emp) => emp.branchId === branchId)
     const q = search.trim().toLowerCase()
-    return employees.filter((emp) => {
+    return source.filter((emp) => {
       if (emp.branchId !== branchId) return false
       if (statusFilter && emp.status !== statusFilter) return false
       if (!q) return true
       const haystack = `${emp.name ?? ''} ${emp.phone ?? ''} ${emp.cccd ?? ''}`.toLowerCase()
       return haystack.includes(q)
     })
-  }, [employees, branchId, search, statusFilter])
+  }, [hubEmployees, employees, branchId, search, statusFilter])
 
-  const refresh = () => setEmployees(loadEmployees())
+  const statsMap = useMemo(
+    () => computeEmployeeListStats(invoices, branchEmployees.map((e) => e.id), month),
+    [invoices, branchEmployees, month],
+  )
+
+  const selectedEmployee = useMemo(
+    () => branchEmployees.find((e) => e.id === selectedEmployeeId) ?? getEmployeeById(selectedEmployeeId),
+    [branchEmployees, selectedEmployeeId],
+  )
+
+  const refresh = () => {
+    setEmployees(loadEmployees())
+    reload()
+  }
 
   const validateForm = (data) => {
     const next = {}
@@ -112,11 +122,6 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
     setModal({ mode: 'edit', id: employee.id })
   }
 
-  const openView = (employee) => {
-    setErrors({})
-    setModal({ mode: 'view', id: employee.id })
-  }
-
   const openTransfer = (employee) => {
     setModal({ mode: 'transfer', id: employee.id, targetBranchId: '' })
   }
@@ -133,7 +138,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
     setPasswordForm({ password: '', confirm: '' })
   }
 
-  const save = () => {
+  const save = async () => {
     const next = validateForm(form)
     setErrors(next)
     if (Object.keys(next).length > 0) return
@@ -144,6 +149,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
         showToast(result.error ?? 'Không thể thêm nhân viên')
         return
       }
+      await syncEmployeeCredentialForEmployee(result.employee?.id)
       showToast('Thêm nhân viên thành công')
     } else {
       const result = updateEmployee(modal.id, form)
@@ -151,13 +157,14 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
         showToast(result.error ?? 'Không thể cập nhật nhân viên')
         return
       }
+      await syncEmployeeCredentialForEmployee(modal.id)
       showToast('Cập nhật nhân viên thành công')
     }
     closeModal()
     refresh()
   }
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     if (!modal?.targetBranchId) {
       showToast('Vui lòng chọn chi nhánh đích')
       return
@@ -167,12 +174,20 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       showToast(result.error ?? 'Không thể chuyển chi nhánh')
       return
     }
+    await syncEmployeeCredentialForEmployee(modal.id)
     showToast('Chuyển chi nhánh thành công')
     closeModal()
     refresh()
   }
 
-  const handleLock = (employee) => {
+  const handleToggleAccountLock = (employee) => {
+    const locked = isEmployeeAccountLocked(employee.id)
+    setEmployeeAccountLocked(employee.id, !locked)
+    showToast(locked ? 'Đã mở khóa tài khoản' : 'Đã khóa tài khoản')
+    refresh()
+  }
+
+  const handleLockStatus = (employee) => {
     const next = employee.status === EMPLOYEE_STATUS.ON_LEAVE
       ? EMPLOYEE_STATUS.ACTIVE
       : EMPLOYEE_STATUS.ON_LEAVE
@@ -204,6 +219,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       return
     }
     showToast('Đã xóa vĩnh viễn nhân viên')
+    if (selectedEmployeeId === id) setSelectedEmployeeId('')
     refresh()
   }
 
@@ -225,10 +241,11 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
     closeModal()
   }
 
-  const handleTogglePermission = (permissionKey, enabled) => {
-    toggleBranchPermission(branchId, permissionKey, enabled)
-    setMatrixRevision((v) => v + 1)
-    showToast('Đã cập nhật quyền chi nhánh')
+  const rowMetrics = (employee) => {
+    const stats = statsMap.get(employee.id) ?? {}
+    const payroll = computeEmployeePayrollRow(employee, invoices, attendanceRecords, adjustments)
+    const attendance = computeAttendanceStats(attendanceRecords, employee.id)
+    return { stats, payroll, attendance }
   }
 
   return (
@@ -236,17 +253,15 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       <div className="admin-branches__employees-head">
         <div>
           <h4 className="admin-branches__section-title">Nhân viên — {branchName}</h4>
-          <p className="admin-branches__hint">{branchEmployees.length} nhân viên · map theo branch_id: {branchId}</p>
+          <p className="admin-branches__hint">
+            {branchEmployees.length} nhân viên · branch_id: {branchId}
+            {loading ? ' · Đang tải...' : ''}
+          </p>
         </div>
         {!readOnly && isAdmin() && (
-          <div className="admin-branches__employees-actions">
-            <button type="button" className="admin-branches__btn admin-branches__btn--secondary" onClick={() => setPermOpen(true)}>
-              Quyền chi nhánh
-            </button>
-            <button type="button" className="admin-branches__btn admin-branches__btn--primary" onClick={openAdd}>
-              + Thêm nhân viên
-            </button>
-          </div>
+          <button type="button" className="admin-branches__btn admin-branches__btn--primary" onClick={openAdd}>
+            + Thêm nhân viên
+          </button>
         )}
       </div>
 
@@ -270,23 +285,41 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       )}
 
       {branchEmployees.length > 0 && (
-        <div className="admin-branches__table-wrap">
-          <table className="admin-branches__table">
+        <div className="admin-branches__table-wrap admin-branches__table-wrap--wide">
+          <table className="admin-branches__table admin-branches__table--compact">
             <thead>
               <tr>
                 <th>Họ tên</th>
+                <th>SĐT</th>
                 <th>Chức vụ</th>
                 <th>Trạng thái</th>
                 <th>Hồ sơ</th>
+                <th>Doanh thu</th>
+                <th>Tips</th>
+                <th>Hoa hồng</th>
+                <th>Lương TN</th>
+                <th>Chấm công</th>
                 {!readOnly && isAdmin() && <th>Thao tác</th>}
               </tr>
             </thead>
             <tbody>
               {branchEmployees.map((employee) => {
                 const profileStatus = getEmployeeProfileStatus(employee)
+                const { stats, payroll, attendance } = rowMetrics(employee)
+                const accountLocked = isEmployeeAccountLocked(employee.id)
                 return (
-                  <tr key={employee.id}>
-                    <td>{employee.name}</td>
+                  <tr
+                    key={employee.id}
+                    className={selectedEmployeeId === employee.id ? 'is-selected' : ''}
+                    onClick={() => setSelectedEmployeeId(employee.id)}
+                  >
+                    <td>
+                      <button type="button" className="admin-branches__link" onClick={() => setSelectedEmployeeId(employee.id)}>
+                        {employee.name}
+                      </button>
+                      {accountLocked && <span className="admin-branches__badge admin-branches__badge--danger">TK khóa</span>}
+                    </td>
+                    <td>{employee.phone || '—'}</td>
                     <td>{employee.position || '—'}</td>
                     <td>{getStatusLabel(employee.status)}</td>
                     <td>
@@ -294,16 +327,20 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
                         {profileStatus.label}
                       </span>
                     </td>
+                    <td>{formatCurrency(stats.serviceRevenue ?? 0)}</td>
+                    <td>{formatCurrency(stats.tips ?? 0)}</td>
+                    <td>{formatCurrency(stats.serviceCommission ?? 0)}</td>
+                    <td>{formatCurrency(payroll.netSalary ?? 0)}</td>
+                    <td>{attendance.workDays ?? 0} ngày</td>
                     {!readOnly && isAdmin() && (
-                      <td className="admin-branches__actions-cell">
-                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => openView(employee)}>Hồ sơ</button>
+                      <td className="admin-branches__actions-cell" onClick={(e) => e.stopPropagation()}>
                         <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => openEdit(employee)}>Sửa</button>
-                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => openTransfer(employee)}>Chuyển CN</button>
-                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => handleLock(employee)}>
-                          {employee.status === EMPLOYEE_STATUS.ON_LEAVE ? 'Mở khóa' : 'Khóa'}
+                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => openTransfer(employee)}>Chuyển</button>
+                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => handleToggleAccountLock(employee)}>
+                          {accountLocked ? 'Mở TK' : 'Khóa TK'}
                         </button>
                         <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => openPassword(employee)}>Reset MK</button>
-                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => handleArchive(employee.id)}>Lưu trữ</button>
+                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => handleLockStatus(employee)}>Khóa NV</button>
                         <button type="button" className="admin-branches__btn admin-branches__btn--small admin-branches__btn--danger" onClick={() => handlePermanentDelete(employee.id)}>Xóa</button>
                       </td>
                     )}
@@ -315,18 +352,20 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
         </div>
       )}
 
-      {modal?.mode === 'view' && (
-        <div className="admin-branches__modal-backdrop" onClick={closeModal}>
-          <div className="admin-branches__modal admin-branches__modal--wide" onClick={(e) => e.stopPropagation()}>
-            <h3 className="admin-branches__modal-title">Hồ sơ nhân viên</h3>
-            <EmployeeProfileDetail
-              employee={getEmployeeById(modal.id)}
-              forceAdminFields
-              showStats
-              onEdit={() => openEdit(getEmployeeById(modal.id))}
-              onClose={closeModal}
-            />
+      {selectedEmployee && (
+        <div className="admin-branches__employee-detail">
+          <div className="admin-branches__employee-detail-head">
+            <h4>{selectedEmployee.name}</h4>
+            <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => setSelectedEmployeeId('')}>Đóng</button>
           </div>
+          <EmployeeHubDetail
+            employee={selectedEmployee}
+            invoices={invoices}
+            month={month}
+            onEdit={() => openEdit(selectedEmployee)}
+            variant="branch"
+            attendanceRecords={attendanceRecords}
+          />
         </div>
       )}
 
@@ -360,10 +399,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
             <h3 className="admin-branches__modal-title">Chuyển chi nhánh — {getEmployeeById(modal.id)?.name}</h3>
             <label className="admin-branches__field">
               <span>Chi nhánh đích</span>
-              <select
-                value={modal.targetBranchId}
-                onChange={(e) => setModal({ ...modal, targetBranchId: e.target.value })}
-              >
+              <select value={modal.targetBranchId} onChange={(e) => setModal({ ...modal, targetBranchId: e.target.value })}>
                 <option value="">Chọn chi nhánh</option>
                 {branches.filter((b) => b.id !== branchId).map((branch) => (
                   <option key={branch.id} value={branch.id}>{branch.name}</option>
@@ -393,30 +429,6 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
             <div className="admin-branches__modal-actions">
               <button type="button" className="admin-branches__btn admin-branches__btn--primary" onClick={savePassword}>Lưu</button>
               <button type="button" className="admin-branches__btn" onClick={closeModal}>Hủy</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {permOpen && (
-        <div className="admin-branches__modal-backdrop" onClick={() => setPermOpen(false)}>
-          <div className="admin-branches__modal admin-branches__modal--wide" onClick={(e) => e.stopPropagation()}>
-            <h3 className="admin-branches__modal-title">Quyền chi nhánh — {branchName}</h3>
-            <div className="admin-branches__perm-list">
-              {PERMISSION_ROWS.map((row) => (
-                <label key={row.key} className="admin-branches__perm-row">
-                  <span>{row.label}</span>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(branchPermissions[row.key])}
-                    onChange={(e) => handleTogglePermission(row.key, e.target.checked)}
-                    disabled={readOnly}
-                  />
-                </label>
-              ))}
-            </div>
-            <div className="admin-branches__modal-actions">
-              <button type="button" className="admin-branches__btn" onClick={() => setPermOpen(false)}>Đóng</button>
             </div>
           </div>
         </div>

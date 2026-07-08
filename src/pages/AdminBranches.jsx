@@ -5,6 +5,11 @@ import { getPayrollBranchDisplayTitle } from '../constants/branchPayrollDisplay'
 import { getPriceGroupsWithBranchLabels, PRICE_GROUPS } from '../constants/priceGroups'
 import { canAccessBranchesPage, canManageBranches, isAdmin } from '../constants/auth'
 import BranchEmployeesTab from '../components/branches/BranchEmployeesTab'
+import BranchOverviewTab from '../components/branches/BranchOverviewTab'
+import BranchPricingTab from '../components/branches/BranchPricingTab'
+import BranchCommissionTab from '../components/branches/BranchCommissionTab'
+import BranchAttendanceTab from '../components/branches/BranchAttendanceTab'
+import BranchSalaryTab from '../components/branches/BranchSalaryTab'
 import {
   addBranch,
   BRANCH_STATUS,
@@ -33,8 +38,12 @@ const EMPTY_FORM = {
 }
 
 const DETAIL_TABS = [
-  { id: 'info', label: 'Thông tin' },
+  { id: 'overview', label: 'Tổng quan' },
   { id: 'employees', label: 'Nhân viên' },
+  { id: 'pricing', label: 'Bảng giá' },
+  { id: 'commission', label: 'Hoa hồng' },
+  { id: 'attendance', label: 'Chấm công' },
+  { id: 'salary', label: 'Lương' },
 ]
 
 export default function AdminBranches() {
@@ -42,7 +51,7 @@ export default function AdminBranches() {
   const syncVersion = useDataSyncVersion()
   const [branches, setBranches] = useState(() => loadBranches())
   const [selectedBranchId, setSelectedBranchId] = useState(() => loadBranches()[0]?.id ?? '')
-  const [detailTab, setDetailTab] = useState('info')
+  const [detailTab, setDetailTab] = useState('overview')
   const [editModal, setEditModal] = useState(null)
   const [managerModal, setManagerModal] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -214,7 +223,7 @@ export default function AdminBranches() {
               className={`admin-branches__list-item${selectedBranchId === branch.id ? ' is-active' : ''}`}
               onClick={() => {
                 setSelectedBranchId(branch.id)
-                setDetailTab('info')
+                setDetailTab('overview')
               }}
             >
               <span className="admin-branches__list-code">{branchDisplayCode(branch)}</span>
@@ -262,16 +271,8 @@ export default function AdminBranches() {
                 ))}
               </nav>
 
-              {detailTab === 'info' && (
-                <div className="admin-branches__info-grid">
-                  <div><span>Địa chỉ</span><strong>{selectedBranch.address || '—'}</strong></div>
-                  <div><span>Hotline</span><strong>{selectedBranch.hotline || '—'}</strong></div>
-                  <div><span>Trạng thái</span><strong>{getStatusLabel(selectedBranch.status)}</strong></div>
-                  <div><span>Thứ tự hiển thị</span><strong>{selectedBranch.sortOrder ?? '—'}</strong></div>
-                  <div><span>Nhóm giá</span><strong>{priceGroups.find((g) => g.id === selectedBranch.priceGroupId)?.label ?? selectedBranch.priceGroupId}</strong></div>
-                  <div><span>Hỗ trợ KTV</span><strong>{selectedBranch.supportEnabled ? 'Có' : 'Không'}</strong></div>
-                  <div><span>Quản lý</span><strong>{managers[selectedBranch.id] || getAccountMeta(selectedBranch.id).managerName || 'Chưa gán'}</strong></div>
-                </div>
+              {detailTab === 'overview' && (
+                <BranchOverviewTab branchId={selectedBranch.id} />
               )}
 
               {detailTab === 'employees' && (
@@ -281,6 +282,22 @@ export default function AdminBranches() {
                   showToast={showToast}
                   readOnly={readOnly}
                 />
+              )}
+
+              {detailTab === 'pricing' && (
+                <BranchPricingTab branchId={selectedBranch.id} showToast={showToast} readOnly={readOnly} />
+              )}
+
+              {detailTab === 'commission' && (
+                <BranchCommissionTab branchId={selectedBranch.id} showToast={showToast} />
+              )}
+
+              {detailTab === 'attendance' && (
+                <BranchAttendanceTab branchId={selectedBranch.id} />
+              )}
+
+              {detailTab === 'salary' && (
+                <BranchSalaryTab branchId={selectedBranch.id} />
               )}
             </>
           )}

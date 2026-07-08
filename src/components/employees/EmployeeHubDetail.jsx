@@ -16,13 +16,23 @@ import {
 } from '../../utils/salaryReport'
 import { getStatusLabel } from '../../utils/employeeStorage'
 import { isAdmin } from '../../constants/auth'
+import { getAttendanceStatusLabel } from '../../constants/attendanceTypes'
+import { computeAttendanceStats } from '../../utils/payrollLiveHelpers'
 import './EmployeeHubDetail.css'
 
-const TABS = [
+const DEFAULT_TABS = [
   { id: 'profile', label: 'Hồ sơ' },
   { id: 'sales', label: 'Doanh số' },
   { id: 'salary', label: 'Lương' },
   { id: 'history', label: 'Lịch sử' },
+]
+
+const BRANCH_TABS = [
+  { id: 'profile', label: 'Hồ sơ cá nhân' },
+  { id: 'sales', label: 'Hóa đơn đã làm' },
+  { id: 'attendance', label: 'Chấm công' },
+  { id: 'salary', label: 'Lương' },
+  { id: 'history', label: 'Ghi chú / lịch sử' },
 ]
 
 function StatCard({ label, value, variant = '' }) {
@@ -34,9 +44,18 @@ function StatCard({ label, value, variant = '' }) {
   )
 }
 
-export default function EmployeeHubDetail({ employee, invoices, month, onEdit }) {
+export default function EmployeeHubDetail({
+  employee,
+  invoices,
+  month,
+  onEdit,
+  variant = 'default',
+  attendanceRecords = null,
+}) {
   const [activeTab, setActiveTab] = useState('profile')
   const [salaryCycle, setSalaryCycle] = useState(PAY_CYCLES.FULL)
+
+  const tabs = variant === 'branch' ? BRANCH_TABS : DEFAULT_TABS
 
   const todayStats = useMemo(
     () => (employee ? computeEmployeeTodayStats(invoices, employee.id) : null),
@@ -74,6 +93,18 @@ export default function EmployeeHubDetail({ employee, invoices, month, onEdit })
     })
   }, [employee, invoices, month, salaryCycle])
 
+  const attendanceStats = useMemo(() => {
+    if (!employee || !attendanceRecords) return null
+    return computeAttendanceStats(attendanceRecords, employee.id)
+  }, [employee, attendanceRecords])
+
+  const employeeAttendance = useMemo(() => {
+    if (!employee || !attendanceRecords) return []
+    return attendanceRecords
+      .filter((row) => row.employeeId === employee.id)
+      .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
+  }, [employee, attendanceRecords])
+
   if (!employee) {
     return (
       <div className="employee-hub-detail employee-hub-detail--empty">
@@ -87,7 +118,7 @@ export default function EmployeeHubDetail({ employee, invoices, month, onEdit })
   return (
     <div className="employee-hub-detail">
       <div className="employee-hub-detail__tabs">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -148,6 +179,43 @@ export default function EmployeeHubDetail({ employee, invoices, month, onEdit })
         </div>
       )}
 
+      {activeTab === 'attendance' && attendanceRecords && (
+        <div className="employee-hub-detail__panel">
+          <div className="employee-hub-detail__stats-grid">
+            <StatCard label="Ngày công" value={String(attendanceStats?.workDays ?? 0)} />
+            <StatCard label="Đúng giờ" value={String(attendanceStats?.onTime ?? 0)} />
+            <StatCard label="Đi trễ" value={String(attendanceStats?.late ?? 0)} />
+            <StatCard label="Tổng phạt" value={formatCurrency(attendanceStats?.penaltyAmount ?? 0)} variant="commission" />
+          </div>
+          {!employeeAttendance.length ? (
+            <p className="employee-hub-detail__empty">Chưa có dữ liệu chấm công</p>
+          ) : (
+            <div className="admin-branches__table-wrap">
+              <table className="admin-branches__table">
+                <thead>
+                  <tr>
+                    <th>Ngày</th>
+                    <th>Trạng thái</th>
+                    <th>Phạt</th>
+                    <th>Lý do</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employeeAttendance.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.date}</td>
+                      <td>{getAttendanceStatusLabel(row.status)}</td>
+                      <td>{formatCurrency(row.penaltyAmount ?? 0)}</td>
+                      <td>{row.reason || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'salary' && (
         <div className="employee-hub-detail__panel">
           <div className="employee-hub-detail__cycle">
@@ -196,6 +264,12 @@ export default function EmployeeHubDetail({ employee, invoices, month, onEdit })
 
       {activeTab === 'history' && (
         <div className="employee-hub-detail__panel">
+          {employee.note && (
+            <div className="employee-hub-history-block">
+              <h4>Ghi chú</h4>
+              <p>{employee.note}</p>
+            </div>
+          )}
           <div className="employee-hub-history-block">
             <h4>Ngày vào làm</h4>
             <p>{employee.startDate ? formatDisplayDate(employee.startDate) : 'Chưa cập nhật'}</p>
