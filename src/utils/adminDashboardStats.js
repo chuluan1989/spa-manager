@@ -1,5 +1,5 @@
 import { getActiveEmployeesByBranch, getAllActiveEmployees } from './employeeStorage'
-import { getInvoicePayment, getInvoiceServiceDetails, getInvoiceTips } from './invoice'
+import { getInvoicePayment, getInvoiceServiceCommission, getInvoiceTips } from './invoice'
 import { getMonthStartDate, getTodayDate } from './invoiceStorage'
 import { sumExpenseAmount } from './expenseStorage'
 import { computeBranchReport } from './report'
@@ -13,11 +13,6 @@ export const ADMIN_DASHBOARD_BRANCHES = [
   { id: 'gia-lai-2', displayName: 'Gia Lai 2' },
   { id: 'gia-lai-3', displayName: 'Gia Lai 3' },
 ]
-
-function getInvoiceServiceCommission(invoice) {
-  return getInvoiceServiceDetails(invoice)
-    .reduce((sum, service) => sum + Number(service.commissionAmount ?? 0), 0)
-}
 
 function getEmployeePay(invoice) {
   return getInvoiceServiceCommission(invoice) + getInvoiceTips(invoice)

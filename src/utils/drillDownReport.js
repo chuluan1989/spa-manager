@@ -2,6 +2,7 @@ import {
   getInvoiceDiscountAmount,
   getInvoicePayment,
   getInvoiceServiceDetails,
+  getInvoiceServiceCommission,
   getInvoiceTips,
 } from './invoice'
 import {
@@ -14,8 +15,7 @@ import { getEmployeeById } from './employeeStorage'
 import { filterInvoices } from './report'
 
 function getInvoiceCommission(invoice) {
-  return getInvoiceServiceDetails(invoice)
-    .reduce((sum, service) => sum + Number(service.commissionAmount ?? 0), 0)
+  return getInvoiceServiceCommission(invoice)
 }
 
 export function countUniqueCustomers(invoices) {

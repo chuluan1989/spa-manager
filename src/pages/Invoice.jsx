@@ -330,7 +330,8 @@ export default function Invoice() {
     discountAmount: totals.discountAmount,
     serviceTotal: totals.serviceTotal,
     total: totals.total,
-    commission: totals.commission,
+    commission: totals.serviceCommission,
+    serviceCommission: totals.serviceCommission,
   })
 
   const handleSave = () => {

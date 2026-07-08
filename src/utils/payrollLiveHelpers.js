@@ -1,7 +1,7 @@
 import { getAttendanceStatusConfig } from '../constants/attendanceTypes'
 import { PAYROLL_ADJUSTMENT_TYPES } from '../constants/payrollTypes'
 import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
-import { getInvoiceServiceDetails, getInvoiceServiceTotal } from './invoice'
+import { getInvoiceServiceDetails, getInvoiceServiceCommission, getInvoiceServiceTotal, getServiceLineCommissionAmount } from './invoice'
 
 function getSalaryRole(invoice, employeeId) {
   if (employeeId && invoice.supportEmployeeId === employeeId) return SALARY_ROLES.SUPPORT
@@ -15,10 +15,8 @@ function scaleCommission(amount, role) {
 
 function getInvoiceCommission(invoice, employeeId) {
   const role = getSalaryRole(invoice, employeeId)
-  return getInvoiceServiceDetails(invoice).reduce(
-    (sum, service) => sum + scaleCommission(Number(service.commissionAmount ?? 0), role),
-    0,
-  )
+  const base = getInvoiceServiceCommission(invoice)
+  return scaleCommission(base, role)
 }
 
 export function computeAttendanceStats(attendanceRecords, employeeId) {

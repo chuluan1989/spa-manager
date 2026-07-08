@@ -7,7 +7,7 @@ import {
 } from '../constants/payrollTypes'
 import { getAttendanceStatusLabel } from '../constants/attendanceTypes'
 import { getBranchName } from './branchStorage'
-import { getInvoiceServiceDetails, getInvoiceServiceTotal } from './invoice'
+import { getInvoiceServiceDetails, getInvoiceServiceCommission, getInvoiceServiceTotal, getServiceLineCommissionAmount } from './invoice'
 import {
   computeAttendanceStats,
   computePayrollPaymentSummary,
@@ -48,10 +48,7 @@ function sumEmployeeInvoices(invoices, employeeId) {
       ticketRevenue += getInvoiceServiceTotal(invoice)
       tips += Number.isFinite(invoice.tips) ? invoice.tips : 0
     }
-    commission += getInvoiceServiceDetails(invoice).reduce(
-      (sum, service) => sum + scaleCommission(Number(service.commissionAmount ?? 0), role),
-      0,
-    )
+    commission += scaleCommission(getInvoiceServiceCommission(invoice), role)
   }
 
   return { ticketRevenue, commission, tips, invoiceCount }
@@ -251,10 +248,7 @@ export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adj
     const role = getSalaryRole(invoice, employeeId)
     const services = getInvoiceServiceDetails(invoice).map((service) => service.name).join(', ') || 'Dịch vụ'
     const customer = invoice.customerName ? `Khách ${invoice.customerName}` : 'Khách hàng'
-    const commission = getInvoiceServiceDetails(invoice).reduce(
-      (sum, service) => sum + scaleCommission(Number(service.commissionAmount ?? 0), role),
-      0,
-    )
+    const commission = scaleCommission(getInvoiceServiceCommission(invoice), role)
     const tips = role === SALARY_ROLES.PRIMARY ? Number(invoice.tips ?? 0) : 0
     const ticketRevenue = role === SALARY_ROLES.PRIMARY ? getInvoiceServiceTotal(invoice) : 0
 

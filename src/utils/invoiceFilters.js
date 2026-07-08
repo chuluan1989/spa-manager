@@ -5,6 +5,7 @@ import {
   getInvoicePayment,
   getInvoiceCustomerTotal,
   getInvoiceServiceDetails,
+  getInvoiceServiceCommission,
 } from './invoice'
 
 export const INVOICE_PAGE_SIZE = 20
@@ -111,7 +112,7 @@ export function computeInvoiceListTotals(invoices) {
       acc.revenue += getInvoicePayment(invoice)
       acc.customerTotal += getInvoiceCustomerTotal(invoice)
       acc.tips += Number.isFinite(invoice.tips) ? invoice.tips : 0
-      acc.commission += Number.isFinite(invoice.commission) ? invoice.commission : 0
+      acc.commission += getInvoiceServiceCommission(invoice)
       return acc
     },
     {

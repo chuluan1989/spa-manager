@@ -4,6 +4,8 @@ import {
   getInvoiceOriginalServiceTotal,
   getInvoicePayment,
   getInvoiceServiceDetails,
+  getInvoiceServiceCommission,
+  getServiceLineCommissionAmount,
 } from './invoice'
 import { readInvoiceTime } from './invoiceFilters'
 import {
@@ -11,7 +13,7 @@ import {
   formatDisplayDate,
   getPayCycleLabel,
 } from './salaryReport'
-import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
+import { EMPLOYEE_COMMISSION_PERCENT, SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
 
 function getSalaryRole(invoice, employeeId) {
   if (employeeId && invoice.supportEmployeeId === employeeId) {
@@ -31,15 +33,8 @@ function getInvoiceTipsForEmployee(invoice, role) {
 }
 
 function getEmployeeCommission(invoice, employeeId, role) {
-  const services = getInvoiceServiceDetails(invoice)
-  if (role === SALARY_ROLES.SUPPORT) {
-    return services.reduce(
-      (sum, service) => sum + scaleCommissionAmount(service.commissionAmount ?? 0, role),
-      0,
-    )
-  }
-  if (Number.isFinite(invoice.commission)) return invoice.commission
-  return services.reduce((sum, service) => sum + Number(service.commissionAmount ?? 0), 0)
+  const baseCommission = getInvoiceServiceCommission(invoice)
+  return scaleCommissionAmount(baseCommission, role)
 }
 
 export function filterEmployeeReportInvoices(invoices, filters) {

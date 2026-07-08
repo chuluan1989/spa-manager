@@ -1,4 +1,4 @@
-import { SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../../constants/salary'
+import { EMPLOYEE_COMMISSION_PERCENT, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../../constants/salary'
 import { loadSystemSettings } from '../../utils/systemSettingsStorage'
 
 export default function SettingsPoliciesTab() {
@@ -14,7 +14,7 @@ export default function SettingsPoliciesTab() {
       <section className="settings__policy-block">
         <h4 className="settings__subheading">Chính sách lương</h4>
         <ul className="settings__policy-list">
-          <li>Lương kỳ = Doanh thu tiền vé + Tips + Hoa hồng dịch vụ (theo từng hóa đơn).</li>
+          <li>Lương kỳ = Hoa hồng (40% giá vé thực thu) + Tips + Thưởng − Phạt − Giảm lương − Ứng lương.</li>
           <li>Báo cáo lương theo kỳ 1–15, 16–cuối tháng và cả tháng tại module Lương / Nhân viên.</li>
           <li>Tỷ lệ lương riêng theo nhân viên (nếu có) được lưu trong hồ sơ nhân viên.</li>
         </ul>
@@ -23,9 +23,8 @@ export default function SettingsPoliciesTab() {
       <section className="settings__policy-block">
         <h4 className="settings__subheading">Chính sách hoa hồng</h4>
         <ul className="settings__policy-list">
-          <li>Hoa hồng dịch vụ tính theo % cấu hình trên từng dịch vụ (tab Dịch vụ).</li>
-          <li>Hoa hồng nhân viên hỗ trợ: {(SUPPORT_EMPLOYEE_COMMISSION_RATE * 100).toFixed(0)}% trên doanh thu tiền vé.</li>
-          <li>Mức hoa hồng mặc định theo nhân viên có thể ghi trong hồ sơ (commissionRate).</li>
+          <li>Hoa hồng nhân viên chính: {EMPLOYEE_COMMISSION_PERCENT}% trên giá vé thực thu (sau khuyến mãi). Không tính trên Tips hay tổng thanh toán.</li>
+          <li>Hoa hồng nhân viên hỗ trợ: {(SUPPORT_EMPLOYEE_COMMISSION_RATE * 100).toFixed(0)}% trên hoa hồng nhân viên chính (tương đương 20% giá vé thực thu).</li>
         </ul>
       </section>
 

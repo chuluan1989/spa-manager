@@ -1,7 +1,7 @@
-import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
+import { getInvoiceServiceDetails, getInvoiceServiceTotal, invoiceHasDiscount, getServiceLineCommissionAmount } from './invoice'
+import { EMPLOYEE_COMMISSION_PERCENT, SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
 import { getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
-import { getInvoiceServiceDetails, getInvoiceServiceTotal, invoiceHasDiscount } from './invoice'
 
 export const PAY_CYCLES = {
   PERIOD_1: 'period1',
@@ -96,8 +96,8 @@ function buildInvoiceSalaryRow(invoice, employeeId, role = getSalaryRole(invoice
     serviceId: service.id,
     serviceName: service.name,
     price: service.price ?? 0,
-    commissionPercent: service.commissionPercent ?? 0,
-    commissionAmount: scaleCommissionAmount(service.commissionAmount ?? 0, role),
+    commissionPercent: EMPLOYEE_COMMISSION_PERCENT,
+    commissionAmount: scaleCommissionAmount(getServiceLineCommissionAmount(service), role),
   }))
   const tips = role === SALARY_ROLES.PRIMARY ? getInvoiceTips(invoice) : 0
   const serviceRevenue = role === SALARY_ROLES.PRIMARY

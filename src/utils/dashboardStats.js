@@ -8,7 +8,7 @@ import {
 } from '../constants/auth'
 import {
   getInvoicePayment,
-  getInvoiceServiceDetails,
+  getInvoiceServiceCommission,
   getInvoiceTips,
 } from './invoice'
 import { getMonthStartDate, getTodayDate } from './invoiceStorage'
@@ -18,15 +18,6 @@ import {
   computeTopEmployeesByRevenue,
   computeTopServices,
 } from './report'
-
-function getInvoiceServiceCommission(invoice) {
-  return getInvoiceServiceDetails(invoice)
-    .reduce((sum, service) => sum + Number(service.commissionAmount ?? 0), 0)
-}
-
-function getEmployeePay(invoice) {
-  return getInvoiceServiceCommission(invoice) + getInvoiceTips(invoice)
-}
 
 function filterByDateRange(invoices, fromDate, toDate) {
   return invoices.filter((invoice) => {

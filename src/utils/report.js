@@ -1,4 +1,4 @@
-import { getInvoiceServiceDetails, getInvoicePayment, getInvoiceTips, getInvoiceCustomerTotal, invoiceHasDiscount } from './invoice'
+import { getInvoiceServiceDetails, getInvoicePayment, getInvoiceServiceCommission, getInvoiceTips, getInvoiceCustomerTotal, invoiceHasDiscount, getServiceLineCommissionAmount } from './invoice'
 import {
   computeExpenseByBranch,
   computeExpenseSummary,
@@ -21,12 +21,6 @@ export function filterInvoices(invoices, { fromDate, toDate, branchId, employeeI
   })
 }
 
-function getInvoiceServiceCommission(invoice) {
-  return getInvoiceServiceDetails(invoice)
-    .reduce((sum, service) => sum + (service.commissionAmount ?? 0), 0)
-}
-
-/** Doanh thu tiền vé — tiền dịch vụ sau KM, không gồm Tips. */
 function getInvoiceTicketRevenue(invoice) {
   return getInvoicePayment(invoice)
 }
@@ -168,7 +162,7 @@ export function computeServiceReport(invoices) {
       current.count += 1
       current.ticketRevenue += service.price
       current.revenue += service.price
-      current.commission += service.commissionAmount ?? 0
+      current.commission += getServiceLineCommissionAmount(service)
       map.set(key, current)
     }
   }
