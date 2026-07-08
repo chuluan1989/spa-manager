@@ -7,14 +7,19 @@ function formatDate(value) {
   return `${d}/${m}/${y}`
 }
 
-export default function PayrollWallet({ entries, employee, stats }) {
-  if (!employee) {
+export default function PayrollWallet({ entries, employee, stats, mode = 'full' }) {
+  if (mode !== 'timeline' && !employee) {
     return <p className="salary-page__empty">Chọn nhân viên để xem ví lương.</p>
   }
 
+  const showHeader = mode === 'full' || mode === 'header'
+  const showStats = showHeader && stats
+  const showTimeline = mode === 'full' || mode === 'timeline'
+
   return (
     <section className="salary-wallet">
-      <header className="salary-wallet__profile">
+      {showHeader && employee && (
+        <header className="salary-wallet__profile">
         {employee.avatar ? (
           <img src={employee.avatar} alt="" className="salary-wallet__avatar" />
         ) : (
@@ -27,8 +32,9 @@ export default function PayrollWallet({ entries, employee, stats }) {
           <p>{employee.branchName} · {employee.position || 'Nhân viên'}</p>
         </div>
       </header>
+      )}
 
-      {stats && (
+      {showStats && (
         <div className="salary-wallet__stats">
           {[
             ['ticketRevenue', stats.ticketRevenue],
@@ -49,9 +55,9 @@ export default function PayrollWallet({ entries, employee, stats }) {
         </div>
       )}
 
-      {!entries.length ? (
+      {showTimeline && !entries.length ? (
         <p className="salary-page__empty">Chưa có phát sinh trong kỳ.</p>
-      ) : (
+      ) : showTimeline ? (
         <ol className="salary-wallet__timeline">
           {entries.map((entry) => {
             const positive = entry.amount >= 0
@@ -70,7 +76,7 @@ export default function PayrollWallet({ entries, employee, stats }) {
             )
           })}
         </ol>
-      )}
+      ) : null}
     </section>
   )
 }

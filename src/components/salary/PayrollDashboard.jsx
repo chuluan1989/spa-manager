@@ -1,13 +1,13 @@
 import { formatCurrency } from '../../utils/invoice'
 
 const CARDS = [
-  { key: 'baseSalary', label: 'Quỹ lương cơ bản', variant: 'neutral' },
+  { key: 'baseSalary', label: 'Tổng quỹ lương', variant: 'neutral' },
   { key: 'tips', label: 'Tổng Tips', variant: 'tips' },
+  { key: 'commission', label: 'Tổng Hoa hồng', variant: 'commission' },
   { key: 'bonus', label: 'Tổng thưởng', variant: 'bonus' },
   { key: 'penalty', label: 'Tổng phạt', variant: 'penalty' },
   { key: 'advance', label: 'Tổng ứng lương', variant: 'advance' },
-  { key: 'reduction', label: 'Tổng giảm lương', variant: 'reduction' },
-  { key: 'netSalary', label: 'Lương thực nhận', variant: 'net' },
+  { key: 'netSalary', label: 'Tổng thực nhận', variant: 'net' },
 ]
 
 export default function PayrollDashboard({ dashboard, employeeCount }) {

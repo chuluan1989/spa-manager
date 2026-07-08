@@ -1,39 +1,50 @@
 import { useMemo, useState } from 'react'
 import PayrollAdjustmentModal from '../components/salary/PayrollAdjustmentModal'
-import PayrollAuditHistory from '../components/salary/PayrollAuditHistory'
+import PayrollBranchGrid from '../components/salary/PayrollBranchGrid'
+import PayrollBreadcrumb from '../components/salary/PayrollBreadcrumb'
 import PayrollDashboard from '../components/salary/PayrollDashboard'
-import PayrollDetailModal from '../components/salary/PayrollDetailModal'
-import PayrollFilters from '../components/salary/PayrollFilters'
-import PayrollPayslipPanel from '../components/salary/PayrollPayslipPanel'
-import PayrollTable from '../components/salary/PayrollTable'
-import PayrollWallet from '../components/salary/PayrollWallet'
+import PayrollEmployeeList from '../components/salary/PayrollEmployeeList'
+import PayrollEmployeeProfile from '../components/salary/PayrollEmployeeProfile'
 import {
   canAccessSalaryPage,
   canLockPayroll,
   canManagePayroll,
   canSelectBranch,
   getCurrentUserBranch,
+  getCurrentUserEmployeeId,
   getScopedBranchId,
-  getScopedEmployeeId,
   isAdmin,
+  isEmployee,
 } from '../constants/auth'
-import { PAYROLL_DETAIL_CATEGORIES, PAYROLL_DETAIL_LABELS } from '../constants/payrollTypes'
 import { usePayrollData } from '../hooks/usePayrollData'
-import { buildWalletTimeline, filterWalletByCategory, isPayrollMonthLocked } from '../utils/payrollEngine'
+import { getActiveBranches, getBranchName } from '../utils/branchStorage'
+import { getEmployeeById } from '../utils/employeeStorage'
+import { buildWalletTimeline, isPayrollMonthLocked } from '../utils/payrollEngine'
 import {
   addPayrollAdjustment,
   lockPayrollMonth,
   unlockPayrollMonth,
 } from '../utils/payrollService'
-import { getBranchName } from '../utils/branchStorage'
+import { aggregateBranchSummaries, mergeEmployeePayrollRows } from '../utils/payrollViewHelpers'
+import { getCurrentMonthValue } from '../utils/salaryReport'
 import './Salary.css'
 
-const TABS = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'table', label: 'Bảng lương' },
-  { id: 'wallet', label: 'Ví nhân viên' },
-  { id: 'history', label: 'Lịch sử điều chỉnh' },
-]
+const LEVEL = {
+  BRANCHES: 'branches',
+  EMPLOYEES: 'employees',
+  PROFILE: 'profile',
+}
+
+function getInitialLevel() {
+  if (isEmployee()) return LEVEL.PROFILE
+  return LEVEL.BRANCHES
+}
+
+function getInitialBranchId() {
+  if (isEmployee()) return getEmployeeById(getCurrentUserEmployeeId())?.branchId ?? getCurrentUserBranch()
+  if (isAdmin()) return ''
+  return getCurrentUserBranch()
+}
 
 export default function Salary() {
   if (!canAccessSalaryPage()) {
@@ -48,18 +59,29 @@ export default function Salary() {
 }
 
 function SalaryPage() {
-  const [tab, setTab] = useState('dashboard')
+  const [level, setLevel] = useState(getInitialLevel)
   const [month, setMonth] = useState(getCurrentMonthValue())
-  const [branchId, setBranchId] = useState(isAdmin() ? '' : getCurrentUserBranch())
-  const [employeeId, setEmployeeId] = useState(getScopedEmployeeId(''))
-  const [walletEmployeeId, setWalletEmployeeId] = useState(getScopedEmployeeId(''))
-  const [detailModal, setDetailModal] = useState(null)
-  const [payslipRow, setPayslipRow] = useState(null)
+  const [selectedBranchId, setSelectedBranchId] = useState(getInitialBranchId)
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(() =>
+    (isEmployee() ? getCurrentUserEmployeeId() : ''),
+  )
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [adjustmentOpen, setAdjustmentOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const scopedBranch = getScopedBranchId(branchId)
-  const scopedEmployee = getScopedEmployeeId(employeeId)
+  const fetchBranchId = useMemo(() => {
+    if (isEmployee()) return getScopedBranchId(getCurrentUserBranch())
+    if (level === LEVEL.BRANCHES) return getScopedBranchId('')
+    return getScopedBranchId(selectedBranchId)
+  }, [level, selectedBranchId])
+
+  const fetchEmployeeId = useMemo(() => {
+    if (level === LEVEL.PROFILE) {
+      return isEmployee() ? getCurrentUserEmployeeId() : selectedEmployeeId
+    }
+    return ''
+  }, [level, selectedEmployeeId])
 
   const {
     employees,
@@ -72,68 +94,92 @@ function SalaryPage() {
     loading,
     error,
     reload,
-  } = usePayrollData({ month, branchId: scopedBranch, employeeId: scopedEmployee })
+  } = usePayrollData({ month, branchId: fetchBranchId, employeeId: fetchEmployeeId })
 
-  const scopedEmployees = useMemo(
-    () => employees.filter((emp) => {
-      if (emp.status === 'inactive' || emp.status === 'archived') return false
-      if (scopedBranch && emp.branchId !== scopedBranch) return false
-      if (scopedEmployee && emp.id !== scopedEmployee) return false
-      return true
-    }),
-    [employees, scopedBranch, scopedEmployee],
+  const visibleBranches = useMemo(() => {
+    const all = getActiveBranches()
+    if (isAdmin()) return all
+    const branchId = getCurrentUserBranch()
+    return all.filter((branch) => branch.id === branchId)
+  }, [])
+
+  const branchSummaries = useMemo(
+    () => aggregateBranchSummaries(visibleBranches, employees, report.rows),
+    [visibleBranches, employees, report.rows],
   )
 
-  const isLocked = isPayrollMonthLocked(month, scopedBranch, locks)
+  const employeeRows = useMemo(
+    () => mergeEmployeePayrollRows(employees, report.rows, {
+      branchId: selectedBranchId,
+      search,
+      status: statusFilter,
+    }),
+    [employees, report.rows, selectedBranchId, search, statusFilter],
+  )
 
-  const walletEmployee = useMemo(() => {
-    const row = report.rows.find((r) => r.employeeId === walletEmployeeId)
-    if (row) return row
-    const emp = scopedEmployees.find((e) => e.id === walletEmployeeId)
+  const profileRow = useMemo(() => {
+    const targetId = isEmployee() ? getCurrentUserEmployeeId() : selectedEmployeeId
+    const fromReport = report.rows.find((row) => row.employeeId === targetId)
+    if (fromReport) return fromReport
+    const emp = employees.find((e) => e.id === targetId)
     if (!emp) return null
-    return {
-      employeeId: emp.id,
-      employeeName: emp.name,
-      branchName: getBranchName(emp.branchId) || '—',
-      position: emp.position,
-      avatar: emp.avatar,
-    }
-  }, [report.rows, walletEmployeeId, scopedEmployees])
+    return mergeEmployeePayrollRows([emp], report.rows)[0]
+  }, [report.rows, employees, selectedEmployeeId])
 
   const walletEntries = useMemo(() => {
-    if (!walletEmployeeId) return []
-    return buildWalletTimeline(walletEmployeeId, invoices, attendance, adjustments)
-  }, [walletEmployeeId, invoices, attendance, adjustments])
+    const targetId = isEmployee() ? getCurrentUserEmployeeId() : selectedEmployeeId
+    if (!targetId) return []
+    return buildWalletTimeline(targetId, invoices, attendance, adjustments)
+  }, [selectedEmployeeId, invoices, attendance, adjustments])
 
-  const handleCellClick = (row, category) => {
-    const entries = filterWalletByCategory(
-      buildWalletTimeline(row.employeeId, invoices, attendance, adjustments),
-      category,
-    )
-    if (category === PAYROLL_DETAIL_CATEGORIES.BASE) {
-      setDetailModal({
-        title: `${PAYROLL_DETAIL_LABELS.baseSalary} · ${row.employeeName}`,
-        entries: [{ id: 'base', label: 'Lương cơ bản', amount: row.baseSalary, date: `${month}-01`, createdBy: 'Hệ thống' }],
-        total: row.baseSalary,
-      })
-      return
-    }
-    if (category === PAYROLL_DETAIL_CATEGORIES.NET) {
-      setDetailModal({
-        title: `Lương thực nhận · ${row.employeeName}`,
-        entries: filterWalletByCategory(
-          buildWalletTimeline(row.employeeId, invoices, attendance, adjustments),
-          '',
-        ),
-        total: row.netSalary,
-      })
-      return
-    }
-    setDetailModal({
-      title: `${PAYROLL_DETAIL_LABELS[category] ?? category} · ${row.employeeName}`,
-      entries,
-      total: row[category],
+  const isLocked = isPayrollMonthLocked(month, fetchBranchId, locks)
+
+  const breadcrumbItems = useMemo(() => {
+    if (isEmployee()) return []
+
+    const items = [{ id: 'system', label: 'Hệ thống', level: LEVEL.BRANCHES }]
+    if (level === LEVEL.BRANCHES) return items
+
+    items.push({
+      id: 'branch',
+      label: getBranchName(selectedBranchId),
+      level: LEVEL.EMPLOYEES,
+      meta: { branchId: selectedBranchId },
     })
+
+    if (level === LEVEL.PROFILE && profileRow) {
+      items.push({ id: 'employee', label: profileRow.employeeName, level: null })
+    }
+
+    return items
+  }, [level, selectedBranchId, profileRow])
+
+  const handleNavigate = (targetLevel, meta = {}) => {
+    if (targetLevel === LEVEL.BRANCHES) {
+      setLevel(LEVEL.BRANCHES)
+      setSelectedBranchId('')
+      setSelectedEmployeeId('')
+      setSearch('')
+      return
+    }
+    if (targetLevel === LEVEL.EMPLOYEES) {
+      setLevel(LEVEL.EMPLOYEES)
+      setSelectedBranchId(meta.branchId ?? selectedBranchId)
+      setSelectedEmployeeId('')
+    }
+  }
+
+  const handleSelectBranch = (branchId) => {
+    setSelectedBranchId(branchId)
+    setLevel(LEVEL.EMPLOYEES)
+    setSearch('')
+    setStatusFilter('')
+  }
+
+  const handleSelectEmployee = (row) => {
+    setSelectedEmployeeId(row.employeeId)
+    setSelectedBranchId(row.branchId)
+    setLevel(LEVEL.PROFILE)
   }
 
   const handleAddAdjustment = async (payload) => {
@@ -152,7 +198,7 @@ function SalaryPage() {
     if (!window.confirm(`Chốt lương tháng ${month}? Sau khi chốt không ai được sửa.`)) return
     setSaving(true)
     try {
-      await lockPayrollMonth({ month, branchId: scopedBranch, note: '' })
+      await lockPayrollMonth({ month, branchId: fetchBranchId, note: '' })
       await reload()
     } catch (err) {
       window.alert(err?.message ?? 'Không thể chốt lương.')
@@ -166,7 +212,7 @@ function SalaryPage() {
     if (!reason?.trim()) return
     setSaving(true)
     try {
-      await unlockPayrollMonth({ month, branchId: scopedBranch, reason })
+      await unlockPayrollMonth({ month, branchId: fetchBranchId, reason })
       await reload()
     } catch (err) {
       window.alert(err?.message ?? 'Không thể mở khóa.')
@@ -175,16 +221,26 @@ function SalaryPage() {
     }
   }
 
+  const scopedEmployeesForModal = useMemo(
+    () => employees.filter((emp) => {
+      if (emp.status === 'inactive' || emp.status === 'archived') return false
+      if (fetchBranchId && emp.branchId !== fetchBranchId) return false
+      if (isEmployee()) return emp.id === getCurrentUserEmployeeId()
+      return true
+    }),
+    [employees, fetchBranchId],
+  )
+
   return (
     <div className="salary-page">
       <header className="salary-page__header">
         <div>
           <h1>Lương</h1>
-          <p>HRM lương — đồng bộ hóa đơn, chấm công, tips và điều chỉnh thủ công.</p>
+          <p>Quản lý lương theo phân cấp — Hệ thống → Chi nhánh → Nhân viên → Chi tiết.</p>
         </div>
         <div className="salary-page__header-actions">
           {isLocked && <span className="salary-page__locked">🔒 Đã chốt lương</span>}
-          {canManagePayroll() && !isLocked && (
+          {canManagePayroll() && !isLocked && level === LEVEL.PROFILE && (
             <button type="button" className="salary-page__btn" onClick={() => setAdjustmentOpen(true)}>
               + Thêm phát sinh
             </button>
@@ -202,95 +258,109 @@ function SalaryPage() {
         </div>
       </header>
 
-      <nav className="salary-page__tabs">
-        {TABS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={tab === item.id ? 'is-active' : ''}
-            onClick={() => setTab(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </nav>
+      {!isEmployee() && (
+        <PayrollBreadcrumb items={breadcrumbItems} onNavigate={handleNavigate} />
+      )}
 
-      <PayrollFilters
-        month={month}
-        branchId={scopedBranch}
-        employeeId={scopedEmployee}
-        onMonthChange={setMonth}
-        onBranchChange={canSelectBranch() ? setBranchId : undefined}
-        onEmployeeChange={setEmployeeId}
-      />
+      <div className="salary-page__toolbar">
+        <label>
+          Tháng
+          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+        </label>
 
-      {tab === 'wallet' && (
-        <div className="salary-page__wallet-picker">
+        {level === LEVEL.EMPLOYEES && (
+          <>
+            <label>
+              Tìm kiếm
+              <input
+                type="search"
+                placeholder="Tên hoặc SĐT"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </label>
+            <label>
+              Trạng thái
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <option value="">Đang làm</option>
+                <option value="inactive">Nghỉ việc</option>
+                <option value="archived">Lưu trữ</option>
+                <option value="all">Tất cả</option>
+              </select>
+            </label>
+          </>
+        )}
+
+        {canSelectBranch() && level === LEVEL.EMPLOYEES && (
           <label>
-            Nhân viên (ví)
-            <select value={walletEmployeeId} onChange={(e) => setWalletEmployeeId(e.target.value)}>
-              <option value="">— Chọn nhân viên —</option>
-              {scopedEmployees.map((emp) => (
-                <option key={emp.id} value={emp.id}>{emp.name}</option>
+            Chi nhánh
+            <select
+              value={selectedBranchId}
+              onChange={(e) => {
+                setSelectedBranchId(e.target.value)
+                setLevel(LEVEL.EMPLOYEES)
+                setSelectedEmployeeId('')
+              }}
+            >
+              {visibleBranches.map((branch) => (
+                <option key={branch.id} value={branch.id}>{branch.name}</option>
               ))}
             </select>
           </label>
-        </div>
-      )}
+        )}
+      </div>
 
       {loading && <p className="salary-page__loading">Đang tải dữ liệu lương…</p>}
       {error && <p className="salary-page__error">{error}</p>}
 
-      {!loading && !error && tab === 'dashboard' && (
-        <PayrollDashboard dashboard={report.dashboard} employeeCount={report.dashboard.employeeCount} />
+      {!loading && !error && level === LEVEL.BRANCHES && (
+        <>
+          <PayrollDashboard
+            dashboard={report.dashboard}
+            employeeCount={report.dashboard.employeeCount}
+          />
+          <h2 className="salary-page__section-title">Chi nhánh</h2>
+          <PayrollBranchGrid branches={branchSummaries} onSelectBranch={handleSelectBranch} />
+        </>
       )}
 
-      {!loading && !error && tab === 'table' && (
-        <PayrollTable
-          rows={report.rows}
-          onCellClick={handleCellClick}
-          onRowSelect={(row) => {
-            setPayslipRow({ ...row, month, fromDate: report.fromDate, toDate: report.toDate })
-          }}
-          selectedEmployeeId={walletEmployeeId}
-        />
+      {!loading && !error && level === LEVEL.EMPLOYEES && (
+        <>
+          <div className="salary-page__section-head">
+            <h2>{getBranchName(selectedBranchId)}</h2>
+            <span>{employeeRows.length} nhân viên</span>
+          </div>
+          <PayrollEmployeeList rows={employeeRows} onSelectEmployee={handleSelectEmployee} />
+        </>
       )}
 
-      {!loading && !error && tab === 'wallet' && (
-        <PayrollWallet
-          entries={walletEntries}
-          employee={walletEmployee}
-          stats={report.rows.find((r) => r.employeeId === walletEmployeeId)}
-        />
-      )}
-
-      {!loading && !error && tab === 'history' && (
-        <PayrollAuditHistory
-          logs={auditLogs}
+      {!loading && !error && level === LEVEL.PROFILE && profileRow && (
+        <PayrollEmployeeProfile
+          employee={profileRow}
+          stats={profileRow}
+          walletEntries={walletEntries}
+          month={month}
+          fromDate={report.fromDate}
+          toDate={report.toDate}
+          auditLogs={auditLogs}
           adjustments={adjustments}
           locks={locks}
           onReload={reload}
         />
       )}
 
-      <PayrollDetailModal
-        open={Boolean(detailModal)}
-        onClose={() => setDetailModal(null)}
-        title={detailModal?.title ?? ''}
-        entries={detailModal?.entries ?? []}
-        total={detailModal?.total}
-      />
-
-      <PayrollPayslipPanel payslip={payslipRow} onClose={() => setPayslipRow(null)} />
+      {!loading && !error && level === LEVEL.PROFILE && !profileRow && (
+        <p className="salary-page__empty">Không tìm thấy hồ sơ lương.</p>
+      )}
 
       <PayrollAdjustmentModal
         open={adjustmentOpen}
         onClose={() => setAdjustmentOpen(false)}
         onSubmit={handleAddAdjustment}
-        employees={scopedEmployees}
+        employees={scopedEmployeesForModal}
         defaultMonth={month}
-        defaultEmployeeId={scopedEmployee}
-        defaultBranchId={scopedBranch}
+        defaultEmployeeId={isEmployee() ? getCurrentUserEmployeeId() : selectedEmployeeId}
+        defaultBranchId={fetchBranchId}
         saving={saving}
       />
     </div>

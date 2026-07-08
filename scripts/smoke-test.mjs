@@ -1892,4 +1892,31 @@ test('payroll engine: net salary formula and auto sync', async () => {
   assert.equal(isPayrollMonthLocked('2026-07', 'b1', []), false)
 })
 
+test('payroll view helpers: branch drill-down aggregation', async () => {
+  const { aggregateBranchSummaries, mergeEmployeePayrollRows } = await import('../src/utils/payrollViewHelpers.js')
+
+  const branches = [
+    { id: 'b1', name: 'CN1' },
+    { id: 'b2', name: 'CN2' },
+  ]
+  const employees = [
+    { id: 'e1', name: 'Lan', phone: '0901111222', branchId: 'b1', status: 'active', position: 'KTV' },
+    { id: 'e2', name: 'Hoa', phone: '0903333444', branchId: 'b2', status: 'active', position: 'LT' },
+  ]
+  const rows = [
+    { employeeId: 'e1', branchId: 'b1', ticketRevenue: 1000000, commission: 200000, tips: 50000, bonus: 0, penalty: 0, advance: 0, netSalary: 1250000 },
+  ]
+
+  const summaries = aggregateBranchSummaries(branches, employees, rows)
+  assert.equal(summaries.length, 2)
+  assert.equal(summaries[0].employeeCount, 1)
+  assert.equal(summaries[0].netSalary, 1250000)
+  assert.equal(summaries[1].employeeCount, 1)
+  assert.equal(summaries[1].netSalary, 0)
+
+  const merged = mergeEmployeePayrollRows(employees, rows, { branchId: 'b1', search: 'lan' })
+  assert.equal(merged.length, 1)
+  assert.equal(merged[0].employeeName, 'Lan')
+})
+
 process.exit(failed > 0 ? 1 : 0)
