@@ -2631,6 +2631,31 @@ test('admin cloud data: không order invoice_time, không fallback local invoice
   assert.doesNotMatch(drillHook, /đang dùng dữ liệu cục bộ/)
 })
 
+test('storage policies: spa-images authenticated + anon policies migration', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const migration = fs.readFileSync(
+    path.join(process.cwd(), 'supabase/migrations/0025_spa_images_storage_policies.sql'),
+    'utf8',
+  )
+  const runScript = fs.readFileSync(path.join(process.cwd(), 'supabase/RUN_STORAGE_POLICIES.sql'), 'utf8')
+
+  for (const policy of [
+    'Authenticated select spa-images',
+    'Authenticated insert spa-images',
+    'Authenticated update spa-images',
+    'Authenticated delete spa-images',
+    'Anon select spa-images',
+    'Anon insert spa-images',
+    'Anon update spa-images',
+    'Anon delete spa-images',
+  ]) {
+    assert.match(migration, new RegExp(policy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    assert.match(runScript, new RegExp(policy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+  }
+  assert.match(runScript, /policyname ilike '%spa-images%'/)
+})
+
 test('employee profile policy: banner, lock after deadline, and permissions', async () => {
   const {
     computeProfileCompletionPercent,
