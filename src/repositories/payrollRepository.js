@@ -5,21 +5,38 @@ const ADJUSTMENTS_TABLE = 'payroll_adjustments'
 const LOCKS_TABLE = 'payroll_locks'
 const AUDIT_TABLE = 'payroll_audit_logs'
 
-export async function fetchPayrollAdjustments({ month = '', branchId = '', employeeId = '' } = {}) {
+export function isMissingSchemaTableError(error) {
+  if (!error) return false
+  const code = String(error.code ?? '')
+  const message = String(error.message ?? '')
+  return (
+    code === 'PGRST205'
+    || /could not find the table/i.test(message)
+    || /relation .* does not exist/i.test(message)
+  )
+}
+
+async function fetchPayrollTableRows(table, buildQuery) {
   if (!isSupabaseConfigured) return []
-  let query = supabase
-    .from(ADJUSTMENTS_TABLE)
-    .select('*')
-    .order('date', { ascending: true })
-    .order('created_at', { ascending: true })
-
-  if (month) query = query.eq('month', month)
-  if (branchId) query = query.eq('branch_id', branchId)
-  if (employeeId) query = query.eq('employee_id', employeeId)
-
-  const { data, error } = await query
-  if (error) throw error
+  const { data, error } = await buildQuery(supabase.from(table))
+  if (error) {
+    if (isMissingSchemaTableError(error)) return []
+    throw error
+  }
   return rowsToCamel(data ?? [])
+}
+
+export async function fetchPayrollAdjustments({ month = '', branchId = '', employeeId = '' } = {}) {
+  return fetchPayrollTableRows(ADJUSTMENTS_TABLE, (query) => {
+    let next = query
+      .select('*')
+      .order('date', { ascending: true })
+      .order('created_at', { ascending: true })
+    if (month) next = next.eq('month', month)
+    if (branchId) next = next.eq('branch_id', branchId)
+    if (employeeId) next = next.eq('employee_id', employeeId)
+    return next
+  })
 }
 
 export async function insertPayrollAdjustment(record) {
@@ -49,12 +66,11 @@ export async function deletePayrollAdjustment(id) {
 }
 
 export async function fetchPayrollLocks({ month = '' } = {}) {
-  if (!isSupabaseConfigured) return []
-  let query = supabase.from(LOCKS_TABLE).select('*').order('locked_at', { ascending: false })
-  if (month) query = query.eq('month', month)
-  const { data, error } = await query
-  if (error) throw error
-  return rowsToCamel(data ?? [])
+  return fetchPayrollTableRows(LOCKS_TABLE, (query) => {
+    let next = query.select('*').order('locked_at', { ascending: false })
+    if (month) next = next.eq('month', month)
+    return next
+  })
 }
 
 export async function upsertPayrollLock(record) {
@@ -66,13 +82,12 @@ export async function upsertPayrollLock(record) {
 }
 
 export async function fetchPayrollAuditLogs({ limit = 200, entityType = '', entityId = '' } = {}) {
-  if (!isSupabaseConfigured) return []
-  let query = supabase.from(AUDIT_TABLE).select('*').order('created_at', { ascending: false }).limit(limit)
-  if (entityType) query = query.eq('entity_type', entityType)
-  if (entityId) query = query.eq('entity_id', entityId)
-  const { data, error } = await query
-  if (error) throw error
-  return rowsToCamel(data ?? [])
+  return fetchPayrollTableRows(AUDIT_TABLE, (query) => {
+    let next = query.select('*').order('created_at', { ascending: false }).limit(limit)
+    if (entityType) next = next.eq('entity_type', entityType)
+    if (entityId) next = next.eq('entity_id', entityId)
+    return next
+  })
 }
 
 export async function insertPayrollAuditLog(log) {

@@ -2257,6 +2257,14 @@ test('payroll engine: net salary formula and auto sync', async () => {
   assert.equal(isPayrollMonthLocked('2026-07', 'b1', []), false)
 })
 
+test('payroll repository: missing table returns empty list', async () => {
+  const { isMissingSchemaTableError } = await import('../src/repositories/payrollRepository.js')
+
+  assert.equal(isMissingSchemaTableError({ code: 'PGRST205', message: "Could not find the table 'public.payroll_adjustments' in the schema cache" }), true)
+  assert.equal(isMissingSchemaTableError({ message: 'relation "public.payroll_adjustments" does not exist' }), true)
+  assert.equal(isMissingSchemaTableError({ message: 'permission denied' }), false)
+})
+
 test('payroll view helpers: branch drill-down aggregation', async () => {
   const { aggregateBranchSummaries, mergeEmployeePayrollRows } = await import('../src/utils/payrollViewHelpers.js')
 
