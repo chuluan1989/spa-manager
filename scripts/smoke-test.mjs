@@ -1788,5 +1788,41 @@ test('customer CRM: remarketing inactive buckets', async () => {
   assert.equal(lists[REMARKETING_LISTS.INACTIVE_90].length, 1)
 })
 
-console.log(`\nResults: ${passed} passed, ${failed} failed\n`)
+test('attendance penalties: fixed and monthly free allowance', async () => {
+  const {
+    calculatePenaltyForNewRecord,
+    recomputeMonthlyPenalties,
+    mergeAttendanceIntoEmployeeReports,
+  } = await import('../src/utils/attendancePenalties.js')
+  const { ATTENDANCE_STATUS } = await import('../src/constants/attendanceTypes.js')
+
+  assert.equal(
+    calculatePenaltyForNewRecord(ATTENDANCE_STATUS.LATE_2H_UNPERMITTED, [], '2026-07-08'),
+    20000,
+  )
+
+  const monthRecords = [
+    { id: '1', date: '2026-07-01', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '2', date: '2026-07-05', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '3', date: '2026-07-10', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+  ]
+  assert.equal(
+    calculatePenaltyForNewRecord(ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, monthRecords, '2026-07-15'),
+    50000,
+  )
+
+  const recomputed = recomputeMonthlyPenalties([
+    ...monthRecords,
+    { id: '4', date: '2026-07-15', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
+  ], '2026-07')
+  assert.equal(recomputed[3].penaltyAmount, 50000)
+
+  const merged = mergeAttendanceIntoEmployeeReports({
+    employees: [{ employeeId: 'e1', totalSalary: 1000000 }],
+    periodTotals: { totalSalary: 1000000 },
+  }, [{ employeeId: 'e1', penaltyAmount: 50000 }])
+  assert.equal(merged.employees[0].attendancePenalty, 50000)
+  assert.equal(merged.employees[0].totalSalary, 950000)
+})
+
 process.exit(failed > 0 ? 1 : 0)

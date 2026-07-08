@@ -15,6 +15,8 @@ import { getActiveServicesForBranch, loadServices } from '../../utils/serviceSto
 import { formatCurrency } from '../../utils/invoice'
 import { isSupabaseConfigured } from '../../lib/supabaseClient'
 import { fetchInvoicesFiltered } from '../../repositories/invoicesRepository'
+import { fetchAttendanceFiltered, subscribeAttendanceChanges } from '../../repositories/attendanceRepository'
+import { mergeAttendanceIntoEmployeeReports } from '../../utils/attendancePenalties'
 import { deleteInvoice } from '../../utils/invoiceStorage'
 import { setInvoiceEditPrefill } from '../../utils/navigationPrefill'
 import { computeEmployeeInvoiceDetailReport } from '../../utils/employeeInvoiceReport'
@@ -45,6 +47,7 @@ export default function AdminEmployeeReport({ onNavigate }) {
   }))
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
   const [invoices, setInvoices] = useState([])
+  const [attendanceRecords, setAttendanceRecords] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
   const [detailInvoice, setDetailInvoice] = useState(null)
@@ -69,13 +72,21 @@ export default function AdminEmployeeReport({ onNavigate }) {
     setLoading(true)
     setFetchError('')
     try {
-      const data = await fetchInvoicesFiltered({
-        fromDate: effectiveFilters.fromDate,
-        toDate: effectiveFilters.toDate,
-        branchId: effectiveFilters.branchId,
-        customerSearch: effectiveFilters.customerSearch,
-      })
-      setInvoices(Array.isArray(data) ? data : [])
+      const [invoiceData, attendanceData] = await Promise.all([
+        fetchInvoicesFiltered({
+          fromDate: effectiveFilters.fromDate,
+          toDate: effectiveFilters.toDate,
+          branchId: effectiveFilters.branchId,
+          customerSearch: effectiveFilters.customerSearch,
+        }),
+        fetchAttendanceFiltered({
+          fromDate: effectiveFilters.fromDate,
+          toDate: effectiveFilters.toDate,
+          branchId: effectiveFilters.branchId,
+        }),
+      ])
+      setInvoices(Array.isArray(invoiceData) ? invoiceData : [])
+      setAttendanceRecords(Array.isArray(attendanceData) ? attendanceData : [])
     } catch (error) {
       setFetchError(error?.message ?? 'Không thể tải hóa đơn từ Supabase.')
       setInvoices([])
@@ -87,6 +98,10 @@ export default function AdminEmployeeReport({ onNavigate }) {
   useEffect(() => {
     loadFromSupabase()
   }, [loadFromSupabase])
+
+  useEffect(() => subscribeAttendanceChanges(() => {
+    setRefreshKey((key) => key + 1)
+  }), [])
 
   const branchEmployees = useMemo(
     () => (
@@ -104,10 +119,10 @@ export default function AdminEmployeeReport({ onNavigate }) {
     return loadServices().filter((service) => service.isActive !== false)
   }, [effectiveFilters.branchId])
 
-  const report = useMemo(
-    () => computeAdminEmployeeReports(invoices, effectiveFilters),
-    [invoices, effectiveFilters],
-  )
+  const report = useMemo(() => {
+    const base = computeAdminEmployeeReports(invoices, effectiveFilters)
+    return mergeAttendanceIntoEmployeeReports(base, attendanceRecords)
+  }, [invoices, attendanceRecords, effectiveFilters])
 
   const selectedDetail = useMemo(() => {
     if (!selectedEmployeeId) return null
@@ -293,6 +308,7 @@ export default function AdminEmployeeReport({ onNavigate }) {
                   <th>Tips</th>
                   <th>Hoa hồng</th>
                   <th>Tổng lương</th>
+                  <th>Trừ chấm công</th>
                   <th />
                 </tr>
               </thead>
@@ -314,6 +330,9 @@ export default function AdminEmployeeReport({ onNavigate }) {
                     </td>
                     <td className="report-table-card__money salary-report__salary">
                       {formatCurrency(row.totalSalary)}
+                    </td>
+                    <td className="report-table-card__money report-table-card__commission">
+                      {formatCurrency(row.attendancePenalty ?? 0)}
                     </td>
                     <td>
                       <button
@@ -341,6 +360,9 @@ export default function AdminEmployeeReport({ onNavigate }) {
                     </td>
                     <td className="report-table-card__money salary-report__salary">
                       <strong>{formatCurrency(report.periodTotals.totalSalary)}</strong>
+                    </td>
+                    <td className="report-table-card__money report-table-card__commission">
+                      <strong>{formatCurrency(report.periodTotals.attendancePenalty ?? 0)}</strong>
                     </td>
                     <td />
                   </tr>

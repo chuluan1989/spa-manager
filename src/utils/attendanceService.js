@@ -1,0 +1,141 @@
+import { getMonthPrefixFromDate } from './attendancePenalties'
+import {
+  calculatePenaltyForNewRecord,
+  recomputeMonthlyPenalties,
+} from './attendancePenalties'
+import {
+  createAttendanceId,
+  createAttendanceLogId,
+  fetchAttendanceByEmployeeAndDate,
+  fetchAttendanceForEmployeeMonth,
+  fetchAttendanceServerDate,
+  insertAttendanceEditLogs,
+  insertAttendanceRecord,
+  updateAttendanceRecord,
+} from '../repositories/attendanceRepository'
+
+export async function getServerAttendanceDate() {
+  const server = await fetchAttendanceServerDate()
+  if (!server.date) {
+    throw new Error('Không lấy được ngày server.')
+  }
+  return server
+}
+
+export async function hasCheckedInToday(employeeId) {
+  const { date } = await getServerAttendanceDate()
+  const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
+  return Boolean(existing)
+}
+
+export async function submitEmployeeAttendance({
+  employeeId,
+  employeeName,
+  branchId,
+  status,
+  reason = '',
+  note = '',
+  submittedBy,
+}) {
+  const { date, timestamp } = await getServerAttendanceDate()
+  const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
+  if (existing) {
+    throw new Error('Bạn đã điểm danh hôm nay. Không thể điểm danh lại.')
+  }
+
+  const monthPrefix = getMonthPrefixFromDate(date)
+  const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
+  const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+
+  return insertAttendanceRecord({
+    id: createAttendanceId(),
+    date,
+    branchId,
+    employeeId,
+    employeeName,
+    status,
+    reason: reason.trim(),
+    note: note.trim(),
+    penaltyAmount,
+    submittedAt: timestamp || new Date().toISOString(),
+    submittedBy,
+  })
+}
+
+function buildEditLogs(attendanceId, editor, changes, editNote = '') {
+  return changes.map((change) => ({
+    id: createAttendanceLogId(),
+    attendanceId,
+    editorId: editor.editorId ?? '',
+    editorName: editor.editorName ?? '',
+    fieldName: change.field,
+    oldValue: String(change.oldValue ?? ''),
+    newValue: String(change.newValue ?? ''),
+    note: editNote,
+  }))
+}
+
+export async function adminUpdateAttendance({
+  record,
+  nextStatus,
+  nextReason,
+  nextNote,
+  editor,
+}) {
+  const changes = []
+  if (nextStatus !== record.status) {
+    changes.push({ field: 'status', oldValue: record.status, newValue: nextStatus })
+  }
+  if ((nextReason ?? '').trim() !== (record.reason ?? '').trim()) {
+    changes.push({ field: 'reason', oldValue: record.reason, newValue: nextReason })
+  }
+  if ((nextNote ?? '').trim() !== (record.note ?? '').trim()) {
+    changes.push({ field: 'note', oldValue: record.note, newValue: nextNote })
+  }
+
+  if (changes.length === 0) {
+    return record
+  }
+
+  const monthPrefix = getMonthPrefixFromDate(record.date)
+  const monthRecords = await fetchAttendanceForEmployeeMonth(record.employeeId, monthPrefix)
+  const updatedDraft = monthRecords.map((row) =>
+    row.id === record.id
+      ? {
+          ...row,
+          status: nextStatus,
+          reason: (nextReason ?? '').trim(),
+          note: (nextNote ?? '').trim(),
+        }
+      : row,
+  )
+
+  const recomputed = recomputeMonthlyPenalties(updatedDraft, monthPrefix)
+  const recomputedRecord = recomputed.find((row) => row.id === record.id) ?? {
+    ...record,
+    status: nextStatus,
+    penaltyAmount: 0,
+  }
+
+  const saved = await updateAttendanceRecord({
+    ...record,
+    status: nextStatus,
+    reason: (nextReason ?? '').trim(),
+    note: (nextNote ?? '').trim(),
+    penaltyAmount: recomputedRecord.penaltyAmount ?? 0,
+  })
+
+  await insertAttendanceEditLogs(buildEditLogs(record.id, editor, changes, nextNote))
+
+  for (const sibling of recomputed.filter((row) => row.id !== record.id)) {
+    const original = monthRecords.find((row) => row.id === sibling.id)
+    if (original && original.penaltyAmount !== sibling.penaltyAmount) {
+      await updateAttendanceRecord({
+        ...original,
+        penaltyAmount: sibling.penaltyAmount,
+      })
+    }
+  }
+
+  return saved
+}

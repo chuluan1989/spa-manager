@@ -1,0 +1,149 @@
+.attendance-checkin {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.attendance-checkin__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.72);
+}
+
+.attendance-checkin__panel {
+  position: relative;
+  width: min(720px, 100%);
+  max-height: min(92vh, 900px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.attendance-checkin__header {
+  padding: 24px 24px 16px;
+  background: linear-gradient(180deg, #111 0%, #1a1a1a 100%);
+  color: #fff;
+  border-radius: 18px 18px 0 0;
+}
+
+.attendance-checkin__header h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.attendance-checkin__header p {
+  margin: 0 0 8px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.attendance-checkin__required {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.15);
+  color: #d4af37;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.attendance-checkin__options {
+  display: grid;
+  gap: 8px;
+  padding: 20px 24px;
+}
+
+.attendance-checkin__option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.attendance-checkin__option:hover {
+  border-color: #d4af37;
+  background: #fffbeb;
+}
+
+.attendance-checkin__option--active {
+  border-color: #111;
+  background: #fffbeb;
+  box-shadow: inset 0 0 0 1px #d4af37;
+}
+
+.attendance-checkin__option input {
+  accent-color: #b8962e;
+}
+
+.attendance-checkin__option span {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.attendance-checkin__extra {
+  display: grid;
+  gap: 12px;
+  padding: 0 24px 16px;
+}
+
+.attendance-checkin__extra label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.attendance-checkin__extra input,
+.attendance-checkin__extra textarea {
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.attendance-checkin__error {
+  margin: 0 24px 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.attendance-checkin__footer {
+  padding: 0 24px 24px;
+}
+
+.attendance-checkin__submit {
+  width: 100%;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #b8962e 0%, #d4af37 100%);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.attendance-checkin__submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+body.attendance-modal-open {
+  overflow: hidden;
+}

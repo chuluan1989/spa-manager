@@ -4,6 +4,7 @@ import {
   canAccessEmployeesPage,
   canAccessExpensesPage,
   canAccessCustomersPage,
+  canAccessAttendancePage,
   canAccessInvoicesPage,
   canAccessLegacySyncPage,
   canAccessMyProfilePage,
@@ -23,8 +24,10 @@ import MyProfile from './pages/MyProfile'
 import Report from './pages/Report'
 import Revenue from './pages/Revenue'
 import Customers from './pages/Customers'
+import Attendance from './pages/Attendance'
 import LegacySync from './pages/LegacySync'
 import Settings from './pages/Settings'
+import EmployeeAttendanceGate from './components/attendance/EmployeeAttendanceGate'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncMissingBranchCredentials } from './utils/credentialsStorage'
 import { syncAllCustomBranchPricing } from './utils/branchPricingStorage'
@@ -39,6 +42,7 @@ const PAGES = {
   revenue: Revenue,
   invoices: Invoice,
   customers: Customers,
+  attendance: Attendance,
   'admin-employees': AdminEmployees,
   expenses: Expenses,
   'admin-services': AdminServices,
@@ -60,6 +64,7 @@ function canAccessPage(pageId) {
   if (pageId === 'revenue') return canViewReport()
   if (pageId === 'invoices') return canAccessInvoicesPage()
   if (pageId === 'customers') return canAccessCustomersPage()
+  if (pageId === 'attendance') return canAccessAttendancePage()
   if (pageId === 'expenses') return canAccessExpensesPage()
   if (pageId === 'reports') return canViewReport()
   if (pageId === 'legacy-sync') return canAccessLegacySyncPage()
@@ -160,13 +165,15 @@ function App() {
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)
 
   return (
-    <Layout
-      activeItem={activePage}
-      onNavigate={handleNavigate}
-      onLogout={handleLogout}
-    >
-      <Page key={activePage} onNavigate={handleNavigate} />
-    </Layout>
+    <EmployeeAttendanceGate>
+      <Layout
+        activeItem={activePage}
+        onNavigate={handleNavigate}
+        onLogout={handleLogout}
+      >
+        <Page key={activePage} onNavigate={handleNavigate} />
+      </Layout>
+    </EmployeeAttendanceGate>
   )
 }
 

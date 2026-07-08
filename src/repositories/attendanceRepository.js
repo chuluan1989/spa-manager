@@ -1,0 +1,156 @@
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
+import { objectToSnakeRow, rowsToCamel } from './caseUtils'
+
+const ATTENDANCE_TABLE = 'employee_attendance'
+const LOG_TABLE = 'attendance_edit_logs'
+
+function sortAttendanceDesc(rows) {
+  return [...rows].sort((a, b) => {
+    const dateCmp = (b.date ?? '').localeCompare(a.date ?? '')
+    if (dateCmp !== 0) return dateCmp
+    return (b.submittedAt ?? '').localeCompare(a.submittedAt ?? '')
+  })
+}
+
+export async function fetchAttendanceServerDate() {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase chưa cấu hình — không thể lấy ngày server.')
+  }
+  const { data, error } = await supabase.rpc('get_attendance_server_date')
+  if (error) throw error
+  const payload = data ?? {}
+  return {
+    date: payload.date ?? '',
+    timestamp: payload.timestamp ?? '',
+  }
+}
+
+export async function fetchAttendanceByEmployeeAndDate(employeeId, date) {
+  if (!isSupabaseConfigured || !employeeId || !date) return null
+  const { data, error } = await supabase
+    .from(ATTENDANCE_TABLE)
+    .select('*')
+    .eq('employee_id', employeeId)
+    .eq('date', date)
+    .maybeSingle()
+  if (error) throw error
+  return data ? rowsToCamel([data])[0] : null
+}
+
+export async function fetchAttendanceFiltered({
+  fromDate = '',
+  toDate = '',
+  branchId = '',
+  employeeId = '',
+  date = '',
+} = {}) {
+  if (!isSupabaseConfigured) return []
+
+  let query = supabase
+    .from(ATTENDANCE_TABLE)
+    .select('*')
+    .order('date', { ascending: false })
+    .order('submitted_at', { ascending: false })
+
+  if (date) query = query.eq('date', date)
+  if (fromDate) query = query.gte('date', fromDate)
+  if (toDate) query = query.lte('date', toDate)
+  if (branchId) query = query.eq('branch_id', branchId)
+  if (employeeId) query = query.eq('employee_id', employeeId)
+
+  const { data, error } = await query
+  if (error) throw error
+  return sortAttendanceDesc(rowsToCamel(data ?? []))
+}
+
+export async function fetchAttendanceForEmployeeMonth(employeeId, monthPrefix) {
+  if (!isSupabaseConfigured || !employeeId || !monthPrefix) return []
+  const fromDate = `${monthPrefix}-01`
+  const toDate = `${monthPrefix}-31`
+  return fetchAttendanceFiltered({ fromDate, toDate, employeeId })
+}
+
+export async function insertAttendanceRecord(record) {
+  if (!isSupabaseConfigured || !record?.id) {
+    throw new Error('Supabase chưa cấu hình.')
+  }
+  const row = objectToSnakeRow({
+    ...record,
+    submittedAt: record.submittedAt ?? new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  })
+  const { data, error } = await supabase
+    .from(ATTENDANCE_TABLE)
+    .insert(row)
+    .select('*')
+    .single()
+  if (error) throw error
+  return rowsToCamel([data])[0]
+}
+
+export async function updateAttendanceRecord(record) {
+  if (!isSupabaseConfigured || !record?.id) {
+    throw new Error('Supabase chưa cấu hình.')
+  }
+  const row = objectToSnakeRow({
+    ...record,
+    updatedAt: new Date().toISOString(),
+  })
+  const { data, error } = await supabase
+    .from(ATTENDANCE_TABLE)
+    .update(row)
+    .eq('id', record.id)
+    .select('*')
+    .single()
+  if (error) throw error
+  return rowsToCamel([data])[0]
+}
+
+export async function insertAttendanceEditLogs(logs) {
+  if (!isSupabaseConfigured || !Array.isArray(logs) || logs.length === 0) return []
+  const rows = logs.map((log) => objectToSnakeRow({
+    ...log,
+    editedAt: log.editedAt ?? new Date().toISOString(),
+  }))
+  const { data, error } = await supabase.from(LOG_TABLE).insert(rows).select('*')
+  if (error) throw error
+  return rowsToCamel(data ?? [])
+}
+
+export async function fetchAttendanceEditLogs(attendanceId) {
+  if (!isSupabaseConfigured || !attendanceId) return []
+  const { data, error } = await supabase
+    .from(LOG_TABLE)
+    .select('*')
+    .eq('attendance_id', attendanceId)
+    .order('edited_at', { ascending: false })
+  if (error) throw error
+  return rowsToCamel(data ?? [])
+}
+
+export function subscribeAttendanceChanges(onChange) {
+  if (!isSupabaseConfigured || typeof onChange !== 'function') {
+    return () => {}
+  }
+
+  const channel = supabase
+    .channel('spa-attendance-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: ATTENDANCE_TABLE },
+      () => onChange(),
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}
+
+export function createAttendanceId() {
+  return `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+export function createAttendanceLogId() {
+  return `attlog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}

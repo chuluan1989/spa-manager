@@ -130,6 +130,19 @@ export function canManageCustomerCare(role = getCurrentUserRole(), branchId = ge
   return checkPermission(PERMISSION_KEYS.CARE_CUSTOMER, role, branchId)
 }
 
+export function canAccessAttendancePage(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_ATTENDANCE, role, branchId)
+}
+
+export function canEditAttendance(recordBranchId = '', role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (!checkPermission(PERMISSION_KEYS.EDIT_ATTENDANCE, role, branchId)) return false
+  if (role === ROLES.ADMIN) return true
+  if (role === ROLES.BRANCH_MANAGER) {
+    return !recordBranchId || recordBranchId === branchId
+  }
+  return false
+}
+
 export function canAccessExpensesPage(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
   return canViewExpense(role, branchId)
 }
@@ -301,6 +314,7 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
       if (item.id === 'reports') return canViewReport(role, branchId)
       if (item.id === 'expenses') return canViewExpense(role, branchId)
       if (item.id === 'customers') return canAccessCustomersPage(role, branchId)
+      if (item.id === 'attendance') return canAccessAttendancePage(role, branchId)
       return true
     })
   }
