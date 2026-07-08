@@ -612,6 +612,19 @@ test('employee login: mật khẩu tên+chi nhánh và kiểm tra chi nhánh', a
   })
   assert.equal(wrongPassword.ok, false)
   assert.equal(wrongPassword.field, 'password')
+  assert.match(wrongPassword.message, /Sai chi nhánh/)
+
+  const { loadCredentials, saveCredentials } = await import('../src/utils/credentialsStorage.js')
+  const creds = loadCredentials()
+  delete creds.employees['tram-spa-thanh']
+  saveCredentials(creds, { skipRemoteSync: true })
+  const withoutCred = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'tram-spa',
+    employeeId: 'tram-spa-thanh',
+    password: 'thanhtramspa',
+  })
+  assert.equal(withoutCred.ok, true, 'Phải đăng nhập được khi app_credentials thiếu nhưng employee tồn tại')
 })
 
 test('employee login: Cần Thơ / Gia Lai 1 / Gia Lai 2 credentials sync and password validation', async () => {
