@@ -24,6 +24,7 @@ import { getEmployeeProfileLockMessage, isEmployeeProfileLocked } from '../utils
 import { getActiveServicesForBranch } from '../utils/serviceStorage'
 import InvoiceDetailModal from '../components/invoice/InvoiceDetailModal'
 import GroupedServicePicker from '../components/invoice/GroupedServicePicker'
+import FlatServicePicker from '../components/invoice/FlatServicePicker'
 import InvoiceFilters from '../components/invoice/InvoiceFilters'
 import InvoiceList from '../components/invoice/InvoiceList'
 import InvoiceSummary from '../components/invoice/InvoiceSummary'
@@ -167,8 +168,15 @@ export default function Invoice() {
 
   const catalogGroups = useMemo(
     () => (form.branchId ? getCatalogGroupsForBranch(form.branchId) : []),
-    [form.branchId],
+    [form.branchId, syncVersion],
   )
+
+  const branchServices = useMemo(
+    () => (form.branchId ? getActiveServicesForBranch(form.branchId) : []),
+    [form.branchId, syncVersion],
+  )
+
+  const usesGroupedCatalog = catalogGroups.length > 0
 
   const currentBranch = useMemo(
     () => getBranchById(form.branchId),
@@ -620,12 +628,21 @@ export default function Invoice() {
             ) : !form.employeeId ? (
               <p className="invoice__hint">Chọn nhân viên trước.</p>
             ) : (
-              <GroupedServicePicker
-                groups={catalogGroups}
-                getCount={getServiceCount}
-                onAdd={addService}
-                onRemove={removeOneService}
-              />
+              usesGroupedCatalog ? (
+                <GroupedServicePicker
+                  groups={catalogGroups}
+                  getCount={getServiceCount}
+                  onAdd={addService}
+                  onRemove={removeOneService}
+                />
+              ) : (
+                <FlatServicePicker
+                  services={branchServices}
+                  getCount={getServiceCount}
+                  onAdd={addService}
+                  onRemove={removeOneService}
+                />
+              )
             )}
 
             <ServiceDetailTable items={totals.services?.length ? totals.services : selectedDetails} totals={totals} />

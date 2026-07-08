@@ -1,15 +1,15 @@
 import { GIA_LAI_SERVICE_CATALOG } from '../constants/giaLaiServiceCatalog'
 import { buildSeedOverridesForPriceGroup } from '../constants/catalogPriceSeeds'
-import { isGiaLaiCatalogBranch } from '../constants/giaLaiBranches'
+import { isGiaLaiCatalogBranch, isGroupedCatalogBranch } from '../constants/giaLaiBranches'
 import { SERVICE_STATUS } from './serviceStorage'
 
-/** Phiên bản cấu trúc danh mục nhóm dịch vụ (dùng cho mọi chi nhánh). */
+/** Phiên bản cấu trúc danh mục nhóm dịch vụ (chỉ chi nhánh Gia Lai). */
 export const MASTER_CATALOG_VERSION = 2
 
 export const MASTER_SERVICE_CATALOG = GIA_LAI_SERVICE_CATALOG
 
 export { GIA_LAI_SERVICE_CATALOG, GIA_LAI_CATALOG_VERSION } from '../constants/giaLaiServiceCatalog'
-export { isGiaLaiCatalogBranch, GIA_LAI_CATALOG_BRANCH_IDS } from '../constants/giaLaiBranches'
+export { isGiaLaiCatalogBranch, GIA_LAI_CATALOG_BRANCH_IDS, isGroupedCatalogBranch, GROUPED_CATALOG_BRANCH_IDS } from '../constants/giaLaiBranches'
 
 export function formatCatalogServiceName(baseName, durationMinutes) {
   if (!durationMinutes) return baseName
@@ -154,7 +154,7 @@ export function getCatalogGroups(catalog = MASTER_SERVICE_CATALOG, overrides = {
 }
 
 export function branchHasGroupedCatalog(branchId, record) {
-  return Boolean(record?.catalog?.groups?.length)
+  return isGroupedCatalogBranch(branchId) && Boolean(record?.catalog?.groups?.length)
 }
 
 export function resolveBranchCatalogOverrides(branchId, branch, existingRecord = {}) {

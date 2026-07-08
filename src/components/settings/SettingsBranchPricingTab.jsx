@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { COMMISSION } from '../../constants/services'
+import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import { getPriceGroupById } from '../../constants/priceGroups'
+import { isGroupedCatalogBranch } from '../../constants/giaLaiBranches'
 import { loadBranches } from '../../utils/branchStorage'
 import {
   enableCustomBranchPricing,
@@ -66,7 +68,7 @@ export default function SettingsBranchPricingTab({ showToast }) {
         <div>
           <h3 className="settings__card-title">Bảng giá theo chi nhánh</h3>
           <p className="settings__hint settings__hint--inline">
-            Sửa giá và hoa hồng riêng từng chi nhánh hoặc dùng bảng giá nhóm mặc định.
+            Chọn chi nhánh → xem và sửa giá từng dịch vụ. Hóa đơn chỉ đọc bảng giá tại đây.
           </p>
         </div>
       </div>
@@ -76,23 +78,37 @@ export default function SettingsBranchPricingTab({ showToast }) {
           <span>Chọn chi nhánh</span>
           <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
             {branches.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
+              <option key={item.id} value={item.id}>
+                {getPayrollBranchDisplayTitle(item.id, item.name)}
+              </option>
             ))}
           </select>
         </label>
         <div className="settings__actions-row">
-          <button type="button" className="settings__btn settings__btn--secondary" onClick={handleUseDefault}>
-            Dùng bảng giá mặc định
-          </button>
-          <button type="button" className="settings__btn settings__btn--primary" onClick={handleCreateCustom}>
-            Tạo bảng giá riêng cho chi nhánh này
-          </button>
+          {!isGroupedCatalogBranch(branchId) && (
+            <>
+              <button type="button" className="settings__btn settings__btn--secondary" onClick={handleUseDefault}>
+                Dùng bảng giá mặc định
+              </button>
+              <button type="button" className="settings__btn settings__btn--primary" onClick={handleCreateCustom}>
+                Tạo bảng giá riêng cho chi nhánh này
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {branch && (
         <p className="settings__price-list-note">
-          Nhóm bảng giá: <strong>{priceGroupName}</strong> — {useCustom ? 'Đang dùng bảng giá riêng' : 'Đang dùng bảng giá mặc định nhóm'}
+          {isGroupedCatalogBranch(branchId)
+            ? 'Catalog nhóm dịch vụ Gia Lai — sửa giá từng dịch vụ bên dưới.'
+            : (
+              <>
+                Nhóm bảng giá: <strong>{priceGroupName}</strong>
+                {' — '}
+                {useCustom ? 'Đang dùng bảng giá riêng' : 'Đang dùng bảng giá mặc định nhóm'}
+              </>
+            )}
         </p>
       )}
 

@@ -36,7 +36,7 @@ import EmployeeAttendanceGate from './components/attendance/EmployeeAttendanceGa
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } from './utils/credentialsStorage'
-import { syncAllCustomBranchPricing } from './utils/branchPricingStorage'
+import { syncAllCustomBranchPricing, stripFlatBranchGroupedCatalog } from './utils/branchPricingStorage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { getEmployeeById, syncMissingDefaultEmployees } from './utils/employeeStorage'
 import { isEmployeeProfileLocked } from './utils/employeeProfilePolicy'
@@ -101,6 +101,7 @@ function App() {
       clearLegacySession()
       syncMissingDefaultBranches()
       syncMissingDefaultEmployees()
+      stripFlatBranchGroupedCatalog()
       await Promise.all([ensureCredentialsHashed(), syncMissingBranchCredentials()])
       syncAllCustomBranchPricing()
 

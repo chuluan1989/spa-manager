@@ -1,4 +1,5 @@
 import { getBranchById, loadBranches } from './branchStorage'
+import { isGroupedCatalogBranch } from '../constants/giaLaiBranches'
 import {
   applyCatalogOverrides,
   branchHasGroupedCatalog,
@@ -63,7 +64,47 @@ function readBranchPricingMapRaw() {
   }
 }
 
+function isFlatServiceId(serviceId) {
+  return Boolean(serviceId) && !String(serviceId).startsWith('gl-')
+}
+
+/** Gỡ catalog Gia Lai khỏi chi nhánh không dùng UI nhóm — tránh hóa đơn lấy nhầm dữ liệu. */
+export function stripFlatBranchGroupedCatalog() {
+  const map = readBranchPricingMapRaw()
+  let changed = false
+
+  for (const branch of loadBranches()) {
+    if (isGroupedCatalogBranch(branch.id)) continue
+
+    const record = normalizeBranchPricing(map[branch.id] ?? {})
+    const hasGroupedData = Boolean(record.catalog?.groups?.length)
+      || Object.keys(record.overrides).some((id) => id.startsWith('gl-'))
+
+    if (!hasGroupedData) continue
+
+    const flatOverrides = {}
+    for (const [serviceId, entry] of Object.entries(record.overrides)) {
+      if (isFlatServiceId(serviceId)) flatOverrides[serviceId] = entry
+    }
+
+    map[branch.id] = {
+      useCustom: Object.keys(flatOverrides).length > 0,
+      catalogVersion: 0,
+      catalog: null,
+      overrides: flatOverrides,
+    }
+    changed = true
+  }
+
+  if (changed) {
+    saveBranchPricingMap(map, { skipRemoteSync: false })
+  }
+
+  return changed
+}
+
 export function loadBranchPricingMap() {
+  stripFlatBranchGroupedCatalog()
   syncAllBranchCatalogs()
   return readBranchPricingMapRaw()
 }
@@ -102,6 +143,8 @@ export function getDefaultServicesForBranch(branchId) {
 }
 
 export function getCatalogGroupsForBranch(branchId) {
+  if (!isGroupedCatalogBranch(branchId)) return []
+
   syncBranchCatalog(branchId)
   const record = getBranchPricingRecord(branchId)
   if (!branchHasGroupedCatalog(branchId, record)) return []
@@ -112,8 +155,12 @@ export function getServicesForBranch(branchId, { includeInactive = false } = {})
   const branch = getBranchById(branchId)
   if (!branch) return []
 
-  syncBranchCatalog(branchId)
-  const record = getBranchPricingRecord(branchId)
+  if (isGroupedCatalogBranch(branchId)) {
+    syncBranchCatalog(branchId)
+  }
+
+  const map = readBranchPricingMapRaw()
+  const record = normalizeBranchPricing(map[branchId] ?? {})
 
   if (branchHasGroupedCatalog(branchId, record)) {
     const resolved = applyCatalogOverrides(record.catalog, record.overrides)
@@ -125,7 +172,7 @@ export function getServicesForBranch(branchId, { includeInactive = false } = {})
   let pricing = record
   if (pricing.useCustom) {
     syncMissingOverridesForBranch(branchId)
-    pricing = getBranchPricingRecord(branchId)
+    pricing = normalizeBranchPricing(readBranchPricingMapRaw()[branchId] ?? {})
   }
 
   const baseServices = loadServices().filter((service) => {
@@ -155,7 +202,9 @@ export function getServicesForBranch(branchId, { includeInactive = false } = {})
 }
 
 export function syncMissingOverridesForBranch(branchId) {
-  const map = loadBranchPricingMap()
+  if (isGroupedCatalogBranch(branchId)) return false
+
+  const map = readBranchPricingMapRaw()
   const record = normalizeBranchPricing(map[branchId] ?? {})
   if (!record.useCustom) return false
 
@@ -178,6 +227,8 @@ export function syncMissingOverridesForBranch(branchId) {
 }
 
 export function syncMissingCatalogOverrides(branchId) {
+  if (!isGroupedCatalogBranch(branchId)) return false
+
   const map = readBranchPricingMapRaw()
   const record = normalizeBranchPricing(map[branchId] ?? {})
   if (!branchHasGroupedCatalog(branchId, record)) return false
@@ -191,6 +242,8 @@ export function syncMissingCatalogOverrides(branchId) {
 }
 
 export function syncBranchCatalog(branchId) {
+  if (!isGroupedCatalogBranch(branchId)) return false
+
   const branch = getBranchById(branchId)
   if (!branch) return false
 
@@ -218,7 +271,9 @@ export function syncBranchCatalog(branchId) {
 }
 
 export function syncAllBranchCatalogs() {
-  return loadBranches().some((branch) => syncBranchCatalog(branch.id))
+  return loadBranches()
+    .filter((branch) => isGroupedCatalogBranch(branch.id))
+    .some((branch) => syncBranchCatalog(branch.id))
 }
 
 /** @deprecated Use syncBranchCatalog */
@@ -234,11 +289,13 @@ export function syncAllGiaLaiBranchCatalogs() {
 export function syncNewServiceToCustomBranchPricing(service) {
   if (!service?.id) return false
 
-  const map = loadBranchPricingMap()
+  const map = readBranchPricingMapRaw()
   const branches = loadBranches()
   let changed = false
 
   for (const branch of branches) {
+    if (isGroupedCatalogBranch(branch.id)) continue
+
     const record = normalizeBranchPricing(map[branch.id] ?? {})
     if (!record.useCustom || record.overrides[service.id]) continue
 
@@ -259,11 +316,18 @@ export function syncNewServiceToCustomBranchPricing(service) {
 
 export function syncAllCustomBranchPricing() {
   const branches = loadBranches()
-  return branches.some((branch) => syncMissingOverridesForBranch(branch.id))
+  return branches
+    .filter((branch) => !isGroupedCatalogBranch(branch.id))
+    .some((branch) => syncMissingOverridesForBranch(branch.id))
 }
 
 export function enableCustomBranchPricing(branchId) {
-  const map = loadBranchPricingMap()
+  if (isGroupedCatalogBranch(branchId)) {
+    syncBranchCatalog(branchId)
+    return getBranchPricingRecord(branchId)
+  }
+
+  const map = readBranchPricingMapRaw()
   const defaults = getDefaultServicesForBranch(branchId)
   const overrides = {}
 
@@ -277,14 +341,27 @@ export function enableCustomBranchPricing(branchId) {
 }
 
 export function resetBranchPricingToDefault(branchId) {
-  const map = loadBranchPricingMap()
+  const map = readBranchPricingMapRaw()
   delete map[branchId]
   saveBranchPricingMap(map)
+
+  if (isGroupedCatalogBranch(branchId)) {
+    syncBranchCatalog(branchId)
+  }
+
   return true
 }
 
 export function updateBranchServicePricing(branchId, serviceId, data) {
-  const map = loadBranchPricingMap()
+  const map = readBranchPricingMapRaw()
+
+  if (isGroupedCatalogBranch(branchId)) {
+    const current = normalizeBranchPricing(map[branchId] ?? {})
+    if (!branchHasGroupedCatalog(branchId, current)) {
+      syncBranchCatalog(branchId)
+    }
+  }
+
   const current = normalizeBranchPricing(map[branchId] ?? { useCustom: true, overrides: {} })
   current.useCustom = true
   current.overrides[serviceId] = normalizeEntry({

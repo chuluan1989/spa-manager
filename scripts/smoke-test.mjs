@@ -2029,7 +2029,7 @@ test('customer view helpers: branch CRM aggregation', async () => {
   assert.equal(summaries[0].vipCount, 1)
 })
 
-test('grouped service catalog: all branches use 4-group UI with branch prices', async () => {
+test('grouped service catalog: Gia Lai branches use 4-group UI', async () => {
   const {
     flattenGiaLaiCatalog,
     getGiaLaiCatalogServicesForBranch,
@@ -2038,10 +2038,13 @@ test('grouped service catalog: all branches use 4-group UI with branch prices', 
   const { GIA_LAI_CN3_BRANCH_ID, GIA_LAI_CN8_BRANCH_ID } = await import('../src/constants/giaLaiBranches.js')
   const { getActiveServicesForBranch } = await import('../src/utils/serviceStorage.js')
   const {
+    stripFlatBranchGroupedCatalog,
     syncBranchCatalog,
     getBranchPricingRecord,
     getCatalogGroupsForBranch,
   } = await import('../src/utils/branchPricingStorage.js')
+
+  stripFlatBranchGroupedCatalog()
 
   assert.equal(isGiaLaiCatalogBranch(GIA_LAI_CN3_BRANCH_ID), true)
   assert.equal(isGiaLaiCatalogBranch(GIA_LAI_CN8_BRANCH_ID), true)
@@ -2063,19 +2066,57 @@ test('grouped service catalog: all branches use 4-group UI with branch prices', 
   const cn8Services = getGiaLaiCatalogServicesForBranch(GIA_LAI_CN8_BRANCH_ID)
   assert.equal(cn3Services.length, cn8Services.length)
 
-  syncBranchCatalog('vinh-long')
-  const vinhLong = getActiveServicesForBranch('vinh-long')
-  assert.ok(vinhLong.some((s) => s.id === 'gl-combo-relax-90'), 'Vĩnh Long dùng catalog nhóm')
-  assert.equal(vinhLong.find((s) => s.id === 'gl-combo-relax-90').price, 258000)
-
   syncBranchCatalog('gia-lai-2')
   const giaLai2 = getActiveServicesForBranch('gia-lai-2')
   assert.ok(giaLai2.some((s) => s.id === 'gl-combo-relax-90'), 'Gia Lai 2 dùng catalog nhóm')
 
-  const groups = getCatalogGroupsForBranch('vinh-long')
+  const groups = getCatalogGroupsForBranch('gia-lai-1')
   assert.equal(groups.length, 4)
   assert.equal(groups[0].name, 'COMBO')
   assert.equal(groups[1].name, 'MASSAGE BODY')
+})
+
+test('branch pricing isolation: CN1–CN8 không lẫn catalog Gia Lai', async () => {
+  const { getActiveServicesForBranch } = await import('../src/utils/serviceStorage.js')
+  const {
+    stripFlatBranchGroupedCatalog,
+    getCatalogGroupsForBranch,
+    syncBranchCatalog,
+  } = await import('../src/utils/branchPricingStorage.js')
+  const { calculateInvoiceTotals } = await import('../src/utils/invoice.js')
+  const { BRANCH_PAYROLL_DISPLAY } = await import('../src/constants/branchPayrollDisplay.js')
+
+  stripFlatBranchGroupedCatalog()
+
+  const flatBranches = [
+    { id: 'tram-spa', serviceId: 'body-60', expectedPrice: 160000 },
+    { id: 'soc-trang', serviceId: 'body-60', expectedPrice: 189000 },
+    { id: 'vinh-long', serviceId: 'body-60', expectedPrice: 189000 },
+    { id: 'bac-lieu', serviceId: 'body-60', expectedPrice: 189000 },
+    { id: 'tra-vinh', serviceId: 'body-60', expectedPrice: 189000 },
+    { id: 'song-khoe-spa', serviceId: 'body-60', expectedPrice: 190000 },
+  ]
+
+  for (const { id, serviceId, expectedPrice } of flatBranches) {
+    const services = getActiveServicesForBranch(id)
+    assert.ok(BRANCH_PAYROLL_DISPLAY[id], `Phải có nhãn CN cho ${id}`)
+    assert.ok(!services.some((s) => s.id.startsWith('gl-')), `${id} không được dùng catalog Gia Lai`)
+    assert.equal(getCatalogGroupsForBranch(id).length, 0, `${id} không dùng UI nhóm`)
+    const match = services.find((s) => s.id === serviceId)
+    assert.ok(match, `${id} phải có dịch vụ ${serviceId}`)
+    assert.equal(match.price, expectedPrice, `${id} sai giá ${serviceId}`)
+
+    const totals = calculateInvoiceTotals([serviceId], 0, id, [], '', '')
+    assert.equal(totals.originalServiceTotal, expectedPrice)
+  }
+
+  for (const branchId of ['gia-lai-1', 'gia-lai-2', 'gia-lai-3']) {
+    syncBranchCatalog(branchId)
+    const services = getActiveServicesForBranch(branchId)
+    assert.ok(services.some((s) => s.id.startsWith('gl-')), `${branchId} phải dùng catalog nhóm`)
+    assert.equal(getCatalogGroupsForBranch(branchId).length, 4, `${branchId} phải có 4 nhóm dịch vụ`)
+    assert.ok(!services.some((s) => s.id === 'body-60'), `${branchId} không được lẫn flat catalog`)
+  }
 })
 
 test('gia lai catalog: invoice totals use branch catalog price', async () => {
