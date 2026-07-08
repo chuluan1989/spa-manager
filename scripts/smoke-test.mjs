@@ -1825,4 +1825,71 @@ test('attendance penalties: fixed and monthly free allowance', async () => {
   assert.equal(merged.employees[0].totalSalary, 950000)
 })
 
+test('payroll engine: net salary formula and auto sync', async () => {
+  const {
+    computeEmployeePayrollRow,
+    computePayrollReport,
+    computeNetSalary,
+    isPayrollMonthLocked,
+    buildWalletTimeline,
+  } = await import('../src/utils/payrollEngine.js')
+  const { PAYROLL_ADJUSTMENT_TYPES } = await import('../src/constants/payrollTypes.js')
+
+  assert.equal(
+    computeNetSalary({
+      baseSalary: 5000000,
+      commission: 1000000,
+      tips: 200000,
+      bonus: 300000,
+      reduction: 100000,
+      penalty: 50000,
+      advance: 500000,
+      otherAdjustment: 10000,
+    }),
+    5660000,
+  )
+
+  const employee = { id: 'e1', name: 'Lan', branchId: 'b1', salaryRate: '5000000', position: 'KTV' }
+  const invoices = [{
+    id: 'inv1',
+    date: '2026-07-05',
+    employeeId: 'e1',
+    supportEmployeeId: '',
+    customerName: 'Khách A',
+    tips: 100000,
+    services: [{ commissionAmount: 200000, price: 500000 }],
+  }]
+  const attendance = [{ id: 'a1', employeeId: 'e1', date: '2026-07-06', penaltyAmount: 20000, status: 'late' }]
+  const adjustments = [
+    { id: 'adj1', employeeId: 'e1', type: PAYROLL_ADJUSTMENT_TYPES.BONUS, amount: 300000, date: '2026-07-10', month: '2026-07' },
+    { id: 'adj2', employeeId: 'e1', type: PAYROLL_ADJUSTMENT_TYPES.ADVANCE, amount: 500000, date: '2026-07-12', month: '2026-07' },
+  ]
+
+  const row = computeEmployeePayrollRow(employee, invoices, attendance, adjustments)
+  assert.equal(row.commission, 200000)
+  assert.equal(row.tips, 100000)
+  assert.equal(row.bonus, 300000)
+  assert.equal(row.penalty, 20000)
+  assert.equal(row.advance, 500000)
+  assert.equal(row.baseSalary, 5000000)
+
+  const report = computePayrollReport({
+    month: '2026-07',
+    branchId: '',
+    employeeId: '',
+    employees: [employee],
+    invoices,
+    attendanceRecords: attendance,
+    adjustments,
+  })
+  assert.equal(report.rows.length, 1)
+  assert.equal(report.dashboard.netSalary, row.netSalary)
+
+  const wallet = buildWalletTimeline('e1', invoices, attendance, adjustments)
+  assert.ok(wallet.length >= 4)
+
+  assert.equal(isPayrollMonthLocked('2026-07', 'b1', [{ month: '2026-07', branchId: '', isLocked: true }]), true)
+  assert.equal(isPayrollMonthLocked('2026-07', 'b1', []), false)
+})
+
 process.exit(failed > 0 ? 1 : 0)

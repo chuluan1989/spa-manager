@@ -5,6 +5,7 @@ import {
   canAccessExpensesPage,
   canAccessCustomersPage,
   canAccessAttendancePage,
+  canAccessSalaryPage,
   canAccessInvoicesPage,
   canAccessLegacySyncPage,
   canAccessMyProfilePage,
@@ -25,6 +26,7 @@ import Report from './pages/Report'
 import Revenue from './pages/Revenue'
 import Customers from './pages/Customers'
 import Attendance from './pages/Attendance'
+import Salary from './pages/Salary'
 import LegacySync from './pages/LegacySync'
 import Settings from './pages/Settings'
 import EmployeeAttendanceGate from './components/attendance/EmployeeAttendanceGate'
@@ -43,6 +45,7 @@ const PAGES = {
   invoices: Invoice,
   customers: Customers,
   attendance: Attendance,
+  salary: Salary,
   'admin-employees': AdminEmployees,
   expenses: Expenses,
   'admin-services': AdminServices,
@@ -65,6 +68,7 @@ function canAccessPage(pageId) {
   if (pageId === 'invoices') return canAccessInvoicesPage()
   if (pageId === 'customers') return canAccessCustomersPage()
   if (pageId === 'attendance') return canAccessAttendancePage()
+  if (pageId === 'salary') return canAccessSalaryPage()
   if (pageId === 'expenses') return canAccessExpensesPage()
   if (pageId === 'reports') return canViewReport()
   if (pageId === 'legacy-sync') return canAccessLegacySyncPage()

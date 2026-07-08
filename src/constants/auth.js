@@ -231,7 +231,27 @@ export function canExportReport(role = getCurrentUserRole(), branchId = getCurre
 }
 
 export function canViewSalary(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (role === ROLES.EMPLOYEE) return true
   return checkPermission(PERMISSION_KEYS.VIEW_SALARY, role, branchId)
+}
+
+export function canAccessSalaryPage(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (role === ROLES.EMPLOYEE) return true
+  return canViewSalary(role, branchId)
+}
+
+export function canManagePayroll(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (role === ROLES.EMPLOYEE) return false
+  return checkPermission(PERMISSION_KEYS.MANAGE_PAYROLL, role, branchId)
+    || (role === ROLES.ADMIN)
+}
+
+export function canLockPayroll(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.LOCK_PAYROLL, role, branchId)
+}
+
+export function canDeletePayroll(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.DELETE_PAYROLL, role, branchId)
 }
 
 export function canViewSystemWide(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
@@ -315,6 +335,7 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
       if (item.id === 'expenses') return canViewExpense(role, branchId)
       if (item.id === 'customers') return canAccessCustomersPage(role, branchId)
       if (item.id === 'attendance') return canAccessAttendancePage(role, branchId)
+      if (item.id === 'salary') return canAccessSalaryPage(role, branchId)
       return true
     })
   }
@@ -325,6 +346,7 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
       if (item.id === 'reports') return canViewReport(role, branchId)
       if (item.id === 'expenses') return canViewExpense(role, branchId)
       if (item.id === 'customers') return canAccessCustomersPage(role, branchId)
+      if (item.id === 'salary') return canAccessSalaryPage(role, branchId)
       return true
     })
     if (canViewExpense(role, branchId)) {
