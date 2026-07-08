@@ -1,5 +1,6 @@
 import { PAYROLL_ADJUSTMENT_LABELS, PAYROLL_DETAIL_LABELS } from '../../constants/payrollTypes'
 import { formatCurrency } from '../../utils/invoice'
+import { formatPayrollTime } from '../../utils/payrollLiveHelpers'
 
 function formatDate(value) {
   if (!value) return '—'
@@ -63,7 +64,10 @@ export default function PayrollWallet({ entries, employee, stats, mode = 'full' 
             const positive = entry.amount >= 0
             return (
               <li key={entry.id} className="salary-wallet__item">
-                <div className="salary-wallet__date">{formatDate(entry.date)}</div>
+                <div className="salary-wallet__date">
+                  {formatDate(entry.date)}
+                  {entry.time && <small>{formatPayrollTime(entry.time)}</small>}
+                </div>
                 <div className="salary-wallet__body">
                   <strong>{entry.label ?? PAYROLL_ADJUSTMENT_LABELS[entry.type] ?? entry.type}</strong>
                   <span className={`salary-wallet__amount ${positive ? 'is-plus' : 'is-minus'}`}>

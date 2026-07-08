@@ -3,12 +3,13 @@ import { formatCurrency } from '../../utils/invoice'
 
 const STAT_ROWS = [
   { key: 'ticketRevenue', label: 'Doanh thu tiền vé', tone: 'neutral' },
-  { key: 'tips', label: 'Tips', tone: 'tips' },
   { key: 'commission', label: 'Hoa hồng', tone: 'commission' },
+  { key: 'tips', label: 'Tips', tone: 'tips' },
   { key: 'bonus', label: 'Thưởng', tone: 'bonus' },
   { key: 'penalty', label: 'Phạt', tone: 'penalty' },
+  { key: 'reduction', label: 'Giảm lương', tone: 'reduction' },
   { key: 'advance', label: 'Ứng lương', tone: 'advance' },
-  { key: 'netSalary', label: 'Lương thực nhận', tone: 'net' },
+  { key: 'netSalary', label: 'Lương phải trả', tone: 'net' },
 ]
 
 export default function PayrollBranchGrid({ branches, onSelectBranch }) {

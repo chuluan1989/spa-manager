@@ -9,6 +9,9 @@ import { getAttendanceStatusLabel } from '../constants/attendanceTypes'
 import { getBranchName } from './branchStorage'
 import { getInvoiceServiceDetails, getInvoiceServiceTotal } from './invoice'
 import {
+  computePayrollPaymentSummary,
+} from './payrollLiveHelpers'
+import {
   filterSalaryInvoices,
   getPayPeriodRange,
   PAY_CYCLES,
@@ -106,6 +109,9 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     otherAdjustment,
   }
 
+  const netSalary = computeNetSalary(parts)
+  const paymentSummary = computePayrollPaymentSummary(adjustments, employeeId, netSalary)
+
   return {
     employeeId,
     employeeName: employee.name ?? '—',
@@ -115,7 +121,8 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     avatar: employee.avatar ?? '',
     invoiceCount: invoiceTotals.invoiceCount,
     ...parts,
-    netSalary: computeNetSalary(parts),
+    netSalary,
+    ...paymentSummary,
   }
 }
 
@@ -202,18 +209,26 @@ export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adj
       PAYROLL_ADJUSTMENT_TYPES.PENALTY,
       PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
       PAYROLL_ADJUSTMENT_TYPES.REDUCTION,
+      PAYROLL_ADJUSTMENT_TYPES.PAYMENT,
     ].includes(adjustment.type)
-    const signedAmount = adjustment.type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT
-      ? Number(adjustment.amount ?? 0)
-      : isDebit
+    let signedAmount
+    if (adjustment.type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT) {
+      signedAmount = Number(adjustment.amount ?? 0)
+    } else if (adjustment.type === PAYROLL_ADJUSTMENT_TYPES.PAYMENT) {
+      signedAmount = -Math.abs(Number(adjustment.amount ?? 0))
+    } else {
+      signedAmount = isDebit
         ? -Math.abs(Number(adjustment.amount ?? 0))
         : Math.abs(Number(adjustment.amount ?? 0))
+    }
 
     entries.push({
       id: adjustment.id,
       date: adjustment.date,
+      time: '',
       source: PAYROLL_WALLET_SOURCE.MANUAL,
       type: adjustment.type,
+      category: adjustment.type,
       label: PAYROLL_ADJUSTMENT_LABELS[adjustment.type] ?? adjustment.type,
       amount: signedAmount,
       reason: adjustment.reason || adjustment.note || '',
@@ -225,8 +240,10 @@ export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adj
     entries.push({
       id: record.id,
       date: record.date,
+      time: '',
       source: PAYROLL_WALLET_SOURCE.ATTENDANCE,
       type: PAYROLL_ADJUSTMENT_TYPES.PENALTY,
+      category: PAYROLL_ADJUSTMENT_TYPES.PENALTY,
       label: 'Phạt chấm công',
       amount: -Number(record.penaltyAmount),
       reason: getAttendanceStatusLabel(record.status),
@@ -238,31 +255,66 @@ export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adj
     (row) => row.employeeId === employeeId || row.supportEmployeeId === employeeId,
   )) {
     const role = getSalaryRole(invoice, employeeId)
-    const totals = sumEmployeeInvoices([invoice], employeeId)
-    if (totals.commission + totals.tips <= 0) continue
-    entries.push({
-      id: invoice.id,
-      date: invoice.date,
-      source: PAYROLL_WALLET_SOURCE.INVOICE,
-      type: 'invoice',
-      label: `Hóa đơn · HH ${totals.commission.toLocaleString('vi-VN')} · Tips ${totals.tips.toLocaleString('vi-VN')}`,
-      amount: totals.commission + totals.tips,
-      reason: invoice.customerName ? `Khách ${invoice.customerName}` : 'Doanh thu dịch vụ',
-      createdBy: 'Hệ thống',
-      meta: { role, ticketRevenue: totals.ticketRevenue },
-    })
+    const services = getInvoiceServiceDetails(invoice).map((service) => service.name).join(', ') || 'Dịch vụ'
+    const customer = invoice.customerName ? `Khách ${invoice.customerName}` : 'Khách hàng'
+    const commission = getInvoiceServiceDetails(invoice).reduce(
+      (sum, service) => sum + scaleCommission(Number(service.commissionAmount ?? 0), role),
+      0,
+    )
+    const tips = role === SALARY_ROLES.PRIMARY ? Number(invoice.tips ?? 0) : 0
+    const ticketRevenue = role === SALARY_ROLES.PRIMARY ? getInvoiceServiceTotal(invoice) : 0
+
+    if (commission > 0) {
+      entries.push({
+        id: `${invoice.id}-commission`,
+        date: invoice.date,
+        time: invoice.invoiceTime ?? '',
+        source: PAYROLL_WALLET_SOURCE.INVOICE,
+        type: PAYROLL_DETAIL_CATEGORIES.COMMISSION,
+        category: PAYROLL_DETAIL_CATEGORIES.COMMISSION,
+        label: `Hoa hồng · ${services}`,
+        amount: commission,
+        reason: customer,
+        createdBy: 'Hệ thống',
+        meta: { invoiceId: invoice.id, ticketRevenue, role },
+      })
+    }
+
+    if (tips > 0) {
+      entries.push({
+        id: `${invoice.id}-tips`,
+        date: invoice.date,
+        time: invoice.invoiceTime ?? '',
+        source: PAYROLL_WALLET_SOURCE.INVOICE,
+        type: PAYROLL_DETAIL_CATEGORIES.TIPS,
+        category: PAYROLL_DETAIL_CATEGORIES.TIPS,
+        label: `Tips · ${services}`,
+        amount: tips,
+        reason: customer,
+        createdBy: 'Hệ thống',
+        meta: { invoiceId: invoice.id, role },
+      })
+    }
   }
 
   return entries.sort((a, b) => {
     const dateCmp = (a.date ?? '').localeCompare(b.date ?? '')
     if (dateCmp !== 0) return dateCmp
+    const timeCmp = (a.time ?? '').localeCompare(b.time ?? '')
+    if (timeCmp !== 0) return timeCmp
     return String(a.id).localeCompare(String(b.id))
   })
 }
 
 export function filterWalletByCategory(entries, category) {
   if (!category || category === PAYROLL_DETAIL_CATEGORIES.NET) return entries
-  if (category === PAYROLL_DETAIL_CATEGORIES.COMMISSION || category === PAYROLL_DETAIL_CATEGORIES.TIPS || category === PAYROLL_DETAIL_CATEGORIES.REVENUE) {
+  if (category === PAYROLL_DETAIL_CATEGORIES.COMMISSION) {
+    return entries.filter((entry) => entry.category === PAYROLL_DETAIL_CATEGORIES.COMMISSION)
+  }
+  if (category === PAYROLL_DETAIL_CATEGORIES.TIPS) {
+    return entries.filter((entry) => entry.category === PAYROLL_DETAIL_CATEGORIES.TIPS)
+  }
+  if (category === PAYROLL_DETAIL_CATEGORIES.REVENUE) {
     return entries.filter((entry) => entry.source === PAYROLL_WALLET_SOURCE.INVOICE)
   }
   if (category === PAYROLL_DETAIL_CATEGORIES.PENALTY) {

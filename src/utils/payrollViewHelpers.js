@@ -85,6 +85,9 @@ export function mergeEmployeePayrollRows(employees, payrollRows, { branchId = ''
         otherAdjustment: row?.otherAdjustment ?? 0,
         baseSalary: row?.baseSalary ?? 0,
         netSalary: row?.netSalary ?? 0,
+        paidAmount: row?.paidAmount ?? 0,
+        remainingAmount: row?.remainingAmount ?? row?.netSalary ?? 0,
+        provisionalNet: row?.provisionalNet ?? row?.netSalary ?? 0,
         invoiceCount: row?.invoiceCount ?? 0,
         hasPayroll: Boolean(row),
       }

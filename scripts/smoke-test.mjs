@@ -2022,4 +2022,67 @@ test('gia lai catalog: invoice totals use branch catalog price', async () => {
   assert.equal(totals.services[0].name, "Massage Body Tinh Dầu 60'")
 })
 
+test('live payroll: attendance stats, tips breakdown, payment summary', async () => {
+  const {
+    computeAttendanceStats,
+    buildTipsBreakdown,
+    computePayrollPaymentSummary,
+    buildInvoiceRevenueList,
+  } = await import('../src/utils/payrollLiveHelpers.js')
+  const { ATTENDANCE_STATUS } = await import('../src/constants/attendanceTypes.js')
+  const { PAYROLL_ADJUSTMENT_TYPES } = await import('../src/constants/payrollTypes.js')
+  const { buildWalletTimeline } = await import('../src/utils/payrollEngine.js')
+
+  const attendance = [
+    { id: 'a1', employeeId: 'e1', date: '2026-07-05', status: ATTENDANCE_STATUS.ON_TIME, penaltyAmount: 0 },
+    { id: 'a2', employeeId: 'e1', date: '2026-07-06', status: ATTENDANCE_STATUS.LATE_2H_UNPERMITTED, penaltyAmount: 20000 },
+    { id: 'a3', employeeId: 'e1', date: '2026-07-07', status: ATTENDANCE_STATUS.FULL_DAY_WEEKEND, penaltyAmount: 200000 },
+  ]
+  const stats = computeAttendanceStats(attendance, 'e1')
+  assert.equal(stats.onTime, 1)
+  assert.equal(stats.late, 1)
+  assert.equal(stats.weekendHoliday, 1)
+  assert.equal(stats.penaltyAmount, 220000)
+
+  const invoices = [{
+    id: 'inv1',
+    date: '2026-07-08',
+    invoiceTime: '08:30',
+    employeeId: 'e1',
+    customerName: 'Nguyễn Văn A',
+    tips: 50000,
+    services: [{ name: 'Massage Body', price: 349000, commissionAmount: 69800 }],
+    serviceTotal: 349000,
+  }, {
+    id: 'inv2',
+    date: '2026-07-08',
+    invoiceTime: '10:10',
+    employeeId: 'e1',
+    customerName: 'Trần Thị B',
+    tips: 100000,
+    services: [{ name: 'Combo VIP', price: 699000, commissionAmount: 69900 }],
+    serviceTotal: 699000,
+  }]
+
+  const tipsRows = buildTipsBreakdown(invoices, 'e1')
+  assert.equal(tipsRows.length, 2)
+  assert.equal(tipsRows[0].customerName, 'Trần Thị B')
+  assert.equal(tipsRows[0].tips, 100000)
+
+  const revenueRows = buildInvoiceRevenueList(invoices, 'e1')
+  assert.equal(revenueRows.length, 2)
+  assert.equal(revenueRows[0].commission, 69900)
+
+  const payment = computePayrollPaymentSummary([
+    { employeeId: 'e1', type: PAYROLL_ADJUSTMENT_TYPES.PAYMENT, amount: 500000 },
+  ], 'e1', 1200000)
+  assert.equal(payment.paidAmount, 500000)
+  assert.equal(payment.remainingAmount, 700000)
+
+  const wallet = buildWalletTimeline('e1', invoices, attendance, [])
+  assert.ok(wallet.some((e) => e.category === 'tips' && e.amount === 50000))
+  assert.ok(wallet.some((e) => e.category === 'commission'))
+  assert.ok(wallet.some((e) => e.source === 'attendance'))
+})
+
 process.exit(failed > 0 ? 1 : 0)

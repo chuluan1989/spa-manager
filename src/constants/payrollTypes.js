@@ -46,6 +46,10 @@ export const PAYROLL_DETAIL_LABELS = {
   [PAYROLL_DETAIL_CATEGORIES.ADVANCE]: 'Ứng lương',
   [PAYROLL_DETAIL_CATEGORIES.ADJUSTMENT]: 'Điều chỉnh khác',
   [PAYROLL_DETAIL_CATEGORIES.NET]: 'Lương thực nhận',
+  paidAmount: 'Đã thanh toán',
+  remainingAmount: 'Còn phải trả',
+  provisionalNet: 'Tạm tính thực nhận',
+  workDays: 'Ngày công',
 }
 
 export const MANUAL_ADJUSTMENT_OPTIONS = [

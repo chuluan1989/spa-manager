@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import PayrollAdjustmentModal from '../components/salary/PayrollAdjustmentModal'
 import PayrollBranchGrid from '../components/salary/PayrollBranchGrid'
 import PayrollBreadcrumb from '../components/salary/PayrollBreadcrumb'
 import PayrollDashboard from '../components/salary/PayrollDashboard'
 import PayrollEmployeeList from '../components/salary/PayrollEmployeeList'
 import PayrollEmployeeProfile from '../components/salary/PayrollEmployeeProfile'
+import PayrollLiveIndicator from '../components/salary/PayrollLiveIndicator'
 import {
   canAccessSalaryPage,
   canLockPayroll,
@@ -15,6 +16,7 @@ import {
   getScopedBranchId,
   isAdmin,
   isEmployee,
+  isBranchManager,
 } from '../constants/auth'
 import { usePayrollData } from '../hooks/usePayrollData'
 import { getActiveBranches, getBranchName } from '../utils/branchStorage'
@@ -92,7 +94,9 @@ function SalaryPage() {
     auditLogs,
     report,
     loading,
+    isRefreshing,
     error,
+    liveUpdatedAt,
     reload,
   } = usePayrollData({ month, branchId: fetchBranchId, employeeId: fetchEmployeeId })
 
@@ -102,6 +106,13 @@ function SalaryPage() {
     const branchId = getCurrentUserBranch()
     return all.filter((branch) => branch.id === branchId)
   }, [])
+
+  useEffect(() => {
+    if (isBranchManager() && !isEmployee() && visibleBranches.length === 1 && level === LEVEL.BRANCHES) {
+      setSelectedBranchId(visibleBranches[0].id)
+      setLevel(LEVEL.EMPLOYEES)
+    }
+  }, [visibleBranches, level])
 
   const branchSummaries = useMemo(
     () => aggregateBranchSummaries(visibleBranches, employees, report.rows),
@@ -235,10 +246,11 @@ function SalaryPage() {
     <div className="salary-page erp-page">
       <header className="salary-page__header erp-header">
         <div>
-          <h1>Lương</h1>
-          <p>Quản lý lương theo phân cấp — Hệ thống → Chi nhánh → Nhân viên → Chi tiết.</p>
+          <h1>Live Payroll</h1>
+          <p>Lương cập nhật theo thời gian thực — Hóa đơn, Tips, Chấm công, Thưởng/Phạt.</p>
         </div>
         <div className="salary-page__header-actions">
+          <PayrollLiveIndicator updatedAt={liveUpdatedAt} isRefreshing={isRefreshing} />
           {isLocked && <span className="salary-page__locked">🔒 Đã chốt lương</span>}
           {canManagePayroll() && !isLocked && level === LEVEL.PROFILE && (
             <button type="button" className="salary-page__btn" onClick={() => setAdjustmentOpen(true)}>
@@ -339,11 +351,13 @@ function SalaryPage() {
           employee={profileRow}
           stats={profileRow}
           walletEntries={walletEntries}
+          invoices={invoices}
+          attendance={attendance}
+          adjustments={adjustments}
           month={month}
           fromDate={report.fromDate}
           toDate={report.toDate}
           auditLogs={auditLogs}
-          adjustments={adjustments}
           locks={locks}
           onReload={reload}
         />
