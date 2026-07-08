@@ -25,6 +25,7 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   requireCompleteProfileBeforeTour: true,
   realtimeEnabled: true,
   warnLegacyLocalStorage: true,
+  vipCustomerThreshold: 10000000,
 }
 
 export function loadSystemSettings() {
@@ -59,6 +60,11 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
     requireCompleteProfileBeforeTour: Boolean(settings.requireCompleteProfileBeforeTour),
     realtimeEnabled: Boolean(settings.realtimeEnabled),
     warnLegacyLocalStorage: Boolean(settings.warnLegacyLocalStorage),
+    vipCustomerThreshold: Math.max(
+      0,
+      Number.parseInt(String(settings.vipCustomerThreshold ?? DEFAULT_SYSTEM_SETTINGS.vipCustomerThreshold), 10)
+        || DEFAULT_SYSTEM_SETTINGS.vipCustomerThreshold,
+    ),
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   if (!skipRemoteSync) pushSettingsToSupabase(normalized)

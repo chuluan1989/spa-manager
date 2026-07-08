@@ -3,6 +3,7 @@ import Layout from './components/layout/Layout'
 import {
   canAccessEmployeesPage,
   canAccessExpensesPage,
+  canAccessCustomersPage,
   canAccessInvoicesPage,
   canAccessLegacySyncPage,
   canAccessMyProfilePage,
@@ -21,6 +22,7 @@ import Login from './pages/Login'
 import MyProfile from './pages/MyProfile'
 import Report from './pages/Report'
 import Revenue from './pages/Revenue'
+import Customers from './pages/Customers'
 import LegacySync from './pages/LegacySync'
 import Settings from './pages/Settings'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
@@ -36,6 +38,7 @@ const PAGES = {
   reports: Report,
   revenue: Revenue,
   invoices: Invoice,
+  customers: Customers,
   'admin-employees': AdminEmployees,
   expenses: Expenses,
   'admin-services': AdminServices,
@@ -56,6 +59,7 @@ function canAccessPage(pageId) {
   if (pageId === 'settings') return canAccessSettingsPage()
   if (pageId === 'revenue') return canViewReport()
   if (pageId === 'invoices') return canAccessInvoicesPage()
+  if (pageId === 'customers') return canAccessCustomersPage()
   if (pageId === 'expenses') return canAccessExpensesPage()
   if (pageId === 'reports') return canViewReport()
   if (pageId === 'legacy-sync') return canAccessLegacySyncPage()

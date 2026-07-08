@@ -101,6 +101,32 @@ export default function SettingsSystemTab({ showToast }) {
           <SettingToggle label="Chỉ Admin được xóa hóa đơn" checked={settings.onlyAdminDeleteInvoice} onChange={(v) => updateSetting('onlyAdminDeleteInvoice', v)} />
           <SettingToggle label="Bắt buộc hoàn thiện hồ sơ trước khi nhập tour" checked={settings.requireCompleteProfileBeforeTour} onChange={(v) => updateSetting('requireCompleteProfileBeforeTour', v)} />
         </div>
+        <label className="settings__field">
+          <span className="settings__field-label">Ngưỡng doanh thu Khách VIP (₫)</span>
+          <input
+            type="number"
+            min="0"
+            step="100000"
+            value={settings.vipCustomerThreshold ?? 10000000}
+            onChange={(event) => setSettings({
+              ...settings,
+              vipCustomerThreshold: Number.parseInt(event.target.value, 10) || 0,
+            })}
+          />
+          <span className="settings__field-hint">Khách đạt tổng doanh thu vé từ mức này sẽ được phân loại VIP.</span>
+        </label>
+        <div className="settings__actions-row">
+          <button
+            type="button"
+            className="settings__btn settings__btn--secondary"
+            onClick={() => {
+              saveSystemSettings(settings)
+              showToast('Đã lưu ngưỡng Khách VIP')
+            }}
+          >
+            Lưu ngưỡng VIP
+          </button>
+        </div>
       </section>
 
       <section className="settings__card">

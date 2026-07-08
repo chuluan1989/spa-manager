@@ -118,6 +118,18 @@ export function canAccessInvoicesPage(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE
 }
 
+export function canAccessCustomersPage(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.VIEW_CUSTOMERS, role, branchId)
+}
+
+export function canEditCustomerProfile(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.EDIT_CUSTOMER, role, branchId)
+}
+
+export function canManageCustomerCare(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  return checkPermission(PERMISSION_KEYS.CARE_CUSTOMER, role, branchId)
+}
+
 export function canAccessExpensesPage(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
   return canViewExpense(role, branchId)
 }
@@ -288,6 +300,7 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
     return pickNavItems(NAV_ITEMS, BRANCH_MANAGER_NAV_ORDER).filter((item) => {
       if (item.id === 'reports') return canViewReport(role, branchId)
       if (item.id === 'expenses') return canViewExpense(role, branchId)
+      if (item.id === 'customers') return canAccessCustomersPage(role, branchId)
       return true
     })
   }
@@ -297,6 +310,7 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
     const items = pickNavItems(NAV_ITEMS, EMPLOYEE_NAV_ORDER).filter((item) => {
       if (item.id === 'reports') return canViewReport(role, branchId)
       if (item.id === 'expenses') return canViewExpense(role, branchId)
+      if (item.id === 'customers') return canAccessCustomersPage(role, branchId)
       return true
     })
     if (canViewExpense(role, branchId)) {

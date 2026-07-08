@@ -1675,5 +1675,77 @@ test('report profit = ticketRevenue - commission - expenses', async () => {
   assert.equal(report.summary.profit, 110000)
 })
 
+test('customer CRM: build key by phone and classify segments', async () => {
+  const {
+    buildCustomerKey,
+    buildCustomerProfiles,
+    classifyCustomer,
+    scopeInvoicesForCrm,
+  } = await import('../src/utils/customerAnalytics.js')
+  const { CUSTOMER_SEGMENTS } = await import('../src/constants/customerTypes.js')
+  const { ROLES } = await import('../src/constants/roles.js')
+
+  const invoice = {
+    id: 'inv-1',
+    customerPhone: '0774 099 777',
+    customerName: 'Lan',
+    branchId: 'vinh-long',
+    date: '2026-07-01',
+    services: [{ id: 's1', name: 'Body', price: 300000 }],
+    tips: 50000,
+    total: 350000,
+  }
+  assert.equal(buildCustomerKey(invoice), 'phone:0774099777')
+
+  const profiles = buildCustomerProfiles([invoice, { ...invoice, id: 'inv-2', date: '2026-07-05' }])
+  assert.equal(profiles.length, 1)
+  assert.equal(profiles[0].visitCount, 2)
+  assert.equal(profiles[0].totalTips, 100000)
+
+  const newProfile = { visitCount: 1, daysSinceLastVisit: 2, avgVisitsPerMonth: 1, totalTicketRevenue: 100000 }
+  assert.equal(classifyCustomer(newProfile, 10000000), CUSTOMER_SEGMENTS.NEW)
+
+  const atRisk = { visitCount: 5, daysSinceLastVisit: 95, avgVisitsPerMonth: 0.2, totalTicketRevenue: 2000000 }
+  assert.equal(classifyCustomer(atRisk, 10000000), CUSTOMER_SEGMENTS.AT_RISK)
+
+  const scoped = scopeInvoicesForCrm(
+    [
+      { id: 'a', branchId: 'vinh-long', employeeId: 'e1' },
+      { id: 'b', branchId: 'tra-vinh', employeeId: 'e2' },
+    ],
+    { role: ROLES.BRANCH_MANAGER, branchId: 'vinh-long', employeeId: '' },
+  )
+  assert.equal(scoped.length, 1)
+  assert.equal(scoped[0].id, 'a')
+
+  const employeeScoped = scopeInvoicesForCrm(
+    [
+      { id: 'a', branchId: 'vinh-long', employeeId: 'e1' },
+      { id: 'b', branchId: 'vinh-long', employeeId: 'e2' },
+    ],
+    { role: ROLES.EMPLOYEE, branchId: 'vinh-long', employeeId: 'e1' },
+  )
+  assert.equal(employeeScoped.length, 1)
+  assert.equal(employeeScoped[0].id, 'a')
+})
+
+test('customer CRM: remarketing inactive buckets', async () => {
+  const { buildRemarketingLists } = await import('../src/utils/customerAnalytics.js')
+  const { REMARKETING_LISTS } = await import('../src/constants/customerTypes.js')
+
+  const customers = [
+    { key: 'a', segment: 'new', daysSinceLastVisit: 10, dateOfBirth: '1990-07-15' },
+    { key: 'b', segment: 'at_risk', daysSinceLastVisit: 95, dateOfBirth: '' },
+    { key: 'c', segment: 'loyal', daysSinceLastVisit: 45, dateOfBirth: '' },
+    { key: 'd', segment: 'vip', daysSinceLastVisit: 65, dateOfBirth: '' },
+  ]
+
+  const lists = buildRemarketingLists(customers)
+  assert.equal(lists[REMARKETING_LISTS.NEW].length, 1)
+  assert.equal(lists[REMARKETING_LISTS.INACTIVE_30].length, 1)
+  assert.equal(lists[REMARKETING_LISTS.INACTIVE_60].length, 1)
+  assert.equal(lists[REMARKETING_LISTS.INACTIVE_90].length, 1)
+})
+
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`)
 process.exit(failed > 0 ? 1 : 0)
