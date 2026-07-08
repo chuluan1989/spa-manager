@@ -1,5 +1,5 @@
 import { getInvoiceServiceDetails, getInvoiceServiceTotal, invoiceHasDiscount, getServiceLineCommissionAmount } from './invoice'
-import { EMPLOYEE_COMMISSION_PERCENT, SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
+import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
 import { getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
 
@@ -96,8 +96,11 @@ function buildInvoiceSalaryRow(invoice, employeeId, role = getSalaryRole(invoice
     serviceId: service.id,
     serviceName: service.name,
     price: service.price ?? 0,
-    commissionPercent: EMPLOYEE_COMMISSION_PERCENT,
-    commissionAmount: scaleCommissionAmount(getServiceLineCommissionAmount(service), role),
+    commissionPercent: service.commissionPercent ?? 0,
+    commissionAmount: scaleCommissionAmount(
+      getServiceLineCommissionAmount(service, { branchId: invoice.branchId, preferSnapshot: true }),
+      role,
+    ),
   }))
   const tips = role === SALARY_ROLES.PRIMARY ? getInvoiceTips(invoice) : 0
   const serviceRevenue = role === SALARY_ROLES.PRIMARY

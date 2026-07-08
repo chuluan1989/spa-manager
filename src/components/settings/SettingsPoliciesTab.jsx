@@ -1,8 +1,10 @@
-import { EMPLOYEE_COMMISSION_PERCENT, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../../constants/salary'
 import { loadSystemSettings } from '../../utils/systemSettingsStorage'
+import { listCommissionPolicies } from '../../utils/commissionPolicyStorage'
+import { SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../../constants/salary'
 
 export default function SettingsPoliciesTab() {
   const system = loadSystemSettings()
+  const policies = listCommissionPolicies()
 
   return (
     <div className="settings__panel">
@@ -14,7 +16,7 @@ export default function SettingsPoliciesTab() {
       <section className="settings__policy-block">
         <h4 className="settings__subheading">Chính sách lương</h4>
         <ul className="settings__policy-list">
-          <li>Lương kỳ = Hoa hồng (40% giá vé thực thu) + Tips + Thưởng − Phạt − Giảm lương − Ứng lương.</li>
+          <li>Lương kỳ = Hoa hồng (theo chính sách chi nhánh) + Tips + Thưởng − Phạt − Giảm lương − Ứng lương.</li>
           <li>Báo cáo lương theo kỳ 1–15, 16–cuối tháng và cả tháng tại module Lương / Nhân viên.</li>
           <li>Tỷ lệ lương riêng theo nhân viên (nếu có) được lưu trong hồ sơ nhân viên.</li>
         </ul>
@@ -23,8 +25,15 @@ export default function SettingsPoliciesTab() {
       <section className="settings__policy-block">
         <h4 className="settings__subheading">Chính sách hoa hồng</h4>
         <ul className="settings__policy-list">
-          <li>Hoa hồng nhân viên chính: {EMPLOYEE_COMMISSION_PERCENT}% trên giá vé thực thu (sau khuyến mãi). Không tính trên Tips hay tổng thanh toán.</li>
-          <li>Hoa hồng nhân viên hỗ trợ: {(SUPPORT_EMPLOYEE_COMMISSION_RATE * 100).toFixed(0)}% trên hoa hồng nhân viên chính (tương đương 20% giá vé thực thu).</li>
+          <li>Hoa hồng nhân viên chính: theo tab Chính sách hoa hồng từng chi nhánh (giá vé thực thu sau khuyến mãi).</li>
+          <li>Hoa hồng nhân viên hỗ trợ: {(SUPPORT_EMPLOYEE_COMMISSION_RATE * 100).toFixed(0)}% trên hoa hồng nhân viên chính.</li>
+          {policies.map((item) => (
+            <li key={item.branchId}>
+              {item.branchName}: {item.policy.policyType === 'flat'
+                ? `${item.policy.flatRate ?? item.policy.defaultRate}% tất cả dịch vụ`
+                : `Theo nhóm (mặc định ${item.policy.defaultRate}%)`}
+            </li>
+          ))}
         </ul>
       </section>
 

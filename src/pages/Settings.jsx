@@ -3,6 +3,7 @@ import { canAccessSettingsPage } from '../constants/auth'
 import SettingsAccountsPermissionsTab from '../components/settings/SettingsAccountsPermissionsTab'
 import SettingsAdminProfileTab from '../components/settings/SettingsAdminProfileTab'
 import SettingsBranchesRolesTab from '../components/settings/SettingsBranchesRolesTab'
+import SettingsCommissionPolicyTab from '../components/settings/SettingsCommissionPolicyTab'
 import SettingsSystemTab from '../components/settings/SettingsSystemTab'
 import './Settings.css'
 
@@ -10,6 +11,7 @@ const TABS = [
   { id: 'admin-profile', label: 'Hồ sơ Admin' },
   { id: 'accounts', label: 'Tài khoản & phân quyền' },
   { id: 'branches', label: 'Chi nhánh & vai trò' },
+  { id: 'commission', label: 'Chính sách hoa hồng' },
   { id: 'system', label: 'Hệ thống' },
 ]
 
@@ -42,6 +44,8 @@ export default function Settings() {
         return <SettingsAccountsPermissionsTab showToast={showToast} key={refreshKey} />
       case 'branches':
         return <SettingsBranchesRolesTab showToast={showToast} onDataChange={handleDataChange} key={refreshKey} />
+      case 'commission':
+        return <SettingsCommissionPolicyTab showToast={showToast} key={refreshKey} />
       case 'system':
         return <SettingsSystemTab showToast={showToast} />
       default:

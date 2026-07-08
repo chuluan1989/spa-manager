@@ -13,7 +13,7 @@ import {
   formatDisplayDate,
   getPayCycleLabel,
 } from './salaryReport'
-import { EMPLOYEE_COMMISSION_PERCENT, SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
+import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
 
 function getSalaryRole(invoice, employeeId) {
   if (employeeId && invoice.supportEmployeeId === employeeId) {

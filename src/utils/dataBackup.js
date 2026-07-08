@@ -1,5 +1,6 @@
 import { loadBranches } from './branchStorage'
 import { loadBranchPricingMap } from './branchPricingStorage'
+import { loadCommissionPolicyMap } from './commissionPolicyStorage'
 import { loadEmployees } from './employeeStorage'
 import { loadCredentials } from './credentialsStorage'
 import { loadExpenses } from './expenseStorage'
@@ -21,6 +22,7 @@ export function collectAllData() {
     services: loadServices(),
     branches: loadBranches(),
     branchPricing: loadBranchPricingMap(),
+    commissionPolicies: loadCommissionPolicyMap(),
     credentials: loadCredentials(),
     permissions: collectPermissionsSnapshot(),
     accountMetadata: loadAccountMetadata(),
@@ -76,6 +78,7 @@ export function importAllData(payload, { skipBackup = false } = {}) {
   if (payload.services) setJson('spa-manager-services', payload.services)
   if (payload.branches) setJson('spa-manager-branches', payload.branches)
   setJson('spa-manager-branch-pricing', payload.branchPricing ?? {})
+  setJson('spa-manager-commission-policies', payload.commissionPolicies ?? {})
   if (payload.credentials) setJson('spa-manager-credentials', payload.credentials)
   if (payload.permissions) {
     if (payload.permissions.global || payload.permissions.branch || payload.permissions.employee) {

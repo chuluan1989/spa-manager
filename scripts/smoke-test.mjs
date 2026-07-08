@@ -123,13 +123,13 @@ const { SUPPORT_EMPLOYEE_COMMISSION_RATE } = await import('../src/constants/sala
 
 console.log('\nSpa Manager — smoke tests\n')
 
-test('commission policy: 40% giá vé thực thu, không tính Tips', () => {
+test('commission policy: Gia Lai 1 = 40% giá vé thực thu, không tính Tips', () => {
   const totals = calculateInvoiceTotals(
     ['vip'],
     100000,
-    'vinh-long',
+    'gia-lai-1',
     [{ id: 'vip', name: 'Body VIP', price: 500000 }],
-    'Vĩnh Long',
+    'Gia Lai 1',
     '50000',
   )
   assert.equal(totals.originalServiceTotal, 500000)
@@ -157,8 +157,8 @@ test('invoice payment flow: giá vé - khuyến mãi = thanh toán, thanh toán 
   assert.equal(totals.tips, 100000)
   assert.equal(totals.customerTotal, 350000)
   assert.equal(totals.total, 350000)
-  assert.equal(totals.serviceCommission, 100000)
-  assert.equal(totals.commission, 100000)
+  assert.equal(totals.serviceCommission, 50000)
+  assert.equal(totals.commission, 50000)
 })
 
 test('invoice discount: 20% reduces revenue and commission, tips unchanged', () => {
@@ -175,8 +175,8 @@ test('invoice discount: 20% reduces revenue and commission, tips unchanged', () 
   assert.equal(totals.serviceTotal, 240000)
   assert.equal(totals.tips, 50000)
   assert.equal(totals.total, 290000)
-  assert.equal(totals.serviceCommission, 96000)
-  assert.equal(totals.commission, 96000)
+  assert.equal(totals.serviceCommission, 48000)
+  assert.equal(totals.commission, 48000)
 })
 
 test('invoice discount: fixed amount 50000', () => {
@@ -190,7 +190,7 @@ test('invoice discount: fixed amount 50000', () => {
   )
   assert.equal(totals.serviceTotal, 150000)
   assert.equal(totals.discountAmount, 50000)
-  assert.equal(totals.serviceCommission, 60000)
+  assert.equal(totals.serviceCommission, 30000)
 })
 
 test('invoice totals: duplicate services + tips', () => {
@@ -203,23 +203,24 @@ test('invoice totals: duplicate services + tips', () => {
   assert.equal(totals.serviceTotal, 400000)
   assert.equal(totals.tips, 50000)
   assert.equal(totals.total, 450000)
-  assert.equal(totals.serviceCommission, 160000)
-  assert.equal(totals.commission, 160000)
+  assert.equal(totals.serviceCommission, 80000)
+  assert.equal(totals.commission, 80000)
 })
 
 test('report summary: commission excludes tips', () => {
   const invoices = [{
     id: '1',
+    branchId: 'vinh-long',
     total: 450000,
     tips: 50000,
-    commission: 160000,
+    commission: 80000,
     services: [
-      { id: 'svc-a', price: 400000 },
+      { id: 'svc-a', price: 400000, commissionAmount: 80000 },
     ],
   }]
   const summary = computeReportSummary(invoices)
   assert.equal(summary.tips, 50000)
-  assert.equal(summary.commission, 160000)
+  assert.equal(summary.commission, 80000)
 })
 
 test('salary: support employee gets 50% commission, no tips', () => {
@@ -251,10 +252,10 @@ test('salary: support employee gets 50% commission, no tips', () => {
   const support = report.employees.find((e) => e.employeeId === 'emp-support')
   assert.ok(main)
   assert.ok(support)
-  assert.equal(main.summary.serviceCommission, 120000)
+  assert.equal(main.summary.serviceCommission, 60000)
   assert.equal(main.summary.tips, 100000)
-  assert.equal(main.summary.totalSalary, 220000)
-  assert.equal(support.summary.serviceCommission, Math.round(120000 * SUPPORT_EMPLOYEE_COMMISSION_RATE))
+  assert.equal(main.summary.totalSalary, 160000)
+  assert.equal(support.summary.serviceCommission, Math.round(60000 * SUPPORT_EMPLOYEE_COMMISSION_RATE))
   assert.equal(support.summary.tips, 0)
 })
 
@@ -314,9 +315,9 @@ test('admin employee report: summary and daily breakdown', () => {
   assert.equal(summary.employees[0].serviceCount, 3)
   assert.equal(summary.employees[0].serviceRevenue, 550000)
   assert.equal(summary.employees[0].tips, 80000)
-  assert.equal(summary.employees[0].serviceCommission, 220000)
-  assert.equal(summary.employees[0].totalSalary, 300000)
-  assert.equal(summary.periodTotals.totalSalary, 300000)
+  assert.equal(summary.employees[0].serviceCommission, 95000)
+  assert.equal(summary.employees[0].totalSalary, 175000)
+  assert.equal(summary.periodTotals.totalSalary, 175000)
 
   const daily = computeEmployeeDailyReports(invoices, 'emp-main', filters)
   assert.equal(daily.days.length, 2)
@@ -325,7 +326,7 @@ test('admin employee report: summary and daily breakdown', () => {
   assert.equal(daily.days[0].services[0].quantity, 1)
   assert.equal(daily.days[1].invoiceCount, 1)
   assert.equal(daily.days[1].services.length, 2)
-  assert.equal(daily.periodTotals.totalSalary, 300000)
+  assert.equal(daily.periodTotals.totalSalary, 175000)
 })
 
 test('admin employee report: invoice detail per customer tips', async () => {
@@ -380,7 +381,7 @@ test('admin employee report: invoice detail per customer tips', async () => {
   assert.equal(detail.days[0].invoices[1].tips, 20000)
   assert.equal(detail.days[0].tips, 120000)
   assert.equal(detail.days[0].serviceRevenue, 430000)
-  assert.equal(detail.periodTotals.totalSalary, 292000)
+  assert.equal(detail.periodTotals.totalSalary, 206000)
 })
 
 test('admin employee report: empty period', () => {
@@ -558,6 +559,13 @@ test('employee login: Cần Thơ / Gia Lai 1 / Gia Lai 2 credentials sync and pa
     password: computeEmployeeDefaultPassword('Hương', getBranchName('gia-lai-1')),
   })
   assert.equal(cn3.ok, true, 'Gia Lai 1 employee must login')
+
+  const { getEmployeeById } = await import('../src/utils/employeeStorage.js')
+  for (const name of ['Thu Diễm', 'Thu Hiền', 'Tường Vy', 'Thảo Nguyên', 'Phương Thảo', 'Minh Hạ', 'Hồng Nhung']) {
+    const employee = getEmployeeById(`gia-lai-1-${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`)
+    assert.ok(employee, `Phải có nhân viên Gia Lai 1: ${name}`)
+    assert.equal(employee.branchId, 'gia-lai-1')
+  }
 
   const cn2 = await verifyLogin({
     role: ROLES.EMPLOYEE,
@@ -1366,8 +1374,8 @@ test('computeEmployeeListStats: tổng hợp doanh số tháng theo nhân viên'
   assert.equal(stats.invoiceCount, 2)
   assert.equal(stats.serviceRevenue, 300000)
   assert.equal(stats.tips, 15000)
-  assert.equal(stats.serviceCommission, 120000)
-  assert.equal(stats.totalSalary, 135000)
+  assert.equal(stats.serviceCommission, 30000)
+  assert.equal(stats.totalSalary, 45000)
 
   const today = computeEmployeeTodayStats(invoices, 'vinh-long-linh')
   assert.equal(today.invoiceCount, 0, 'Không có HĐ hôm nay trong fixture')
@@ -1419,7 +1427,7 @@ test('drillDownReport: tổng hợp cấp hệ thống và drill theo chi nhánh
   assert.equal(summary.customerTotal, 620000)
   assert.equal(summary.tips, 120000)
   assert.equal(summary.discount, 50000)
-  assert.equal(summary.commission, 200000)
+  assert.equal(summary.commission, 70000)
   assert.equal(summary.expenses, 500000)
   assert.equal(summary.customerCount, 2)
 
@@ -1486,8 +1494,8 @@ test('getEmployeeLifetimeStats: tổng hợp doanh thu/tour/tips/hoa hồng/lư�
   assert.equal(stats.serviceCount, 2)
   assert.equal(stats.revenue, 250000)
   assert.equal(stats.tips, 20000)
-  assert.equal(stats.commission, 100000)
-  assert.equal(stats.totalSalary, 120000)
+  assert.equal(stats.commission, 25000)
+  assert.equal(stats.totalSalary, 45000)
 })
 
 test('import validation rejects invalid payload', () => {
@@ -1501,25 +1509,69 @@ test('service commission helper consistency', () => {
     { price: 200000 },
     { price: 300000 },
   ]
-  assert.equal(calculateServiceCommissionFromDetails(services), 200000)
+  assert.equal(calculateServiceCommissionFromDetails(services, 'gia-lai-1'), 200000)
 })
 
-test('uniform 40% commission: Vĩnh Long Body 60', () => {
+test('branch commission policy: Sóc Trăng Body 60 = 0%', () => {
+  const totals = calculateInvoiceTotals(
+    ['body-60'],
+    0,
+    'soc-trang',
+    [{ id: 'body-60', name: 'Body 60', price: 189000 }],
+  )
+  assert.equal(totals.serviceCommission, 0)
+  assert.equal(totals.services[0].commissionPercent, 0)
+})
+
+test('branch commission policy: Sóc Trăng Chuyên sâu = 10%', () => {
+  const totals = calculateInvoiceTotals(
+    ['chuyen-sau'],
+    0,
+    'soc-trang',
+    [{ id: 'chuyen-sau', name: 'Chuyên sâu', price: 349000 }],
+  )
+  assert.equal(totals.serviceCommission, 34900)
+  assert.equal(totals.services[0].commissionPercent, 10)
+})
+
+test('branch commission policy: Sóc Trăng Gội sạch = 20%', () => {
+  const totals = calculateInvoiceTotals(
+    ['goi-sach'],
+    0,
+    'soc-trang',
+    [{ id: 'goi-sach', name: 'Gội sạch', price: 69000 }],
+  )
+  assert.equal(totals.serviceCommission, 13800)
+  assert.equal(totals.services[0].commissionPercent, 20)
+})
+
+test('branch commission policy: Gia Lai 2 = 40% tất cả dịch vụ', () => {
+  const totals = calculateInvoiceTotals(
+    ['gl-combo-relax-90'],
+    0,
+    'gia-lai-2',
+    [{ id: 'gl-combo-relax-90', name: 'Combo Relax 90', price: 500000 }],
+  )
+  assert.equal(totals.serviceCommission, 200000)
+  assert.equal(totals.services[0].commissionPercent, 40)
+})
+
+test('uniform 20% commission: Vĩnh Long Body 60', () => {
   const fallback = [
     { id: 'body-60', name: 'Body 60', price: 189000 },
   ]
   const totals = calculateInvoiceTotals(['body-60'], 0, 'vinh-long', fallback, 'Vĩnh Long')
-  assert.equal(totals.serviceCommission, 75600)
-  assert.equal(totals.commission, 75600)
-  assert.equal(totals.services[0].commissionPercent, 40)
+  assert.equal(totals.serviceCommission, 37800)
+  assert.equal(totals.commission, 37800)
+  assert.equal(totals.services[0].commissionPercent, 20)
 })
 
-test('uniform 40% commission: Trà Vinh Body 90', () => {
+test('uniform 20% commission: Trà Vinh Body 90', () => {
   const fallback = [
     { id: 'body-90', name: 'Body 90', price: 249000 },
   ]
   const totals = calculateInvoiceTotals(['body-90'], 0, 'tra-vinh', fallback, 'Trà Vinh')
-  assert.equal(totals.serviceCommission, 99600)
+  assert.equal(totals.serviceCommission, 49800)
 })
 
 test('tips count 100% toward employee pay', () => {
@@ -1527,8 +1579,8 @@ test('tips count 100% toward employee pay', () => {
     { id: 'body-60', name: 'Body 60', price: 189000 },
   ]
   const totals = calculateInvoiceTotals(['body-60'], 50000, 'vinh-long', fallback, 'Vĩnh Long')
-  assert.equal(totals.serviceCommission, 75600)
-  assert.equal(totals.commission, 75600)
+  assert.equal(totals.serviceCommission, 37800)
+  assert.equal(totals.commission, 37800)
   assert.equal(totals.tips, 50000)
 })
 
@@ -1539,16 +1591,16 @@ test('report profit subtracts commission from ticket revenue, not tips', () => {
     total: 239000,
     tips: 50000,
     serviceTotal: 189000,
-    services: [{ id: 'a', price: 189000 }],
+    services: [{ id: 'a', price: 189000, commissionAmount: 37800 }],
   }]
   const summary = computeReportSummary(invoices)
   const report = computeReportData(invoices, [], { fromDate: '', toDate: '', branchId: '', employeeId: '' })
   assert.equal(summary.revenue, 189000)
   assert.equal(summary.ticketRevenue, 189000)
-  assert.equal(summary.commission, 75600)
+  assert.equal(summary.commission, 37800)
   assert.equal(summary.tips, 50000)
   assert.equal(summary.customerTotal, 239000)
-  assert.equal(report.summary.profit, 189000 - 75600)
+  assert.equal(report.summary.profit, 189000 - 37800)
 })
 
 async function testAsync(name, fn) {

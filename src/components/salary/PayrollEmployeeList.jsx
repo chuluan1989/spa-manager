@@ -7,7 +7,7 @@ const COLUMNS = [
   { key: 'position', label: 'Chức vụ', type: 'text' },
   { key: 'workDays', label: 'Ngày công', type: 'days' },
   { key: 'ticketRevenue', label: 'Doanh thu tiền vé', type: 'money' },
-  { key: 'commission', label: 'Hoa hồng (40%)', type: 'money', tone: 'commission' },
+  { key: 'commission', label: 'Hoa hồng', type: 'money', tone: 'commission' },
   { key: 'tips', label: 'Tips', type: 'money', tone: 'tips' },
   { key: 'bonus', label: 'Thưởng', type: 'money', tone: 'bonus' },
   { key: 'penalty', label: 'Phạt', type: 'money', tone: 'penalty' },

@@ -162,7 +162,9 @@ export function computeServiceReport(invoices) {
       current.count += 1
       current.ticketRevenue += service.price
       current.revenue += service.price
-      current.commission += getServiceLineCommissionAmount(service)
+      current.commission += Number.isFinite(service.commissionAmount)
+        ? service.commissionAmount
+        : getServiceLineCommissionAmount(service, { branchId: inv.branchId })
       map.set(key, current)
     }
   }

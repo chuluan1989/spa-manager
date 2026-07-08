@@ -71,7 +71,7 @@ const DEFAULT_EMPLOYEE_NAMES = {
   'soc-trang': ['Chị 7', 'Bảo Trân', 'Tịnh', 'Ly Ly', 'Quyên', 'An Nhỏ'],
   'tram-spa': ['Thanh', 'Nhu Hà', 'Trúc Ly', 'Cherry', 'Lan Anh'],
   'song-khoe-spa': ['Úc', 'Hải Anh', 'Di Di', 'Ngân', 'Ánh'],
-  'gia-lai-1': ['Hương', 'My', 'Trang', 'Ngọc', 'Vy'],
+  'gia-lai-1': ['Hương', 'My', 'Trang', 'Ngọc', 'Vy', 'Thu Diễm', 'Thu Hiền', 'Tường Vy', 'Thảo Nguyên', 'Phương Thảo', 'Minh Hạ', 'Hồng Nhung'],
   'gia-lai-2': ['Lan', 'Hoa', 'Phượng', 'Thúy'],
   'gia-lai-3': ['Thảo', 'Vy', 'Kim', 'Nhi', 'Hạnh'],
 }

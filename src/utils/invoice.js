@@ -1,4 +1,7 @@
-import { EMPLOYEE_COMMISSION_PERCENT, EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
+import {
+  calculateCommissionAmount,
+  resolveCommissionPercent,
+} from './commissionPolicyEngine'
 import { getServiceMapForBranch } from './serviceStorage'
 
 export function parseTips(value) {
@@ -36,20 +39,41 @@ export function parseDiscountInput(input) {
   return { type: 'amount', value: num, input: raw }
 }
 
-/** Hoa hồng 1 dòng dịch vụ = giá vé thực thu × 40%. */
-export function getServiceLineCommissionAmount(service) {
+function resolveLineCommissionPercent(service, branchId = '') {
+  if (Number.isFinite(service?.commissionPercent)) {
+    return service.commissionPercent
+  }
+  return resolveCommissionPercent(branchId, service)
+}
+
+/** Hoa hồng 1 dòng dịch vụ = giá vé thực thu × % theo chính sách chi nhánh. */
+export function getServiceLineCommissionAmount(service, options = {}) {
+  const branchId = typeof options === 'string' ? options : (options?.branchId ?? '')
+  const preferSnapshot = typeof options === 'object' ? Boolean(options.preferSnapshot) : false
+
+  if (preferSnapshot && Number.isFinite(service?.commissionAmount)) {
+    return service.commissionAmount
+  }
+
   const actualPrice = Number(service?.price ?? 0)
-  return Math.round(actualPrice * EMPLOYEE_COMMISSION_RATE)
+  const percent = resolveLineCommissionPercent(service, branchId)
+  return calculateCommissionAmount(actualPrice, percent)
 }
 
-/** Tổng hoa hồng hóa đơn (không gồm Tips). */
+/** Tổng hoa hồng hóa đơn (không gồm Tips). Ưu tiên snapshot đã lưu trên hóa đơn. */
 export function getInvoiceServiceCommission(invoice) {
-  return getInvoiceServiceDetails(invoice)
-    .reduce((sum, service) => sum + getServiceLineCommissionAmount(service), 0)
+  return getInvoiceServiceDetails(invoice).reduce(
+    (sum, service) => sum + getServiceLineCommissionAmount(service, {
+      branchId: invoice?.branchId ?? '',
+      preferSnapshot: true,
+    }),
+    0,
+  )
 }
 
-function buildBaseServiceLine(service) {
+function buildBaseServiceLine(service, branchId = '') {
   const originalPrice = Number(service.price ?? 0)
+  const commissionPercent = resolveCommissionPercent(branchId, service)
 
   return {
     id: service.id,
@@ -57,12 +81,22 @@ function buildBaseServiceLine(service) {
     originalPrice,
     price: originalPrice,
     discountAmount: 0,
-    commissionPercent: EMPLOYEE_COMMISSION_PERCENT,
-    commissionAmount: getServiceLineCommissionAmount({ price: originalPrice }),
+    commissionPercent,
+    commissionAmount: calculateCommissionAmount(originalPrice, commissionPercent),
   }
 }
 
-export function applyDiscountToServices(services, discountInput) {
+function withLineCommission(service, branchId = '') {
+  const commissionPercent = resolveLineCommissionPercent(service, branchId)
+  const price = Number(service.price ?? 0)
+  return {
+    ...service,
+    commissionPercent,
+    commissionAmount: calculateCommissionAmount(price, commissionPercent),
+  }
+}
+
+export function applyDiscountToServices(services, discountInput, branchId = '') {
   if (!Array.isArray(services) || services.length === 0) return []
 
   const parsed = parseDiscountInput(discountInput)
@@ -72,16 +106,12 @@ export function applyDiscountToServices(services, discountInput) {
   )
 
   if (!parsed.type || originalTotal <= 0) {
-    return services.map((service) => ({
+    return services.map((service) => withLineCommission({
       ...service,
       originalPrice: service.originalPrice ?? service.price ?? 0,
       price: service.originalPrice ?? service.price ?? 0,
       discountAmount: service.discountAmount ?? 0,
-      commissionPercent: EMPLOYEE_COMMISSION_PERCENT,
-      commissionAmount: getServiceLineCommissionAmount({
-        price: service.originalPrice ?? service.price ?? 0,
-      }),
-    }))
+    }, branchId))
   }
 
   const totalDiscount = parsed.type === 'percent'
@@ -98,14 +128,12 @@ export function applyDiscountToServices(services, discountInput) {
     remainingDiscount -= lineDiscount
     const actualPrice = Math.max(0, originalPrice - lineDiscount)
 
-    return {
+    return withLineCommission({
       ...service,
       originalPrice,
       price: actualPrice,
       discountAmount: lineDiscount,
-      commissionPercent: EMPLOYEE_COMMISSION_PERCENT,
-      commissionAmount: getServiceLineCommissionAmount({ price: actualPrice }),
-    }
+    }, branchId)
   })
 }
 
@@ -118,20 +146,20 @@ export function buildServiceDetailsForSave(selectedIds, branchId, fallbackServic
       const fallback = fallbackServices.find((service) => service.id === id)
       const service = live || fallback
       if (!service) return null
-      return buildBaseServiceLine(service)
+      return buildBaseServiceLine(service, branchId)
     })
     .filter(Boolean)
 }
 
-export function calculateServiceCommissionFromDetails(services) {
+export function calculateServiceCommissionFromDetails(services, branchId = '') {
   return services.reduce(
-    (sum, service) => sum + getServiceLineCommissionAmount(service),
+    (sum, service) => sum + getServiceLineCommissionAmount(service, { branchId }),
     0,
   )
 }
 
-export function calculateCommissionFromDetails(services) {
-  return calculateServiceCommissionFromDetails(services)
+export function calculateCommissionFromDetails(services, branchId = '') {
+  return calculateServiceCommissionFromDetails(services, branchId)
 }
 
 export function calculateCommission(
@@ -143,8 +171,8 @@ export function calculateCommission(
   discountInput = '',
 ) {
   const services = buildServiceDetailsForSave(selectedIds, branchId, fallbackServices)
-  const discounted = applyDiscountToServices(services, discountInput)
-  return calculateServiceCommissionFromDetails(discounted)
+  const discounted = applyDiscountToServices(services, discountInput, branchId)
+  return calculateServiceCommissionFromDetails(discounted, branchId)
 }
 
 export function calculateInvoiceTotals(
@@ -156,7 +184,7 @@ export function calculateInvoiceTotals(
   discountInput = '',
 ) {
   const baseServices = buildServiceDetailsForSave(selectedIds, branchId, fallbackServices)
-  const services = applyDiscountToServices(baseServices, discountInput)
+  const services = applyDiscountToServices(baseServices, discountInput, branchId)
   const parsed = parseDiscountInput(discountInput)
 
   const originalServiceTotal = services.reduce(
@@ -171,7 +199,7 @@ export function calculateInvoiceTotals(
   const tipsValue = parseTips(tips)
   const payment = serviceTotal
   const customerTotal = payment + tipsValue
-  const serviceCommission = calculateServiceCommissionFromDetails(services)
+  const serviceCommission = calculateServiceCommissionFromDetails(services, branchId)
 
   return {
     originalServiceTotal,
@@ -232,15 +260,16 @@ export function getInvoiceDiscountAmount(invoice) {
   )
 }
 
-export function formatServiceLine(service) {
+export function formatServiceLine(service, branchId = '') {
   const price = formatCurrency(service.price).replace(' ₫', 'đ')
-  const commission = formatCurrency(getServiceLineCommissionAmount(service)).replace(' ₫', 'đ')
+  const percent = resolveLineCommissionPercent(service, branchId)
+  const commission = formatCurrency(calculateCommissionAmount(service.price, percent)).replace(' ₫', 'đ')
   const original = Number(service.originalPrice ?? service.price ?? 0)
   const discount = Number(service.discountAmount ?? 0)
   const promoNote = discount > 0 && original > service.price
     ? ` (gốc ${formatCurrency(original).replace(' ₫', 'đ')})`
     : ''
-  return `${service.name}: ${price}${promoNote} | HH ${EMPLOYEE_COMMISSION_PERCENT}% = ${commission}`
+  return `${service.name}: ${price}${promoNote} | HH ${percent}% = ${commission}`
 }
 
 export function getInvoiceTips(invoice) {

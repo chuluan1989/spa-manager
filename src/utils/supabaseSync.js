@@ -18,7 +18,7 @@ import { fetchCredentials, upsertCredentials } from '../repositories/credentials
 import { fetchPermissions, upsertPermissions } from '../repositories/permissionsRepository'
 import { fetchBranchPermissions, upsertBranchPermissions } from '../repositories/branchPermissionsRepository'
 import { fetchAccountMetadata, upsertAccountMetadata } from '../repositories/accountMetadataRepository'
-import { fetchSettings, upsertSettings } from '../repositories/settingsRepository'
+import { fetchCommissionPolicyMap, upsertCommissionPolicyMap } from '../repositories/commissionPolicyRepository'
 
 import { loadBranches, normalizeBranch, saveBranches } from './branchStorage'
 import { loadEmployees, normalizeEmployee, saveEmployees } from './employeeStorage'
@@ -46,6 +46,8 @@ import {
   savePermissions,
 } from './permissionsStorage'
 import { loadAccountMetadata, saveAccountMetadata } from './accountMetadataStorage'
+import { applyRemoteCommissionPolicyMap, loadCommissionPolicyMap, saveCommissionPolicyMap } from './commissionPolicyStorage'
+import { fetchSettings, upsertSettings } from '../repositories/settingsRepository'
 import { loadSystemSettings, saveSystemSettings } from './systemSettingsStorage'
 
 const CACHE_ONLY = { skipRemoteSync: true }
@@ -111,7 +113,7 @@ import { notifyDataSynced, SYNC_EVENT } from './dataSyncEvents'
 const DEFAULT_SYNC_INTERVAL_MS = 30000
 // Các bảng bật Realtime — khi có thay đổi (thiết bị khác ghi lên Supabase),
 // kéo lại dữ liệu gần như ngay lập tức thay vì chờ tới vòng polling kế tiếp.
-const REALTIME_TABLES = ['branches', 'employees', 'services', 'branch_pricing', 'invoices', 'expenses', 'service_categories', 'catalog_services', 'service_durations', 'branch_service_prices']
+const REALTIME_TABLES = ['branches', 'employees', 'services', 'branch_pricing', 'branch_commission_policies', 'invoices', 'expenses', 'service_categories', 'catalog_services', 'service_durations', 'branch_service_prices']
 const REALTIME_DEBOUNCE_MS = 400
 
 let syncTimerId = null
@@ -189,6 +191,18 @@ export async function pullAllFromSupabase() {
           return
         }
         saveBranchPricingMap(data, CACHE_ONLY)
+      },
+    },
+    {
+      name: 'commissionPolicies',
+      fetch: fetchCommissionPolicyMap,
+      apply: (data) => {
+        const local = loadCommissionPolicyMap()
+        if (!shouldApplyRemoteMap(data, local)) {
+          console.warn('[Supabase] Pull commissionPolicies rỗng — giữ cache local')
+          return
+        }
+        applyRemoteCommissionPolicyMap(data)
       },
     },
     {
@@ -295,6 +309,7 @@ export async function pushLocalToSupabase() {
     ['branches', () => upsertBranches(snapshot.branches)],
     ['services', () => upsertServices(snapshot.services)],
     ['branchPricing', () => upsertBranchPricingMap(snapshot.branchPricing)],
+    ['commissionPolicies', () => upsertCommissionPolicyMap(snapshot.commissionPolicies ?? loadCommissionPolicyMap())],
     ['serviceCatalogV2', () => upsertServiceCatalogV2Remote(loadServiceCatalogV2(), loadBranchServicePricesV2())],
     ['employees', () => upsertEmployees(snapshot.employees)],
     ['invoices', () => upsertInvoices(snapshot.invoices)],
