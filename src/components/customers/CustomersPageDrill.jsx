@@ -55,7 +55,7 @@ export default function CustomersPageDrill() {
     segment: segmentFilter || appliedFilters.segment,
   }), [appliedFilters, selectedBranchId, segmentFilter])
 
-  const { customers, filteredCustomers, dashboard, remarketingLists, reload } = useCustomersData(branchScopedFilters)
+  const { customers, filteredCustomers, dashboard, remarketingLists, reload, loading, error } = useCustomersData(branchScopedFilters)
 
   const visibleBranches = useMemo(() => {
     const all = getActiveBranches()
@@ -119,12 +119,14 @@ export default function CustomersPageDrill() {
     if (isEmployee()) return []
     const items = [{ id: 'crm', label: 'Khách hàng', onClick: () => { setLevel(LEVEL.BRANCHES); setSelectedBranchId(''); setSelectedKey('') } }]
     if (level === LEVEL.BRANCHES) return items
-    if (selectedBranchId || !isAdmin()) {
+    if (selectedBranchId) {
       items.push({
         id: 'branch',
         label: visibleBranches.find((b) => b.id === selectedBranchId)?.name ?? 'Chi nhánh',
         onClick: () => { setLevel(LEVEL.CUSTOMERS); setSelectedKey('') },
       })
+    } else if (level === LEVEL.CUSTOMERS) {
+      items.push({ id: 'all', label: 'Tất cả khách hàng', onClick: () => { setLevel(LEVEL.CUSTOMERS); setSelectedKey('') } })
     }
     if (selectedCustomer) {
       items.push({ id: 'customer', label: selectedCustomer.name })
@@ -154,6 +156,20 @@ export default function CustomersPageDrill() {
 
       {level === LEVEL.BRANCHES && !isEmployee() && (
         <>
+          <div className="customers__all-entry">
+            <button
+              type="button"
+              className="erp-btn erp-btn--primary"
+              onClick={() => {
+                setSelectedBranchId('')
+                setSegmentFilter('')
+                setLevel(LEVEL.CUSTOMERS)
+                setSelectedKey('')
+              }}
+            >
+              TẤT CẢ KHÁCH HÀNG ({customers.length})
+            </button>
+          </div>
           <h2 className="erp-section-title">Chi nhánh</h2>
           <ErpBranchCardGrid
             branches={branchSummaries}
@@ -180,6 +196,8 @@ export default function CustomersPageDrill() {
       {(level === LEVEL.CUSTOMERS || (!isAdmin() && level !== LEVEL.REMARKETING && level !== LEVEL.CARE)) && (
         <div className={`customers__layout ${selectedCustomer ? 'customers__layout--split' : ''}`}>
           <div className="customers__main">
+            {loading && <p className="customers__result-count">Đang tải dữ liệu khách hàng…</p>}
+            {error && <p className="customers__result-count customers__error">{error}</p>}
             <CustomerFilters
               filters={{ ...draftFilters, branchId: selectedBranchId || draftFilters.branchId, segment: segmentFilter || draftFilters.segment }}
               onChange={(next) => setDraftFilters({ ...next, branchId: selectedBranchId || next.branchId })}

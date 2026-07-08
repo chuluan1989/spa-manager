@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { fetchExpensesFiltered } from '../repositories/expensesRepository'
-import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
+import { fetchAttendanceFiltered } from '../repositories/attendanceRepository'
 import { filterEmployeeReportInvoices } from '../utils/employeeInvoiceReport'
 import {
   buildBranchDrillRows,
   buildDrillDownSummary,
   buildEmployeeDrillRows,
 } from '../utils/drillDownReport'
+import { fetchReportPeriodData } from '../utils/reportDataFetcher'
+import { subscribeToDataSync } from '../utils/supabaseSync'
+import { useDataSyncVersion } from './useDataSyncVersion'
 
 function parseDate(value) {
   const [year, month, day] = String(value).split('-').map(Number)
@@ -47,77 +49,78 @@ function computeTrend(current, previous) {
 }
 
 async function fetchPeriodData(filters) {
-  if (!isSupabaseConfigured) {
-    return { invoices: [], expenses: [] }
+  const result = await fetchReportPeriodData(filters)
+  let invoices = filterEmployeeReportInvoices(result.invoices, filters)
+  return { invoices, expenses: result.expenses, source: result.source, error: result.error }
+}
+
+async function fetchAttendanceForPeriod(filters) {
+  if (!isSupabaseConfigured) return []
+  try {
+    return await fetchAttendanceFiltered({
+      fromDate: filters.fromDate || '',
+      toDate: filters.toDate || '',
+      branchId: filters.branchId || '',
+      employeeId: filters.employeeId || '',
+    })
+  } catch {
+    return []
   }
-
-  const { fromDate, toDate, branchId, employeeId, customerSearch } = filters
-  const [invoiceRows, expenseRows] = await Promise.all([
-    fetchInvoicesFiltered({
-      fromDate,
-      toDate,
-      branchId: branchId || '',
-      employeeId: employeeId || '',
-      customerSearch,
-    }),
-    fetchExpensesFiltered({
-      fromDate,
-      toDate,
-      branchId: branchId || '',
-    }),
-  ])
-
-  let invoices = Array.isArray(invoiceRows) ? invoiceRows : []
-  invoices = filterEmployeeReportInvoices(invoices, filters)
-  const expenses = Array.isArray(expenseRows) ? expenseRows : []
-  return { invoices, expenses }
 }
 
 export function useReportExplorerData(filters, { enabled = true } = {}) {
   const [invoices, setInvoices] = useState([])
   const [expenses, setExpenses] = useState([])
+  const [attendance, setAttendance] = useState([])
   const [prevSummary, setPrevSummary] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const syncVersion = useDataSyncVersion()
+  const [refreshKey, setRefreshKey] = useState(0)
+  const reload = useCallback(() => setRefreshKey((key) => key + 1), [])
 
   useEffect(() => {
     if (!enabled) return undefined
     let cancelled = false
 
     async function load() {
-      if (!isSupabaseConfigured) {
-        setError('Supabase chưa cấu hình — Báo cáo yêu cầu dữ liệu Cloud.')
-        setInvoices([])
-        setExpenses([])
-        setPrevSummary(null)
-        setLoading(false)
-        return
-      }
-
       setLoading(true)
       setError('')
 
       try {
         const prevPeriod = getPreviousPeriod(filters.fromDate, filters.toDate)
-        const [current, previous] = await Promise.all([
+        const [current, previous, attendanceRows] = await Promise.all([
           fetchPeriodData(filters),
           prevPeriod.fromDate && prevPeriod.toDate
             ? fetchPeriodData({ ...filters, ...prevPeriod })
-            : Promise.resolve({ invoices: [], expenses: [] }),
+            : Promise.resolve({ invoices: [], expenses: [], source: 'cloud' }),
+          fetchAttendanceForPeriod(filters),
         ])
 
         if (cancelled) return
 
         setInvoices(current.invoices)
         setExpenses(current.expenses)
+        setAttendance(attendanceRows ?? [])
         setPrevSummary(
           buildDrillDownSummary(previous.invoices, previous.expenses, filters),
         )
+
+        if (current.source === 'local-fallback') {
+          setError(current.error?.message
+            ? `${current.error.message} — đang dùng dữ liệu cục bộ.`
+            : 'Không tải được Cloud — đang dùng dữ liệu cục bộ.')
+        } else if (current.source === 'local' && !isSupabaseConfigured) {
+          setError('Supabase chưa cấu hình — đang dùng dữ liệu cục bộ.')
+        } else {
+          setError('')
+        }
       } catch (err) {
         if (!cancelled) {
-          setError(err?.message ?? 'Không thể tải dữ liệu từ Supabase.')
+          setError(err?.message ?? 'Không thể tải dữ liệu báo cáo.')
           setInvoices([])
           setExpenses([])
+          setAttendance([])
           setPrevSummary(null)
         }
       } finally {
@@ -127,7 +130,9 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
 
     load()
     return () => { cancelled = true }
-  }, [filters, enabled])
+  }, [filters, enabled, syncVersion, refreshKey])
+
+  useEffect(() => subscribeToDataSync(() => reload()), [reload])
 
   const summary = useMemo(
     () => buildDrillDownSummary(invoices, expenses, filters),
@@ -140,8 +145,21 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
   )
 
   const employeeRows = useMemo(
-    () => buildEmployeeDrillRows(invoices, filters),
-    [invoices, expenses, filters],
+    () => {
+      const rows = buildEmployeeDrillRows(invoices, filters)
+      if (!attendance.length) return rows
+      const penaltyByEmployee = new Map()
+      for (const row of attendance) {
+        const id = row.employeeId
+        if (!id) continue
+        penaltyByEmployee.set(id, (penaltyByEmployee.get(id) ?? 0) + Number(row.penaltyAmount ?? 0))
+      }
+      return rows.map((row) => ({
+        ...row,
+        attendancePenalty: penaltyByEmployee.get(row.employeeId) ?? 0,
+      }))
+    },
+    [invoices, filters, attendance],
   )
 
   const trends = useMemo(() => {
@@ -166,6 +184,7 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
   return {
     invoices,
     expenses,
+    attendance,
     summary,
     branchRows,
     employeeRows,
@@ -174,5 +193,6 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
     topEmployee,
     loading,
     error,
+    reload,
   }
 }

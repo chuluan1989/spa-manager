@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { fetchExpensesFiltered } from '../repositories/expensesRepository'
-import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import {
   getCurrentUserBranch,
   getCurrentUserEmployeeId,
@@ -11,6 +9,9 @@ import {
 } from '../constants/auth'
 import { filterEmployeeReportInvoices } from '../utils/employeeInvoiceReport'
 import { getMonthStartDate, getTodayDate } from '../utils/invoiceStorage'
+import { fetchReportPeriodData } from '../utils/reportDataFetcher'
+import { subscribeToDataSync } from '../utils/supabaseSync'
+import { useDataSyncVersion } from './useDataSyncVersion'
 
 export function buildDefaultDrillFilters(overrides = {}) {
   return {
@@ -31,6 +32,7 @@ export function useDrillDownData(filters) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
+  const syncVersion = useDataSyncVersion()
 
   const reload = useCallback(() => setRefreshKey((key) => key + 1), [])
 
@@ -50,44 +52,31 @@ export function useDrillDownData(filters) {
     let cancelled = false
 
     async function load() {
-      if (!isSupabaseConfigured) {
-        setError('Supabase chưa cấu hình — Dashboard/Báo cáo yêu cầu dữ liệu Cloud.')
-        setInvoices([])
-        setExpenses([])
-        setLoading(false)
-        return
-      }
-
       setLoading(true)
       setError('')
 
-      const { fromDate, toDate, branchId, employeeId, customerSearch } = scopedFilters
-
       try {
-        const [invoiceRows, expenseRows] = await Promise.all([
-          fetchInvoicesFiltered({
-            fromDate,
-            toDate,
-            branchId: branchId || '',
-            employeeId: employeeId || '',
-            customerSearch,
-          }),
-          fetchExpensesFiltered({
-            fromDate,
-            toDate,
-            branchId: branchId || '',
-          }),
-        ])
-
+        const result = await fetchReportPeriodData(scopedFilters)
         if (cancelled) return
 
-        let nextInvoices = Array.isArray(invoiceRows) ? invoiceRows : []
-        nextInvoices = filterEmployeeReportInvoices(nextInvoices, scopedFilters)
+        let nextInvoices = filterEmployeeReportInvoices(result.invoices, scopedFilters)
         setInvoices(nextInvoices)
-        setExpenses(Array.isArray(expenseRows) ? expenseRows : [])
+        setExpenses(result.expenses)
+
+        if (result.source === 'local' && isSupabaseConfigured) {
+          setError('Supabase chưa phản hồi — đang dùng dữ liệu cục bộ.')
+        } else if (result.source === 'local-fallback') {
+          setError(result.error?.message
+            ? `${result.error.message} — đang dùng dữ liệu cục bộ.`
+            : 'Không tải được Cloud — đang dùng dữ liệu cục bộ.')
+        } else if (result.source === 'local' && !isSupabaseConfigured) {
+          setError('Supabase chưa cấu hình — đang dùng dữ liệu cục bộ.')
+        } else {
+          setError('')
+        }
       } catch (err) {
         if (!cancelled) {
-          setError(err?.message ?? 'Không thể tải dữ liệu từ Supabase.')
+          setError(err?.message ?? 'Không thể tải dữ liệu báo cáo.')
           setInvoices([])
           setExpenses([])
         }
@@ -98,7 +87,9 @@ export function useDrillDownData(filters) {
 
     load()
     return () => { cancelled = true }
-  }, [scopedFilters, refreshKey])
+  }, [scopedFilters, refreshKey, syncVersion])
+
+  useEffect(() => subscribeToDataSync(() => reload()), [reload])
 
   return { invoices, expenses, loading, error, reload, scopedFilters }
 }

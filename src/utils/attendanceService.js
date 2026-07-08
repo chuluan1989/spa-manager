@@ -4,9 +4,10 @@ import {
   recomputeMonthlyPenalties,
 } from './attendancePenalties'
 import { notifyDataSynced } from './dataSyncEvents'
-import { getBranchName } from './branchStorage'
+import { getBranchById, getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
-import { upsertEmployee } from '../repositories/employeesRepository'
+import { upsertEmployeeMinimal } from '../repositories/employeesRepository'
+import { upsertBranches } from '../repositories/branchesRepository'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import {
   createAttendanceId,
@@ -19,6 +20,18 @@ import {
   updateAttendanceRecord,
 } from '../repositories/attendanceRepository'
 
+const ATTENDANCE_SYNC_TIMEOUT_MS = 8000
+const ATTENDANCE_SAVE_TIMEOUT_MS = 15000
+
+function withTimeout(promise, ms, timeoutMessage) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(timeoutMessage)), ms)
+    }),
+  ])
+}
+
 function parseAttendanceError(error) {
   const message = error?.message ?? String(error ?? '')
   if (/Supabase chưa cấu hình/i.test(message)) {
@@ -30,19 +43,48 @@ function parseAttendanceError(error) {
   if (/foreign key|violates foreign key|employees|branches/i.test(message)) {
     return 'Dữ liệu nhân viên/chi nhánh chưa đồng bộ. Vui lòng thử lại sau vài giây.'
   }
+  if (/quá lâu|timeout/i.test(message)) {
+    return message
+  }
   if (/Failed to fetch|network|NetworkError/i.test(message)) {
     return 'Mất kết nối mạng. Kiểm tra internet và thử lại.'
   }
   return message || 'Không thể lưu điểm danh. Vui lòng thử lại.'
 }
 
-async function ensureEmployeeSyncedForAttendance(employeeId) {
+async function ensureBranchSyncedForAttendance(branchId) {
+  if (!isSupabaseConfigured || !branchId) return
+  const branch = getBranchById(branchId)
+  if (!branch?.id) {
+    throw new Error('Không tìm thấy chi nhánh.')
+  }
+  await withTimeout(
+    upsertBranches([branch]),
+    ATTENDANCE_SYNC_TIMEOUT_MS,
+    'Đồng bộ chi nhánh quá lâu. Kiểm tra mạng và thử lại.',
+  )
+}
+
+async function ensureEmployeeSyncedForAttendance(employeeId, branchId) {
   if (!isSupabaseConfigured || !employeeId) return
   const employee = getEmployeeById(employeeId)
   if (!employee) {
     throw new Error('Không tìm thấy hồ sơ nhân viên. Liên hệ quản trị viên.')
   }
-  await upsertEmployee(employee)
+  const resolvedBranchId = branchId || employee.branchId || ''
+  if (resolvedBranchId) {
+    await ensureBranchSyncedForAttendance(resolvedBranchId)
+  }
+  await withTimeout(
+    upsertEmployeeMinimal({
+      id: employee.id,
+      branchId: resolvedBranchId,
+      name: employee.name,
+      status: employee.status ?? 'active',
+    }),
+    ATTENDANCE_SYNC_TIMEOUT_MS,
+    'Đồng bộ nhân viên quá lâu. Kiểm tra mạng và thử lại.',
+  )
 }
 
 export async function getServerAttendanceDate() {
@@ -54,9 +96,15 @@ export async function getServerAttendanceDate() {
 }
 
 export async function hasCheckedInToday(employeeId) {
-  const { date } = await getServerAttendanceDate()
-  const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
-  return Boolean(existing)
+  return withTimeout(
+    (async () => {
+      const { date } = await getServerAttendanceDate()
+      const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
+      return Boolean(existing)
+    })(),
+    ATTENDANCE_SAVE_TIMEOUT_MS,
+    'Không kiểm tra được điểm danh. Kiểm tra mạng và thử lại.',
+  )
 }
 
 export async function submitEmployeeAttendance({
@@ -74,44 +122,52 @@ export async function submitEmployeeAttendance({
   if (!employeeId) {
     throw new Error('Không xác định được nhân viên.')
   }
-  if (!branchId) {
+
+  const resolvedBranchId = branchId || getEmployeeById(employeeId)?.branchId || ''
+  if (!resolvedBranchId) {
     throw new Error('Không xác định được chi nhánh.')
   }
 
   try {
-    await ensureEmployeeSyncedForAttendance(employeeId)
+    await ensureEmployeeSyncedForAttendance(employeeId, resolvedBranchId)
   } catch (err) {
     throw new Error(parseAttendanceError(err))
   }
 
-  const branchName = getBranchName(branchId)
+  const branchName = getBranchName(resolvedBranchId)
 
   try {
-    const { date, timestamp } = await getServerAttendanceDate()
-    const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
-    if (existing) {
-      throw new Error('Bạn đã điểm danh hôm nay. Không thể điểm danh lại.')
-    }
+    const saved = await withTimeout(
+      (async () => {
+        const { date, timestamp } = await getServerAttendanceDate()
+        const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
+        if (existing) {
+          throw new Error('Bạn đã điểm danh hôm nay. Không thể điểm danh lại.')
+        }
 
-    const monthPrefix = getMonthPrefixFromDate(date)
-    const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
-    const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+        const monthPrefix = getMonthPrefixFromDate(date)
+        const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
+        const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
 
-    const saved = await insertAttendanceRecord({
-      id: createAttendanceId(),
-      date,
-      branchId,
-      branchName,
-      employeeId,
-      employeeName,
-      status,
-      reason: reason.trim(),
-      note: note.trim(),
-      penaltyAmount,
-      submittedAt: timestamp || new Date().toISOString(),
-      submittedBy,
-      createdBy: submittedBy,
-    })
+        return insertAttendanceRecord({
+          id: createAttendanceId(),
+          date,
+          branchId: resolvedBranchId,
+          branchName,
+          employeeId,
+          employeeName,
+          status,
+          reason: reason.trim(),
+          note: note.trim(),
+          penaltyAmount,
+          submittedAt: timestamp || new Date().toISOString(),
+          submittedBy,
+          createdBy: submittedBy,
+        })
+      })(),
+      ATTENDANCE_SAVE_TIMEOUT_MS,
+      'Lưu điểm danh quá lâu. Kiểm tra mạng và thử lại.',
+    )
     notifyDataSynced(['attendance'])
     return saved
   } catch (err) {

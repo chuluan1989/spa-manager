@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { fetchEmployeesFiltered } from '../repositories/employeesRepository'
 import { fetchAttendanceFiltered, subscribeAttendanceChanges } from '../repositories/attendanceRepository'
 import { fetchInvoicesFiltered, subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import {
@@ -7,11 +9,25 @@ import {
   fetchPayrollLocks,
   subscribePayrollChanges,
 } from '../repositories/payrollRepository'
-import { loadEmployees } from '../utils/employeeStorage'
+import { loadEmployees, normalizeEmployee } from '../utils/employeeStorage'
 import { loadInvoices } from '../utils/invoiceStorage'
 import { computePayrollReport } from '../utils/payrollEngine'
 import { filterSalaryInvoices, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
+
+function mergeEmployeeSources(remoteRows, branchId) {
+  const localRows = loadEmployees()
+    .filter((row) => !branchId || row.branchId === branchId)
+    .map((row) => normalizeEmployee(row))
+  const map = new Map()
+  for (const row of localRows) {
+    if (row?.id) map.set(row.id, row)
+  }
+  for (const row of remoteRows ?? []) {
+    if (row?.id) map.set(row.id, normalizeEmployee(row))
+  }
+  return [...map.values()]
+}
 
 function mergeInvoiceSources(remoteRows, scope) {
   const localRows = filterSalaryInvoices(loadInvoices(), scope)
@@ -49,15 +65,18 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
     try {
       const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
       const scope = { fromDate, toDate, branchId, employeeId }
-      const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows] = await Promise.all([
+      const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows, remoteEmployees] = await Promise.all([
         fetchInvoicesFiltered(scope),
         fetchAttendanceFiltered(scope),
         fetchPayrollAdjustments({ month, branchId, employeeId }),
         fetchPayrollLocks({ month }),
         fetchPayrollAuditLogs({ limit: 300 }),
+        isSupabaseConfigured
+          ? fetchEmployeesFiltered(branchId ? { branchId } : {})
+          : Promise.resolve(null),
       ])
       if (!mountedRef.current) return
-      setEmployees(loadEmployees())
+      setEmployees(mergeEmployeeSources(remoteEmployees, branchId))
       setInvoices(mergeInvoiceSources(remoteInvoices, scope))
       setAttendance(attendanceRows ?? [])
       setAdjustments(adjustmentRows ?? [])
@@ -69,6 +88,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
       setError(err?.message ?? 'Không thể tải dữ liệu lương.')
       if (!silent) {
         const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
+        setEmployees(mergeEmployeeSources([], branchId))
         setInvoices(mergeInvoiceSources([], { fromDate, toDate, branchId, employeeId }))
         setAttendance([])
         setAdjustments([])

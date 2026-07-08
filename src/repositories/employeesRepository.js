@@ -48,6 +48,20 @@ export async function upsertEmployee(employee) {
   if (error) throw error
 }
 
+/** Chỉ đủ FK cho chấm công — không gửi ảnh/json lớn (tránh treo khi điểm danh). */
+export async function upsertEmployeeMinimal({ id, branchId, name, status = 'active' }) {
+  if (!isSupabaseConfigured || !id) return
+  const row = objectToSnakeRow({
+    id,
+    branchId: branchId ?? '',
+    name: name ?? '',
+    status: status ?? 'active',
+    updatedAt: new Date().toISOString(),
+  })
+  const { error } = await supabase.from(TABLE).upsert(row, { onConflict: 'id' })
+  if (error) throw error
+}
+
 export async function upsertEmployees(employees) {
   if (!isSupabaseConfigured || !Array.isArray(employees) || employees.length === 0) return
   const rows = employees.map((employee) =>

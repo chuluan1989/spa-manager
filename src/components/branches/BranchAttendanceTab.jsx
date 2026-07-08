@@ -10,10 +10,22 @@ import { getAttendanceStatusLabel } from '../../constants/attendanceTypes'
 
 export default function BranchAttendanceTab({ branchId }) {
   const [month, setMonth] = useState(getCurrentMonthValue())
-  const fromDate = `${month}-01`
-  const toDate = `${month}-31`
+  const monthRange = useMemo(() => {
+    const [yearStr, monthStr] = month.split('-')
+    const year = Number(yearStr)
+    const monthNum = Number(monthStr)
+    const lastDay = new Date(year, monthNum, 0).getDate()
+    return {
+      fromDate: `${month}-01`,
+      toDate: `${month}-${String(lastDay).padStart(2, '0')}`,
+    }
+  }, [month])
 
-  const { records, loading, error } = useAttendanceData({ branchId, fromDate, toDate })
+  const { records, loading, error } = useAttendanceData({
+    branchId,
+    fromDate: monthRange.fromDate,
+    toDate: monthRange.toDate,
+  })
   const employees = useMemo(
     () => loadEmployees().filter((emp) => emp.branchId === branchId),
     [branchId],

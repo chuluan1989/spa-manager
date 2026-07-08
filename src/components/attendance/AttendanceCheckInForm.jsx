@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_OPTIONS } from '../../constants/attendanceTypes'
-import { getCurrentUserEmployeeId, getCurrentUserName } from '../../constants/auth'
+import { getCurrentUserBranch, getCurrentUserEmployeeId, getCurrentUserName } from '../../constants/auth'
 import { getEmployeeById } from '../../utils/employeeStorage'
 import { getTodayDate } from '../../utils/invoiceStorage'
 import { submitEmployeeAttendance } from '../../utils/attendanceService'
@@ -41,22 +41,30 @@ export default function AttendanceCheckInForm({ onSuccess }) {
       return
     }
 
+    const branchId = employee?.branchId || getCurrentUserBranch()
+
     setSubmitting(true)
     setError('')
     try {
       await submitEmployeeAttendance({
         employeeId,
         employeeName: employee?.name ?? getCurrentUserName(),
-        branchId: employee?.branchId ?? '',
+        branchId,
         status,
         reason: needsReason ? reason.trim() : '',
         note: '',
         submittedBy: getCurrentUserName(),
       })
+      setSubmitting(false)
       onSuccess?.()
     } catch (err) {
-      setError(err?.message ?? 'Không thể lưu điểm danh. Vui lòng thử lại.')
-    } finally {
+      const message = err?.message ?? 'Không thể lưu điểm danh. Vui lòng thử lại.'
+      if (/đã điểm danh/i.test(message)) {
+        setSubmitting(false)
+        onSuccess?.()
+        return
+      }
+      setError(message)
       setSubmitting(false)
     }
   }

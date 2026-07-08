@@ -7,7 +7,7 @@ export default function BranchSalaryTab({ branchId }) {
   const [month, setMonth] = useState(getCurrentMonthValue())
   const { report, loading, error } = usePayrollData({ month, branchId })
 
-  const rows = useMemo(() => report?.employees ?? [], [report])
+  const rows = useMemo(() => report?.rows ?? [], [report])
 
   return (
     <div className="admin-branches__salary">

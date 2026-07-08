@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import BranchBanner from '../common/BranchBanner'
+import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import {
   canSelectBranch,
   getCurrentUserBranch,
@@ -10,13 +11,14 @@ import {
 import { loadBranches } from '../../constants/branches'
 import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../../utils/employeeStorage'
 import { formatCurrency } from '../../utils/invoice'
-import { loadInvoices } from '../../utils/invoiceStorage'
+import { fetchMergedInvoices } from '../../utils/invoiceDataFetcher'
 import {
   PAY_CYCLE_OPTIONS,
   PAY_CYCLES,
   computeSalaryReport,
   formatDisplayDate,
   getCurrentMonthValue,
+  getPayPeriodRange,
 } from '../../utils/salaryReport'
 
 export default function EmployeeSalaryPanel() {
@@ -48,9 +50,33 @@ export default function EmployeeSalaryPanel() {
     [effectiveFilters.branchId],
   )
 
+  const [invoices, setInvoices] = useState([])
+  const [loading, setLoading] = useState(true)
+  const syncVersion = useDataSyncVersion()
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      const { fromDate, toDate } = getPayPeriodRange(filters.month, filters.cycle)
+      const result = await fetchMergedInvoices({
+        fromDate,
+        toDate,
+        branchId: effectiveFilters.branchId || '',
+        employeeId: effectiveFilters.employeeId || '',
+      })
+      if (!cancelled) {
+        setInvoices(result.invoices)
+        setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [effectiveFilters.branchId, effectiveFilters.employeeId, filters.month, filters.cycle, syncVersion])
+
   const salaryReport = useMemo(
-    () => computeSalaryReport(loadInvoices(), effectiveFilters),
-    [effectiveFilters],
+    () => computeSalaryReport(invoices, effectiveFilters),
+    [invoices, effectiveFilters],
   )
 
   const updateFilter = (field, value) => {
@@ -123,11 +149,13 @@ export default function EmployeeSalaryPanel() {
         Kỳ báo cáo: {salaryReport.cycleLabel} — {formatDisplayDate(salaryReport.fromDate)} đến {formatDisplayDate(salaryReport.toDate)}
       </p>
 
-      {salaryReport.employees.length === 0 ? (
+      {loading && <p className="report-table-card__empty">Đang tải dữ liệu lương…</p>}
+
+      {!loading && salaryReport.employees.length === 0 ? (
         <section className="report-table-card">
           <p className="report-table-card__empty">Không có dữ liệu lương trong kỳ đã chọn.</p>
         </section>
-      ) : (
+      ) : !loading && (
         salaryReport.employees.map((employee) => (
           <section key={employee.employeeId || employee.employeeName} className="salary-report__employee">
             <div className="salary-report__summary-card">

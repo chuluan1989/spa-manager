@@ -101,6 +101,13 @@ export async function insertAttendanceRecord(record) {
     error = retry.error
   }
 
+  if (error && /created_by|column/.test(error.message ?? '')) {
+    delete row.created_by
+    const retry = await supabase.from(ATTENDANCE_TABLE).insert(row).select('*').single()
+    data = retry.data
+    error = retry.error
+  }
+
   if (error) throw error
   return rowsToCamel([data])[0]
 }
