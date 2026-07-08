@@ -3,9 +3,12 @@ import { formatCurrency } from '../../utils/invoice'
 
 const STAT_ROWS = [
   { key: 'employeeCount', label: 'Tổng nhân viên', format: 'count' },
-  { key: 'provisionalSalary', label: 'Tổng lương tạm tính', format: 'currency' },
-  { key: 'ticketRevenue', label: 'Tổng doanh thu', format: 'currency' },
-  { key: 'tips', label: 'Tổng Tips', format: 'currency', tone: 'tips' },
+  { key: 'ticketRevenue', label: 'Tổng doanh thu tiền vé', format: 'currency' },
+  { key: 'commission', label: 'Tổng hoa hồng', format: 'currency', tone: 'commission' },
+  { key: 'tips', label: 'Tổng tips', format: 'currency', tone: 'tips' },
+  { key: 'penalty', label: 'Tổng phạt', format: 'currency', tone: 'penalty' },
+  { key: 'advance', label: 'Tổng ứng lương', format: 'currency', tone: 'advance' },
+  { key: 'netSalary', label: 'Tổng lương thực nhận', format: 'currency', tone: 'net' },
 ]
 
 function formatStatValue(key, format, value) {
@@ -35,7 +38,7 @@ export default function PayrollBranchGrid({ branches, onSelectBranch }) {
             </div>
           </header>
 
-          <dl className="salary-branch-card__stats salary-branch-card__stats--compact">
+          <dl className="salary-branch-card__stats">
             {STAT_ROWS.map((stat) => (
               <div
                 key={stat.key}

@@ -19,8 +19,9 @@ import {
 } from '../constants/auth'
 import { usePayrollData } from '../hooks/usePayrollData'
 import { sortBranchesForPayroll, getPayrollBranchDisplayTitle } from '../constants/branchPayrollDisplay'
-import { getActiveBranches, getBranchName } from '../utils/branchStorage'
-import { getEmployeeById } from '../utils/employeeStorage'
+import { getCanonicalBranchesForDisplay, getBranchName } from '../utils/branchStorage'
+import { getEmployeeById, EMPLOYEE_STATUS } from '../utils/employeeStorage'
+import { employeeBelongsToBranch, isPayrollListEmployee } from '../utils/branchEmployeeMatch'
 import { buildWalletTimeline, isPayrollMonthLocked } from '../utils/payrollEngine'
 import {
   addPayrollAdjustment,
@@ -103,7 +104,7 @@ function SalaryPage() {
   } = usePayrollData({ month, branchId: fetchBranchId, employeeId: fetchEmployeeId })
 
   const visibleBranches = useMemo(() => {
-    const all = sortBranchesForPayroll(getActiveBranches())
+    const all = sortBranchesForPayroll(getCanonicalBranchesForDisplay())
     if (isAdmin()) return all
     const branchId = getCurrentUserBranch()
     return all.filter((branch) => branch.id === branchId)
@@ -236,8 +237,8 @@ function SalaryPage() {
 
   const scopedEmployeesForModal = useMemo(
     () => employees.filter((emp) => {
-      if (emp.status === 'inactive' || emp.status === 'archived') return false
-      if (fetchBranchId && emp.branchId !== fetchBranchId) return false
+      if (!isPayrollListEmployee(emp, '')) return false
+      if (fetchBranchId && !employeeBelongsToBranch(emp, fetchBranchId)) return false
       if (isEmployee()) return emp.id === getCurrentUserEmployeeId()
       return true
     }),
@@ -297,8 +298,8 @@ function SalaryPage() {
               Trạng thái
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                 <option value="">Đang làm</option>
-                <option value="inactive">Nghỉ việc</option>
-                <option value="archived">Lưu trữ</option>
+                <option value={EMPLOYEE_STATUS.RESIGNED}>Nghỉ việc</option>
+                <option value={EMPLOYEE_STATUS.ARCHIVED}>Lưu trữ</option>
                 <option value="all">Tất cả</option>
               </select>
             </label>

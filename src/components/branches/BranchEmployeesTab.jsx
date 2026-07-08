@@ -31,6 +31,7 @@ import { computeAttendanceStats } from '../../utils/payrollLiveHelpers'
 import { getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../../utils/salaryReport'
 import { formatCurrency } from '../../utils/invoice'
 import { isAdmin } from '../../constants/auth'
+import { employeeBelongsToBranch } from '../../utils/branchEmployeeMatch'
 
 const POSITION_SUGGESTIONS = [
   'KTV Body',
@@ -77,10 +78,10 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
   const branches = useMemo(() => loadBranches(), [employees])
 
   const branchEmployees = useMemo(() => {
-    const source = hubEmployees.length ? hubEmployees : employees.filter((emp) => emp.branchId === branchId)
+    const source = hubEmployees.length ? hubEmployees : employees
     const q = search.trim().toLowerCase()
     return source.filter((emp) => {
-      if (emp.branchId !== branchId) return false
+      if (!employeeBelongsToBranch(emp, branchId)) return false
       if (statusFilter && emp.status !== statusFilter) return false
       if (!q) return true
       const haystack = `${emp.name ?? ''} ${emp.phone ?? ''} ${emp.cccd ?? ''}`.toLowerCase()

@@ -4,6 +4,7 @@ import { fetchEmployeesFiltered } from '../repositories/employeesRepository'
 import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import { loadEmployees, normalizeEmployee } from '../utils/employeeStorage'
 import { loadInvoices } from '../utils/invoiceStorage'
+import { employeeBelongsToBranch } from '../utils/branchEmployeeMatch'
 import { filterSalaryInvoices, getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 
 export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } = {}) {
@@ -27,7 +28,7 @@ export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } 
 
       if (!isSupabaseConfigured) {
         const localEmployees = loadEmployees()
-          .filter((row) => !branchId || row.branchId === branchId)
+          .filter((row) => !branchId || employeeBelongsToBranch(row, branchId))
           .map((row) => normalizeEmployee(row))
         const localInvoices = filterSalaryInvoices(loadInvoices(), scope)
         if (!cancelled) {
@@ -40,19 +41,21 @@ export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } 
 
       try {
         const [employeeRows, invoiceRows] = await Promise.all([
-          fetchEmployeesFiltered(branchId ? { branchId } : {}),
+          fetchEmployeesFiltered({}),
           fetchInvoicesFiltered(scope),
         ])
 
         if (cancelled) return
 
-        setEmployees((employeeRows ?? []).map((row) => normalizeEmployee(row)))
+        setEmployees((employeeRows ?? [])
+          .map((row) => normalizeEmployee(row))
+          .filter((row) => !branchId || employeeBelongsToBranch(row, branchId)))
         setInvoices(Array.isArray(invoiceRows) ? invoiceRows : [])
       } catch (err) {
         if (!cancelled) {
           setError(err?.message ?? 'Không thể tải dữ liệu nhân viên từ Supabase.')
           const localEmployees = loadEmployees()
-            .filter((row) => !branchId || row.branchId === branchId)
+            .filter((row) => !branchId || employeeBelongsToBranch(row, branchId))
             .map((row) => normalizeEmployee(row))
           const localInvoices = filterSalaryInvoices(loadInvoices(), scope)
           setEmployees(localEmployees)

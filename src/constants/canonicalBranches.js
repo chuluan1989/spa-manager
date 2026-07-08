@@ -50,7 +50,7 @@ export const CANONICAL_BRANCHES = [
   {
     id: 'gia-lai-1',
     name: 'Gia Lai 1',
-    passwordName: 'Gia Lai 1',
+    passwordName: 'Gia Lai',
     sortOrder: 3,
     cnCode: 'CN3',
     cnTitle: 'CN3 Gia Lai 1',
@@ -102,7 +102,7 @@ export const CANONICAL_BRANCHES = [
   {
     id: 'gia-lai-2',
     name: 'Gia Lai 2',
-    passwordName: 'Gia Lai 2',
+    passwordName: 'Gia Lai',
     sortOrder: 7,
     cnCode: 'CN7',
     cnTitle: 'CN7 Gia Lai 2',

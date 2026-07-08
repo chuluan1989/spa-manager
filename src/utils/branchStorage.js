@@ -145,6 +145,12 @@ export function getActiveBranches() {
   return loadBranches().filter((branch) => branch.status === BRANCH_STATUS.ACTIVE)
 }
 
+/** 8 chi nhánh chuẩn CN1–CN8, đảm bảo đủ trước khi hiển thị Admin/Lương. */
+export function getCanonicalBranchesForDisplay() {
+  syncMissingDefaultBranches()
+  return loadBranches().filter((branch) => isCanonicalBranchId(branch.id))
+}
+
 export function getSupportBranchIds() {
   return loadBranches()
     .filter((branch) => branch.supportEnabled && branch.status === BRANCH_STATUS.ACTIVE)

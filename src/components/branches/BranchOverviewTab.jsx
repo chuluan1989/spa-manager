@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { getBranchById } from '../../utils/branchStorage'
+import { employeeBelongsToBranch } from '../../utils/branchEmployeeMatch'
 import { getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../../utils/salaryReport'
 import { formatCurrency } from '../../utils/invoice'
 import { useEmployeeHubData } from '../../hooks/useEmployeeHubData'
@@ -17,7 +18,7 @@ export default function BranchOverviewTab({ branchId }) {
   const { records: attendanceRecords, loading: attendanceLoading } = useAttendanceData({ branchId, fromDate, toDate })
 
   const stats = useMemo(() => {
-    const branchEmployees = employees.filter((emp) => emp.branchId === branchId)
+    const branchEmployees = employees.filter((emp) => employeeBelongsToBranch(emp, branchId))
     const activeEmployees = branchEmployees.filter((emp) => emp.status === 'active')
     const revenue = invoices.reduce((sum, inv) => sum + getInvoiceServiceTotal(inv), 0)
     const payrollTotal = (report?.rows ?? []).reduce((sum, row) => sum + (row.netSalary ?? 0), 0)

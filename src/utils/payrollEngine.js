@@ -7,6 +7,7 @@ import {
 } from '../constants/payrollTypes'
 import { getAttendanceStatusLabel } from '../constants/attendanceTypes'
 import { getBranchName } from './branchStorage'
+import { employeeBelongsToBranch, isPayrollListEmployee, recordBelongsToBranch } from './branchEmployeeMatch'
 import { getInvoiceServiceDetails, getInvoiceServiceCommission, getInvoiceServiceTotal, getServiceLineCommissionAmount } from './invoice'
 import {
   computeAttendanceStats,
@@ -131,21 +132,21 @@ export function computePayrollReport({ month, branchId, employeeId, employees, i
   const scopedInvoices = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId })
   const scopedEmployees = employees.filter((employee) => {
     if (employeeId && employee.id !== employeeId) return false
-    if (branchId && employee.branchId !== branchId) return false
-    if (employee.status === 'inactive' || employee.status === 'archived') return false
+    if (branchId && !employeeBelongsToBranch(employee, branchId)) return false
+    if (!isPayrollListEmployee(employee, '')) return false
     return true
   })
 
   const scopedAttendance = attendanceRecords.filter((row) => {
     if (row.date < fromDate || row.date > toDate) return false
-    if (branchId && row.branchId !== branchId) return false
+    if (branchId && !recordBelongsToBranch(row, branchId)) return false
     if (employeeId && row.employeeId !== employeeId) return false
     return true
   })
 
   const scopedAdjustments = adjustments.filter((row) => {
     if (row.month !== month) return false
-    if (branchId && row.branchId !== branchId) return false
+    if (branchId && !recordBelongsToBranch(row, branchId)) return false
     if (employeeId && row.employeeId !== employeeId) return false
     return true
   })

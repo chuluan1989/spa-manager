@@ -2,6 +2,7 @@ import { getInvoiceServiceDetails, getInvoiceServiceTotal, invoiceHasDiscount, g
 import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
 import { getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
+import { recordBelongsToBranch } from './branchEmployeeMatch'
 
 export const PAY_CYCLES = {
   PERIOD_1: 'period1',
@@ -72,7 +73,7 @@ export function filterSalaryInvoices(invoices, { fromDate, toDate, branchId, emp
   return invoices.filter((invoice) => {
     if (fromDate && invoice.date < fromDate) return false
     if (toDate && invoice.date > toDate) return false
-    if (branchId && invoice.branchId !== branchId) return false
+    if (branchId && !recordBelongsToBranch(invoice, branchId)) return false
     if (employeeId) {
       const matchesPrimary = invoice.employeeId === employeeId
       const matchesSupport = invoice.supportEmployeeId === employeeId

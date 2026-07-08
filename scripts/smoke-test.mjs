@@ -631,9 +631,16 @@ test('employee login: Cần Thơ / Gia Lai 1 / Gia Lai 2 credentials sync and pa
   const { verifyLogin, computeEmployeeDefaultPassword } = await import('../src/constants/loginCredentials.js')
   const { syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } = await import('../src/utils/credentialsStorage.js')
   const { syncMissingDefaultEmployees } = await import('../src/utils/employeeStorage.js')
-  const { getBranchName } = await import('../src/utils/branchStorage.js')
+  const { getPasswordBranchName } = await import('../src/utils/branchStorage.js')
+  const {
+    repairGiaLaiEmployeeRoster,
+    GIA_LAI_EMPLOYEE_ROSTER,
+    computeGiaLaiLoginPassword,
+    buildGiaLaiEmployeeId,
+  } = await import('../src/utils/giaLaiEmployeeRoster.js')
 
   syncMissingDefaultEmployees()
+  repairGiaLaiEmployeeRoster({ force: true })
   await syncMissingBranchCredentials()
   await syncEmployeeCredentialsFromEmployees()
 
@@ -641,33 +648,62 @@ test('employee login: Cần Thơ / Gia Lai 1 / Gia Lai 2 credentials sync and pa
     role: ROLES.EMPLOYEE,
     branch: 'tram-spa',
     employeeId: 'tram-spa-thanh',
-    password: computeEmployeeDefaultPassword('Thanh', getBranchName('tram-spa')),
+    password: computeEmployeeDefaultPassword('Thanh', getPasswordBranchName('tram-spa')),
   })
   assert.equal(cn1.ok, true, 'Cần Thơ (Trạm Spa) employee must login')
   assert.equal(cn1.user.employeeId, 'tram-spa-thanh')
 
+  assert.equal(computeGiaLaiLoginPassword('Thu Diễm'), 'thudiemgialai')
+  assert.equal(
+    computeEmployeeDefaultPassword('Thu Diễm', getPasswordBranchName('gia-lai-1')),
+    'thudiemgialai',
+  )
+
   const cn3 = await verifyLogin({
     role: ROLES.EMPLOYEE,
     branch: 'gia-lai-1',
-    employeeId: 'gia-lai-1-huong',
-    password: computeEmployeeDefaultPassword('Hương', getBranchName('gia-lai-1')),
+    employeeId: buildGiaLaiEmployeeId('gia-lai-1', 'Thu Diễm'),
+    password: 'thudiemgialai',
   })
   assert.equal(cn3.ok, true, 'Gia Lai 1 employee must login')
 
-  const { getEmployeeById } = await import('../src/utils/employeeStorage.js')
-  for (const name of ['Thu Diễm', 'Thu Hiền', 'Tường Vy', 'Thảo Nguyên', 'Phương Thảo', 'Minh Hạ', 'Hồng Nhung']) {
-    const employee = getEmployeeById(`gia-lai-1-${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`)
+  const { getEmployeeById, loadEmployees, EMPLOYEE_STATUS } = await import('../src/utils/employeeStorage.js')
+  for (const name of GIA_LAI_EMPLOYEE_ROSTER['gia-lai-1']) {
+    const employee = getEmployeeById(buildGiaLaiEmployeeId('gia-lai-1', name))
     assert.ok(employee, `Phải có nhân viên Gia Lai 1: ${name}`)
     assert.equal(employee.branchId, 'gia-lai-1')
+    assert.equal(employee.status, EMPLOYEE_STATUS.ACTIVE)
   }
 
   const cn2 = await verifyLogin({
     role: ROLES.EMPLOYEE,
     branch: 'gia-lai-2',
-    employeeId: 'gia-lai-2-lan',
-    password: computeEmployeeDefaultPassword('Lan', getBranchName('gia-lai-2')),
+    employeeId: buildGiaLaiEmployeeId('gia-lai-2', 'Bảo Ngọc'),
+    password: 'baongocgialai',
   })
   assert.equal(cn2.ok, true, 'Gia Lai 2 employee must login')
+
+  for (const name of GIA_LAI_EMPLOYEE_ROSTER['gia-lai-2']) {
+    const employee = getEmployeeById(buildGiaLaiEmployeeId('gia-lai-2', name))
+    assert.ok(employee, `Phải có nhân viên Gia Lai 2: ${name}`)
+    assert.equal(employee.branchId, 'gia-lai-2')
+  }
+
+  const wrongBranch = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'tram-spa',
+    employeeId: buildGiaLaiEmployeeId('gia-lai-1', 'Thu Diễm'),
+    password: 'thudiemgialai',
+  })
+  assert.equal(wrongBranch.ok, false, 'Sai chi nhánh không đăng nhập được')
+
+  const oldHuong = getEmployeeById('gia-lai-1-huong')
+  if (oldHuong) {
+    assert.notEqual(oldHuong.status, EMPLOYEE_STATUS.ACTIVE, 'NV cũ Hương phải bị khóa/resigned')
+  }
+
+  const otherBranch = loadEmployees().filter((e) => e.branchId === 'tram-spa' && e.status === EMPLOYEE_STATUS.ACTIVE)
+  assert.ok(otherBranch.length > 0, 'Không được ảnh hưởng nhân viên chi nhánh khác')
 
   const wrong = await verifyLogin({
     role: ROLES.EMPLOYEE,
@@ -677,6 +713,71 @@ test('employee login: Cần Thơ / Gia Lai 1 / Gia Lai 2 credentials sync and pa
   })
   assert.equal(wrong.ok, false)
   assert.equal(wrong.field, 'password')
+})
+
+test('gia lai roster: soft-lock cũ, thêm mới, mật khẩu +gialai', async () => {
+  const {
+    repairGiaLaiEmployeeRoster,
+    syncGiaLaiEmployeeCredentials,
+    GIA_LAI_EMPLOYEE_ROSTER,
+    buildGiaLaiEmployeeId,
+    computeGiaLaiLoginPassword,
+  } = await import('../src/utils/giaLaiEmployeeRoster.js')
+  const { saveEmployees, loadEmployees, EMPLOYEE_STATUS, normalizeEmployee } = await import('../src/utils/employeeStorage.js')
+  const { verifyLogin } = await import('../src/constants/loginCredentials.js')
+
+  // Seed nhân viên cũ lẫn với chi nhánh khác
+  saveEmployees([
+    normalizeEmployee({ id: 'gia-lai-1-huong', name: 'Hương', branchId: 'gia-lai-1', status: EMPLOYEE_STATUS.ACTIVE }),
+    normalizeEmployee({ id: 'gia-lai-1-thu-diem', name: 'Thu Diễm', branchId: 'gia-lai-1', status: EMPLOYEE_STATUS.ACTIVE }),
+    normalizeEmployee({ id: 'gia-lai-2-lan', name: 'Lan', branchId: 'gia-lai-2', status: EMPLOYEE_STATUS.ACTIVE }),
+    normalizeEmployee({ id: 'tram-spa-thanh', name: 'Thanh', branchId: 'tram-spa', status: EMPLOYEE_STATUS.ACTIVE }),
+  ])
+
+  const result = repairGiaLaiEmployeeRoster({ force: true })
+  assert.ok(result.resigned.includes('gia-lai-1-huong'))
+  assert.ok(result.resigned.includes('gia-lai-2-lan'))
+  assert.ok(result.activated.includes('gia-lai-1-thu-diem') || result.created.includes('gia-lai-1-thu-diem'))
+
+  const employees = loadEmployees()
+  assert.equal(employees.find((e) => e.id === 'tram-spa-thanh')?.status, EMPLOYEE_STATUS.ACTIVE)
+  assert.equal(employees.find((e) => e.id === 'gia-lai-1-huong')?.status, EMPLOYEE_STATUS.RESIGNED)
+
+  for (const [branchId, names] of Object.entries(GIA_LAI_EMPLOYEE_ROSTER)) {
+    for (const name of names) {
+      const emp = employees.find((e) => e.id === buildGiaLaiEmployeeId(branchId, name) || (e.branchId === branchId && e.name === name && e.status === EMPLOYEE_STATUS.ACTIVE))
+      assert.ok(emp, `Thiếu ${name} @ ${branchId}`)
+      assert.equal(emp.status, EMPLOYEE_STATUS.ACTIVE)
+      assert.equal(emp.branchId, branchId)
+      assert.equal(computeGiaLaiLoginPassword(name), computeGiaLaiLoginPassword(emp.name))
+    }
+  }
+
+  await syncGiaLaiEmployeeCredentials()
+
+  const login1 = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'gia-lai-1',
+    employeeId: buildGiaLaiEmployeeId('gia-lai-1', 'Thu Diễm'),
+    password: 'thudiemgialai',
+  })
+  assert.equal(login1.ok, true)
+
+  const login2 = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'gia-lai-2',
+    employeeId: buildGiaLaiEmployeeId('gia-lai-2', 'Gia Hân'),
+    password: 'giahangialai',
+  })
+  assert.equal(login2.ok, true)
+
+  const oldLogin = await verifyLogin({
+    role: ROLES.EMPLOYEE,
+    branch: 'gia-lai-1',
+    employeeId: 'gia-lai-1-huong',
+    password: 'huonggialai',
+  })
+  assert.equal(oldLogin.ok, false, 'NV cũ đã resign không đăng nhập được')
 })
 
 test('branches: đồng bộ chi nhánh mặc định không làm mất chi nhánh cũ / dữ liệu tuỳ chỉnh', () => {
@@ -2571,6 +2672,48 @@ test('branches: sửa sort_order không làm nhảy branch_id mapping', async ()
   assert.ok(invoices.every((i) => i.branchId === 'vinh-long'))
 
   updateBranch('vinh-long', { sortOrder: vinhLong.sortOrder, name: vinhLong.name })
+})
+
+test('branch employee match: canonical branch_id và nhân viên lương 0đ', async () => {
+  const { employeeBelongsToBranch, isPayrollListEmployee } = await import('../src/utils/branchEmployeeMatch.js')
+  const { mergeEmployeePayrollRows, aggregateBranchSummaries } = await import('../src/utils/payrollViewHelpers.js')
+  const { EMPLOYEE_STATUS } = await import('../src/utils/employeeStorage.js')
+
+  assert.equal(employeeBelongsToBranch({ branchId: 'gia-lai-3' }, 'gia-lai-2'), true)
+  assert.equal(employeeBelongsToBranch({ branchId: 'soc-trang' }, 'gia-lai-2'), false)
+  assert.equal(isPayrollListEmployee({ status: EMPLOYEE_STATUS.RESIGNED }, ''), false)
+  assert.equal(isPayrollListEmployee({ status: EMPLOYEE_STATUS.RESIGNED }, EMPLOYEE_STATUS.RESIGNED), true)
+
+  const branches = [{ id: 'tram-spa', name: 'Trạm Spa' }]
+  const employees = [
+    { id: 'e-zero', name: 'NV mới', branchId: 'tram-spa', status: 'active', position: 'KTV' },
+    { id: 'e-busy', name: 'NV bận', branchId: 'tram-spa', status: 'active', position: 'LT' },
+  ]
+  const rows = [
+    { employeeId: 'e-busy', branchId: 'tram-spa', ticketRevenue: 500000, commission: 100000, tips: 0, bonus: 0, penalty: 0, advance: 0, netSalary: 600000 },
+  ]
+  const merged = mergeEmployeePayrollRows(employees, rows, { branchId: 'tram-spa' })
+  assert.equal(merged.length, 2)
+  assert.equal(merged.find((r) => r.employeeId === 'e-zero')?.netSalary, 0)
+
+  const summaries = aggregateBranchSummaries(branches, employees, rows)
+  assert.equal(summaries[0].employeeCount, 2)
+  assert.equal(summaries[0].netSalary, 600000)
+})
+
+test('branches: getCanonicalBranchesForDisplay trả về 8 chi nhánh', async () => {
+  const { getCanonicalBranchesForDisplay } = await import('../src/utils/branchStorage.js')
+  const { CANONICAL_BRANCH_IDS } = await import('../src/constants/canonicalBranches.js')
+  const { getVisibleNavItems } = await import('../src/constants/auth.js')
+  const { ROLES, ADMIN_BRANCH } = await import('../src/constants/roles.js')
+  const { saveCurrentUser } = await import('../src/utils/authStorage.js')
+
+  const branches = getCanonicalBranchesForDisplay()
+  assert.equal(branches.length, CANONICAL_BRANCH_IDS.length)
+  assert.ok(CANONICAL_BRANCH_IDS.every((id) => branches.some((b) => b.id === id)))
+
+  saveCurrentUser({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  assert.ok(getVisibleNavItems().some((item) => item.id === 'admin-branches'))
 })
 
 test('branches: canAccessBranchesPage chỉ Admin', async () => {

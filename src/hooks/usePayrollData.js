@@ -12,12 +12,13 @@ import {
 import { loadEmployees, normalizeEmployee } from '../utils/employeeStorage'
 import { loadInvoices } from '../utils/invoiceStorage'
 import { computePayrollReport } from '../utils/payrollEngine'
+import { employeeBelongsToBranch } from '../utils/branchEmployeeMatch'
 import { filterSalaryInvoices, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 
 function mergeEmployeeSources(remoteRows, branchId) {
   const localRows = loadEmployees()
-    .filter((row) => !branchId || row.branchId === branchId)
+    .filter((row) => !branchId || employeeBelongsToBranch(row, branchId))
     .map((row) => normalizeEmployee(row))
   const map = new Map()
   for (const row of localRows) {
@@ -72,7 +73,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
         fetchPayrollLocks({ month }),
         fetchPayrollAuditLogs({ limit: 300 }),
         isSupabaseConfigured
-          ? fetchEmployeesFiltered(branchId ? { branchId } : {})
+          ? fetchEmployeesFiltered({})
           : Promise.resolve(null),
       ])
       if (!mountedRef.current) return

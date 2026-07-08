@@ -1,47 +1,49 @@
 import { getPayrollBranchDisplayTitle, getPayrollBranchSortOrder } from '../constants/branchPayrollDisplay'
+import { EMPLOYEE_STATUS } from './employeeStorage'
 import { getBranchName } from './branchStorage'
+import { employeeBelongsToBranch, isPayrollListEmployee } from './branchEmployeeMatch'
+
+function sumPayrollRows(rows) {
+  return rows.reduce(
+    (acc, row) => {
+      acc.ticketRevenue += row.ticketRevenue ?? 0
+      acc.commission += row.commission ?? 0
+      acc.tips += row.tips ?? 0
+      acc.bonus += row.bonus ?? 0
+      acc.penalty += row.penalty ?? 0
+      acc.advance += row.advance ?? 0
+      acc.reduction += row.reduction ?? 0
+      acc.baseSalary += row.baseSalary ?? 0
+      acc.netSalary += row.netSalary ?? 0
+      acc.provisionalSalary += row.provisionalNet ?? row.netSalary ?? 0
+      return acc
+    },
+    {
+      ticketRevenue: 0,
+      commission: 0,
+      tips: 0,
+      bonus: 0,
+      penalty: 0,
+      advance: 0,
+      reduction: 0,
+      baseSalary: 0,
+      netSalary: 0,
+      provisionalSalary: 0,
+    },
+  )
+}
 
 export function aggregateBranchSummaries(branches, employees, payrollRows) {
   return branches
     .map((branch) => {
-      const branchEmployees = employees.filter(
-        (emp) => emp.branchId === branch.id && emp.status !== 'inactive' && emp.status !== 'archived',
-      )
-      const rows = payrollRows.filter((row) => row.branchId === branch.id)
-
-      const totals = rows.reduce(
-        (acc, row) => {
-          acc.ticketRevenue += row.ticketRevenue ?? 0
-          acc.commission += row.commission ?? 0
-          acc.tips += row.tips ?? 0
-          acc.bonus += row.bonus ?? 0
-          acc.penalty += row.penalty ?? 0
-          acc.advance += row.advance ?? 0
-          acc.reduction += row.reduction ?? 0
-          acc.baseSalary += row.baseSalary ?? 0
-          acc.netSalary += row.netSalary ?? 0
-          acc.provisionalSalary += row.provisionalNet ?? row.netSalary ?? 0
-          return acc
-        },
-        {
-          ticketRevenue: 0,
-          commission: 0,
-          tips: 0,
-          bonus: 0,
-          penalty: 0,
-          advance: 0,
-          reduction: 0,
-          baseSalary: 0,
-          netSalary: 0,
-          provisionalSalary: 0,
-        },
-      )
+      const merged = mergeEmployeePayrollRows(employees, payrollRows, { branchId: branch.id })
+      const totals = sumPayrollRows(merged)
 
       return {
         branchId: branch.id,
         branchName: getPayrollBranchDisplayTitle(branch.id, branch.name ?? getBranchName(branch.id)),
         sortOrder: getPayrollBranchSortOrder(branch.id),
-        employeeCount: branchEmployees.length,
+        employeeCount: merged.length,
         ...totals,
       }
     })
@@ -53,14 +55,8 @@ export function mergeEmployeePayrollRows(employees, payrollRows, { branchId = ''
 
   return employees
     .filter((emp) => {
-      if (branchId && emp.branchId !== branchId) return false
-      if (status === 'all') {
-        // no status filter
-      } else if (status) {
-        if (emp.status !== status) return false
-      } else if (emp.status === 'inactive' || emp.status === 'archived') {
-        return false
-      }
+      if (branchId && !employeeBelongsToBranch(emp, branchId)) return false
+      if (!isPayrollListEmployee(emp, status)) return false
       if (query) {
         const name = (emp.name ?? '').toLowerCase()
         const phone = (emp.phone ?? '').replace(/\D/g, '')
@@ -79,7 +75,7 @@ export function mergeEmployeePayrollRows(employees, payrollRows, { branchId = ''
         position: emp.position ?? '',
         avatar: emp.avatar ?? '',
         phone: emp.phone ?? '',
-        status: emp.status ?? 'active',
+        status: emp.status ?? EMPLOYEE_STATUS.ACTIVE,
         workDays: row?.workDays ?? 0,
         ticketRevenue: row?.ticketRevenue ?? 0,
         commission: row?.commission ?? 0,
@@ -108,7 +104,8 @@ export function formatWorkDays(value) {
 }
 
 export function getEmployeeStatusLabel(status) {
-  if (status === 'inactive') return 'Nghỉ việc'
-  if (status === 'archived') return 'Lưu trữ'
+  if (status === EMPLOYEE_STATUS.RESIGNED || status === 'inactive') return 'Nghỉ việc'
+  if (status === EMPLOYEE_STATUS.ARCHIVED) return 'Lưu trữ'
+  if (status === EMPLOYEE_STATUS.ON_LEAVE) return 'Nghỉ phép'
   return 'Đang làm'
 }

@@ -14,6 +14,7 @@ import { syncEmployeeCredentialForEmployee } from './credentialsStorage'
 
 import { appendEmployeeAuditLog, EMPLOYEE_AUDIT_ACTIONS } from './employeeAuditLog'
 import { canPermanentDeleteEmployee, PERMANENT_DELETE_BLOCKED_MESSAGE } from './employeeDeleteGuard'
+import { resolveCanonicalBranchId } from '../constants/canonicalBranches'
 import { ROLES } from '../constants/roles'
 import { IMAGE_CATEGORIES, uploadImageFile } from './imageStorage'
 
@@ -72,8 +73,8 @@ const DEFAULT_EMPLOYEE_NAMES = {
   'soc-trang': ['Chị 7', 'Bảo Trân', 'Tịnh', 'Ly Ly', 'Quyên', 'An Nhỏ'],
   'tram-spa': ['Thanh', 'Nhu Hà', 'Trúc Ly', 'Cherry', 'Lan Anh'],
   'song-khoe-spa': ['Úc', 'Hải Anh', 'Di Di', 'Ngân', 'Ánh'],
-  'gia-lai-1': ['Hương', 'My', 'Trang', 'Ngọc', 'Vy', 'Thu Diễm', 'Thu Hiền', 'Tường Vy', 'Thảo Nguyên', 'Phương Thảo', 'Minh Hạ', 'Hồng Nhung'],
-  'gia-lai-2': ['Lan', 'Hoa', 'Phượng', 'Thúy', 'Thảo', 'Vy', 'Kim', 'Nhi', 'Hạnh'],
+  'gia-lai-1': ['Thu Diễm', 'Thu Hiền', 'Tường Vy', 'Thảo Nguyên', 'Phương Thảo', 'Thị Minh Hạ', 'Hồng Nhung'],
+  'gia-lai-2': ['Bảo Ngọc', 'Kim Huệ', 'Mỹ Hạnh', 'Như Ý', 'Thiên Kim', 'Gia Hân'],
 }
 
 export const EMPTY_EMPLOYEE_FORM = {
@@ -192,7 +193,7 @@ export function normalizeEmployee(employee) {
     bankAccount: employee.bankAccount ?? '',
     emergencyContactName: employee.emergencyContactName ?? '',
     emergencyContactPhone: employee.emergencyContactPhone ?? '',
-    branchId: employee.branchId ?? '',
+    branchId: resolveCanonicalBranchId(employee.branchId ?? ''),
     position: employee.position ?? '',
     startDate: employee.startDate ?? '',
     endDate: employee.endDate ?? '',

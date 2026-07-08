@@ -14,12 +14,15 @@ import {
   addBranch,
   BRANCH_STATUS,
   createBranchId,
+  getCanonicalBranchesForDisplay,
   getStatusLabel,
   loadBranches,
   lockBranch,
   unlockBranch,
   updateBranch,
 } from '../utils/branchStorage'
+import { loadEmployees, normalizeEmployee } from '../utils/employeeStorage'
+import { countEmployeesForBranch } from '../utils/branchEmployeeMatch'
 import { deleteBranch } from '../utils/branchLifecycle'
 import { canDeleteBranch, BRANCH_DELETE_BLOCKED_MESSAGE } from '../utils/branchDeleteGuard'
 import { registerBranchCredential, updateBranchPassword } from '../utils/credentialsStorage'
@@ -49,8 +52,8 @@ const DETAIL_TABS = [
 export default function AdminBranches() {
   const readOnly = !canManageBranches()
   const syncVersion = useDataSyncVersion()
-  const [branches, setBranches] = useState(() => loadBranches())
-  const [selectedBranchId, setSelectedBranchId] = useState(() => loadBranches()[0]?.id ?? '')
+  const [branches, setBranches] = useState(() => getCanonicalBranchesForDisplay())
+  const [selectedBranchId, setSelectedBranchId] = useState('')
   const [detailTab, setDetailTab] = useState('overview')
   const [editModal, setEditModal] = useState(null)
   const [managerModal, setManagerModal] = useState(null)
@@ -58,7 +61,14 @@ export default function AdminBranches() {
   const [managerName, setManagerName] = useState('')
   const [toast, setToast] = useState('')
 
-  const refresh = () => setBranches(loadBranches())
+  const refresh = () => setBranches(getCanonicalBranchesForDisplay())
+
+  const employeeCounts = useMemo(() => {
+    const employees = loadEmployees().map((row) => normalizeEmployee(row))
+    return Object.fromEntries(
+      branches.map((branch) => [branch.id, countEmployeesForBranch(employees, branch.id)]),
+    )
+  }, [branches, syncVersion])
 
   useEffect(() => {
     if (syncVersion > 0) refresh()
@@ -214,32 +224,66 @@ export default function AdminBranches() {
       </header>
 
       <div className="admin-branches__layout">
-        <aside className="admin-branches__list">
-          <h3 className="admin-branches__list-title">Danh sách ({branches.length})</h3>
-          {branches.map((branch) => (
-            <button
-              key={branch.id}
-              type="button"
-              className={`admin-branches__list-item${selectedBranchId === branch.id ? ' is-active' : ''}`}
-              onClick={() => {
-                setSelectedBranchId(branch.id)
-                setDetailTab('overview')
-              }}
-            >
-              <span className="admin-branches__list-code">{branchDisplayCode(branch)}</span>
-              <span className="admin-branches__list-name">{branch.name}</span>
-              <span className={`admin-branches__status admin-branches__status--${branch.status === BRANCH_STATUS.ACTIVE ? 'active' : 'locked'}`}>
-                {getStatusLabel(branch.status)}
-              </span>
-            </button>
-          ))}
-        </aside>
+        {!selectedBranch ? (
+          <section className="admin-branches__grid">
+            <h3 className="admin-branches__list-title">8 chi nhánh chuẩn ({branches.length})</h3>
+            <div className="admin-branches__grid-cards">
+              {branches.map((branch) => (
+                <article key={branch.id} className="admin-branches__card">
+                  <span className="admin-branches__list-code">{branchDisplayCode(branch)}</span>
+                  <h4 className="admin-branches__card-title">{branch.name}</h4>
+                  <p className="admin-branches__card-meta">{branch.address || '—'}</p>
+                  <p className="admin-branches__card-meta">Hotline: {branch.hotline || '—'}</p>
+                  <p className="admin-branches__card-meta">Nhân viên: {employeeCounts[branch.id] ?? 0}</p>
+                  <p className="admin-branches__detail-id">branch_id: {branch.id}</p>
+                  <button
+                    type="button"
+                    className="admin-branches__btn admin-branches__btn--primary"
+                    onClick={() => {
+                      setSelectedBranchId(branch.id)
+                      setDetailTab('overview')
+                    }}
+                  >
+                    Xem chi tiết
+                  </button>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <>
+            <aside className="admin-branches__list">
+              <button
+                type="button"
+                className="admin-branches__btn admin-branches__btn--secondary admin-branches__back"
+                onClick={() => {
+                  setSelectedBranchId('')
+                  setDetailTab('overview')
+                }}
+              >
+                ← Danh sách chi nhánh
+              </button>
+              <h3 className="admin-branches__list-title">Chọn nhanh</h3>
+              {branches.map((branch) => (
+                <button
+                  key={branch.id}
+                  type="button"
+                  className={`admin-branches__list-item${selectedBranchId === branch.id ? ' is-active' : ''}`}
+                  onClick={() => {
+                    setSelectedBranchId(branch.id)
+                    setDetailTab('overview')
+                  }}
+                >
+                  <span className="admin-branches__list-code">{branchDisplayCode(branch)}</span>
+                  <span className="admin-branches__list-name">{branch.name}</span>
+                  <span className={`admin-branches__status admin-branches__status--${branch.status === BRANCH_STATUS.ACTIVE ? 'active' : 'locked'}`}>
+                    {getStatusLabel(branch.status)}
+                  </span>
+                </button>
+              ))}
+            </aside>
 
-        <main className="admin-branches__detail">
-          {!selectedBranch ? (
-            <p className="admin-branches__hint">Chọn chi nhánh để xem chi tiết.</p>
-          ) : (
-            <>
+            <main className="admin-branches__detail">
               <div className="admin-branches__detail-head">
                 <div>
                   <span className="admin-branches__detail-code">{branchDisplayCode(selectedBranch)}</span>
@@ -299,9 +343,9 @@ export default function AdminBranches() {
               {detailTab === 'salary' && (
                 <BranchSalaryTab branchId={selectedBranch.id} />
               )}
-            </>
-          )}
-        </main>
+            </main>
+          </>
+        )}
       </div>
 
       {editModal && (
