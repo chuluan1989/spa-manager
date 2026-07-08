@@ -20,6 +20,7 @@ import {
 } from '../utils/employeeStorage'
 import { getActiveServicesForBranch } from '../utils/serviceStorage'
 import InvoiceDetailModal from '../components/invoice/InvoiceDetailModal'
+import GiaLaiServicePicker from '../components/invoice/GiaLaiServicePicker'
 import InvoiceFilters from '../components/invoice/InvoiceFilters'
 import InvoiceList from '../components/invoice/InvoiceList'
 import InvoiceSummary from '../components/invoice/InvoiceSummary'
@@ -51,6 +52,7 @@ import {
   sanitizeCustomerPhoneInput,
 } from '../utils/validators'
 import { consumeInvoiceEditPrefill } from '../utils/navigationPrefill'
+import { isGiaLaiCatalogBranch } from '../utils/giaLaiCatalog'
 import './Invoice.css'
 
 const INITIAL_FILTERS = () => ({
@@ -150,6 +152,8 @@ export default function Invoice() {
   useEffect(() => {
     setListPage(1)
   }, [effectiveListFilters])
+
+  const usesGiaLaiCatalog = isGiaLaiCatalogBranch(form.branchId)
 
   const activeServices = useMemo(
     () => getActiveServicesForBranch(form.branchId),
@@ -593,6 +597,13 @@ export default function Invoice() {
             {errors.services && (
               <p className="invoice__error invoice__error--block">{errors.services}</p>
             )}
+            {usesGiaLaiCatalog ? (
+              <GiaLaiServicePicker
+                getCount={getServiceCount}
+                onAdd={addService}
+                onRemove={removeOneService}
+              />
+            ) : (
             <div className="invoice__services">
               {activeServices.map((service) => {
                 const count = getServiceCount(service.id)
@@ -629,6 +640,7 @@ export default function Invoice() {
                 )
               })}
             </div>
+            )}
 
             <ServiceDetailTable items={totals.services?.length ? totals.services : selectedDetails} totals={totals} />
 

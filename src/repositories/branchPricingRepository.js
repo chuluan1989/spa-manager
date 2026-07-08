@@ -11,6 +11,8 @@ export async function fetchBranchPricingMap() {
   for (const row of data ?? []) {
     map[row.branch_id] = {
       useCustom: Boolean(row.use_custom),
+      catalogVersion: Number(row.catalog_version) || 0,
+      catalog: row.catalog ?? null,
       overrides: row.overrides ?? {},
     }
   }
@@ -22,6 +24,8 @@ export async function upsertBranchPricingMap(map) {
   const rows = Object.entries(map).map(([branchId, record]) => ({
     branch_id: branchId,
     use_custom: Boolean(record?.useCustom),
+    catalog_version: Number(record?.catalogVersion) || 0,
+    catalog: record?.catalog ?? null,
     overrides: record?.overrides ?? {},
     updated_at: new Date().toISOString(),
   }))

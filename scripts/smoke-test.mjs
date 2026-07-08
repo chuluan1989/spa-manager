@@ -1956,4 +1956,70 @@ test('customer view helpers: branch CRM aggregation', async () => {
   assert.equal(summaries[0].vipCount, 1)
 })
 
+test('gia lai catalog: CN3/CN8 grouped pricing, other branches unchanged', async () => {
+  const {
+    flattenGiaLaiCatalog,
+    getGiaLaiCatalogServicesForBranch,
+    isGiaLaiCatalogBranch,
+  } = await import('../src/utils/giaLaiCatalog.js')
+  const { GIA_LAI_CN3_BRANCH_ID, GIA_LAI_CN8_BRANCH_ID } = await import('../src/constants/giaLaiBranches.js')
+  const { getActiveServicesForBranch } = await import('../src/utils/serviceStorage.js')
+  const { syncGiaLaiBranchCatalog, getBranchPricingRecord } = await import('../src/utils/branchPricingStorage.js')
+
+  assert.equal(isGiaLaiCatalogBranch(GIA_LAI_CN3_BRANCH_ID), true)
+  assert.equal(isGiaLaiCatalogBranch(GIA_LAI_CN8_BRANCH_ID), true)
+  assert.equal(isGiaLaiCatalogBranch('gia-lai-2'), false)
+  assert.equal(isGiaLaiCatalogBranch('vinh-long'), false)
+
+  const flat = flattenGiaLaiCatalog()
+  assert.ok(flat.length >= 30, 'Gia Lai catalog phải có đủ dịch vụ')
+
+  const comboRelax = flat.find((s) => s.id === 'gl-combo-relax-90')
+  assert.ok(comboRelax)
+  assert.equal(comboRelax.price, 399000)
+  assert.equal(comboRelax.name, "Combo Relax 90'")
+
+  const foot30 = flat.find((s) => s.id === 'gl-foot-30')
+  assert.ok(foot30)
+  assert.equal(foot30.price, 199000)
+  assert.equal(foot30.name, "Massage Foot 30'")
+
+  syncGiaLaiBranchCatalog(GIA_LAI_CN3_BRANCH_ID)
+  const record = getBranchPricingRecord(GIA_LAI_CN3_BRANCH_ID)
+  assert.equal(record.useCustom, true)
+  assert.ok(record.catalog?.groups?.length === 4)
+  assert.equal(record.overrides['gl-combo-vip-120'].price, 699000)
+
+  const cn3Services = getGiaLaiCatalogServicesForBranch(GIA_LAI_CN3_BRANCH_ID)
+  const cn8Services = getGiaLaiCatalogServicesForBranch(GIA_LAI_CN8_BRANCH_ID)
+  assert.equal(cn3Services.length, cn8Services.length)
+
+  const vinhLong = getActiveServicesForBranch('vinh-long')
+  assert.ok(vinhLong.some((s) => s.id === 'body-60'), 'Vĩnh Long vẫn dùng bảng giá standard')
+  assert.equal(vinhLong.some((s) => s.id === 'gl-combo-relax-90'), false)
+
+  const giaLai2 = getActiveServicesForBranch('gia-lai-2')
+  assert.equal(giaLai2.some((s) => s.id === 'gl-combo-relax-90'), false, 'Gia Lai 2 không đổi bảng giá')
+})
+
+test('gia lai catalog: invoice totals use branch catalog price', async () => {
+  const { calculateInvoiceTotals } = await import('../src/utils/invoice.js')
+  const { syncGiaLaiBranchCatalog } = await import('../src/utils/branchPricingStorage.js')
+  const { GIA_LAI_CN8_BRANCH_ID } = await import('../src/constants/giaLaiBranches.js')
+
+  syncGiaLaiBranchCatalog(GIA_LAI_CN8_BRANCH_ID)
+  const totals = calculateInvoiceTotals(
+    ['gl-body-tinh-dau-60', 'gl-goi-thu-gian-30'],
+    50000,
+    GIA_LAI_CN8_BRANCH_ID,
+    [],
+    'Gia Lai 3',
+    '',
+  )
+  assert.equal(totals.originalServiceTotal, 349000 + 99000)
+  assert.equal(totals.serviceTotal, 448000)
+  assert.equal(totals.tips, 50000)
+  assert.equal(totals.services[0].name, "Massage Body Tinh Dầu 60'")
+})
+
 process.exit(failed > 0 ? 1 : 0)

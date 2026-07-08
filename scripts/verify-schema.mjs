@@ -56,6 +56,8 @@ const TABLE_COLUMNS = {
   payroll_audit_logs: ['id', 'action', 'updated_at'],
 }
 
+const BRANCH_PRICING_OPTIONAL_COLUMNS = ['catalog', 'catalog_version']
+
 const EXPENSE_OPTIONAL_COLUMNS = ['expense_time', 'paid_by', 'receipt_image', 'entered_by_id']
 
 const INVOICE_OPTIONAL_COLUMNS = [
@@ -152,6 +154,16 @@ for (const column of INVOICE_OPTIONAL_COLUMNS) {
     ok(`invoices.${column}`)
   } catch {
     console.warn(`  ⚠ invoices.${column} — chưa migrate`)
+  }
+}
+
+console.log('\n6. Kiểm tra cột branch_pricing Gia Lai catalog:')
+for (const column of BRANCH_PRICING_OPTIONAL_COLUMNS) {
+  try {
+    await checkColumn('branch_pricing', column)
+    ok(`branch_pricing.${column}`)
+  } catch {
+    console.warn(`  ⚠ branch_pricing.${column} — chạy migration 0015_gia_lai_service_catalog.sql`)
   }
 }
 
