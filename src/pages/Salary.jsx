@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import PayrollAdjustmentModal from '../components/salary/PayrollAdjustmentModal'
 import PayrollBranchGrid from '../components/salary/PayrollBranchGrid'
 import PayrollBreadcrumb from '../components/salary/PayrollBreadcrumb'
-import PayrollDashboard from '../components/salary/PayrollDashboard'
 import PayrollEmployeeList from '../components/salary/PayrollEmployeeList'
 import PayrollEmployeeProfile from '../components/salary/PayrollEmployeeProfile'
 import PayrollLiveIndicator from '../components/salary/PayrollLiveIndicator'
@@ -19,6 +18,7 @@ import {
   isBranchManager,
 } from '../constants/auth'
 import { usePayrollData } from '../hooks/usePayrollData'
+import { sortBranchesForPayroll, getPayrollBranchDisplayTitle } from '../constants/branchPayrollDisplay'
 import { getActiveBranches, getBranchName } from '../utils/branchStorage'
 import { getEmployeeById } from '../utils/employeeStorage'
 import { buildWalletTimeline, isPayrollMonthLocked } from '../utils/payrollEngine'
@@ -101,7 +101,7 @@ function SalaryPage() {
   } = usePayrollData({ month, branchId: fetchBranchId, employeeId: fetchEmployeeId })
 
   const visibleBranches = useMemo(() => {
-    const all = getActiveBranches()
+    const all = sortBranchesForPayroll(getActiveBranches())
     if (isAdmin()) return all
     const branchId = getCurrentUserBranch()
     return all.filter((branch) => branch.id === branchId)
@@ -153,7 +153,7 @@ function SalaryPage() {
 
     items.push({
       id: 'branch',
-      label: getBranchName(selectedBranchId),
+      label: getPayrollBranchDisplayTitle(selectedBranchId, getBranchName(selectedBranchId)),
       level: LEVEL.EMPLOYEES,
       meta: { branchId: selectedBranchId },
     })
@@ -327,11 +327,7 @@ function SalaryPage() {
 
       {!loading && !error && level === LEVEL.BRANCHES && (
         <>
-          <PayrollDashboard
-            dashboard={report.dashboard}
-            employeeCount={report.dashboard.employeeCount}
-          />
-          <h2 className="salary-page__section-title">Chi nhánh</h2>
+          <h2 className="salary-page__section-title">Danh sách chi nhánh</h2>
           <PayrollBranchGrid branches={branchSummaries} onSelectBranch={handleSelectBranch} />
         </>
       )}
@@ -339,7 +335,7 @@ function SalaryPage() {
       {!loading && !error && level === LEVEL.EMPLOYEES && (
         <>
           <div className="salary-page__section-head">
-            <h2>{getBranchName(selectedBranchId)}</h2>
+            <h2>{getPayrollBranchDisplayTitle(selectedBranchId, getBranchName(selectedBranchId))}</h2>
             <span>{employeeRows.length} nhân viên</span>
           </div>
           <PayrollEmployeeList rows={employeeRows} onSelectEmployee={handleSelectEmployee} />

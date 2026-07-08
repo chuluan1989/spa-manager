@@ -9,6 +9,7 @@ import { getAttendanceStatusLabel } from '../constants/attendanceTypes'
 import { getBranchName } from './branchStorage'
 import { getInvoiceServiceDetails, getInvoiceServiceTotal } from './invoice'
 import {
+  computeAttendanceStats,
   computePayrollPaymentSummary,
 } from './payrollLiveHelpers'
 import {
@@ -111,6 +112,7 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
 
   const netSalary = computeNetSalary(parts)
   const paymentSummary = computePayrollPaymentSummary(adjustments, employeeId, netSalary)
+  const { workDays } = computeAttendanceStats(attendanceRecords, employeeId)
 
   return {
     employeeId,
@@ -120,6 +122,7 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     position: employee.position ?? '',
     avatar: employee.avatar ?? '',
     invoiceCount: invoiceTotals.invoiceCount,
+    workDays,
     ...parts,
     netSalary,
     ...paymentSummary,
@@ -152,15 +155,6 @@ export function computePayrollReport({ month, branchId, employeeId, employees, i
 
   const rows = scopedEmployees
     .map((employee) => computeEmployeePayrollRow(employee, scopedInvoices, scopedAttendance, scopedAdjustments))
-    .filter((row) =>
-      row.invoiceCount > 0
-      || row.baseSalary > 0
-      || row.bonus > 0
-      || row.penalty > 0
-      || row.advance > 0
-      || row.reduction > 0
-      || row.otherAdjustment !== 0,
-    )
     .sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'vi'))
 
   const dashboard = rows.reduce(
@@ -178,7 +172,7 @@ export function computePayrollReport({ month, branchId, employeeId, employees, i
       return acc
     },
     {
-      employeeCount: rows.length,
+      employeeCount: scopedEmployees.length,
       baseSalary: 0,
       ticketRevenue: 0,
       commission: 0,

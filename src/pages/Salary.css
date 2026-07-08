@@ -712,8 +712,29 @@
 
 .salary-emp-table {
   width: 100%;
+  min-width: 1400px;
   border-collapse: collapse;
   font-size: 13px;
+}
+
+.salary-emp-table--fixed th:first-child,
+.salary-emp-table--fixed td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+}
+
+.salary-emp-table--fixed th:first-child {
+  background: #fafafa;
+}
+
+.salary-emp-table__row {
+  cursor: pointer;
+}
+
+.salary-emp-table__row:hover {
+  background: #fafafa;
 }
 
 .salary-emp-table th,
@@ -774,6 +795,8 @@
 .salary-emp-table__money--bonus { color: #059669; font-weight: 600; }
 .salary-emp-table__money--penalty { color: #dc2626; font-weight: 600; }
 .salary-emp-table__money--advance { color: #ea580c; font-weight: 600; }
+.salary-emp-table__money--reduction { color: #dc2626; font-weight: 600; }
+.salary-emp-table__days { font-variant-numeric: tabular-nums; font-weight: 600; }
 .salary-emp-table__net { color: #b8860b; font-weight: 700; }
 
 .salary-emp-table__status {

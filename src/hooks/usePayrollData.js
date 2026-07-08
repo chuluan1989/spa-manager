@@ -24,7 +24,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
   const [liveUpdatedAt, setLiveUpdatedAt] = useState(null)
   const mountedRef = useRef(true)
 
-  const employees = useMemo(() => loadEmployees(), [])
+  const [employees, setEmployees] = useState(() => loadEmployees())
 
   const reload = useCallback(async ({ silent = false } = {}) => {
     if (!mountedRef.current) return
@@ -41,6 +41,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
         fetchPayrollAuditLogs({ limit: 300 }),
       ])
       if (!mountedRef.current) return
+      setEmployees(loadEmployees())
       setInvoices(invoiceRows ?? [])
       setAttendance(attendanceRows ?? [])
       setAdjustments(adjustmentRows ?? [])

@@ -1,5 +1,60 @@
 import { formatCurrency } from '../../utils/invoice'
-import { getEmployeeStatusLabel } from '../../utils/payrollViewHelpers'
+import { formatWorkDays } from '../../utils/payrollViewHelpers'
+
+const COLUMNS = [
+  { key: 'avatar', label: 'Avatar', type: 'avatar' },
+  { key: 'employeeName', label: 'Tên nhân viên', type: 'name' },
+  { key: 'position', label: 'Chức vụ', type: 'text' },
+  { key: 'workDays', label: 'Ngày công', type: 'days' },
+  { key: 'ticketRevenue', label: 'Doanh thu tiền vé', type: 'money' },
+  { key: 'commission', label: 'Hoa hồng', type: 'money', tone: 'commission' },
+  { key: 'tips', label: 'Tips', type: 'money', tone: 'tips' },
+  { key: 'bonus', label: 'Thưởng', type: 'money', tone: 'bonus' },
+  { key: 'penalty', label: 'Phạt', type: 'money', tone: 'penalty' },
+  { key: 'reduction', label: 'Giảm lương', type: 'money', tone: 'reduction' },
+  { key: 'advance', label: 'Ứng lương', type: 'money', tone: 'advance' },
+  { key: 'paidAmount', label: 'Đã thanh toán', type: 'money' },
+  { key: 'remainingAmount', label: 'Còn phải trả', type: 'money' },
+  { key: 'netSalary', label: 'Lương thực nhận', type: 'net' },
+]
+
+function renderCell(row, column, onSelectEmployee) {
+  const value = row[column.key]
+
+  switch (column.type) {
+    case 'avatar':
+      return row.avatar ? (
+        <img src={row.avatar} alt="" className="salary-emp-table__avatar" />
+      ) : (
+        <span className="salary-emp-table__avatar salary-emp-table__avatar--ph">
+          {row.employeeName.charAt(0)}
+        </span>
+      )
+    case 'name':
+      return (
+        <>
+          <button
+            type="button"
+            className="salary-emp-table__name"
+            onClick={() => onSelectEmployee?.(row)}
+          >
+            {row.employeeName}
+          </button>
+          {row.phone && <small className="salary-emp-table__phone">{row.phone}</small>}
+        </>
+      )
+    case 'text':
+      return value || '—'
+    case 'days':
+      return formatWorkDays(value)
+    case 'money':
+      return formatCurrency(value ?? 0)
+    case 'net':
+      return formatCurrency(value ?? 0)
+    default:
+      return value ?? '—'
+  }
+}
 
 export default function PayrollEmployeeList({ rows, onSelectEmployee }) {
   if (!rows.length) {
@@ -8,73 +63,34 @@ export default function PayrollEmployeeList({ rows, onSelectEmployee }) {
 
   return (
     <div className="salary-emp-table-wrap">
-      <table className="salary-emp-table">
+      <table className="salary-emp-table salary-emp-table--fixed">
         <thead>
           <tr>
-            <th>Avatar</th>
-            <th>Tên nhân viên</th>
-            <th>Chức vụ</th>
-            <th>Doanh thu tiền vé</th>
-            <th>Hoa hồng</th>
-            <th>Tips</th>
-            <th>Thưởng</th>
-            <th>Phạt</th>
-            <th>Ứng lương</th>
-            <th>Lương thực nhận</th>
-            <th>Trạng thái</th>
-            <th />
+            {COLUMNS.map((column) => (
+              <th key={column.key}>{column.label}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.employeeId}>
-              <td>
-                {row.avatar ? (
-                  <img src={row.avatar} alt="" className="salary-emp-table__avatar" />
-                ) : (
-                  <span className="salary-emp-table__avatar salary-emp-table__avatar--ph">
-                    {row.employeeName.charAt(0)}
-                  </span>
-                )}
-              </td>
-              <td>
-                <button
-                  type="button"
-                  className="salary-emp-table__name"
-                  onClick={() => onSelectEmployee?.(row)}
+            <tr
+              key={row.employeeId}
+              className="salary-emp-table__row"
+              onClick={() => onSelectEmployee?.(row)}
+            >
+              {COLUMNS.map((column) => (
+                <td
+                  key={column.key}
+                  className={[
+                    column.type === 'money' ? 'salary-emp-table__money' : '',
+                    column.tone ? `salary-emp-table__money--${column.tone}` : '',
+                    column.type === 'net' ? 'salary-emp-table__net' : '',
+                    column.type === 'days' ? 'salary-emp-table__days' : '',
+                  ].filter(Boolean).join(' ')}
                 >
-                  {row.employeeName}
-                </button>
-                {row.phone && <small className="salary-emp-table__phone">{row.phone}</small>}
-              </td>
-              <td>{row.position || '—'}</td>
-              <td className="salary-emp-table__money">{formatCurrency(row.ticketRevenue)}</td>
-              <td className="salary-emp-table__money salary-emp-table__money--commission">
-                {formatCurrency(row.commission)}
-              </td>
-              <td className="salary-emp-table__money salary-emp-table__money--tips">
-                {formatCurrency(row.tips)}
-              </td>
-              <td className="salary-emp-table__money salary-emp-table__money--bonus">
-                {formatCurrency(row.bonus)}
-              </td>
-              <td className="salary-emp-table__money salary-emp-table__money--penalty">
-                {formatCurrency(row.penalty)}
-              </td>
-              <td className="salary-emp-table__money salary-emp-table__money--advance">
-                {formatCurrency(row.advance)}
-              </td>
-              <td className="salary-emp-table__net">{formatCurrency(row.netSalary)}</td>
-              <td>
-                <span className={`salary-emp-table__status salary-emp-table__status--${row.status}`}>
-                  {getEmployeeStatusLabel(row.status)}
-                </span>
-              </td>
-              <td>
-                <button type="button" className="salary-emp-table__action" onClick={() => onSelectEmployee?.(row)}>
-                  Chi tiết →
-                </button>
-              </td>
+                  {renderCell(row, column, onSelectEmployee)}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>

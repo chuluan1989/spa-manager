@@ -1908,6 +1908,25 @@ test('payroll engine: net salary formula and auto sync', async () => {
   })
   assert.equal(report.rows.length, 1)
   assert.equal(report.dashboard.netSalary, row.netSalary)
+  assert.equal(row.workDays, 0)
+
+  const idleEmployee = { id: 'e2', name: 'Minh', branchId: 'b1', status: 'active', position: 'LT' }
+  const fullReport = computePayrollReport({
+    month: '2026-07',
+    branchId: '',
+    employeeId: '',
+    employees: [employee, idleEmployee],
+    invoices,
+    attendanceRecords: attendance,
+    adjustments,
+  })
+  assert.equal(fullReport.rows.length, 2)
+  const idleRow = fullReport.rows.find((item) => item.employeeId === 'e2')
+  assert.ok(idleRow)
+  assert.equal(idleRow.ticketRevenue, 0)
+  assert.equal(idleRow.commission, 0)
+  assert.equal(idleRow.netSalary, 0)
+  assert.equal(fullReport.dashboard.employeeCount, 2)
 
   const wallet = buildWalletTimeline('e1', invoices, attendance, adjustments)
   assert.ok(wallet.length >= 4)
@@ -1935,12 +1954,21 @@ test('payroll view helpers: branch drill-down aggregation', async () => {
   assert.equal(summaries.length, 2)
   assert.equal(summaries[0].employeeCount, 1)
   assert.equal(summaries[0].netSalary, 1250000)
+  assert.equal(summaries[0].provisionalSalary, 1250000)
   assert.equal(summaries[1].employeeCount, 1)
   assert.equal(summaries[1].netSalary, 0)
 
   const merged = mergeEmployeePayrollRows(employees, rows, { branchId: 'b1', search: 'lan' })
   assert.equal(merged.length, 1)
   assert.equal(merged[0].employeeName, 'Lan')
+  assert.equal(merged[0].workDays, 0)
+  assert.equal(merged[0].remainingAmount, 0)
+
+  const allBranchEmployees = mergeEmployeePayrollRows(employees, rows, { branchId: 'b2' })
+  assert.equal(allBranchEmployees.length, 1)
+  assert.equal(allBranchEmployees[0].employeeName, 'Hoa')
+  assert.equal(allBranchEmployees[0].ticketRevenue, 0)
+  assert.equal(allBranchEmployees[0].netSalary, 0)
 })
 
 test('customer view helpers: branch CRM aggregation', async () => {
