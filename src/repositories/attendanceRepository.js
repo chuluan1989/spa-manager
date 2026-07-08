@@ -3,28 +3,42 @@ import { getEmployeeById } from '../utils/employeeStorage'
 import { getTodayDate } from '../utils/invoiceStorage'
 import { rowToCamel } from './caseUtils'
 
+const ATTENDANCE_TABLE = 'attendance'
 const LOG_TABLE = 'attendance_edit_logs'
+const DATE_COLUMN = 'attendance_date'
+const SORT_COLUMN = 'created_at'
 
-const TABLE_MODERN = {
-  name: 'attendance',
-  dateColumn: 'attendance_date',
-  sortColumn: 'created_at',
+function describeQuery(operation, filters = {}) {
+  const parts = [`from('${ATTENDANCE_TABLE}')`, operation]
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== '' && value != null) parts.push(`${key}=${JSON.stringify(value)}`)
+  }
+  return parts.join(' · ')
 }
 
-const TABLE_LEGACY = {
-  name: 'employee_attendance',
-  dateColumn: 'date',
-  sortColumn: 'submitted_at',
+function logAttendanceError(operation, queryDesc, error) {
+  const debug = {
+    table: `public.${ATTENDANCE_TABLE}`,
+    operation,
+    query: queryDesc,
+    message: error?.message ?? String(error ?? ''),
+    code: error?.code ?? null,
+    details: error?.details ?? null,
+    hint: error?.hint ?? null,
+    stack: error?.stack ?? new Error().stack,
+  }
+  console.error('[attendance]', debug)
+  return debug
 }
 
-const MISSING_TABLE_MESSAGE =
-  'Bảng chấm công chưa có trên Supabase. Admin vào SQL Editor và chạy file supabase/RUN_ATTENDANCE_SETUP.sql rồi thử lại.'
-
-let resolvedTable = null
-
-function isMissingTableError(error) {
-  const message = error?.message ?? String(error ?? '')
-  return /schema cache|PGRST205|Could not find the table|does not exist/i.test(message)
+function throwAttendanceError(operation, queryDesc, error) {
+  const debug = logAttendanceError(operation, queryDesc, error)
+  const wrapped = new Error(
+    `Lỗi chấm công [${operation}]: ${debug.message} (bảng: public.${ATTENDANCE_TABLE})`,
+  )
+  wrapped.attendanceDebug = debug
+  wrapped.cause = error
+  throw wrapped
 }
 
 function sortAttendanceDesc(rows) {
@@ -63,54 +77,17 @@ function normalizeAttendanceRows(rows) {
   return sortAttendanceDesc((rows ?? []).map(normalizeAttendanceRow))
 }
 
-async function resolveAttendanceTable(force = false) {
-  if (!isSupabaseConfigured) {
-    throw new Error('Supabase chưa cấu hình.')
-  }
-  if (resolvedTable && !force) return resolvedTable
-
-  for (const candidate of [TABLE_MODERN, TABLE_LEGACY]) {
-    const { error } = await supabase.from(candidate.name).select('id').limit(1)
-    if (!error || !isMissingTableError(error)) {
-      resolvedTable = candidate
-      return candidate
-    }
-  }
-
-  throw new Error(MISSING_TABLE_MESSAGE)
-}
-
-function buildInsertRow(record, table) {
+function buildInsertRow(record) {
   const now = new Date().toISOString()
-  const employee = getEmployeeById(record.employeeId)
-
-  if (table.name === TABLE_MODERN.name) {
-    return {
-      id: record.id,
-      employee_id: record.employeeId,
-      branch_id: record.branchId ?? null,
-      attendance_date: record.date,
-      status: record.status ?? '',
-      reason: record.reason ?? '',
-      penalty_amount: Number(record.penaltyAmount ?? 0),
-      created_at: record.submittedAt ?? now,
-      updated_at: now,
-      created_by: record.createdBy ?? record.employeeId ?? '',
-    }
-  }
-
   return {
     id: record.id,
     employee_id: record.employeeId,
     branch_id: record.branchId ?? null,
-    date: record.date,
-    employee_name: record.employeeName ?? employee?.name ?? '',
+    attendance_date: record.date,
     status: record.status ?? '',
     reason: record.reason ?? '',
-    note: record.note ?? '',
     penalty_amount: Number(record.penaltyAmount ?? 0),
-    submitted_at: record.submittedAt ?? now,
-    submitted_by: record.createdBy ?? record.employeeId ?? '',
+    created_at: record.submittedAt ?? now,
     updated_at: now,
     created_by: record.createdBy ?? record.employeeId ?? '',
   }
@@ -126,11 +103,6 @@ function buildUpdateRow(record) {
   }
 }
 
-async function fromAttendanceTable() {
-  const table = await resolveAttendanceTable()
-  return supabase.from(table.name)
-}
-
 export async function fetchAttendanceServerDate() {
   if (!isSupabaseConfigured) {
     return { date: getTodayDate(), timestamp: new Date().toISOString() }
@@ -143,24 +115,27 @@ export async function fetchAttendanceServerDate() {
       date: payload.date ?? getTodayDate(),
       timestamp: payload.timestamp ?? new Date().toISOString(),
     }
-  } catch {
+  } catch (error) {
+    logAttendanceError('rpc', "rpc('get_attendance_server_date')", error)
     return { date: getTodayDate(), timestamp: new Date().toISOString() }
   }
 }
 
 export async function fetchAttendanceByEmployeeAndDate(employeeId, date) {
   if (!isSupabaseConfigured || !employeeId || !date) return null
-  const table = await resolveAttendanceTable()
+
+  const queryDesc = describeQuery('select(*).maybeSingle()', {
+    employee_id: employeeId,
+    [DATE_COLUMN]: date,
+  })
   const { data, error } = await supabase
-    .from(table.name)
+    .from(ATTENDANCE_TABLE)
     .select('*')
     .eq('employee_id', employeeId)
-    .eq(table.dateColumn, date)
+    .eq(DATE_COLUMN, date)
     .maybeSingle()
-  if (error) {
-    if (isMissingTableError(error)) throw new Error(MISSING_TABLE_MESSAGE)
-    throw error
-  }
+
+  if (error) throwAttendanceError('select', queryDesc, error)
   return data ? normalizeAttendanceRow(data) : null
 }
 
@@ -174,25 +149,22 @@ export async function fetchAttendanceFiltered({
 } = {}) {
   if (!isSupabaseConfigured) return []
 
-  const table = await resolveAttendanceTable()
   let query = supabase
-    .from(table.name)
+    .from(ATTENDANCE_TABLE)
     .select('*')
-    .order(table.dateColumn, { ascending: false })
-    .order(table.sortColumn, { ascending: false })
+    .order(DATE_COLUMN, { ascending: false })
+    .order(SORT_COLUMN, { ascending: false })
 
-  if (date) query = query.eq(table.dateColumn, date)
-  if (fromDate) query = query.gte(table.dateColumn, fromDate)
-  if (toDate) query = query.lte(table.dateColumn, toDate)
+  if (date) query = query.eq(DATE_COLUMN, date)
+  if (fromDate) query = query.gte(DATE_COLUMN, fromDate)
+  if (toDate) query = query.lte(DATE_COLUMN, toDate)
   if (branchId) query = query.eq('branch_id', branchId)
   if (employeeId) query = query.eq('employee_id', employeeId)
   if (status) query = query.eq('status', status)
 
+  const queryDesc = describeQuery('select(*)', { fromDate, toDate, branchId, employeeId, date, status })
   const { data, error } = await query
-  if (error) {
-    if (isMissingTableError(error)) throw new Error(MISSING_TABLE_MESSAGE)
-    throw error
-  }
+  if (error) throwAttendanceError('select', queryDesc, error)
   return normalizeAttendanceRows(data ?? [])
 }
 
@@ -214,28 +186,30 @@ export async function insertAttendanceRecord(record, { onForeignKeyError } = {})
     throw new Error('Thiếu ngày chấm công.')
   }
 
-  const table = await resolveAttendanceTable()
-  const row = buildInsertRow(record, table)
-  let { data, error } = await supabase.from(table.name).insert(row).select('*').single()
+  const row = buildInsertRow(record)
+  const queryDesc = describeQuery('insert(...).select(*).single()', {
+    id: row.id,
+    employee_id: row.employee_id,
+    attendance_date: row.attendance_date,
+  })
+
+  let { data, error } = await supabase.from(ATTENDANCE_TABLE).insert(row).select('*').single()
 
   if (error && /foreign key|violates foreign key/i.test(error.message ?? '')) {
     if (typeof onForeignKeyError === 'function') {
       await onForeignKeyError()
-      ;({ data, error } = await supabase.from(table.name).insert(row).select('*').single())
+      ;({ data, error } = await supabase.from(ATTENDANCE_TABLE).insert(row).select('*').single())
     }
   }
 
-  if (error) {
-    if (isMissingTableError(error)) throw new Error(MISSING_TABLE_MESSAGE)
-    if (/created_by|column/.test(error.message ?? '')) {
-      delete row.created_by
-      const retry = await supabase.from(table.name).insert(row).select('*').single()
-      data = retry.data
-      error = retry.error
-    }
+  if (error && /created_by|column/.test(error.message ?? '')) {
+    delete row.created_by
+    const retry = await supabase.from(ATTENDANCE_TABLE).insert(row).select('*').single()
+    data = retry.data
+    error = retry.error
   }
 
-  if (error) throw error
+  if (error) throwAttendanceError('insert', queryDesc, error)
   return normalizeAttendanceRow(data)
 }
 
@@ -243,18 +217,17 @@ export async function updateAttendanceRecord(record) {
   if (!isSupabaseConfigured || !record?.id) {
     throw new Error('Supabase chưa cấu hình.')
   }
-  const table = await resolveAttendanceTable()
+
   const row = buildUpdateRow(record)
+  const queryDesc = describeQuery('update(...).eq(id).select(*).single()', { id: record.id })
   const { data, error } = await supabase
-    .from(table.name)
+    .from(ATTENDANCE_TABLE)
     .update(row)
     .eq('id', record.id)
     .select('*')
     .single()
-  if (error) {
-    if (isMissingTableError(error)) throw new Error(MISSING_TABLE_MESSAGE)
-    throw error
-  }
+
+  if (error) throwAttendanceError('update', queryDesc, error)
   return normalizeAttendanceRow(data)
 }
 
@@ -271,21 +244,27 @@ export async function insertAttendanceEditLogs(logs) {
     new_value: log.newValue ?? '',
     note: log.note ?? '',
   }))
+  const queryDesc = describeQuery(`insert(${rows.length} rows)`, { table: LOG_TABLE })
   const { data, error } = await supabase.from(LOG_TABLE).insert(rows).select('*')
-  if (error && !isMissingTableError(error)) throw error
-  if (error) return []
+  if (error) {
+    logAttendanceError('insert_logs', queryDesc, error)
+    return []
+  }
   return (data ?? []).map(rowToCamel)
 }
 
 export async function fetchAttendanceEditLogs(attendanceId) {
   if (!isSupabaseConfigured || !attendanceId) return []
+  const queryDesc = describeQuery('select(*)', { attendance_id: attendanceId, table: LOG_TABLE })
   const { data, error } = await supabase
     .from(LOG_TABLE)
     .select('*')
     .eq('attendance_id', attendanceId)
     .order('edited_at', { ascending: false })
-  if (error && !isMissingTableError(error)) throw error
-  if (error) return []
+  if (error) {
+    logAttendanceError('select_logs', queryDesc, error)
+    return []
+  }
   return (data ?? []).map(rowToCamel)
 }
 
@@ -294,26 +273,17 @@ export function subscribeAttendanceChanges(onChange) {
     return () => {}
   }
 
-  let channel = null
-  let cancelled = false
-
-  resolveAttendanceTable()
-    .then((table) => {
-      if (cancelled) return
-      channel = supabase
-        .channel(`spa-attendance-realtime-${table.name}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: table.name },
-          () => onChange(),
-        )
-        .subscribe()
-    })
-    .catch(() => {})
+  const channel = supabase
+    .channel(`spa-attendance-realtime-${ATTENDANCE_TABLE}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: ATTENDANCE_TABLE },
+      () => onChange(),
+    )
+    .subscribe()
 
   return () => {
-    cancelled = true
-    if (channel) supabase.removeChannel(channel)
+    supabase.removeChannel(channel)
   }
 }
 
@@ -325,11 +295,6 @@ export function createAttendanceLogId() {
   return `attlog-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-/** Cho smoke test / debug */
-export function resetAttendanceTableCache() {
-  resolvedTable = null
-}
-
-export async function getResolvedAttendanceTableName() {
-  return (await resolveAttendanceTable()).name
+export function getAttendanceTableName() {
+  return ATTENDANCE_TABLE
 }

@@ -2461,7 +2461,7 @@ test('employee attendance form: không còn prop onSkip', async () => {
   assert.match(landingSource, /Vào điểm danh/)
 })
 
-test('attendance repository: auto-detect attendance / employee_attendance', async () => {
+test('attendance repository: chỉ dùng bảng attendance', async () => {
   const fs = await import('node:fs')
   const path = await import('node:path')
   const repoPath = path.join(process.cwd(), 'src/repositories/attendanceRepository.js')
@@ -2471,14 +2471,12 @@ test('attendance repository: auto-detect attendance / employee_attendance', asyn
   const migrationSource = fs.readFileSync(migrationPath, 'utf8')
   const setupSource = fs.readFileSync(setupPath, 'utf8')
 
-  assert.match(repoSource, /TABLE_MODERN/)
-  assert.match(repoSource, /TABLE_LEGACY/)
-  assert.match(repoSource, /resolveAttendanceTable/)
+  assert.match(repoSource, /ATTENDANCE_TABLE = 'attendance'/)
+  assert.doesNotMatch(repoSource, /employee_attendance/)
   assert.match(migrationSource, /create table if not exists public\.attendance/)
   assert.match(setupSource, /notify pgrst, 'reload schema'/)
 
-  const { normalizeAttendanceRow, resetAttendanceTableCache } = await import('../src/repositories/attendanceRepository.js')
-  resetAttendanceTableCache()
+  const { normalizeAttendanceRow } = await import('../src/repositories/attendanceRepository.js')
   const row = normalizeAttendanceRow({
     id: 'att-1',
     employee_id: 'tram-spa-thanh',

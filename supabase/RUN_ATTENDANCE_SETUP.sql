@@ -1,13 +1,19 @@
 -- ============================================================
--- CHẠY NGAY TRÊN SUPABASE SQL EDITOR (Production)
--- Fix: "Could not find the table public.attendance in schema cache"
+-- CHẠY TRÊN SUPABASE SQL EDITOR (Production)
+-- Fix: "Bảng chấm công chưa có trên Supabase"
+--
+-- Cách làm:
+-- 1. supabase.com/dashboard → chọn đúng project của khoespa.net.vn
+-- 2. SQL Editor → New query
+-- 3. Dán TOÀN BỘ file này → Run
+-- 4. Đợi 30 giây → Ctrl+F5 trên app → thử chấm công lại
 -- ============================================================
 
--- 1. Bảng chấm công chuẩn
+-- 1. Bảng chấm công (không dùng FK để tránh lỗi khi tạo lần đầu)
 create table if not exists public.attendance (
   id text primary key,
-  employee_id text not null references public.employees(id) on delete cascade,
-  branch_id text references public.branches(id) on delete set null,
+  employee_id text not null,
+  branch_id text,
   attendance_date text not null,
   status text not null default '',
   reason text not null default '',
@@ -22,7 +28,7 @@ create index if not exists attendance_date_idx on public.attendance (attendance_
 create index if not exists attendance_branch_date_idx on public.attendance (branch_id, attendance_date);
 create index if not exists attendance_employee_date_idx on public.attendance (employee_id, attendance_date);
 
--- 2. RPC ngày server (nếu chưa có)
+-- 2. RPC ngày server
 create or replace function public.get_attendance_server_date()
 returns json
 language sql
@@ -34,12 +40,15 @@ as $$
   );
 $$;
 
--- 3. RLS cho phép app anon (giống các bảng khác)
+-- 3. Quyền + RLS (anon + authenticated)
+grant usage on schema public to anon, authenticated;
+grant all on public.attendance to anon, authenticated;
+
 alter table public.attendance enable row level security;
 
 drop policy if exists allow_all_anon_attendance on public.attendance;
 create policy allow_all_anon_attendance on public.attendance
-  for all to anon using (true) with check (true);
+  for all to anon, authenticated using (true) with check (true);
 
 -- 4. Realtime (tuỳ chọn)
 do $$
@@ -56,8 +65,8 @@ begin
   end if;
 end $$;
 
--- 5. Bắt PostgREST reload schema cache ngay (quan trọng!)
+-- 5. Reload schema cache PostgREST
 notify pgrst, 'reload schema';
 
--- Xong. Kiểm tra:
--- select * from public.attendance limit 1;
+-- 6. Kiểm tra — phải trả về 1 dòng "OK"
+select 'OK — bảng attendance đã sẵn sàng' as result;
