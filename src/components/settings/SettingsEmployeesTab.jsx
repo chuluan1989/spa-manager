@@ -146,9 +146,9 @@ export default function SettingsEmployeesTab({ showToast }) {
     refresh()
   }
 
-  const handlePermanentDelete = (id) => {
+  const handlePermanentDelete = async (id) => {
     if (!window.confirm('Xóa vĩnh viễn nhân viên này? Chỉ áp dụng khi chưa phát sinh hóa đơn/doanh thu.')) return
-    const result = deleteEmployee(id)
+    const result = await deleteEmployee(id)
     if (!result.success) {
       showToast(result.error ?? PERMANENT_DELETE_BLOCKED_MESSAGE)
       return

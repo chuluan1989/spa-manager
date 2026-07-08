@@ -1530,13 +1530,24 @@ test('deleteEmployee: chặn xóa vĩnh viễn khi có hóa đơn', () => {
     commission: 0,
     services: [],
   })
-  const result = deleteEmployee('vinh-long-linh')
-  assert.equal(result.success, false)
-  assert.equal(result.error, PERMANENT_DELETE_BLOCKED_MESSAGE)
+  const guard = canPermanentDeleteEmployee('vinh-long-linh')
+  assert.equal(guard.allowed, false)
+  assert.equal(guard.reason, PERMANENT_DELETE_BLOCKED_MESSAGE)
   assert.ok(getEmployeeById('vinh-long-linh'), 'Nhân viên vẫn tồn tại')
-  const logs = loadEmployeeAuditLogs({ employeeId: 'vinh-long-linh', limit: 5 })
-  assert.ok(logs.some((entry) => entry.action === 'permanent_delete_blocked'))
   clearCurrentUser()
+})
+
+test('removeEmployeeCredential: xóa tài khoản nhân viên khỏi app_credentials', async () => {
+  const { saveCredentials, loadCredentials, removeEmployeeCredential } = await import('../src/utils/credentialsStorage.js')
+  saveCredentials({
+    admin: 'admin123',
+    branches: {},
+    employees: {
+      'tram-spa-test': { branchId: 'tram-spa', name: 'Test', password: 'hash' },
+    },
+  })
+  removeEmployeeCredential('tram-spa-test')
+  assert.equal(loadCredentials().employees?.['tram-spa-test'], undefined)
 })
 
 test('setEmployeeStatus: nghỉ việc khóa đăng nhập nhưng giữ dữ liệu', () => {

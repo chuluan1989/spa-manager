@@ -285,6 +285,38 @@ export function removeBranchCredential(branchId) {
   return saveCredentials({ ...credentials, branches: rest })
 }
 
+export function removeEmployeeCredential(employeeId) {
+  if (!employeeId) return loadCredentials()
+  const credentials = loadCredentials()
+  if (!credentials.employees?.[employeeId]) return credentials
+  const { [employeeId]: _removed, ...rest } = credentials.employees
+  const next = { ...credentials, employees: rest }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  pushCredentialsToSupabase(next)
+  return next
+}
+
+export async function pruneInactiveEmployeeCredentials() {
+  const employees = loadEmployees()
+  const eligibleIds = new Set(employees.filter(isEmployeeLoginEligible).map((employee) => employee.id))
+  const credentials = await ensureCredentialsHashed()
+  const nextEmployees = { ...(credentials.employees ?? {}) }
+  let changed = false
+
+  for (const employeeId of Object.keys(nextEmployees)) {
+    if (!eligibleIds.has(employeeId)) {
+      delete nextEmployees[employeeId]
+      changed = true
+    }
+  }
+
+  if (!changed) return credentials
+  const next = { ...credentials, employees: nextEmployees }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+  pushCredentialsToSupabase(next)
+  return next
+}
+
 export async function updateEmployeePassword(employeeId, password) {
   const credentials = loadCredentials()
   const entry = credentials.employees?.[employeeId]

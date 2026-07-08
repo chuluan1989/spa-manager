@@ -67,7 +67,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
   const [form, setForm] = useState(EMPTY_EMPLOYEE_FORM)
   const [errors, setErrors] = useState({})
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState(EMPLOYEE_STATUS.ACTIVE)
   const [passwordForm, setPasswordForm] = useState({ password: '', confirm: '' })
 
   const syncVersion = useDataSyncVersion()
@@ -212,9 +212,9 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
     refresh()
   }
 
-  const handlePermanentDelete = (id) => {
+  const handlePermanentDelete = async (id) => {
     if (!window.confirm('Xóa vĩnh viễn nhân viên này?')) return
-    const result = deleteEmployee(id)
+    const result = await deleteEmployee(id)
     if (!result.success) {
       showToast(result.error ?? PERMANENT_DELETE_BLOCKED_MESSAGE)
       return
@@ -274,8 +274,9 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
           onChange={(e) => setSearch(e.target.value)}
         />
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value={EMPLOYEE_STATUS.ACTIVE}>Đang làm</option>
           <option value="">Tất cả trạng thái</option>
-          {EMPLOYEE_STATUS_OPTIONS.map((option) => (
+          {EMPLOYEE_STATUS_OPTIONS.filter((option) => option.value !== EMPLOYEE_STATUS.ACTIVE).map((option) => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
@@ -341,7 +342,10 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
                           {accountLocked ? 'Mở TK' : 'Khóa TK'}
                         </button>
                         <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => openPassword(employee)}>Reset MK</button>
-                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => handleLockStatus(employee)}>Khóa NV</button>
+                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => handleLockStatus(employee)}>
+                          {employee.status === EMPLOYEE_STATUS.ON_LEAVE ? 'Mở NV' : 'Khóa NV'}
+                        </button>
+                        <button type="button" className="admin-branches__btn admin-branches__btn--small" onClick={() => handleArchive(employee.id)}>Lưu trữ</button>
                         <button type="button" className="admin-branches__btn admin-branches__btn--small admin-branches__btn--danger" onClick={() => handlePermanentDelete(employee.id)}>Xóa</button>
                       </td>
                     )}

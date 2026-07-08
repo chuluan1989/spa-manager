@@ -203,9 +203,9 @@ export default function EmployeeHubSettings({
     closeAll()
   }
 
-  const handlePermanentDelete = () => {
+  const handlePermanentDelete = async () => {
     if (!window.confirm(`XÓA VĨNH VIỄN "${selectedEmployee?.name}"?\n\nChỉ thực hiện khi nhân viên chưa từng có hóa đơn/doanh thu.`)) return
-    const result = deleteEmployee(selectedEmployeeId)
+    const result = await deleteEmployee(selectedEmployeeId)
     if (!result.success) {
       showToast(result.error ?? PERMANENT_DELETE_BLOCKED_MESSAGE)
       return

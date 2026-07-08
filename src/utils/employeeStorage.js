@@ -10,10 +10,10 @@ import {
 import { validateEmployeeSelfProfile } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteEmployeeRow, upsertEmployee } from '../repositories/employeesRepository'
-import { syncEmployeeCredentialForEmployee } from './credentialsStorage'
+import { syncEmployeeCredentialForEmployee, removeEmployeeCredential, pruneInactiveEmployeeCredentials } from './credentialsStorage'
 
 import { appendEmployeeAuditLog, EMPLOYEE_AUDIT_ACTIONS } from './employeeAuditLog'
-import { canPermanentDeleteEmployee, PERMANENT_DELETE_BLOCKED_MESSAGE } from './employeeDeleteGuard'
+import { canPermanentDeleteEmployee, canPermanentDeleteEmployeeRemote, PERMANENT_DELETE_BLOCKED_MESSAGE } from './employeeDeleteGuard'
 import { resolveCanonicalBranchId } from '../constants/canonicalBranches'
 import { ROLES } from '../constants/roles'
 import { IMAGE_CATEGORIES, uploadImageFile } from './imageStorage'
@@ -562,7 +562,7 @@ export function updateOwnEmployeeProfile(id, data) {
   return { success: true, employee: updated }
 }
 
-export function deleteEmployee(id) {
+export async function deleteEmployee(id) {
   if (!hasSessionPermission(PERMISSION_KEYS.DELETE_EMPLOYEE)) {
     return denyAccess('Chỉ Admin mới được xóa nhân viên.')
   }
@@ -578,7 +578,7 @@ export function deleteEmployee(id) {
     return denyAccess('Không tìm thấy nhân viên.')
   }
 
-  const guard = canPermanentDeleteEmployee(id)
+  const guard = await canPermanentDeleteEmployeeRemote(id)
   if (!guard.allowed) {
     appendEmployeeAuditLog({
       employeeId: id,
@@ -591,6 +591,10 @@ export function deleteEmployee(id) {
 
   const next = employees.filter((e) => e.id !== id)
   saveEmployees(next)
+  removeEmployeeCredential(id)
+  pruneInactiveEmployeeCredentials().catch((error) => {
+    console.warn('[Credentials] Không thể dọn credential nhân viên:', error?.message)
+  })
   pushEmployeeDeletionToSupabase(id)
   appendEmployeeAuditLog({
     employeeId: id,
@@ -668,7 +672,14 @@ export function setEmployeeStatus(id, status, options = {}) {
     patch.endDate = ''
   }
 
-  return updateEmployee(id, patch)
+  const result = updateEmployee(id, patch)
+  if (result.success && !isEmployeeLoginEligible(result.employee)) {
+    removeEmployeeCredential(id)
+    pruneInactiveEmployeeCredentials().catch((error) => {
+      console.warn('[Credentials] Không thể dọn credential nhân viên:', error?.message)
+    })
+  }
+  return result
 }
 
 /** Lưu trữ — ẩn khỏi danh sách mặc định, giữ toàn bộ dữ liệu lịch sử. */
