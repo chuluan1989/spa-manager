@@ -385,6 +385,13 @@ export function getBranchPermission(branchId, permissionKey) {
   return Boolean(branchPerms[branchId]?.[permissionKey])
 }
 
+export function removeBranchPermissionsEntry(branchId) {
+  const branchPerms = loadBranchPermissions()
+  if (!branchPerms[branchId]) return branchPerms
+  const { [branchId]: _removed, ...rest } = branchPerms
+  return saveBranchPermissions(rest)
+}
+
 export function collectPermissionsSnapshot() {
   return {
     global: loadPermissions(),

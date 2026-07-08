@@ -16,7 +16,6 @@ export default function ExpenseBranchDetail({
   canDelete,
 }) {
   const branch = getActiveBranches().find((item) => item.id === branchId)
-  const branchIndex = getActiveBranches().findIndex((item) => item.id === branchId)
   const branchExpenses = expenses.filter((exp) => exp.branchId === branchId)
   const byDate = computeExpenseByDate(branchExpenses)
   const byType = computeExpenseByType(branchExpenses)
@@ -30,7 +29,7 @@ export default function ExpenseBranchDetail({
         </button>
         <div>
           <h3 className="exp-mod__section-title">
-            {branch ? getBranchShortLabel(branch, branchIndex) : ''} · {branch?.name}
+            {branch ? getBranchShortLabel(branch) : ''} · {branch?.name}
           </h3>
           <p className="exp-mod__section-desc">Tổng chi phí: {formatCurrency(total)} · {branchExpenses.length} khoản</p>
         </div>

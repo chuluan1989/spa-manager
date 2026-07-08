@@ -1,7 +1,7 @@
 import {
   calculateCommissionAmount,
   resolveCommissionPercent,
-} from './commissionPolicyEngine'
+} from './commissionPolicyEngine.js'
 import { getServiceMapForBranch } from './serviceStorage'
 
 export function parseTips(value) {

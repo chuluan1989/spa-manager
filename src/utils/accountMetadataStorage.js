@@ -113,3 +113,10 @@ export function getAccountKeyForUser(user) {
 export function isAccountLocked(accountKey) {
   return Boolean(getAccountMeta(accountKey).locked)
 }
+
+export function removeAccountMetadataEntry(accountKey) {
+  const metadata = loadAccountMetadata()
+  if (!metadata[accountKey]) return metadata
+  const { [accountKey]: _removed, ...rest } = metadata
+  return saveAccountMetadata(rest)
+}

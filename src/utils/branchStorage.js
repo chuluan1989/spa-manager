@@ -202,23 +202,32 @@ export function addBranch(data) {
 
 export function updateBranch(id, data) {
   const branches = loadBranches()
-  const index = branches.findIndex((branch) => branch.id === id)
-  if (index === -1) return null
+  const current = branches.find((branch) => branch.id === id)
+  if (!current) return null
 
-  const current = branches[index]
-  if (data.name !== undefined) current.name = data.name?.trim() ?? current.name
-  if (data.address !== undefined) current.address = data.address?.trim() ?? ''
-  if (data.hotline !== undefined) current.hotline = data.hotline?.trim() ?? ''
-  if (data.sortOrder !== undefined) current.sortOrder = Number(data.sortOrder) || current.sortOrder
+  const next = { ...current }
+  if (data.name !== undefined) next.name = data.name?.trim() ?? next.name
+  if (data.address !== undefined) next.address = data.address?.trim() ?? ''
+  if (data.hotline !== undefined) next.hotline = data.hotline?.trim() ?? ''
+  if (data.sortOrder !== undefined) next.sortOrder = Number(data.sortOrder) || next.sortOrder
   if (data.status !== undefined) {
-    current.status = data.status === BRANCH_STATUS.LOCKED
+    next.status = data.status === BRANCH_STATUS.LOCKED
       ? BRANCH_STATUS.LOCKED
       : BRANCH_STATUS.ACTIVE
   }
-  if (data.priceGroupId !== undefined) current.priceGroupId = data.priceGroupId
-  if (data.supportEnabled !== undefined) current.supportEnabled = Boolean(data.supportEnabled)
+  if (data.priceGroupId !== undefined) next.priceGroupId = data.priceGroupId
+  if (data.supportEnabled !== undefined) next.supportEnabled = Boolean(data.supportEnabled)
 
-  branches[index] = normalizeBranch({ ...current, updatedAt: new Date().toISOString() })
-  saveBranches(branches)
-  return branches[index]
+  const updated = normalizeBranch({ ...next, updatedAt: new Date().toISOString() })
+  const merged = branches.map((branch) => (branch.id === id ? updated : branch))
+  saveBranches(merged)
+  return updated
+}
+
+export function lockBranch(branchId) {
+  return updateBranch(branchId, { status: BRANCH_STATUS.LOCKED })
+}
+
+export function unlockBranch(branchId) {
+  return updateBranch(branchId, { status: BRANCH_STATUS.ACTIVE })
 }

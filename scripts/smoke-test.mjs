@@ -2421,4 +2421,65 @@ test('employee profile policy: banner, lock after deadline, and permissions', as
   assert.equal(canAccessAttendancePage(), false)
 })
 
+test('branches: sửa sort_order không làm nhảy branch_id mapping', async () => {
+  const { loadBranches, updateBranch } = await import('../src/utils/branchStorage.js')
+  const { loadEmployees } = await import('../src/utils/employeeStorage.js')
+  const { loadInvoices } = await import('../src/utils/invoiceStorage.js')
+
+  const before = loadBranches()
+  const vinhLong = before.find((b) => b.id === 'vinh-long')
+  assert.ok(vinhLong)
+
+  updateBranch('vinh-long', { sortOrder: 99, name: 'Vĩnh Long Updated' })
+
+  const employees = loadEmployees().filter((e) => e.branchId === 'vinh-long')
+  const invoices = loadInvoices().filter((i) => i.branchId === 'vinh-long')
+
+  assert.equal(loadBranches().find((b) => b.id === 'vinh-long')?.name, 'Vĩnh Long Updated')
+  assert.ok(employees.every((e) => e.branchId === 'vinh-long'))
+  assert.ok(invoices.every((i) => i.branchId === 'vinh-long'))
+
+  updateBranch('vinh-long', { sortOrder: vinhLong.sortOrder, name: vinhLong.name })
+})
+
+test('branches: canAccessBranchesPage chỉ Admin', async () => {
+  const { canAccessBranchesPage } = await import('../src/constants/auth.js')
+  const { ROLES } = await import('../src/constants/roles.js')
+  const { saveCurrentUser } = await import('../src/utils/authStorage.js')
+  const { ADMIN_BRANCH } = await import('../src/constants/roles.js')
+
+  saveCurrentUser({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  assert.equal(canAccessBranchesPage(), true)
+
+  saveCurrentUser({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
+  assert.equal(canAccessBranchesPage(), false)
+
+  saveCurrentUser({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
+  assert.equal(canAccessBranchesPage(), false)
+})
+
+test('branches: deleteBranch chặn khi có nhân viên', async () => {
+  const { canDeleteBranch } = await import('../src/utils/branchDeleteGuard.js')
+  const check = canDeleteBranch('vinh-long')
+  assert.equal(check.allowed, false)
+  assert.match(check.reason, /nhân viên/)
+})
+
+test('branches: repairBranchIdReferences đồng bộ branchName theo branch_id', async () => {
+  const { repairBranchIdReferences } = await import('../src/utils/branchIdIntegrity.js')
+  const { loadInvoices, replaceAllInvoices } = await import('../src/utils/invoiceStorage.js')
+  const { getBranchName } = await import('../src/utils/branchStorage.js')
+
+  const invoices = loadInvoices()
+  if (invoices.length === 0) return
+
+  const sample = { ...invoices[0], branchName: 'Tên sai cố ý' }
+  replaceAllInvoices([sample, ...invoices.slice(1)])
+
+  const fixed = repairBranchIdReferences()
+  assert.ok(fixed >= 1)
+  const updated = loadInvoices().find((i) => i.id === sample.id)
+  assert.equal(updated.branchName, getBranchName(updated.branchId))
+})
+
 process.exit(failed > 0 ? 1 : 0)

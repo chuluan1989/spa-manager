@@ -249,6 +249,30 @@ export async function registerBranchCredential(branchId, password) {
   return saveCredentials(credentials)
 }
 
+export function removeBranchCredential(branchId) {
+  const credentials = loadCredentials()
+  if (!credentials.branches?.[branchId]) return credentials
+  const { [branchId]: _removed, ...rest } = credentials.branches
+  return saveCredentials({ ...credentials, branches: rest })
+}
+
+export async function updateEmployeePassword(employeeId, password) {
+  const credentials = loadCredentials()
+  const entry = credentials.employees?.[employeeId]
+  if (!entry) {
+    return { success: false, error: 'Không tìm thấy tài khoản nhân viên.' }
+  }
+  credentials.employees = {
+    ...credentials.employees,
+    [employeeId]: {
+      ...entry,
+      password: await hashPassword(password),
+    },
+  }
+  saveCredentials(credentials)
+  return { success: true }
+}
+
 export function getAccountList() {
   const credentials = loadCredentials()
   const metadata = loadAccountMetadata()

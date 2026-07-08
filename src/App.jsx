@@ -12,6 +12,7 @@ import {
   canAccessLegacySyncPage,
   canAccessMyProfilePage,
   canAccessSettingsPage,
+  canAccessBranchesPage,
   canAccessServiceCatalogPage,
   canViewReport,
   getCurrentUserEmployeeId,
@@ -32,6 +33,7 @@ import Attendance from './pages/Attendance'
 import Salary from './pages/Salary'
 import LegacySync from './pages/LegacySync'
 import Settings from './pages/Settings'
+import AdminBranches from './pages/AdminBranches'
 import EmployeeAttendanceLanding from './components/attendance/EmployeeAttendanceLanding'
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
@@ -39,6 +41,7 @@ import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMiss
 import { syncAllCustomBranchPricing, stripFlatBranchGroupedCatalog } from './utils/branchPricingStorage'
 import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
+import { repairBranchIdReferences } from './utils/branchIdIntegrity'
 import { getEmployeeById, syncMissingDefaultEmployees } from './utils/employeeStorage'
 import {
   clearEmployeeAttendanceGate,
@@ -60,6 +63,7 @@ const PAGES = {
   attendance: Attendance,
   salary: Salary,
   'admin-employees': AdminEmployees,
+  'admin-branches': AdminBranches,
   expenses: Expenses,
   'admin-services': AdminServices,
   employees: Employees,
@@ -77,6 +81,7 @@ function canAccessPage(pageId) {
   if (pageId === 'employees') return canAccessEmployeesPage()
   if (pageId === 'admin-services') return canAccessServiceCatalogPage()
   if (pageId === 'settings') return canAccessSettingsPage()
+  if (pageId === 'admin-branches') return canAccessBranchesPage()
   if (pageId === 'revenue') return canViewReport()
   if (pageId === 'invoices') return canAccessInvoicesPage()
   if (pageId === 'customers') return canAccessCustomersPage()
@@ -148,6 +153,7 @@ function App() {
     async function bootstrap() {
       clearLegacySession()
       syncMissingDefaultBranches()
+      repairBranchIdReferences()
       syncMissingDefaultEmployees()
       stripFlatBranchGroupedCatalog()
       ensureServiceCatalogV2Migrated()

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { canAccessSettingsPage } from '../constants/auth'
 import SettingsAccountsPermissionsTab from '../components/settings/SettingsAccountsPermissionsTab'
 import SettingsAdminProfileTab from '../components/settings/SettingsAdminProfileTab'
-import SettingsBranchesRolesTab from '../components/settings/SettingsBranchesRolesTab'
+import SettingsRolesTab from '../components/settings/SettingsRolesTab'
 import SettingsCommissionPolicyTab from '../components/settings/SettingsCommissionPolicyTab'
 import SettingsSystemTab from '../components/settings/SettingsSystemTab'
 import './Settings.css'
@@ -10,7 +10,7 @@ import './Settings.css'
 const TABS = [
   { id: 'admin-profile', label: 'Hồ sơ Admin' },
   { id: 'accounts', label: 'Tài khoản & phân quyền' },
-  { id: 'branches', label: 'Chi nhánh & vai trò' },
+  { id: 'roles', label: 'Vai trò' },
   { id: 'commission', label: 'Chính sách hoa hồng' },
   { id: 'system', label: 'Hệ thống' },
 ]
@@ -42,8 +42,8 @@ export default function Settings() {
         return <SettingsAdminProfileTab showToast={showToast} />
       case 'accounts':
         return <SettingsAccountsPermissionsTab showToast={showToast} key={refreshKey} />
-      case 'branches':
-        return <SettingsBranchesRolesTab showToast={showToast} onDataChange={handleDataChange} key={refreshKey} />
+      case 'roles':
+        return <SettingsRolesTab showToast={showToast} key={refreshKey} />
       case 'commission':
         return <SettingsCommissionPolicyTab showToast={showToast} key={refreshKey} />
       case 'system':
@@ -59,7 +59,7 @@ export default function Settings() {
 
       <header className="settings__header">
         <h2 className="settings__title">Cài đặt</h2>
-        <p className="settings__subtitle">Quản trị hồ sơ, tài khoản, chi nhánh và cấu hình hệ thống</p>
+        <p className="settings__subtitle">Quản trị hồ sơ, tài khoản, vai trò và cấu hình hệ thống</p>
       </header>
 
       <nav className="settings__tabs" aria-label="Cài đặt hệ thống">

@@ -331,6 +331,15 @@ export function canAccessSettingsPage(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
 
+/** Menu Chi nhánh — chỉ Admin (quản lý toàn bộ). */
+export function canAccessBranchesPage(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
+}
+
+export function canManageBranches(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
+}
+
 export function canManageServiceCatalog(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }

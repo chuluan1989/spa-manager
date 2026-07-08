@@ -1,0 +1,358 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
+import { getBranchContactByBranchId } from '../constants/branchContacts'
+import { getPayrollBranchDisplayTitle } from '../constants/branchPayrollDisplay'
+import { getPriceGroupsWithBranchLabels, PRICE_GROUPS } from '../constants/priceGroups'
+import { canAccessBranchesPage, canManageBranches, isAdmin } from '../constants/auth'
+import BranchEmployeesTab from '../components/branches/BranchEmployeesTab'
+import {
+  addBranch,
+  BRANCH_STATUS,
+  createBranchId,
+  getStatusLabel,
+  loadBranches,
+  lockBranch,
+  unlockBranch,
+  updateBranch,
+} from '../utils/branchStorage'
+import { deleteBranch } from '../utils/branchLifecycle'
+import { canDeleteBranch, BRANCH_DELETE_BLOCKED_MESSAGE } from '../utils/branchDeleteGuard'
+import { registerBranchCredential, updateBranchPassword } from '../utils/credentialsStorage'
+import { assignBranchManager, getAccountMeta, getBranchManagerAssignments } from '../utils/accountMetadataStorage'
+import './AdminBranches.css'
+
+const EMPTY_FORM = {
+  name: '',
+  address: '',
+  hotline: '',
+  sortOrder: '',
+  priceGroupId: PRICE_GROUPS[0].id,
+  status: BRANCH_STATUS.ACTIVE,
+  supportEnabled: false,
+  password: '',
+}
+
+const DETAIL_TABS = [
+  { id: 'info', label: 'Thông tin' },
+  { id: 'employees', label: 'Nhân viên' },
+]
+
+export default function AdminBranches() {
+  const readOnly = !canManageBranches()
+  const syncVersion = useDataSyncVersion()
+  const [branches, setBranches] = useState(() => loadBranches())
+  const [selectedBranchId, setSelectedBranchId] = useState(() => loadBranches()[0]?.id ?? '')
+  const [detailTab, setDetailTab] = useState('info')
+  const [editModal, setEditModal] = useState(null)
+  const [managerModal, setManagerModal] = useState(null)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [managerName, setManagerName] = useState('')
+  const [toast, setToast] = useState('')
+
+  const refresh = () => setBranches(loadBranches())
+
+  useEffect(() => {
+    if (syncVersion > 0) refresh()
+  }, [syncVersion])
+
+  const priceGroups = useMemo(() => getPriceGroupsWithBranchLabels(), [branches])
+  const managers = useMemo(() => getBranchManagerAssignments(), [branches, managerModal])
+
+  const selectedBranch = useMemo(
+    () => branches.find((branch) => branch.id === selectedBranchId) ?? null,
+    [branches, selectedBranchId],
+  )
+
+  const showToast = (message) => {
+    setToast(message)
+    setTimeout(() => setToast(''), 3000)
+  }
+
+  if (!canAccessBranchesPage()) {
+    return (
+      <div className="admin-branches admin-branches--denied">
+        <h2 className="admin-branches__title">Không có quyền truy cập</h2>
+        <p className="admin-branches__subtitle">Menu Chi nhánh chỉ dành cho Admin.</p>
+      </div>
+    )
+  }
+
+  const openAdd = () => {
+    const maxSort = branches.reduce((max, b) => Math.max(max, b.sortOrder ?? 0), 0)
+    setForm({ ...EMPTY_FORM, sortOrder: String(maxSort + 1) })
+    setEditModal({ mode: 'add' })
+  }
+
+  const openEdit = (branch) => {
+    const contact = getBranchContactByBranchId(branch.id)
+    setForm({
+      name: branch.name,
+      address: branch.address || contact?.address || '',
+      hotline: branch.hotline || contact?.phone || '',
+      sortOrder: String(branch.sortOrder ?? ''),
+      priceGroupId: branch.priceGroupId,
+      status: branch.status,
+      supportEnabled: branch.supportEnabled,
+      password: '',
+    })
+    setEditModal({ mode: 'edit', branchId: branch.id })
+  }
+
+  const closeEditModal = () => {
+    setEditModal(null)
+    setForm(EMPTY_FORM)
+  }
+
+  const saveBranch = async () => {
+    if (!form.name?.trim()) {
+      showToast('Vui lòng nhập tên chi nhánh')
+      return
+    }
+
+    const payload = {
+      name: form.name,
+      address: form.address,
+      hotline: form.hotline,
+      sortOrder: form.sortOrder ? Number(form.sortOrder) : undefined,
+      priceGroupId: form.priceGroupId,
+      status: form.status,
+      supportEnabled: form.supportEnabled,
+    }
+
+    if (editModal?.mode === 'edit') {
+      updateBranch(editModal.branchId, payload)
+      if (form.password?.trim()) {
+        await updateBranchPassword(editModal.branchId, form.password)
+      }
+      showToast('Đã cập nhật chi nhánh')
+      setSelectedBranchId(editModal.branchId)
+    } else {
+      const id = createBranchId(form.name)
+      addBranch({ id, ...payload })
+      await registerBranchCredential(id, form.password || `spa-${id}`)
+      showToast('Đã thêm chi nhánh')
+      setSelectedBranchId(id)
+    }
+
+    closeEditModal()
+    refresh()
+  }
+
+  const handleDelete = (branch) => {
+    const check = canDeleteBranch(branch.id)
+    if (!check.allowed) {
+      showToast(check.reason ?? BRANCH_DELETE_BLOCKED_MESSAGE)
+      return
+    }
+    if (!window.confirm(`Xóa chi nhánh "${branch.name}"? Hành động không thể hoàn tác.`)) return
+    const result = deleteBranch(branch.id)
+    if (!result.success) {
+      showToast(result.error ?? 'Không thể xóa chi nhánh')
+      return
+    }
+    showToast('Đã xóa chi nhánh')
+    const remaining = loadBranches()
+    setSelectedBranchId(remaining[0]?.id ?? '')
+    refresh()
+  }
+
+  const handleToggleLock = (branch) => {
+    if (branch.status === BRANCH_STATUS.LOCKED) {
+      unlockBranch(branch.id)
+      showToast('Đã mở khóa chi nhánh')
+    } else {
+      lockBranch(branch.id)
+      showToast('Đã khóa chi nhánh')
+    }
+    refresh()
+  }
+
+  const openManager = (branch) => {
+    setManagerName(getAccountMeta(branch.id).managerName ?? managers[branch.id] ?? '')
+    setManagerModal({ branchId: branch.id, branchName: branch.name })
+  }
+
+  const saveManager = () => {
+    if (!managerModal?.branchId) return
+    assignBranchManager(managerModal.branchId, managerName)
+    showToast('Đã gán quản lý phụ trách')
+    setManagerModal(null)
+    setManagerName('')
+    refresh()
+  }
+
+  const branchDisplayCode = (branch) => {
+    const contact = getBranchContactByBranchId(branch.id)
+    return contact?.label ?? getPayrollBranchDisplayTitle(branch.id, branch.name)
+  }
+
+  return (
+    <div className="admin-branches">
+      {toast && <div className="admin-branches__toast">{toast}</div>}
+
+      <header className="admin-branches__header">
+        <div>
+          <h2 className="admin-branches__title">Chi nhánh</h2>
+          <p className="admin-branches__subtitle">
+            Quản lý chi nhánh theo <code>branch_id</code> — thứ tự hiển thị chỉ dùng <code>sort_order</code>
+          </p>
+        </div>
+        {!readOnly && isAdmin() && (
+          <button type="button" className="admin-branches__btn admin-branches__btn--primary" onClick={openAdd}>
+            + Thêm chi nhánh
+          </button>
+        )}
+      </header>
+
+      <div className="admin-branches__layout">
+        <aside className="admin-branches__list">
+          <h3 className="admin-branches__list-title">Danh sách ({branches.length})</h3>
+          {branches.map((branch) => (
+            <button
+              key={branch.id}
+              type="button"
+              className={`admin-branches__list-item${selectedBranchId === branch.id ? ' is-active' : ''}`}
+              onClick={() => {
+                setSelectedBranchId(branch.id)
+                setDetailTab('info')
+              }}
+            >
+              <span className="admin-branches__list-code">{branchDisplayCode(branch)}</span>
+              <span className="admin-branches__list-name">{branch.name}</span>
+              <span className={`admin-branches__status admin-branches__status--${branch.status === BRANCH_STATUS.ACTIVE ? 'active' : 'locked'}`}>
+                {getStatusLabel(branch.status)}
+              </span>
+            </button>
+          ))}
+        </aside>
+
+        <main className="admin-branches__detail">
+          {!selectedBranch ? (
+            <p className="admin-branches__hint">Chọn chi nhánh để xem chi tiết.</p>
+          ) : (
+            <>
+              <div className="admin-branches__detail-head">
+                <div>
+                  <span className="admin-branches__detail-code">{branchDisplayCode(selectedBranch)}</span>
+                  <h3 className="admin-branches__detail-title">{selectedBranch.name}</h3>
+                  <p className="admin-branches__detail-id">branch_id: {selectedBranch.id}</p>
+                </div>
+                {!readOnly && isAdmin() && (
+                  <div className="admin-branches__detail-actions">
+                    <button type="button" className="admin-branches__btn admin-branches__btn--secondary" onClick={() => openEdit(selectedBranch)}>Sửa</button>
+                    <button type="button" className="admin-branches__btn admin-branches__btn--secondary" onClick={() => handleToggleLock(selectedBranch)}>
+                      {selectedBranch.status === BRANCH_STATUS.LOCKED ? 'Mở khóa' : 'Khóa'}
+                    </button>
+                    <button type="button" className="admin-branches__btn admin-branches__btn--secondary" onClick={() => openManager(selectedBranch)}>Gán QL</button>
+                    <button type="button" className="admin-branches__btn admin-branches__btn--danger" onClick={() => handleDelete(selectedBranch)}>Xóa</button>
+                  </div>
+                )}
+              </div>
+
+              <nav className="admin-branches__tabs">
+                {DETAIL_TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    className={`admin-branches__tab${detailTab === tab.id ? ' is-active' : ''}`}
+                    onClick={() => setDetailTab(tab.id)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+
+              {detailTab === 'info' && (
+                <div className="admin-branches__info-grid">
+                  <div><span>Địa chỉ</span><strong>{selectedBranch.address || '—'}</strong></div>
+                  <div><span>Hotline</span><strong>{selectedBranch.hotline || '—'}</strong></div>
+                  <div><span>Trạng thái</span><strong>{getStatusLabel(selectedBranch.status)}</strong></div>
+                  <div><span>Thứ tự hiển thị</span><strong>{selectedBranch.sortOrder ?? '—'}</strong></div>
+                  <div><span>Nhóm giá</span><strong>{priceGroups.find((g) => g.id === selectedBranch.priceGroupId)?.label ?? selectedBranch.priceGroupId}</strong></div>
+                  <div><span>Hỗ trợ KTV</span><strong>{selectedBranch.supportEnabled ? 'Có' : 'Không'}</strong></div>
+                  <div><span>Quản lý</span><strong>{managers[selectedBranch.id] || getAccountMeta(selectedBranch.id).managerName || 'Chưa gán'}</strong></div>
+                </div>
+              )}
+
+              {detailTab === 'employees' && (
+                <BranchEmployeesTab
+                  branchId={selectedBranch.id}
+                  branchName={selectedBranch.name}
+                  showToast={showToast}
+                  readOnly={readOnly}
+                />
+              )}
+            </>
+          )}
+        </main>
+      </div>
+
+      {editModal && (
+        <div className="admin-branches__modal-backdrop" onClick={closeEditModal}>
+          <div className="admin-branches__modal admin-branches__modal--wide" onClick={(e) => e.stopPropagation()}>
+            <h3 className="admin-branches__modal-title">
+              {editModal.mode === 'add' ? 'Thêm chi nhánh' : 'Sửa chi nhánh'}
+            </h3>
+            <div className="admin-branches__form-grid">
+              <label className="admin-branches__field admin-branches__field--full">
+                <span>Tên chi nhánh</span>
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </label>
+              <label className="admin-branches__field admin-branches__field--full">
+                <span>Địa chỉ</span>
+                <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              </label>
+              <label className="admin-branches__field">
+                <span>Hotline</span>
+                <input value={form.hotline} onChange={(e) => setForm({ ...form, hotline: e.target.value })} />
+              </label>
+              <label className="admin-branches__field">
+                <span>Thứ tự hiển thị</span>
+                <input type="number" min="1" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} />
+              </label>
+              <label className="admin-branches__field">
+                <span>Nhóm giá</span>
+                <select value={form.priceGroupId} onChange={(e) => setForm({ ...form, priceGroupId: e.target.value })}>
+                  {priceGroups.map((group) => (
+                    <option key={group.id} value={group.id}>{group.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="admin-branches__field">
+                <span>Trạng thái</span>
+                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                  <option value={BRANCH_STATUS.ACTIVE}>Hoạt động</option>
+                  <option value={BRANCH_STATUS.LOCKED}>Tạm khóa</option>
+                </select>
+              </label>
+              <label className="admin-branches__field admin-branches__field--full">
+                <span>Mật khẩu QL {editModal.mode === 'edit' ? '(để trống nếu giữ nguyên)' : ''}</span>
+                <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+              </label>
+            </div>
+            <div className="admin-branches__modal-actions">
+              <button type="button" className="admin-branches__btn admin-branches__btn--primary" onClick={saveBranch}>Lưu</button>
+              <button type="button" className="admin-branches__btn" onClick={closeEditModal}>Hủy</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {managerModal && (
+        <div className="admin-branches__modal-backdrop" onClick={() => setManagerModal(null)}>
+          <div className="admin-branches__modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="admin-branches__modal-title">Gán quản lý — {managerModal.branchName}</h3>
+            <label className="admin-branches__field admin-branches__field--full">
+              <span>Tên quản lý phụ trách</span>
+              <input value={managerName} onChange={(e) => setManagerName(e.target.value)} placeholder="Họ tên quản lý" />
+            </label>
+            <div className="admin-branches__modal-actions">
+              <button type="button" className="admin-branches__btn admin-branches__btn--primary" onClick={saveManager}>Lưu</button>
+              <button type="button" className="admin-branches__btn" onClick={() => setManagerModal(null)}>Hủy</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
