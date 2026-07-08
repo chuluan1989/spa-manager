@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Layout from './components/layout/Layout'
 import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
-import EmployeeProfileLockModal from './components/employees/EmployeeProfileLockModal'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -14,7 +13,6 @@ import {
   canAccessMyProfilePage,
   canAccessSettingsPage,
   canAccessServiceCatalogPage,
-  canManageServiceCatalog,
   canViewReport,
   getCurrentUserEmployeeId,
   isEmployee,
@@ -34,7 +32,7 @@ import Attendance from './pages/Attendance'
 import Salary from './pages/Salary'
 import LegacySync from './pages/LegacySync'
 import Settings from './pages/Settings'
-import EmployeeAttendanceGate from './components/attendance/EmployeeAttendanceGate'
+import EmployeeAttendanceLanding from './components/attendance/EmployeeAttendanceLanding'
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } from './utils/credentialsStorage'
@@ -42,7 +40,12 @@ import { syncAllCustomBranchPricing, stripFlatBranchGroupedCatalog } from './uti
 import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { getEmployeeById, syncMissingDefaultEmployees } from './utils/employeeStorage'
-import { isEmployeeProfileLocked } from './utils/employeeProfilePolicy'
+import {
+  clearEmployeeAttendanceGate,
+  hasPassedEmployeeAttendanceGate,
+  markEmployeeAttendanceGatePassed,
+} from './utils/employeeAttendanceGate'
+import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
 
@@ -63,10 +66,8 @@ const PAGES = {
   settings: Settings,
 }
 
-const EMPLOYEE_LOCKED_PAGES = new Set(['invoices', 'attendance'])
-
 function getDefaultPage(user) {
-  if (user?.role === 'admin' || user?.role === 'employee') return 'dashboard'
+  if (user?.role === ROLES.EMPLOYEE) return 'invoices'
   return 'dashboard'
 }
 
@@ -93,7 +94,11 @@ function App() {
   })
   const [activePage, setActivePage] = useState(() => getDefaultPage(loadCurrentUser()))
   const [authReady, setAuthReady] = useState(false)
-  const [profileLockOpen, setProfileLockOpen] = useState(false)
+  const [attendanceGatePassed, setAttendanceGatePassed] = useState(() => {
+    const user = loadCurrentUser()
+    if (user?.role !== ROLES.EMPLOYEE) return true
+    return hasPassedEmployeeAttendanceGate(user.employeeId)
+  })
   const syncVersion = useDataSyncVersion()
 
   useEffect(() => {
@@ -148,54 +153,60 @@ function App() {
         onLogin={(user) => {
           saveCurrentUser(user)
           setCurrentUser(user)
-          setActivePage(getDefaultPage(user))
+          if (user.role === ROLES.EMPLOYEE) {
+            const passed = hasPassedEmployeeAttendanceGate(user.employeeId)
+            setAttendanceGatePassed(passed)
+            setActivePage('invoices')
+          } else {
+            setAttendanceGatePassed(true)
+            setActivePage(getDefaultPage(user))
+          }
         }}
       />
     )
   }
 
+  const completeAttendanceGate = () => {
+    const employeeId = getCurrentUserEmployeeId()
+    markEmployeeAttendanceGatePassed(employeeId)
+    setAttendanceGatePassed(true)
+    setActivePage('invoices')
+  }
+
+  if (isEmployee() && !attendanceGatePassed) {
+    return <EmployeeAttendanceLanding onComplete={completeAttendanceGate} />
+  }
+
   const handleNavigate = (pageId) => {
     if (!canAccessPage(pageId)) return
-    if (isEmployee() && EMPLOYEE_LOCKED_PAGES.has(pageId) && isEmployeeProfileLocked(myEmployee)) {
-      setProfileLockOpen(true)
-      return
-    }
     setActivePage(pageId)
   }
 
   const handleLogout = () => {
+    if (currentUser?.employeeId) {
+      clearEmployeeAttendanceGate(currentUser.employeeId)
+    }
     clearCurrentUser()
     setCurrentUser(null)
+    setAttendanceGatePassed(true)
   }
 
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)
 
   return (
-    <EmployeeAttendanceGate>
-      <Layout
-        activeItem={activePage}
-        onNavigate={handleNavigate}
-        onLogout={handleLogout}
-        banner={isEmployee() && myEmployee ? (
-          <EmployeeProfileBanner
-            employee={myEmployee}
-            onUpdateProfile={() => handleNavigate('profile')}
-          />
-        ) : null}
-      >
-        <Page key={activePage} onNavigate={handleNavigate} />
-      </Layout>
-
-      {profileLockOpen && (
-        <EmployeeProfileLockModal
-          onClose={() => setProfileLockOpen(false)}
-          onUpdateProfile={() => {
-            setProfileLockOpen(false)
-            setActivePage('profile')
-          }}
+    <Layout
+      activeItem={activePage}
+      onNavigate={handleNavigate}
+      onLogout={handleLogout}
+      banner={isEmployee() && myEmployee ? (
+        <EmployeeProfileBanner
+          employee={myEmployee}
+          onUpdateProfile={() => handleNavigate('profile')}
         />
-      )}
-    </EmployeeAttendanceGate>
+      ) : null}
+    >
+      <Page key={activePage} onNavigate={handleNavigate} />
+    </Layout>
   )
 }
 

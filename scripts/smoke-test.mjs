@@ -2324,6 +2324,23 @@ test('live payroll: attendance stats, tips breakdown, payment summary', async ()
   assert.ok(wallet.some((e) => e.source === 'attendance'))
 })
 
+test('employee attendance gate: đăng nhập xong vào Hóa đơn, không kẹt màn hình', async () => {
+  const {
+    hasPassedEmployeeAttendanceGate,
+    markEmployeeAttendanceGatePassed,
+    clearEmployeeAttendanceGate,
+  } = await import('../src/utils/employeeAttendanceGate.js')
+
+  clearEmployeeAttendanceGate('emp-a')
+  assert.equal(hasPassedEmployeeAttendanceGate('emp-a'), false)
+
+  markEmployeeAttendanceGatePassed('emp-a')
+  assert.equal(hasPassedEmployeeAttendanceGate('emp-a'), true)
+
+  clearEmployeeAttendanceGate('emp-a')
+  assert.equal(hasPassedEmployeeAttendanceGate('emp-a'), false)
+})
+
 test('employee profile policy: banner, lock after deadline, and permissions', async () => {
   const {
     computeProfileCompletionPercent,

@@ -1,0 +1,113 @@
+.employee-attendance-landing {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: linear-gradient(160deg, #111 0%, #1f2937 45%, #374151 100%);
+}
+
+.employee-attendance-landing__card {
+  width: min(440px, 100%);
+  padding: 32px 28px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.employee-attendance-landing__card--wide {
+  width: min(720px, 100%);
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+}
+
+.employee-attendance-landing__logo {
+  margin: 0 auto 16px;
+}
+
+.employee-attendance-landing__title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.employee-attendance-landing__subtitle {
+  margin: 0 0 28px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.employee-attendance-landing__actions {
+  display: grid;
+  gap: 12px;
+}
+
+.employee-attendance-landing__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.employee-attendance-landing__btn:active {
+  transform: scale(0.98);
+}
+
+.employee-attendance-landing__btn--primary {
+  background: linear-gradient(135deg, #b8962e 0%, #d4af37 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(184, 150, 46, 0.35);
+}
+
+.employee-attendance-landing__btn--secondary {
+  background: #111827;
+  color: #fff;
+}
+
+.attendance-checkin__panel--inline {
+  width: 100%;
+  max-height: none;
+  border-radius: 20px;
+  box-shadow: none;
+}
+
+.attendance-checkin__back {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.85);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.attendance-checkin__error-block {
+  margin: 0 24px 12px;
+}
+
+.attendance-checkin__skip {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 16px;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  background: #fff;
+  color: #b91c1c;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
