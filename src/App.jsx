@@ -42,6 +42,7 @@ import { syncAllCustomBranchPricing, stripFlatBranchGroupedCatalog } from './uti
 import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { repairBranchIdReferences } from './utils/branchIdIntegrity'
+import { repairCanonicalBranchMapping } from './utils/canonicalBranchRepair'
 import { getEmployeeById, syncMissingDefaultEmployees } from './utils/employeeStorage'
 import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
@@ -122,6 +123,7 @@ function App() {
 
     async function bootstrap() {
       clearLegacySession()
+      repairCanonicalBranchMapping()
       syncMissingDefaultBranches()
       repairBranchIdReferences()
       syncMissingDefaultEmployees()

@@ -1,4 +1,5 @@
-import { getBranchById, getBranchName, loadBranches, saveBranches } from './branchStorage'
+import { getBranchById, getBranchName, loadBranches } from './branchStorage'
+import { resolveCanonicalBranchId } from '../constants/canonicalBranches'
 import { loadEmployees, saveEmployees } from './employeeStorage'
 import { loadInvoices, replaceAllInvoices } from './invoiceStorage'
 import { loadExpenses, saveExpenses } from './expenseStorage'
@@ -14,10 +15,18 @@ export function repairBranchIdReferences() {
   const employees = loadEmployees()
   let employeesChanged = false
   const repairedEmployees = employees.map((employee) => {
-    if (!employee.branchId || !branchIds.has(employee.branchId)) {
+    const nextBranchId = resolveCanonicalBranchId(employee.branchId)
+    if (!nextBranchId || !branchIds.has(nextBranchId)) {
+      if (employee.branchId && !branchIds.has(employee.branchId)) {
+        employeesChanged = true
+        fixed += 1
+      }
+      return employee
+    }
+    if (nextBranchId !== employee.branchId) {
       employeesChanged = true
       fixed += 1
-      return employee
+      return { ...employee, branchId: nextBranchId }
     }
     return employee
   })
@@ -29,11 +38,15 @@ export function repairBranchIdReferences() {
   let invoicesChanged = false
   const repairedInvoices = invoices.map((invoice) => {
     if (!invoice.branchId) return invoice
-    const canonicalName = getBranchName(invoice.branchId)
-    if (branchIds.has(invoice.branchId) && invoice.branchName !== canonicalName) {
+    const nextBranchId = resolveCanonicalBranchId(invoice.branchId)
+    const canonicalName = getBranchName(nextBranchId)
+    if (
+      branchIds.has(nextBranchId)
+      && (nextBranchId !== invoice.branchId || invoice.branchName !== canonicalName)
+    ) {
       invoicesChanged = true
       fixed += 1
-      return { ...invoice, branchName: canonicalName }
+      return { ...invoice, branchId: nextBranchId, branchName: canonicalName }
     }
     return invoice
   })
@@ -45,11 +58,15 @@ export function repairBranchIdReferences() {
   let expensesChanged = false
   const repairedExpenses = expenses.map((expense) => {
     if (!expense.branchId) return expense
-    const canonicalName = getBranchName(expense.branchId)
-    if (branchIds.has(expense.branchId) && expense.branchName !== canonicalName) {
+    const nextBranchId = resolveCanonicalBranchId(expense.branchId)
+    const canonicalName = getBranchName(nextBranchId)
+    if (
+      branchIds.has(nextBranchId)
+      && (nextBranchId !== expense.branchId || expense.branchName !== canonicalName)
+    ) {
       expensesChanged = true
       fixed += 1
-      return { ...expense, branchName: canonicalName }
+      return { ...expense, branchId: nextBranchId, branchName: canonicalName }
     }
     return expense
   })

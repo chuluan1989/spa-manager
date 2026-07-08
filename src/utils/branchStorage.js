@@ -1,8 +1,22 @@
 import { PRICE_GROUP_IDS } from '../constants/priceGroupIds'
-import { getBranchContactByBranchId } from '../constants/branchContacts'
-import { getPayrollBranchSortOrder } from '../constants/branchPayrollDisplay'
+import {
+  CANONICAL_BRANCHES,
+  CANONICAL_BRANCH_IDS,
+  getCanonicalBranchName,
+  getPasswordBranchName,
+  getDefaultBranchId,
+  isCanonicalBranchId,
+} from '../constants/canonicalBranches'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { upsertBranches } from '../repositories/branchesRepository'
+
+export {
+  CANONICAL_BRANCH_IDS,
+  getCanonicalBranchName,
+  getPasswordBranchName,
+  getDefaultBranchId,
+  isCanonicalBranchId,
+}
 
 function pushBranchesToSupabase(branches) {
   if (!isSupabaseConfigured) return
@@ -18,32 +32,19 @@ export const BRANCH_STATUS = {
 
 const STORAGE_KEY = 'spa-manager-branches'
 
-const DEFAULT_BRANCH_DEFINITIONS = [
-  { id: 'tram-spa', name: 'Trạm Spa', priceGroupId: PRICE_GROUP_IDS.TRAM_SPA, supportEnabled: true },
-  { id: 'soc-trang', name: 'Sóc Trăng', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: true },
-  { id: 'gia-lai-1', name: 'Gia Lai 1', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'vinh-long', name: 'Vĩnh Long', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'bac-lieu', name: 'Bạc Liêu', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'tra-vinh', name: 'Trà Vinh', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'song-khoe-spa', name: 'Sống Khoẻ Spa', priceGroupId: PRICE_GROUP_IDS.SONG_KHOE_SPA, supportEnabled: true },
-  { id: 'gia-lai-3', name: 'Gia Lai 3', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-  { id: 'gia-lai-2', name: 'Gia Lai 2', priceGroupId: PRICE_GROUP_IDS.STANDARD, supportEnabled: false },
-]
-
-function defaultContactFields(branchId) {
-  const contact = getBranchContactByBranchId(branchId)
-  return {
-    address: contact?.address ?? '',
-    hotline: contact?.phone ?? '',
-  }
-}
+const DEFAULT_BRANCH_DEFINITIONS = CANONICAL_BRANCHES.map((branch) => ({
+  id: branch.id,
+  name: branch.name,
+  priceGroupId: branch.priceGroupId,
+  supportEnabled: branch.supportEnabled,
+  address: branch.address,
+  hotline: branch.phone,
+  sortOrder: branch.sortOrder,
+}))
 
 function buildDefaultBranch(definition) {
-  const contact = defaultContactFields(definition.id)
   return normalizeBranch({
     ...definition,
-    ...contact,
-    sortOrder: getPayrollBranchSortOrder(definition.id),
     status: BRANCH_STATUS.ACTIVE,
   })
 }
@@ -52,18 +53,18 @@ const DEFAULT_BRANCHES = DEFAULT_BRANCH_DEFINITIONS.map(buildDefaultBranch)
 
 export function normalizeBranch(branch) {
   const branchId = branch?.id ?? ''
-  const contact = defaultContactFields(branchId)
+  const canonical = CANONICAL_BRANCHES.find((item) => item.id === branchId)
   return {
     id: branchId,
-    name: branch?.name?.trim() ?? '',
-    address: branch?.address?.trim() ?? contact.address,
-    hotline: branch?.hotline?.trim() ?? contact.hotline,
+    name: branch?.name?.trim() || canonical?.name || '',
+    address: branch?.address?.trim() || canonical?.address || '',
+    hotline: branch?.hotline?.trim() || canonical?.phone || '',
     sortOrder: Number.isFinite(Number(branch?.sortOrder))
       ? Number(branch.sortOrder)
-      : getPayrollBranchSortOrder(branchId),
+      : (canonical?.sortOrder ?? 99),
     status: branch?.status === BRANCH_STATUS.LOCKED ? BRANCH_STATUS.LOCKED : BRANCH_STATUS.ACTIVE,
-    priceGroupId: branch?.priceGroupId ?? PRICE_GROUP_IDS.STANDARD,
-    supportEnabled: Boolean(branch?.supportEnabled),
+    priceGroupId: branch?.priceGroupId ?? canonical?.priceGroupId ?? PRICE_GROUP_IDS.STANDARD,
+    supportEnabled: Boolean(branch?.supportEnabled ?? canonical?.supportEnabled),
     updatedAt: branch?.updatedAt ?? new Date().toISOString(),
   }
 }
@@ -137,7 +138,7 @@ export function getBranchMap() {
 }
 
 export function getBranchName(branchId) {
-  return getBranchById(branchId)?.name ?? '—'
+  return getBranchById(branchId)?.name ?? getCanonicalBranchName(branchId) ?? '—'
 }
 
 export function getActiveBranches() {

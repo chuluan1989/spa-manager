@@ -1,15 +1,12 @@
+import { CANONICAL_BRANCHES } from './canonicalBranches'
+
 /** Ánh xạ chi nhánh vận hành → nhãn CN hiển thị trên module Lương (ERP). */
-export const BRANCH_PAYROLL_DISPLAY = {
-  'tram-spa': { code: 'CN1', title: 'CN1 Cần Thơ', sortOrder: 1 },
-  'soc-trang': { code: 'CN2', title: 'CN2 Sóc Trăng', sortOrder: 2 },
-  'gia-lai-1': { code: 'CN3', title: 'CN3 Gia Lai', sortOrder: 3 },
-  'vinh-long': { code: 'CN4', title: 'CN4 Vĩnh Long', sortOrder: 4 },
-  'bac-lieu': { code: 'CN5', title: 'CN5 Bạc Liêu', sortOrder: 5 },
-  'tra-vinh': { code: 'CN6', title: 'CN6 Vĩnh Long', sortOrder: 6 },
-  'song-khoe-spa': { code: 'CN7', title: 'CN7 Cần Thơ', sortOrder: 7 },
-  'gia-lai-3': { code: 'CN8', title: 'CN8 Gia Lai', sortOrder: 8 },
-  'gia-lai-2': { code: '', title: 'Gia Lai 2', sortOrder: 9 },
-}
+export const BRANCH_PAYROLL_DISPLAY = Object.fromEntries(
+  CANONICAL_BRANCHES.map((branch) => [
+    branch.id,
+    { code: branch.cnCode, title: branch.cnTitle, sortOrder: branch.sortOrder },
+  ]),
+)
 
 const FALLBACK_SORT_ORDER = 99
 

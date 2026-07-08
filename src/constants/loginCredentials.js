@@ -1,6 +1,6 @@
 import { ADMIN_BRANCH, ROLES } from './roles'
 import { verifyAdminPassword, verifyBranchPassword, verifyEmployeePassword, ensureCredentialsHashed } from '../utils/credentialsStorage'
-import { getBranchName, isBranchActive } from '../utils/branchStorage'
+import { getBranchName, getPasswordBranchName, isBranchActive } from '../utils/branchStorage'
 import { getEmployeeById, isEmployeeActive } from '../utils/employeeStorage'
 import { isAccountLocked, isEmployeeAccountLocked, recordAccountLogin } from '../utils/accountMetadataStorage'
 
@@ -93,7 +93,7 @@ export async function verifyLogin({ role, branch, employeeId, password }) {
 
     const expectedPassword = computeEmployeeDefaultPassword(
       employee.name,
-      getBranchName(employee.branchId),
+      getPasswordBranchName(employee.branchId),
     )
     const inputPassword = password.trim().toLowerCase()
     const storedOk = await verifyEmployeePassword(employeeId, password)

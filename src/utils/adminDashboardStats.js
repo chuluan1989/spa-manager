@@ -3,16 +3,12 @@ import { getInvoicePayment, getInvoiceServiceCommission, getInvoiceTips } from '
 import { getMonthStartDate, getTodayDate } from './invoiceStorage'
 import { sumExpenseAmount } from './expenseStorage'
 import { computeBranchReport } from './report'
+import { CANONICAL_BRANCHES } from '../constants/canonicalBranches'
 
-export const ADMIN_DASHBOARD_BRANCHES = [
-  { id: 'vinh-long', displayName: 'Khoẻ Spa Vĩnh Long' },
-  { id: 'tra-vinh', displayName: 'Khoẻ Spa Trà Vinh' },
-  { id: 'soc-trang', displayName: 'Khoẻ Spa Sóc Trăng' },
-  { id: 'bac-lieu', displayName: 'Khoẻ Spa Bạc Liêu' },
-  { id: 'gia-lai-1', displayName: 'Gia Lai 1' },
-  { id: 'gia-lai-2', displayName: 'Gia Lai 2' },
-  { id: 'gia-lai-3', displayName: 'Gia Lai 3' },
-]
+export const ADMIN_DASHBOARD_BRANCHES = CANONICAL_BRANCHES.map((branch) => ({
+  id: branch.id,
+  displayName: branch.name,
+}))
 
 function getEmployeePay(invoice) {
   return getInvoiceServiceCommission(invoice) + getInvoiceTips(invoice)

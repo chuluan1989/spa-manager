@@ -1,21 +1,19 @@
 /** CN3 — 63 Trần Khánh Dư, Pleiku */
 export const GIA_LAI_CN3_BRANCH_ID = 'gia-lai-1'
 
-/** CN8 — 174 Tạ Quang Bửu, Pleiku */
-export const GIA_LAI_CN8_BRANCH_ID = 'gia-lai-3'
+/** CN7 — 174 Tạ Quang Bửu, Pleiku */
+export const GIA_LAI_CN7_BRANCH_ID = 'gia-lai-2'
 
 /** Chi nhánh dùng catalog Gia Lai đầy đủ (giá Pleiku). */
 export const GIA_LAI_CATALOG_BRANCH_IDS = [
   GIA_LAI_CN3_BRANCH_ID,
-  'gia-lai-2',
-  GIA_LAI_CN8_BRANCH_ID,
+  GIA_LAI_CN7_BRANCH_ID,
 ]
 
 /** Chi nhánh dùng UI nhóm dịch vụ (4 nhóm trên hóa đơn). */
 export const GROUPED_CATALOG_BRANCH_IDS = [
   GIA_LAI_CN3_BRANCH_ID,
-  'gia-lai-2',
-  GIA_LAI_CN8_BRANCH_ID,
+  GIA_LAI_CN7_BRANCH_ID,
   'tram-spa',
 ]
 

@@ -483,62 +483,57 @@ test('login: admin credentials', async () => {
   assert.equal(result.user.branch, ADMIN_BRANCH)
 })
 
-test('branches: Gia Lai 1, 2 và 3 tồn tại với đúng nhóm bảng giá', () => {
+test('branches: Gia Lai 1 và 2 tồn tại với đúng nhóm bảng giá', () => {
   const active = getActiveBranches()
   const giaLai1 = active.find((b) => b.id === 'gia-lai-1')
   const giaLai2 = active.find((b) => b.id === 'gia-lai-2')
-  const giaLai3 = active.find((b) => b.id === 'gia-lai-3')
 
   assert.ok(giaLai1, 'Phải có chi nhánh Gia Lai 1')
   assert.equal(giaLai1.name, 'Gia Lai 1')
   assert.equal(giaLai1.status, BRANCH_STATUS.ACTIVE)
   assert.equal(giaLai1.priceGroupId, PRICE_GROUP_IDS.STANDARD, 'Gia Lai 1 phải dùng nhóm bảng giá Khoẻ Spa')
 
-  assert.ok(giaLai2, 'Phải có chi nhánh Gia Lai 2')
+  assert.ok(giaLai2, 'Phải có chi nhánh Gia Lai 2 (CN7)')
   assert.equal(giaLai2.name, 'Gia Lai 2')
   assert.equal(giaLai2.status, BRANCH_STATUS.ACTIVE)
   assert.equal(giaLai2.priceGroupId, PRICE_GROUP_IDS.STANDARD, 'Gia Lai 2 phải dùng nhóm bảng giá Khoẻ Spa')
 
-  assert.ok(giaLai3, 'Phải có chi nhánh Gia Lai 3 (CN8)')
-  assert.equal(giaLai3.name, 'Gia Lai 3')
-  assert.equal(giaLai3.status, BRANCH_STATUS.ACTIVE)
-  assert.equal(giaLai3.priceGroupId, PRICE_GROUP_IDS.STANDARD, 'Gia Lai 3 phải dùng nhóm bảng giá Khoẻ Spa')
+  assert.equal(active.find((b) => b.id === 'gia-lai-3'), undefined, 'Không được có chi nhánh lỗi gia-lai-3')
 })
 
 test('branchContacts: map đúng theo branch_id, không theo index', async () => {
   const { getBranchContactByBranchId } = await import('../src/constants/branchContacts.js')
 
   assert.equal(BRANCH_CONTACTS.length, 8)
-  assert.equal(getBranchContactByBranchId('tram-spa')?.label, 'CN1')
-  assert.equal(getBranchContactByBranchId('soc-trang')?.label, 'CN2')
+  assert.equal(getBranchContactByBranchId('soc-trang')?.label, 'CN1')
+  assert.equal(getBranchContactByBranchId('song-khoe-spa')?.label, 'CN2')
   assert.equal(getBranchContactByBranchId('gia-lai-1')?.label, 'CN3')
-  assert.equal(getBranchContactByBranchId('vinh-long')?.label, 'CN4')
+  assert.equal(getBranchContactByBranchId('tra-vinh')?.label, 'CN4')
   assert.equal(getBranchContactByBranchId('bac-lieu')?.label, 'CN5')
-  assert.equal(getBranchContactByBranchId('tra-vinh')?.label, 'CN6')
-  assert.equal(getBranchContactByBranchId('song-khoe-spa')?.label, 'CN7')
+  assert.equal(getBranchContactByBranchId('vinh-long')?.label, 'CN6')
+  assert.equal(getBranchContactByBranchId('gia-lai-2')?.label, 'CN7')
 
-  const cn8 = getBranchContactByBranchId('gia-lai-3')
-  assert.ok(cn8, 'Phải có CN8')
-  assert.match(cn8.address, /174 Tạ Quang Bửu/)
-  assert.equal(cn8.phone, '0779.881.388')
+  const cn8 = getBranchContactByBranchId('tram-spa')
+  assert.ok(cn8, 'Phải có CN8 Trạm Spa')
+  assert.match(cn8.address, /347 Phú Lợi/)
+  assert.equal(cn8.phone, '0933.664.368')
 })
 
-test('branches: sort_order ổn định và matrix hiển thị đủ 9 chi nhánh', async () => {
+test('branches: sort_order ổn định và matrix hiển thị đủ 8 chi nhánh', async () => {
   const { loadBranches } = await import('../src/utils/branchStorage.js')
   const { getMatrixBranches } = await import('../src/utils/permissionsStorage.js')
 
   const branches = loadBranches()
-  assert.equal(branches.length, 9)
-  assert.equal(branches[0].id, 'tram-spa')
-  assert.equal(branches[3].id, 'vinh-long')
-  assert.equal(getMatrixBranches().length, 9)
+  assert.equal(branches.length, 8)
+  assert.equal(branches[0].id, 'soc-trang')
+  assert.equal(branches[7].id, 'tram-spa')
+  assert.equal(getMatrixBranches().length, 8)
 })
 
-test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh Gia Lai 1/2/3', async () => {
+test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh Gia Lai 1/2', async () => {
   await ensureCredentialsHashed()
   assert.equal(await verifyBranchPassword('gia-lai-1', 'khoespagialai1'), true)
   assert.equal(await verifyBranchPassword('gia-lai-2', 'khoespagialai2'), true)
-  assert.equal(await verifyBranchPassword('gia-lai-3', 'khoespagialai3'), true)
   assert.equal(await verifyBranchPassword('gia-lai-1', 'saipass'), false)
 
   const login1 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-1', password: 'khoespagialai1' })
@@ -548,10 +543,6 @@ test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh G
   const login2 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-2', password: 'khoespagialai2' })
   assert.equal(login2.ok, true)
   assert.equal(login2.user.branch, 'gia-lai-2')
-
-  const login3 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-3', password: 'khoespagialai3' })
-  assert.equal(login3.ok, true)
-  assert.equal(login3.user.branch, 'gia-lai-3')
 })
 
 test('employee login: mật khẩu tên+chi nhánh và kiểm tra chi nhánh', async () => {
@@ -690,10 +681,10 @@ test('branches: đồng bộ chi nhánh mặc định không làm mất chi nhá
   assert.equal(vinhLong.name, 'Vĩnh Long (đã đổi tên)', 'Không được ghi đè dữ liệu chi nhánh cũ đã tuỳ chỉnh')
   assert.equal(vinhLong.status, BRANCH_STATUS.LOCKED, 'Không được đổi trạng thái chi nhánh cũ')
 
-  assert.equal(merged.length, 9, 'Phải giữ 2 chi nhánh cũ + bổ sung đủ chi nhánh mặc định còn thiếu')
+  assert.equal(merged.length, 8, 'Phải giữ 2 chi nhánh cũ + bổ sung đủ chi nhánh mặc định còn thiếu')
   assert.ok(merged.some((b) => b.id === 'gia-lai-1'), 'Phải tự bổ sung Gia Lai 1 cho người dùng cũ')
   assert.ok(merged.some((b) => b.id === 'gia-lai-2'), 'Phải tự bổ sung Gia Lai 2 cho người dùng cũ')
-  assert.ok(merged.some((b) => b.id === 'gia-lai-3'), 'Phải tự bổ sung Gia Lai 3 (CN8) cho người dùng cũ')
+  assert.equal(merged.some((b) => b.id === 'gia-lai-3'), false, 'Không được tạo lại chi nhánh lỗi gia-lai-3')
 })
 
 test('session: reject forged localStorage admin', () => {
@@ -2199,7 +2190,7 @@ test('grouped service catalog: Gia Lai branches use 4-group UI', async () => {
     getGiaLaiCatalogServicesForBranch,
     isGiaLaiCatalogBranch,
   } = await import('../src/utils/giaLaiCatalog.js')
-  const { GIA_LAI_CN3_BRANCH_ID, GIA_LAI_CN8_BRANCH_ID } = await import('../src/constants/giaLaiBranches.js')
+  const { GIA_LAI_CN3_BRANCH_ID, GIA_LAI_CN7_BRANCH_ID } = await import('../src/constants/giaLaiBranches.js')
   const { getActiveServicesForBranch } = await import('../src/utils/serviceStorage.js')
   const {
     stripFlatBranchGroupedCatalog,
@@ -2211,7 +2202,7 @@ test('grouped service catalog: Gia Lai branches use 4-group UI', async () => {
   stripFlatBranchGroupedCatalog()
 
   assert.equal(isGiaLaiCatalogBranch(GIA_LAI_CN3_BRANCH_ID), true)
-  assert.equal(isGiaLaiCatalogBranch(GIA_LAI_CN8_BRANCH_ID), true)
+  assert.equal(isGiaLaiCatalogBranch(GIA_LAI_CN7_BRANCH_ID), true)
 
   const flat = flattenGiaLaiCatalog()
   assert.ok(flat.length >= 30, 'Catalog phải có đủ dịch vụ')
@@ -2227,8 +2218,8 @@ test('grouped service catalog: Gia Lai branches use 4-group UI', async () => {
   assert.equal(record.overrides['gl-combo-vip-120'].price, 699000)
 
   const cn3Services = getGiaLaiCatalogServicesForBranch(GIA_LAI_CN3_BRANCH_ID)
-  const cn8Services = getGiaLaiCatalogServicesForBranch(GIA_LAI_CN8_BRANCH_ID)
-  assert.equal(cn3Services.length, cn8Services.length)
+  const cn7Services = getGiaLaiCatalogServicesForBranch(GIA_LAI_CN7_BRANCH_ID)
+  assert.equal(cn3Services.length, cn7Services.length)
 
   syncBranchCatalog('gia-lai-2')
   const giaLai2 = getActiveServicesForBranch('gia-lai-2')
@@ -2273,7 +2264,7 @@ test('branch pricing isolation: mỗi chi nhánh có bảng giá riêng, không 
     assert.equal(totals.originalServiceTotal, expectedPrice)
   }
 
-  for (const branchId of ['gia-lai-1', 'gia-lai-2', 'gia-lai-3']) {
+  for (const branchId of ['gia-lai-1', 'gia-lai-2']) {
     const services = getActiveServicesForBranch(branchId)
     assert.ok(services.some((s) => s.id.startsWith('gl-')), `${branchId} phải có catalog Gia Lai`)
     assert.equal(getCatalogGroupsForBranch(branchId).length, 4, `${branchId} phải có 4 nhóm dịch vụ`)
@@ -2334,15 +2325,15 @@ test('service catalog v2: admin thêm nhóm và giá có hiệu lực trên hóa
 test('gia lai catalog: invoice totals use branch catalog price', async () => {
   const { calculateInvoiceTotals } = await import('../src/utils/invoice.js')
   const { syncBranchCatalog } = await import('../src/utils/branchPricingStorage.js')
-  const { GIA_LAI_CN8_BRANCH_ID } = await import('../src/constants/giaLaiBranches.js')
+  const { GIA_LAI_CN7_BRANCH_ID } = await import('../src/constants/giaLaiBranches.js')
 
-  syncBranchCatalog(GIA_LAI_CN8_BRANCH_ID)
+  syncBranchCatalog(GIA_LAI_CN7_BRANCH_ID)
   const totals = calculateInvoiceTotals(
     ['gl-body-tinh-dau-60', 'gl-goi-thu-gian-30'],
     50000,
-    GIA_LAI_CN8_BRANCH_ID,
+    GIA_LAI_CN7_BRANCH_ID,
     [],
-    'Gia Lai 3',
+    'Gia Lai 2',
     '',
   )
   assert.equal(totals.originalServiceTotal, 349000 + 99000)
@@ -2576,6 +2567,35 @@ test('branches: repairBranchIdReferences đồng bộ branchName theo branch_id'
   assert.ok(fixed >= 1)
   const updated = loadInvoices().find((i) => i.id === sample.id)
   assert.equal(updated.branchName, getBranchName(updated.branchId))
+})
+
+test('canonical branches: repair mapping 8 chi nhánh và migrate gia-lai-3', async () => {
+  const { repairCanonicalBranchMapping, auditCanonicalBranchMapping } = await import('../src/utils/canonicalBranchRepair.js')
+  const { loadBranches } = await import('../src/utils/branchStorage.js')
+  const { loadEmployees } = await import('../src/utils/employeeStorage.js')
+  const { CANONICAL_BRANCH_IDS } = await import('../src/constants/canonicalBranches.js')
+
+  localStorage.setItem('spa-manager-branches', JSON.stringify([
+    { id: 'gia-lai-3', name: 'Gia Lai 3', status: 'active', priceGroupId: 'standard', sortOrder: 8 },
+    { id: 'tram-spa', name: 'Trạm Spa', status: 'active', priceGroupId: 'tram-spa', sortOrder: 1 },
+  ]))
+  localStorage.setItem('spa-manager-employees', JSON.stringify([
+    { id: 'gia-lai-3-thao', name: 'Thảo', branchId: 'gia-lai-3', status: 'active', phone: '0900000001' },
+  ]))
+
+  repairCanonicalBranchMapping()
+  const audit = auditCanonicalBranchMapping()
+  assert.equal(audit.valid, true, audit.issues.map((i) => JSON.stringify(i)).join('; '))
+
+  const branches = loadBranches()
+  assert.equal(branches.length, 8)
+  assert.equal(branches.some((b) => b.id === 'gia-lai-3'), false)
+  assert.deepEqual(branches.map((b) => b.id), CANONICAL_BRANCH_IDS)
+
+  const employee = loadEmployees().find((e) => e.id === 'gia-lai-3-thao')
+  assert.equal(employee.branchId, 'gia-lai-2', 'Chỉ sửa branch_id, giữ employee_id và hồ sơ')
+  assert.equal(employee.phone, '0900000001')
+  assert.equal(employee.name, 'Thảo')
 })
 
 process.exit(failed > 0 ? 1 : 0)

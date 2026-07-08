@@ -2,7 +2,8 @@ import { ADMIN_BRANCH } from '../constants/roles'
 import { computeEmployeeDefaultPassword } from '../constants/loginCredentials'
 import { upsertCredentials } from '../repositories/credentialsRepository'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { getBranchName, loadBranches } from './branchStorage'
+import { CANONICAL_BRANCHES } from '../constants/canonicalBranches'
+import { getBranchName, getPasswordBranchName, loadBranches } from './branchStorage'
 import { formatLastLogin, getAccountMeta, loadAccountMetadata } from './accountMetadataStorage'
 import { isEmployeeLoginEligible, loadEmployees } from './employeeStorage'
 import { hashPassword, isPasswordHash, verifyPassword } from './passwordHash'
@@ -18,17 +19,9 @@ function pushCredentialsToSupabase(credentials) {
 
 export const DEFAULT_ADMIN_PASSWORD = 'admin123'
 
-export const DEFAULT_BRANCH_PASSWORDS = {
-  'vinh-long': 'khoespavinhlong',
-  'tra-vinh': 'khoespatravinh',
-  'bac-lieu': 'khoespabaclieu',
-  'soc-trang': 'khoespasoctrang',
-  'tram-spa': 'tramspa',
-  'song-khoe-spa': 'songkhoespa',
-  'gia-lai-1': 'khoespagialai1',
-  'gia-lai-2': 'khoespagialai2',
-  'gia-lai-3': 'khoespagialai3',
-}
+export const DEFAULT_BRANCH_PASSWORDS = Object.fromEntries(
+  CANONICAL_BRANCHES.map((branch) => [branch.id, branch.managerPassword]),
+)
 
 function buildDefaultCredentials() {
   return {
@@ -158,7 +151,7 @@ export async function syncEmployeeCredentialsFromEmployees() {
   for (const employee of employees) {
     const plainPassword = computeEmployeeDefaultPassword(
       employee.name,
-      getBranchName(employee.branchId),
+      getPasswordBranchName(employee.branchId),
     )
     const nextEntry = {
       branchId: employee.branchId,
@@ -196,7 +189,7 @@ export async function repairEmployeeCredentials() {
     if (!isEmployeeLoginEligible(employee)) continue
     const plainPassword = computeEmployeeDefaultPassword(
       employee.name,
-      getBranchName(employee.branchId),
+      getPasswordBranchName(employee.branchId),
     )
     const current = credentials.employees[employee.id]
     const needsCreate = !current
@@ -231,7 +224,7 @@ export async function syncEmployeeCredentialForEmployee(employeeId) {
 
   const plainPassword = computeEmployeeDefaultPassword(
     employee.name,
-    getBranchName(employee.branchId),
+    getPasswordBranchName(employee.branchId),
   )
   credentials.employees[employee.id] = {
     branchId: employee.branchId,
