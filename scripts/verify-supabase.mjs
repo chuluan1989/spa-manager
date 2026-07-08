@@ -34,7 +34,7 @@ if (!globalThis.crypto?.subtle) {
   Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true })
 }
 
-function useDevice(store) {
+function switchStorageDevice(store) {
   globalThis.localStorage = store
 }
 
@@ -131,7 +131,7 @@ if (!allTablesOk) {
   process.exit(1)
 }
 
-useDevice(storeA)
+switchStorageDevice(storeA)
 const { loadBranches } = await import('../src/utils/branchStorage.js')
 const { ROLES, ADMIN_BRANCH } = await import('../src/constants/auth.js')
 const {
@@ -157,7 +157,7 @@ let testExpenseId = null
 let testServiceId = null
 
 await step('2. Tạo nhân viên mới trên "thiết bị A" (LocalStorage A)', async () => {
-  useDevice(storeA)
+  switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   const result = addEmployee({
     name: TEST_TAG,
@@ -180,7 +180,7 @@ await step('3. Xác nhận bản ghi nhân viên xuất hiện trực tiếp tro
 })
 
 await step('4. "Thiết bị B" (LocalStorage rỗng, chưa từng thấy nhân viên này) pull về và thấy ngay', async () => {
-  useDevice(storeB)
+  switchStorageDevice(storeB)
   const result = await pullAllFromSupabase()
   assert.equal(result.success, true, JSON.stringify(result.errors))
   const employees = loadEmployees()
@@ -189,7 +189,7 @@ await step('4. "Thiết bị B" (LocalStorage rỗng, chưa từng thấy nhân 
 })
 
 await step('5. Sửa hồ sơ nhân viên trên thiết bị A, xác nhận Supabase cập nhật', async () => {
-  useDevice(storeA)
+  switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   const result = updateEmployee(testEmployeeId, { position: 'Test đã sửa' })
   assert.equal(result.success, true, result.error)
@@ -200,14 +200,14 @@ await step('5. Sửa hồ sơ nhân viên trên thiết bị A, xác nhận Supa
 })
 
 await step('6. Thiết bị B pull lại, thấy bản sửa mới nhất', async () => {
-  useDevice(storeB)
+  switchStorageDevice(storeB)
   await pullAllFromSupabase()
   const updated = getEmployeeById(testEmployeeId)
   assert.equal(updated?.position, 'Test đã sửa')
 })
 
 await step('7. Nhập hóa đơn/tour trên thiết bị A, xác nhận lưu vào Supabase', async () => {
-  useDevice(storeA)
+  switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   testInvoiceId = `verify-inv-${Date.now()}`
   const result = saveInvoice({
@@ -235,14 +235,14 @@ await step('7. Nhập hóa đơn/tour trên thiết bị A, xác nhận lưu và
 })
 
 await step('8. Thiết bị B pull lại, thấy hóa đơn mới', async () => {
-  useDevice(storeB)
+  switchStorageDevice(storeB)
   await pullAllFromSupabase()
   const invoices = loadInvoices()
   assert.ok(invoices.some((inv) => inv.id === testInvoiceId), 'Thiết bị B phải thấy hóa đơn vừa tạo')
 })
 
 await step('8b. Expenses CRUD: tạo chi phí → Supabase → thiết bị B thấy', async () => {
-  useDevice(storeA)
+  switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   const result = addExpense({
     date: new Date().toISOString().slice(0, 10),
@@ -270,7 +270,7 @@ await step('8b. Expenses CRUD: tạo chi phí → Supabase → thiết bị B th
   if (updErr) throw updErr
   assert.equal(updated.content, `${TEST_TAG}-updated`)
 
-  useDevice(storeB)
+  switchStorageDevice(storeB)
   await pullAllFromSupabase()
   assert.ok(
     loadExpenses().some((exp) => exp.id === testExpenseId),
@@ -279,7 +279,7 @@ await step('8b. Expenses CRUD: tạo chi phí → Supabase → thiết bị B th
 })
 
 await step('8c. Services CRUD: thêm dịch vụ → Supabase → thiết bị B thấy', async () => {
-  useDevice(storeA)
+  switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   testServiceId = `verify-svc-${Date.now()}`
   addService({
@@ -303,7 +303,7 @@ await step('8c. Services CRUD: thêm dịch vụ → Supabase → thiết bị B
   if (updErr) throw updErr
   assert.equal(updated.name, `${TEST_TAG}-updated`)
 
-  useDevice(storeB)
+  switchStorageDevice(storeB)
   await pullAllFromSupabase()
   assert.ok(
     loadServices().some((svc) => svc.id === testServiceId),
@@ -334,7 +334,7 @@ await step('9. Realtime: sửa nhân viên và nhận được sự kiện postg
     setTimeout(() => reject(new Error('Không nhận được sự kiện Realtime sau 8s')), 8000),
   )
 
-  useDevice(storeA)
+  switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   await wait(500)
   updateEmployee(testEmployeeId, { note: 'trigger-realtime' })
@@ -343,7 +343,7 @@ await step('9. Realtime: sửa nhân viên và nhận được sự kiện postg
 })
 
 await step('10. Dọn dẹp dữ liệu test khỏi Supabase', async () => {
-  useDevice(storeA)
+  switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   deleteInvoice(testInvoiceId)
   if (testExpenseId) deleteExpense(testExpenseId)

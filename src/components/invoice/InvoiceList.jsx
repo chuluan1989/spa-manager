@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { formatPhoneDisplay } from '../../utils/customerAnalytics'
 import {
   formatCurrency,

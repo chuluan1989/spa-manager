@@ -50,6 +50,10 @@ const TABLE_COLUMNS = {
   app_settings: ['id', 'payload', 'updated_at'],
   app_permissions: ['id', 'payload', 'updated_at'],
   app_credentials: ['id', 'payload', 'updated_at'],
+  attendance: ['id', 'date', 'branch_id', 'employee_id', 'updated_at'],
+  payroll_adjustments: ['id', 'month', 'branch_id', 'employee_id', 'type', 'amount', 'updated_at'],
+  payroll_locks: ['id', 'month', 'branch_id', 'updated_at'],
+  payroll_audit_logs: ['id', 'action', 'updated_at'],
 }
 
 const EXPENSE_OPTIONAL_COLUMNS = ['expense_time', 'paid_by', 'receipt_image', 'entered_by_id']

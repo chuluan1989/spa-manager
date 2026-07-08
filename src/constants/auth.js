@@ -88,6 +88,7 @@ export function filterByUserScope(
   items,
   getBranchId = (item) => item.branchId,
   getEmployeeId = (item) => item.employeeId,
+  getSupportEmployeeId = (item) => item.supportEmployeeId ?? '',
 ) {
   if (isAdmin()) return items
 
@@ -97,7 +98,9 @@ export function filterByUserScope(
   let scoped = items.filter((item) => getBranchId(item) === branchId)
   if (isEmployee()) {
     const employeeId = getCurrentUserEmployeeId()
-    scoped = scoped.filter((item) => getEmployeeId(item) === employeeId)
+    scoped = scoped.filter((item) =>
+      getEmployeeId(item) === employeeId || getSupportEmployeeId(item) === employeeId,
+    )
   }
   return scoped
 }

@@ -9,7 +9,6 @@ import ErpKpiGrid from '../erp/ErpKpiGrid'
 import ErpPageHeader from '../erp/ErpPageHeader'
 import { getActiveBranches } from '../../constants/branches'
 import {
-  canAccessCustomersPage,
   canManageCustomerCare,
   canSelectBranch,
   getCurrentUserBranch,

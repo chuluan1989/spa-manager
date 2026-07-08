@@ -440,6 +440,21 @@ test('invoice filters: date, branch, employee, service, payment, search', async 
   const page = paginateInvoices(sorted, 1, 1)
   assert.equal(page.items.length, 1)
   assert.equal(page.totalPages, 2)
+
+  const supportMatch = filterInvoices([
+    {
+      id: '3',
+      date: '2026-07-05',
+      branchId: 'soc-trang',
+      employeeId: 'emp-main',
+      supportEmployeeId: 'emp-support',
+      customerName: 'Chi',
+      customerPhone: '0923456789',
+      paymentMethod: 'cash',
+      services: [],
+    },
+  ], { employeeId: 'emp-support' })
+  assert.equal(supportMatch.length, 1, 'lọc NV theo supportEmployeeId')
 })
 
 test('login: admin credentials', async () => {
@@ -567,6 +582,15 @@ test('permissions: role access matrix', () => {
   )
   assert.equal(filterByUserScope([{ branchId: 'vinh-long', employeeId: 'vinh-long-linh' }]).length, 1)
   assert.equal(filterByUserScope([{ branchId: 'vinh-long', employeeId: 'other' }]).length, 0)
+  assert.equal(
+    filterByUserScope([{
+      branchId: 'vinh-long',
+      employeeId: 'other',
+      supportEmployeeId: 'vinh-long-linh',
+    }]).length,
+    1,
+    'employee thấy hóa đơn hỗ trợ',
+  )
   clearCurrentUser()
 })
 

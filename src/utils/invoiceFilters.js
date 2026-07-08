@@ -78,7 +78,9 @@ export function filterInvoices(invoices, filters) {
     if (toDate && invoice.date > toDate) return false
     if (branchId && invoice.branchId !== branchId) return false
 
-    if (employeeId && invoice.employeeId !== employeeId) return false
+    if (employeeId && invoice.employeeId !== employeeId && invoice.supportEmployeeId !== employeeId) {
+      return false
+    }
 
     if (paymentMethod && invoice.paymentMethod !== paymentMethod) return false
 

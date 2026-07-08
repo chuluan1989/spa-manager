@@ -20,7 +20,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const employees = useMemo(() => loadEmployees(), [loading, month])
+  const employees = useMemo(() => loadEmployees(), [])
 
   const reload = useCallback(async () => {
     setLoading(true)
