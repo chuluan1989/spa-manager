@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { usePayrollData } from '../../hooks/usePayrollData'
+import { useBranchPayrollData } from './useBranchPayrollData'
 import { getCurrentMonthValue } from '../../utils/salaryReport'
 import { formatCurrency } from '../../utils/invoice'
 import { mergeEmployeePayrollRows } from '../../utils/payrollViewHelpers'
@@ -7,7 +7,7 @@ import BranchEmptyState from './BranchEmptyState'
 
 export default function BranchSalaryTab({ branchId }) {
   const [month, setMonth] = useState(getCurrentMonthValue())
-  const { employees, report, loading, error } = usePayrollData({ month, branchId })
+  const { employees, report, loading, error } = useBranchPayrollData({ month, branchId })
 
   const rows = useMemo(
     () => mergeEmployeePayrollRows(employees, report?.rows ?? [], { branchId }),

@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import EmployeeProfileForm from '../employees/EmployeeProfileForm'
 import EmployeeHubDetail from '../employees/EmployeeHubDetail'
-import { useEmployeeHubData } from '../../hooks/useEmployeeHubData'
+import { useBranchHubData } from './useBranchHubData'
 import { useBranchAttendance } from './useBranchAttendance'
 import BranchEmptyState from './BranchEmptyState'
-import { usePayrollData } from '../../hooks/usePayrollData'
+import { useBranchPayrollData } from './useBranchPayrollData'
 import { loadBranches } from '../../utils/branchStorage'
 import {
   addEmployee,
@@ -55,9 +55,9 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
   const month = getCurrentMonthValue()
   const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
 
-  const { employees: hubEmployees, invoices, loading, error: hubError, reload } = useEmployeeHubData({ branchId, month })
+  const { employees: hubEmployees, invoices, loading, error: hubError, reload } = useBranchHubData({ branchId, month })
   const { records: attendanceRecords } = useBranchAttendance({ branchId, fromDate, toDate })
-  const { adjustments } = usePayrollData({ month, branchId })
+  const { adjustments } = useBranchPayrollData({ month, branchId })
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
   const [modal, setModal] = useState(null)
