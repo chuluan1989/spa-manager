@@ -30,8 +30,13 @@ export function useInvoicesData() {
         if (!cancelled) {
           const list = Array.isArray(rows) ? rows : []
           setInvoices(list)
-          replaceAllInvoices(list)
           setError('')
+          // Cache phụ — lỗi localStorage không được coi là lỗi Supabase.
+          try {
+            replaceAllInvoices(list)
+          } catch (cacheError) {
+            console.warn('[Invoice] Cache localStorage thất bại — UI vẫn dùng Supabase.', cacheError?.message)
+          }
         }
       } catch (err) {
         if (!cancelled) {

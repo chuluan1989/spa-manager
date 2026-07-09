@@ -172,10 +172,23 @@ export function getInvoiceById(id) {
   return loadInvoices().find((invoice) => invoice.id === id) ?? null
 }
 
+function isStorageQuotaError(error) {
+  return error?.name === 'QuotaExceededError'
+    || /quota/i.test(String(error?.message ?? ''))
+}
+
 /** Ghi đè toàn bộ cache LocalStorage — dùng khi kéo dữ liệu mới nhất từ Supabase về. */
 export function replaceAllInvoices(invoices) {
   const list = Array.isArray(invoices) ? invoices : []
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+  } catch (error) {
+    console.warn('[Invoice] Cache spa-manager-invoices bỏ qua — không ảnh hưởng dữ liệu Supabase.', {
+      count: list.length,
+      error: error?.message ?? String(error),
+      quotaExceeded: isStorageQuotaError(error),
+    })
+  }
   return list
 }
 
