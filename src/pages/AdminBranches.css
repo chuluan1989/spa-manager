@@ -450,3 +450,27 @@
   width: 100%;
   margin-bottom: 8px;
 }
+
+.admin-branches__empty {
+  margin-top: 16px;
+  padding: 24px;
+  text-align: center;
+  border: 1px dashed var(--ks-border-subtle);
+  border-radius: var(--ks-radius-md);
+  color: var(--ks-text-muted);
+  background: var(--ks-surface-muted, #f8fafc);
+}
+
+.admin-branches__mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.admin-branches__pricing-category + .admin-branches__pricing-category {
+  margin-top: 24px;
+}
+
+.admin-branches__pricing-service {
+  margin-bottom: 16px;
+}
+

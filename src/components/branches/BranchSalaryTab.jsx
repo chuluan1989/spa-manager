@@ -3,6 +3,7 @@ import { usePayrollData } from '../../hooks/usePayrollData'
 import { getCurrentMonthValue } from '../../utils/salaryReport'
 import { formatCurrency } from '../../utils/invoice'
 import { mergeEmployeePayrollRows } from '../../utils/payrollViewHelpers'
+import BranchEmptyState from './BranchEmptyState'
 
 export default function BranchSalaryTab({ branchId }) {
   const [month, setMonth] = useState(getCurrentMonthValue())
@@ -20,12 +21,17 @@ export default function BranchSalaryTab({ branchId }) {
           <span>Tháng lương</span>
           <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
         </label>
+        <p className="admin-branches__hint">branch_id: {branchId} · {rows.length} nhân viên</p>
       </div>
 
       {loading && <p className="admin-branches__hint">Đang tải bảng lương...</p>}
       {error && <p className="admin-branches__hint admin-branches__hint--error">{error}</p>}
 
-      {!loading && (
+      {!loading && !error && rows.length === 0 && (
+        <BranchEmptyState message="Chi nhánh này chưa có nhân viên để tính lương." />
+      )}
+
+      {!loading && rows.length > 0 && (
         <div className="admin-branches__table-wrap admin-branches__table-wrap--wide">
           <table className="admin-branches__table admin-branches__table--compact">
             <thead>
@@ -46,9 +52,6 @@ export default function BranchSalaryTab({ branchId }) {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && (
-                <tr><td colSpan={13}>Chưa có nhân viên tại chi nhánh này.</td></tr>
-              )}
               {rows.map((row) => (
                 <tr key={row.employeeId}>
                   <td>{row.employeeName}</td>

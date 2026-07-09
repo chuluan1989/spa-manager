@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import AttendanceMonthMatrix from '../attendance/AttendanceMonthMatrix'
-import { useAttendanceData } from '../../hooks/useAttendanceData'
 import { getCurrentMonthValue } from '../../utils/salaryReport'
 import { buildAttendanceMonthMatrix } from '../../utils/attendanceViewHelpers'
 import { buildAttendanceStats } from '../../utils/attendancePenalties'
-import { loadEmployees } from '../../utils/employeeStorage'
+import { employeeBelongsToBranch } from '../../utils/branchEmployeeMatch'
 import { formatCurrency } from '../../utils/invoice'
 import { getAttendanceStatusLabel } from '../../constants/attendanceTypes'
+import { useEmployeeHubData } from '../../hooks/useEmployeeHubData'
+import { useBranchAttendance } from './useBranchAttendance'
+import BranchEmptyState from './BranchEmptyState'
 
 export default function BranchAttendanceTab({ branchId }) {
   const [month, setMonth] = useState(getCurrentMonthValue())
@@ -21,14 +23,16 @@ export default function BranchAttendanceTab({ branchId }) {
     }
   }, [month])
 
-  const { records, loading, error } = useAttendanceData({
+  const { records, loading, error } = useBranchAttendance({
     branchId,
     fromDate: monthRange.fromDate,
     toDate: monthRange.toDate,
   })
+  const { employees: hubEmployees } = useEmployeeHubData({ branchId, month })
+
   const employees = useMemo(
-    () => loadEmployees().filter((emp) => emp.branchId === branchId),
-    [branchId],
+    () => hubEmployees.filter((emp) => employeeBelongsToBranch(emp, branchId)),
+    [hubEmployees, branchId],
   )
 
   const matrix = useMemo(
@@ -45,10 +49,15 @@ export default function BranchAttendanceTab({ branchId }) {
           <span>Tháng</span>
           <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
         </label>
+        <p className="admin-branches__hint">branch_id: {branchId}</p>
       </div>
 
       {loading && <p className="admin-branches__hint">Đang tải chấm công...</p>}
       {error && <p className="admin-branches__hint admin-branches__hint--error">{error}</p>}
+
+      {!loading && !error && records.length === 0 && employees.length === 0 && (
+        <BranchEmptyState />
+      )}
 
       {!loading && (
         <>
@@ -58,13 +67,16 @@ export default function BranchAttendanceTab({ branchId }) {
             <div><span>Tổng phạt</span><strong>{formatCurrency(stats.totalPenalty)}</strong></div>
           </div>
 
-          <AttendanceMonthMatrix days={matrix.days} rows={matrix.rows} />
+          {employees.length > 0 && (
+            <AttendanceMonthMatrix days={matrix.days} rows={matrix.rows} />
+          )}
 
           <div className="admin-branches__table-wrap">
             <table className="admin-branches__table">
               <thead>
                 <tr>
                   <th>Ngày</th>
+                  <th>employee_id</th>
                   <th>Nhân viên</th>
                   <th>Trạng thái</th>
                   <th>Phạt</th>
@@ -73,11 +85,12 @@ export default function BranchAttendanceTab({ branchId }) {
               </thead>
               <tbody>
                 {records.length === 0 && (
-                  <tr><td colSpan={5}>Chưa có dữ liệu chấm công.</td></tr>
+                  <tr><td colSpan={6}>Chưa có dữ liệu chấm công trong tháng này.</td></tr>
                 )}
                 {records.map((row) => (
                   <tr key={row.id}>
                     <td>{row.date}</td>
+                    <td className="admin-branches__mono">{row.employeeId || '—'}</td>
                     <td>{row.employeeName}</td>
                     <td>{getAttendanceStatusLabel(row.status)}</td>
                     <td>{formatCurrency(row.penaltyAmount ?? 0)}</td>

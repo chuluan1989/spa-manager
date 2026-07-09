@@ -7,7 +7,7 @@ import { canAccessBranchesPage, canManageBranches, isAdmin } from '../constants/
 import BranchEmployeesTab from '../components/branches/BranchEmployeesTab'
 import BranchOverviewTab from '../components/branches/BranchOverviewTab'
 import BranchPricingTab from '../components/branches/BranchPricingTab'
-import BranchCommissionTab from '../components/branches/BranchCommissionTab'
+import BranchInvoicesTab from '../components/branches/BranchInvoicesTab'
 import BranchAttendanceTab from '../components/branches/BranchAttendanceTab'
 import BranchSalaryTab from '../components/branches/BranchSalaryTab'
 import {
@@ -46,7 +46,7 @@ const DETAIL_TABS = [
   { id: 'overview', label: 'Tổng quan' },
   { id: 'employees', label: 'Nhân viên' },
   { id: 'pricing', label: 'Bảng giá' },
-  { id: 'commission', label: 'Hoa hồng' },
+  { id: 'invoices', label: 'Hóa đơn' },
   { id: 'attendance', label: 'Chấm công' },
   { id: 'salary', label: 'Lương' },
 ]
@@ -271,7 +271,7 @@ export default function AdminBranches() {
                       setDetailTab('overview')
                     }}
                   >
-                    Xem chi tiết
+                    Chi tiết
                   </button>
                 </article>
               ))}
@@ -359,8 +359,8 @@ export default function AdminBranches() {
                 <BranchPricingTab branchId={selectedBranch.id} showToast={showToast} readOnly={readOnly} />
               )}
 
-              {detailTab === 'commission' && (
-                <BranchCommissionTab branchId={selectedBranch.id} showToast={showToast} />
+              {detailTab === 'invoices' && (
+                <BranchInvoicesTab branchId={selectedBranch.id} />
               )}
 
               {detailTab === 'attendance' && (

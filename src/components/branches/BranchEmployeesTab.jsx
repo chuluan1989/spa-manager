@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import EmployeeProfileForm from '../employees/EmployeeProfileForm'
 import EmployeeHubDetail from '../employees/EmployeeHubDetail'
-import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import { useEmployeeHubData } from '../../hooks/useEmployeeHubData'
-import { useAttendanceData } from '../../hooks/useAttendanceData'
+import { useBranchAttendance } from './useBranchAttendance'
+import BranchEmptyState from './BranchEmptyState'
 import { usePayrollData } from '../../hooks/usePayrollData'
 import { loadBranches } from '../../utils/branchStorage'
 import {
@@ -13,10 +13,8 @@ import {
   EMPTY_EMPLOYEE_FORM,
   EMPLOYEE_STATUS,
   EMPLOYEE_STATUS_OPTIONS,
-  getEmployeeById,
   getEmployeeProfileStatus,
   getStatusLabel,
-  loadEmployees,
   normalizeEmployee,
   setEmployeeStatus,
   transferEmployee,
@@ -57,11 +55,10 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
   const month = getCurrentMonthValue()
   const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
 
-  const { employees: hubEmployees, invoices, loading, reload } = useEmployeeHubData({ branchId, month })
-  const { records: attendanceRecords } = useAttendanceData({ branchId, fromDate, toDate })
+  const { employees: hubEmployees, invoices, loading, error: hubError, reload } = useEmployeeHubData({ branchId, month })
+  const { records: attendanceRecords } = useBranchAttendance({ branchId, fromDate, toDate })
   const { adjustments } = usePayrollData({ month, branchId })
 
-  const [employees, setEmployees] = useState(() => loadEmployees())
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState(EMPTY_EMPLOYEE_FORM)
@@ -70,24 +67,18 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
   const [statusFilter, setStatusFilter] = useState(EMPLOYEE_STATUS.ACTIVE)
   const [passwordForm, setPasswordForm] = useState({ password: '', confirm: '' })
 
-  const syncVersion = useDataSyncVersion()
-  useEffect(() => {
-    if (syncVersion > 0) setEmployees(loadEmployees())
-  }, [syncVersion])
-
-  const branches = useMemo(() => loadBranches(), [employees])
+  const branches = useMemo(() => loadBranches(), [hubEmployees])
 
   const branchEmployees = useMemo(() => {
-    const source = hubEmployees.length ? hubEmployees : employees
     const q = search.trim().toLowerCase()
-    return source.filter((emp) => {
+    return hubEmployees.filter((emp) => {
       if (!employeeBelongsToBranch(emp, branchId)) return false
       if (statusFilter && emp.status !== statusFilter) return false
       if (!q) return true
       const haystack = `${emp.name ?? ''} ${emp.phone ?? ''} ${emp.cccd ?? ''}`.toLowerCase()
       return haystack.includes(q)
     })
-  }, [hubEmployees, employees, branchId, search, statusFilter])
+  }, [hubEmployees, branchId, search, statusFilter])
 
   const statsMap = useMemo(
     () => computeEmployeeListStats(invoices, branchEmployees.map((e) => e.id), month),
@@ -95,12 +86,11 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
   )
 
   const selectedEmployee = useMemo(
-    () => branchEmployees.find((e) => e.id === selectedEmployeeId) ?? getEmployeeById(selectedEmployeeId),
+    () => branchEmployees.find((e) => e.id === selectedEmployeeId) ?? null,
     [branchEmployees, selectedEmployeeId],
   )
 
   const refresh = () => {
-    setEmployees(loadEmployees())
     reload()
   }
 
@@ -145,7 +135,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
     if (Object.keys(next).length > 0) return
 
     if (modal.mode === 'add') {
-      const result = addEmployee({ ...form, branchId })
+      const result = await addEmployee({ ...form, branchId })
       if (!result.success) {
         showToast(result.error ?? 'Không thể thêm nhân viên')
         return
@@ -153,7 +143,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       await syncEmployeeCredentialForEmployee(result.employee?.id)
       showToast('Thêm nhân viên thành công')
     } else {
-      const result = updateEmployee(modal.id, form)
+      const result = await updateEmployee(modal.id, form)
       if (!result.success) {
         showToast(result.error ?? 'Không thể cập nhật nhân viên')
         return
@@ -170,7 +160,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       showToast('Vui lòng chọn chi nhánh đích')
       return
     }
-    const result = transferEmployee(modal.id, modal.targetBranchId)
+    const result = await transferEmployee(modal.id, modal.targetBranchId)
     if (!result.success) {
       showToast(result.error ?? 'Không thể chuyển chi nhánh')
       return
@@ -188,11 +178,11 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
     refresh()
   }
 
-  const handleLockStatus = (employee) => {
+  const handleLockStatus = async (employee) => {
     const next = employee.status === EMPLOYEE_STATUS.ON_LEAVE
       ? EMPLOYEE_STATUS.ACTIVE
       : EMPLOYEE_STATUS.ON_LEAVE
-    const result = setEmployeeStatus(employee.id, next)
+    const result = await setEmployeeStatus(employee.id, next)
     if (!result.success) {
       showToast(result.error ?? 'Không thể cập nhật trạng thái')
       return
@@ -201,9 +191,9 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
     refresh()
   }
 
-  const handleArchive = (id) => {
+  const handleArchive = async (id) => {
     if (!window.confirm('Lưu trữ nhân viên này?')) return
-    const result = archiveEmployee(id)
+    const result = await archiveEmployee(id)
     if (!result.success) {
       showToast(result.error ?? 'Không thể lưu trữ')
       return
@@ -282,8 +272,12 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
         </select>
       </div>
 
-      {branchEmployees.length === 0 && (
-        <p className="admin-branches__hint">Chưa có nhân viên tại chi nhánh này.</p>
+      {hubError && (
+        <p className="admin-branches__hint admin-branches__hint--error">{hubError}</p>
+      )}
+
+      {!loading && !hubError && branchEmployees.length === 0 && (
+        <BranchEmptyState message="Chi nhánh này chưa có nhân viên." />
       )}
 
       {branchEmployees.length > 0 && (
@@ -378,7 +372,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
         <div className="admin-branches__modal-backdrop" onClick={closeModal}>
           <div className="admin-branches__modal admin-branches__modal--wide" onClick={(e) => e.stopPropagation()}>
             <h3 className="admin-branches__modal-title">
-              {modal.mode === 'add' ? 'Thêm nhân viên' : `Sửa hồ sơ — ${getEmployeeById(modal.id)?.name ?? ''}`}
+              {modal.mode === 'add' ? 'Thêm nhân viên' : `Sửa hồ sơ — ${hubEmployees.find((e) => e.id === modal.id)?.name ?? ''}`}
             </h3>
             <EmployeeProfileForm
               form={form}
@@ -401,7 +395,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       {modal?.mode === 'transfer' && (
         <div className="admin-branches__modal-backdrop" onClick={closeModal}>
           <div className="admin-branches__modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="admin-branches__modal-title">Chuyển chi nhánh — {getEmployeeById(modal.id)?.name}</h3>
+            <h3 className="admin-branches__modal-title">Chuyển chi nhánh — {hubEmployees.find((e) => e.id === modal.id)?.name}</h3>
             <label className="admin-branches__field">
               <span>Chi nhánh đích</span>
               <select value={modal.targetBranchId} onChange={(e) => setModal({ ...modal, targetBranchId: e.target.value })}>
@@ -422,7 +416,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       {modal?.mode === 'password' && (
         <div className="admin-branches__modal-backdrop" onClick={closeModal}>
           <div className="admin-branches__modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="admin-branches__modal-title">Reset mật khẩu — {getEmployeeById(modal.id)?.name}</h3>
+            <h3 className="admin-branches__modal-title">Reset mật khẩu — {hubEmployees.find((e) => e.id === modal.id)?.name}</h3>
             <label className="admin-branches__field">
               <span>Mật khẩu mới</span>
               <input type="password" value={passwordForm.password} onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })} />
