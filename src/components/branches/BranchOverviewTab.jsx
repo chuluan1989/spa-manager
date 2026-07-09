@@ -4,8 +4,8 @@ import { employeeBelongsToBranch, recordBelongsToBranch } from '../../utils/bran
 import { getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../../utils/salaryReport'
 import { formatCurrency, getInvoicePayment, getInvoiceServiceTotal } from '../../utils/invoice'
 import { getTodayDate } from '../../utils/invoiceStorage'
-import { useEmployeeHubData } from '../../hooks/useEmployeeHubData'
-import { usePayrollData } from '../../hooks/usePayrollData'
+import { useBranchHubData } from './useBranchHubData'
+import { useBranchPayrollData } from './useBranchPayrollData'
 import { useBranchAttendance } from './useBranchAttendance'
 import BranchEmptyState from './BranchEmptyState'
 
@@ -15,8 +15,8 @@ export default function BranchOverviewTab({ branchId }) {
   const today = getTodayDate()
   const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
 
-  const { employees, invoices, loading: hubLoading, error: hubError } = useEmployeeHubData({ branchId, month })
-  const { report, loading: payrollLoading, error: payrollError } = usePayrollData({ month, branchId })
+  const { employees, invoices, loading: hubLoading, error: hubError } = useBranchHubData({ branchId, month })
+  const { report, loading: payrollLoading, error: payrollError } = useBranchPayrollData({ month, branchId })
   const { records: attendanceRecords, loading: attendanceLoading, error: attendanceError } = useBranchAttendance({
     branchId,
     fromDate,

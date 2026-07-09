@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isSupabaseConfigured } from '../../lib/supabaseClient'
-import { fetchInvoicesFiltered, subscribeInvoicesChanges } from '../../repositories/invoicesRepository'
+import { fetchInvoicesFiltered } from '../../repositories/invoicesRepository'
 import { recordBelongsToBranch } from '../../utils/branchEmployeeMatch'
-import { subscribeToDataSync } from '../../utils/supabaseSync'
 
 /** Hóa đơn theo branch_id — mới nhất trước (Supabase order created_at DESC). */
 export function useBranchInvoices(branchId, { fromDate = '', toDate = '' } = {}) {
@@ -47,16 +46,6 @@ export function useBranchInvoices(branchId, { fromDate = '', toDate = '' } = {})
     load()
     return () => { cancelled = true }
   }, [branchId, fromDate, toDate, refreshKey])
-
-  useEffect(() => {
-    const onLiveChange = () => reload()
-    const unsubInvoices = subscribeInvoicesChanges(onLiveChange)
-    const unsubDataSync = subscribeToDataSync(onLiveChange)
-    return () => {
-      unsubInvoices()
-      unsubDataSync()
-    }
-  }, [reload])
 
   return { invoices, loading, error, reload }
 }

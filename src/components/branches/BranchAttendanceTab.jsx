@@ -6,7 +6,7 @@ import { buildAttendanceStats } from '../../utils/attendancePenalties'
 import { employeeBelongsToBranch } from '../../utils/branchEmployeeMatch'
 import { formatCurrency } from '../../utils/invoice'
 import { getAttendanceStatusLabel } from '../../constants/attendanceTypes'
-import { useEmployeeHubData } from '../../hooks/useEmployeeHubData'
+import { useBranchHubData } from './useBranchHubData'
 import { useBranchAttendance } from './useBranchAttendance'
 import BranchEmptyState from './BranchEmptyState'
 
@@ -28,7 +28,7 @@ export default function BranchAttendanceTab({ branchId }) {
     fromDate: monthRange.fromDate,
     toDate: monthRange.toDate,
   })
-  const { employees: hubEmployees } = useEmployeeHubData({ branchId, month })
+  const { employees: hubEmployees } = useBranchHubData({ branchId, month })
 
   const employees = useMemo(
     () => hubEmployees.filter((emp) => employeeBelongsToBranch(emp, branchId)),
