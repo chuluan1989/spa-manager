@@ -155,8 +155,10 @@ const browser = await puppeteer.launch({
 })
 
 const page = await browser.newPage()
+const pageErrors = []
 page.on('pageerror', (err) => {
   console.error(`  [pageerror] ${err.message}`)
+  pageErrors.push(err.message)
   failed += 1
 })
 
@@ -174,10 +176,14 @@ try {
 
   console.log('\n3. Chi tiết từng chi nhánh + tabs')
   for (const branchId of BRANCH_IDS) {
+    pageErrors.length = 0
     const opened = await openBranchDetailFromGrid(page, branchId)
     logStep(`Mở chi tiết ${branchId}`, opened, opened ? '' : 'Không tìm thấy card/nút Chi tiết')
 
     if (!opened) continue
+
+    const realtimeCrash = pageErrors.some((m) => m.includes('postgres_changes'))
+    logStep(`${branchId}: không lỗi realtime`, !realtimeCrash, realtimeCrash ? pageErrors.join('; ') : '')
 
     for (const tab of TABS) {
       await switchTab(page, tab.label)
