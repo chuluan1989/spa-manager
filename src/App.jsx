@@ -44,8 +44,7 @@ import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { repairBranchIdReferences } from './utils/branchIdIntegrity'
 import { repairCanonicalBranchMapping } from './utils/canonicalBranchRepair'
-import { getEmployeeById, syncMissingDefaultEmployees } from './utils/employeeStorage'
-import { repairGiaLaiEmployeeRoster, syncGiaLaiEmployeeCredentials } from './utils/giaLaiEmployeeRoster'
+import { getEmployeeById } from './utils/employeeStorage'
 import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
@@ -137,40 +136,17 @@ function App() {
         }
         syncMissingDefaultBranches()
         repairBranchIdReferences()
-        syncMissingDefaultEmployees()
-        try {
-          repairGiaLaiEmployeeRoster()
-        } catch (rosterError) {
-          console.warn('[Bootstrap] repairGiaLaiEmployeeRoster:', rosterError?.message)
-        }
         stripFlatBranchGroupedCatalog()
         ensureServiceCatalogV2Migrated()
         await Promise.all([ensureCredentialsHashed(), syncMissingBranchCredentials()])
         await repairEmployeeCredentials()
-        try {
-          await syncGiaLaiEmployeeCredentials()
-        } catch (credError) {
-          console.warn('[Bootstrap] syncGiaLaiEmployeeCredentials:', credError?.message)
-        }
         syncAllCustomBranchPricing()
 
         if (isSupabaseConfigured) {
           await runInitialSync()
         }
 
-        // Re-apply roster sau sync để Danh sách Gia Lai không bị ghi đè bởi data cũ trên cloud
-        try {
-          repairGiaLaiEmployeeRoster({ force: true })
-        } catch (rosterError) {
-          console.warn('[Bootstrap] repairGiaLaiEmployeeRoster(post-sync):', rosterError?.message)
-        }
-
         await syncEmployeeCredentialsFromEmployees()
-        try {
-          await syncGiaLaiEmployeeCredentials()
-        } catch {
-          /* already warned above */
-        }
         notifyDataSynced(['employees', 'credentials'])
       } catch (error) {
         console.error('[Bootstrap] Lỗi khởi tạo — vẫn cho phép vào app:', error?.message ?? error)

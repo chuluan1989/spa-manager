@@ -10,6 +10,8 @@ import {
 import { validateEmployeeSelfProfile } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteEmployeeRow, upsertEmployee } from '../repositories/employeesRepository'
+import { upsertBranchMinimal } from '../repositories/branchesRepository'
+import { getBranchById } from '../constants/branches'
 import { syncEmployeeCredentialForEmployee, removeEmployeeCredential, pruneInactiveEmployeeCredentials } from './credentialsStorage'
 
 import { appendEmployeeAuditLog, EMPLOYEE_AUDIT_ACTIONS } from './employeeAuditLog'
@@ -17,6 +19,7 @@ import { canPermanentDeleteEmployee, canPermanentDeleteEmployeeRemote, PERMANENT
 import { resolveCanonicalBranchId } from '../constants/canonicalBranches'
 import { ROLES } from '../constants/roles'
 import { IMAGE_CATEGORIES, uploadImageFile } from './imageStorage'
+import { notifyDataSynced } from './dataSyncEvents'
 
 export { IMAGE_CATEGORIES }
 
@@ -31,24 +34,29 @@ export const SUPABASE_EMPLOYEE_FIELDS = [
   'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
 ]
 
-/**
- * Ghi kèm lên Supabase (nếu đã cấu hình) mỗi khi có thay đổi — không chặn
- * (fire-and-forget) để không làm chậm/UI không đổi. Nếu mất mạng hoặc
- * Supabase chưa cấu hình, chỉ log cảnh báo, dữ liệu LocalStorage vẫn là
- * nguồn dữ liệu chính cho thiết bị hiện tại.
- */
-function pushEmployeeToSupabase(employee) {
-  if (!isSupabaseConfigured || !employee) return
-  upsertEmployee(employee).catch((error) => {
-    console.warn('[Supabase] Không thể đồng bộ hồ sơ nhân viên:', error?.message)
+const SUPABASE_REQUIRED_ERROR = 'Supabase chưa cấu hình. Không thể lưu dữ liệu nhân viên.'
+
+/** Ghi lên Supabase — bắt buộc thành công trước khi coi là đã lưu. Chỉ Admin gọi qua add/update. */
+async function pushEmployeeToSupabase(employee) {
+  if (!isSupabaseConfigured || !employee) {
+    throw new Error(SUPABASE_REQUIRED_ERROR)
+  }
+  const branch = getBranchById(employee.branchId ?? '')
+  if (!branch?.id) {
+    throw new Error('Không tìm thấy chi nhánh.')
+  }
+  await upsertBranchMinimal(branch)
+  await upsertEmployee({
+    ...employee,
+    updatedAt: new Date().toISOString(),
   })
 }
 
-function pushEmployeeDeletionToSupabase(id) {
-  if (!isSupabaseConfigured || !id) return
-  deleteEmployeeRow(id).catch((error) => {
-    console.warn('[Supabase] Không thể xoá nhân viên trên máy chủ:', error?.message)
-  })
+async function pushEmployeeDeletionToSupabase(id) {
+  if (!isSupabaseConfigured || !id) {
+    throw new Error(SUPABASE_REQUIRED_ERROR)
+  }
+  await deleteEmployeeRow(id)
 }
 
 export const EMPLOYEE_STATUS = {
@@ -65,17 +73,6 @@ export const GENDER_OPTIONS = [
 ]
 
 const STORAGE_KEY = 'spa-manager-employees'
-
-const DEFAULT_EMPLOYEE_NAMES = {
-  'vinh-long': ['Linh', 'Thơ', 'Bơ', 'Đậu', 'Diệu', 'Thảo', 'Trâm'],
-  'tra-vinh': ['Mai Nhi', 'Nhật Hà', 'Trúc Trinh', 'Diễm Trinh', 'Trà My'],
-  'bac-lieu': ['Thảo Cầm', 'Thu Hương', 'Thanh Thư', 'Mỹ Nhiên', 'Yến'],
-  'soc-trang': ['Chị 7', 'Bảo Trân', 'Tịnh', 'Ly Ly', 'Quyên', 'An Nhỏ'],
-  'tram-spa': ['Thanh', 'Nhu Hà', 'Trúc Ly', 'Cherry', 'Lan Anh'],
-  'song-khoe-spa': ['Úc', 'Hải Anh', 'Di Di', 'Ngân', 'Ánh'],
-  'gia-lai-1': ['Thu Diễm', 'Thu Hiền', 'Tường Vy', 'Thảo Nguyên', 'Phương Thảo', 'Thị Minh Hạ', 'Hồng Nhung'],
-  'gia-lai-2': ['Bảo Ngọc', 'Kim Huệ', 'Mỹ Hạnh', 'Như Ý', 'Thiên Kim', 'Gia Hân'],
-}
 
 export const EMPTY_EMPLOYEE_FORM = {
   name: '',
@@ -136,16 +133,6 @@ export const EMPLOYEE_SELF_SERVICE_FIELDS = [
   'cccdBackImage',
 ]
 
-function slugify(name) {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
 function normalizeStatus(status) {
   if (status === 'inactive') return EMPLOYEE_STATUS.RESIGNED
   if (status === 'archived') return EMPLOYEE_STATUS.ARCHIVED
@@ -205,21 +192,8 @@ export function normalizeEmployee(employee) {
     cccdFrontImage: employee.cccdFrontImage ?? '',
     cccdBackImage: employee.cccdBackImage ?? '',
     branchHistory: Array.isArray(employee.branchHistory) ? employee.branchHistory : [],
+    updatedAt: employee.updatedAt ?? '',
   }
-}
-
-function buildDefaultEmployees() {
-  const employees = []
-  for (const [branchId, names] of Object.entries(DEFAULT_EMPLOYEE_NAMES)) {
-    for (const name of names) {
-      employees.push(normalizeEmployee({
-        id: `${branchId}-${slugify(name)}`,
-        name,
-        branchId,
-      }))
-    }
-  }
-  return employees
 }
 
 export function createEmployeeId() {
@@ -232,18 +206,14 @@ export function createEmployeeId() {
 export function loadEmployees() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) {
-      const defaults = buildDefaultEmployees()
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults))
-      return defaults
-    }
+    if (!raw) return []
     const data = JSON.parse(raw)
-    if (!Array.isArray(data)) return buildDefaultEmployees()
+    if (!Array.isArray(data)) return []
     const normalized = data.map(normalizeEmployee)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
     return normalized
   } catch {
-    return buildDefaultEmployees()
+    return []
   }
 }
 
@@ -261,13 +231,9 @@ export function saveEmployees(employees) {
   return employees
 }
 
+/** @deprecated Không còn tự sinh nhân viên — giữ API để tránh crash caller cũ. */
 export function syncMissingDefaultEmployees() {
-  const existing = loadEmployees()
-  const existingIds = new Set(existing.map((employee) => employee.id))
-  const missing = buildDefaultEmployees().filter((employee) => !existingIds.has(employee.id))
-  if (!missing.length) return false
-  saveEmployees([...existing, ...missing])
-  return true
+  return false
 }
 
 export function getEmployeeById(id) {
@@ -438,9 +404,9 @@ export async function readAvatarFile(file, options = {}) {
   return uploadImageFile(file, { ...options, category, entityId })
 }
 
-export function addEmployee(data) {
-  if (!hasSessionPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES)) {
-    return denyAccess('Bạn không có quyền thêm nhân viên.')
+export async function addEmployee(data) {
+  if (!isSessionAdmin()) {
+    return denyAccess('Chỉ Admin mới được thêm nhân viên.')
   }
 
   const sanitized = sanitizeEmployeeData(data)
@@ -455,17 +421,22 @@ export function addEmployee(data) {
   })
   employees.push(employee)
   try {
+    await pushEmployeeToSupabase(employee)
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể lưu hồ sơ nhân viên lên máy chủ.' }
+  }
+  try {
     saveEmployees(employees)
   } catch (error) {
     return denyAccess(error.message)
   }
-  pushEmployeeToSupabase(employee)
+  notifyDataSynced(['employees'])
   return { success: true, employee }
 }
 
-export function updateEmployee(id, data) {
-  if (!hasSessionPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES)) {
-    return denyAccess('Bạn không có quyền sửa nhân viên.')
+export async function updateEmployee(id, data) {
+  if (!isSessionAdmin()) {
+    return denyAccess('Chỉ Admin mới được sửa nhân viên.')
   }
 
   const employees = loadEmployees()
@@ -492,11 +463,16 @@ export function updateEmployee(id, data) {
     ...sanitized,
   })
   try {
+    await pushEmployeeToSupabase(employees[index])
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể lưu hồ sơ nhân viên lên máy chủ.' }
+  }
+  try {
     saveEmployees(employees)
   } catch (error) {
     return denyAccess(error.message)
   }
-  pushEmployeeToSupabase(employees[index])
+  notifyDataSynced(['employees'])
 
   if (sanitized.branchId !== current.branchId || sanitized.name !== current.name) {
     syncEmployeeCredentialForEmployee(id).catch((error) => {
@@ -528,7 +504,7 @@ export function updateEmployee(id, data) {
  * trường trong EMPLOYEE_SELF_SERVICE_FIELDS. Không đổi: mã NV, chi nhánh,
  * chức vụ, ngày vào làm, trạng thái, vai trò (dù payload cố tình gửi lên).
  */
-export function updateOwnEmployeeProfile(id, data) {
+export async function updateOwnEmployeeProfile(id, data) {
   const user = getSessionUser()
   if (user?.role !== ROLES.EMPLOYEE || user.employeeId !== id) {
     return denyAccess('Bạn chỉ được sửa hồ sơ của chính mình.')
@@ -552,13 +528,18 @@ export function updateOwnEmployeeProfile(id, data) {
     ...current,
     ...pickFields(sanitized, EMPLOYEE_SELF_SERVICE_FIELDS),
   })
+  try {
+    await pushEmployeeToSupabase(updated)
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể lưu hồ sơ lên máy chủ. Vui lòng thử lại.' }
+  }
   employees[index] = updated
   try {
     saveEmployees(employees)
   } catch (error) {
     return { success: false, error: error.message }
   }
-  pushEmployeeToSupabase(updated)
+  notifyDataSynced(['employees'])
   return { success: true, employee: updated }
 }
 
@@ -589,13 +570,19 @@ export async function deleteEmployee(id) {
     return { success: false, error: guard.reason ?? PERMANENT_DELETE_BLOCKED_MESSAGE }
   }
 
+  try {
+    await pushEmployeeDeletionToSupabase(id)
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể xoá nhân viên trên máy chủ.' }
+  }
+
   const next = employees.filter((e) => e.id !== id)
   saveEmployees(next)
   removeEmployeeCredential(id)
   pruneInactiveEmployeeCredentials().catch((error) => {
     console.warn('[Credentials] Không thể dọn credential nhân viên:', error?.message)
   })
-  pushEmployeeDeletionToSupabase(id)
+  notifyDataSynced(['employees'])
   appendEmployeeAuditLog({
     employeeId: id,
     employeeName: current.name,
@@ -605,7 +592,7 @@ export async function deleteEmployee(id) {
   return { success: true, employees: next }
 }
 
-export function transferEmployee(id, newBranchId, options = {}) {
+export async function transferEmployee(id, newBranchId, options = {}) {
   if (!hasSessionPermission(PERMISSION_KEYS.TRANSFER_EMPLOYEE)) {
     return denyAccess('Chỉ Admin mới được chuyển chi nhánh nhân viên.')
   }
@@ -633,7 +620,7 @@ export function transferEmployee(id, newBranchId, options = {}) {
       approver: approver.trim(),
       changedAt: new Date().toISOString(),
     }
-    const result = updateEmployee(id, {
+    const result = await updateEmployee(id, {
       branchId: newBranchId,
       branchHistory: [...(current.branchHistory ?? []), historyEntry],
     })
@@ -653,9 +640,9 @@ export function transferEmployee(id, newBranchId, options = {}) {
 }
 
 /** Đặt trạng thái làm việc — nghỉ việc tự ghi ngày nghỉ. */
-export function setEmployeeStatus(id, status, options = {}) {
-  if (!hasSessionPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES)) {
-    return denyAccess('Bạn không có quyền đổi trạng thái nhân viên.')
+export async function setEmployeeStatus(id, status, options = {}) {
+  if (!isSessionAdmin()) {
+    return denyAccess('Chỉ Admin mới được đổi trạng thái nhân viên.')
   }
 
   const current = getEmployeeById(id)
@@ -672,7 +659,7 @@ export function setEmployeeStatus(id, status, options = {}) {
     patch.endDate = ''
   }
 
-  const result = updateEmployee(id, patch)
+  const result = await updateEmployee(id, patch)
   if (result.success && !isEmployeeLoginEligible(result.employee)) {
     removeEmployeeCredential(id)
     pruneInactiveEmployeeCredentials().catch((error) => {
@@ -683,8 +670,8 @@ export function setEmployeeStatus(id, status, options = {}) {
 }
 
 /** Lưu trữ — ẩn khỏi danh sách mặc định, giữ toàn bộ dữ liệu lịch sử. */
-export function archiveEmployee(id) {
-  if (!hasSessionPermission(PERMISSION_KEYS.DELETE_EMPLOYEE)) {
+export async function archiveEmployee(id) {
+  if (!isSessionAdmin()) {
     return denyAccess('Chỉ Admin mới được lưu trữ nhân viên.')
   }
 
@@ -693,12 +680,12 @@ export function archiveEmployee(id) {
     return denyAccess('Không tìm thấy nhân viên.')
   }
 
-  const result = setEmployeeStatus(id, EMPLOYEE_STATUS.ARCHIVED)
+  const result = await setEmployeeStatus(id, EMPLOYEE_STATUS.ARCHIVED)
   return result
 }
 
 /** @deprecated Dùng archiveEmployee hoặc setEmployeeStatus(RESIGNED). */
-export function softDeleteEmployee(id) {
+export async function softDeleteEmployee(id) {
   return setEmployeeStatus(id, EMPLOYEE_STATUS.RESIGNED)
 }
 

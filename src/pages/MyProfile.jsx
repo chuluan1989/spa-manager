@@ -110,7 +110,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
     setErrors((prev) => ({ ...prev, [field]: undefined }))
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const nextErrors = validateEmployeeSelfProfile(form)
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) {
@@ -118,7 +118,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
       return
     }
 
-    const result = updateOwnEmployeeProfile(employeeId, form)
+    const result = await updateOwnEmployeeProfile(employeeId, form)
     if (!result.success) {
       if (result.errors) setErrors(result.errors)
       showToast(result.error ?? 'Không thể lưu hồ sơ')

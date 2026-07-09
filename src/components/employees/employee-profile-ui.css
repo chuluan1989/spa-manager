@@ -5,8 +5,17 @@
   gap: 16px;
   margin-bottom: 20px;
   padding: 14px 16px;
-  border: 1px solid #fecaca;
   border-radius: 12px;
+}
+
+.employee-profile-banner--warning {
+  border: 1px solid #fbbf24;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.employee-profile-banner--danger {
+  border: 1px solid #fecaca;
   background: #fef2f2;
   color: #991b1b;
 }
@@ -33,11 +42,18 @@
   padding: 10px 14px;
   border: none;
   border-radius: 10px;
-  background: #b91c1c;
   color: #fff;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+}
+
+.employee-profile-banner--warning .employee-profile-banner__btn {
+  background: #d97706;
+}
+
+.employee-profile-banner--danger .employee-profile-banner__btn {
+  background: #b91c1c;
 }
 
 .employee-profile-lock {

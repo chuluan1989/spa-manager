@@ -14,6 +14,7 @@ import {
 } from '../utils/customerAnalytics'
 import { loadCustomerProfileMap } from '../utils/customerProfileStorage'
 import { fetchMergedInvoices } from '../utils/invoiceDataFetcher'
+import { subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 
 export function buildDefaultCustomerFilters(overrides = {}) {
@@ -73,6 +74,8 @@ export function useCustomersData(appliedFilters = buildDefaultCustomerFilters())
   }, [appliedFilters.fromDate, appliedFilters.toDate, appliedFilters.branchId, appliedFilters.employeeId, refreshKey, syncVersion])
 
   useEffect(() => subscribeToDataSync(() => reload()), [reload])
+
+  useEffect(() => subscribeInvoicesChanges(() => reload()), [reload])
 
   const scopedInvoices = useMemo(
     () => scopeInvoicesForCrm(invoices, { role, branchId, employeeId }),

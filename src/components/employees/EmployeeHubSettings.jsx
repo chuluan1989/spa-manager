@@ -124,7 +124,7 @@ export default function EmployeeHubSettings({
     return next
   }
 
-  const handleSaveEmployee = () => {
+  const handleSaveEmployee = async () => {
     const payload = {
       ...form,
       branchId: canSelectBranch() ? form.branchId : getCurrentUserBranch(),
@@ -134,14 +134,14 @@ export default function EmployeeHubSettings({
     if (Object.keys(next).length > 0) return
 
     if (mode === 'add') {
-      const result = addEmployee(payload)
+      const result = await addEmployee(payload)
       if (!result.success) {
         showToast(result.error ?? 'Không thể thêm nhân viên')
         return
       }
       showToast('Thêm nhân viên thành công')
     } else if (mode === 'edit') {
-      const result = updateEmployee(selectedEmployeeId, payload)
+      const result = await updateEmployee(selectedEmployeeId, payload)
       if (!result.success) {
         showToast(result.error ?? 'Không thể cập nhật')
         return
@@ -153,13 +153,13 @@ export default function EmployeeHubSettings({
     closeAll()
   }
 
-  const handleTransfer = (e) => {
+  const handleTransfer = async (e) => {
     e.preventDefault()
     if (!transfer.branchId || !transfer.effectiveDate || !transfer.reason.trim() || !transfer.approver.trim()) {
       showToast('Vui lòng nhập đủ ngày hiệu lực, lý do và người duyệt')
       return
     }
-    const result = transferEmployee(selectedEmployeeId, transfer.branchId, {
+    const result = await transferEmployee(selectedEmployeeId, transfer.branchId, {
       transferDate: transfer.effectiveDate,
       reason: transfer.reason,
       approver: transfer.approver,
@@ -174,9 +174,9 @@ export default function EmployeeHubSettings({
     closeAll()
   }
 
-  const handleStatus = (e) => {
+  const handleStatus = async (e) => {
     e.preventDefault()
-    const result = setEmployeeStatus(selectedEmployeeId, statusValue)
+    const result = await setEmployeeStatus(selectedEmployeeId, statusValue)
     if (!result.success) {
       showToast(result.error ?? 'Không thể đổi trạng thái')
       return
@@ -191,9 +191,9 @@ export default function EmployeeHubSettings({
     closeAll()
   }
 
-  const handleArchive = () => {
+  const handleArchive = async () => {
     if (!window.confirm(`Lưu trữ nhân viên "${selectedEmployee?.name}"?\n\nNhân viên sẽ ẩn khỏi danh sách mặc định. Toàn bộ hóa đơn, doanh thu và báo cáo vẫn được giữ.`)) return
-    const result = archiveEmployee(selectedEmployeeId)
+    const result = await archiveEmployee(selectedEmployeeId)
     if (!result.success) {
       showToast(result.error ?? 'Không thể lưu trữ nhân viên')
       return

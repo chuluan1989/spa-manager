@@ -11,6 +11,7 @@ import { isAccountLocked, isEmployeeAccountLocked, recordAccountLogin } from '..
 
 export { ADMIN_BRANCH }
 
+const EMPLOYEE_NOT_FOUND_MESSAGE = 'Nhân viên không tồn tại.'
 const EMPLOYEE_LOGIN_FAIL_MESSAGE = 'Sai chi nhánh, tên hoặc mật khẩu.'
 
 export function normalizeForPassword(text) {
@@ -80,7 +81,7 @@ export async function verifyLogin({ role, branch, employeeId, password }) {
 
     const employee = getEmployeeById(employeeId)
     if (!employee) {
-      return { ok: false, field: 'password', message: EMPLOYEE_LOGIN_FAIL_MESSAGE }
+      return { ok: false, field: 'employeeId', message: EMPLOYEE_NOT_FOUND_MESSAGE }
     }
     if (employee.branchId !== branch) {
       return { ok: false, field: 'branch', message: EMPLOYEE_LOGIN_FAIL_MESSAGE }

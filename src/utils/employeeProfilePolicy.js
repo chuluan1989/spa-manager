@@ -78,7 +78,7 @@ export function getEmployeeProfileBannerMessage(employee, today = getTodayDate()
     return 'Hồ sơ nhân viên chưa hoàn chỉnh. Một số chức năng đã bị khóa. Vui lòng cập nhật đầy đủ thông tin để tiếp tục sử dụng hệ thống.'
   }
 
-  return `Hồ sơ nhân viên của bạn chưa hoàn chỉnh. Vui lòng cập nhật trước ngày ${compliance.deadlineLabel} để tránh bị khóa chức năng.`
+  return 'Vui lòng hoàn thiện hồ sơ trước 10/07.'
 }
 
 export function getEmployeeProfileLockMessage() {

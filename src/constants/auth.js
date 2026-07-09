@@ -200,30 +200,25 @@ export function canChangeEmployeeBranch(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
 
-export function canAddEmployee(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
-  return checkPermission(PERMISSION_KEYS.ADD_EMPLOYEE, role, branchId)
-    || checkPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES, role, branchId)
+export function canAddEmployee(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
 }
 
-export function canEditEmployee(employee = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
-  if (!checkPermission(PERMISSION_KEYS.EDIT_EMPLOYEE, role, branchId)
-    && !checkPermission(PERMISSION_KEYS.MANAGE_EMPLOYEES, role, branchId)) {
-    return false
-  }
-  if (role === ROLES.ADMIN) return true
-  return isEmployeeInUserBranch(employee)
+export function canEditEmployee(employee = null, role = getCurrentUserRole()) {
+  if (role !== ROLES.ADMIN) return false
+  return true
 }
 
-export function canDeleteEmployee(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
-  return checkPermission(PERMISSION_KEYS.DELETE_EMPLOYEE, role, branchId)
+export function canDeleteEmployee(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
 }
 
-export function canTransferEmployee(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
-  return checkPermission(PERMISSION_KEYS.TRANSFER_EMPLOYEE, role, branchId)
+export function canTransferEmployee(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
 }
 
-export function canLockEmployee(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
-  return checkPermission(PERMISSION_KEYS.LOCK_EMPLOYEE, role, branchId)
+export function canLockEmployee(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
 }
 
 export function canViewReport(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {

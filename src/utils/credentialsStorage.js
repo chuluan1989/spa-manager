@@ -6,6 +6,7 @@ import { CANONICAL_BRANCHES } from '../constants/canonicalBranches'
 import { getBranchName, getPasswordBranchName, loadBranches } from './branchStorage'
 import { formatLastLogin, getAccountMeta, loadAccountMetadata } from './accountMetadataStorage'
 import { isEmployeeLoginEligible, loadEmployees } from './employeeStorage'
+import { isSessionAdmin } from './storageAccess'
 import { hashPassword, isPasswordHash, verifyPassword } from './passwordHash'
 
 const STORAGE_KEY = 'spa-manager-credentials'
@@ -318,6 +319,9 @@ export async function pruneInactiveEmployeeCredentials() {
 }
 
 export async function updateEmployeePassword(employeeId, password) {
+  if (!isSessionAdmin()) {
+    return { success: false, error: 'Chỉ Admin mới được reset mật khẩu nhân viên.' }
+  }
   const credentials = loadCredentials()
   const entry = credentials.employees?.[employeeId]
   if (!entry) {

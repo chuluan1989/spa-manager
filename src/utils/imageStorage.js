@@ -203,7 +203,83 @@ function buildObjectPath(category, entityId) {
   return `${safeCategory}/${safeEntityId}/${unique}.jpg`
 }
 
-export async function uploadImageBlob(blob, { category, entityId = 'general' } = {}) {
+/** Log tạm thời để debug upload Avatar/CCCD — không phụ thuộc module khác. */
+export const UPLOAD_DEBUG_LOGS = []
+
+function readAppSessionSnapshot() {
+  try {
+    if (typeof sessionStorage === 'undefined') return null
+    const raw = sessionStorage.getItem('spa-manager-current-user')
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+async function buildUploadDebugBase({ category, entityId, path, blob, sourceFile }) {
+  const appSession = readAppSessionSnapshot()
+  let authSession = null
+  let authUser = null
+  try {
+    const sessionRes = await supabase.auth.getSession()
+    authSession = sessionRes?.data?.session ?? null
+  } catch (error) {
+    authSession = { error: error?.message ?? String(error) }
+  }
+  try {
+    const userRes = await supabase.auth.getUser()
+    authUser = userRes?.data?.user ?? null
+  } catch (error) {
+    authUser = { error: error?.message ?? String(error) }
+  }
+
+  const jwtRole = (() => {
+    try {
+      const token = authSession?.access_token
+        ?? (typeof supabase?.supabaseKey === 'string' ? null : null)
+      return authSession ? 'authenticated' : 'anon'
+    } catch {
+      return 'anon'
+    }
+  })()
+
+  return {
+    at: new Date().toISOString(),
+    employee_id: appSession?.employeeId ?? '',
+    employee_name: appSession?.employeeName ?? appSession?.name ?? '',
+    branch_id: appSession?.branch ?? '',
+    username: appSession?.username ?? appSession?.employeeName ?? appSession?.name ?? '',
+    role_app: appSession?.role ?? '',
+    bucket: IMAGE_BUCKET,
+    category,
+    entityId: entityId ?? '',
+    upload_path: path,
+    file_name: sourceFile?.name ?? blob?.name ?? '(blob)',
+    file_size: sourceFile?.size ?? blob?.size ?? 0,
+    file_type: sourceFile?.type ?? blob?.type ?? '',
+    session: appSession,
+    supabase_session: authSession
+      ? {
+          hasSession: Boolean(authSession?.access_token),
+          user_id: authSession?.user?.id ?? null,
+        }
+      : null,
+    user_id: authUser?.id ?? null,
+    role_storage: jwtRole,
+  }
+}
+
+function pushUploadDebug(entry) {
+  UPLOAD_DEBUG_LOGS.push(entry)
+  if (UPLOAD_DEBUG_LOGS.length > 50) UPLOAD_DEBUG_LOGS.shift()
+  // eslint-disable-next-line no-console
+  console.log('[UPLOAD_DEBUG]', JSON.stringify(entry, null, 2))
+  if (typeof window !== 'undefined') {
+    window.__SPA_UPLOAD_DEBUG_LOGS__ = UPLOAD_DEBUG_LOGS
+  }
+}
+
+export async function uploadImageBlob(blob, { category, entityId = 'general', sourceFile = null } = {}) {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase chưa cấu hình, không thể upload ảnh.')
   }
@@ -213,21 +289,57 @@ export async function uploadImageBlob(blob, { category, entityId = 'general' } =
 
   const path = buildObjectPath(category, entityId)
   const contentType = blob.type?.startsWith('image/') ? blob.type : 'image/jpeg'
-
-  const { error: uploadError } = await supabase.storage.from(IMAGE_BUCKET).upload(path, blob, {
-    contentType,
-    upsert: false,
-    cacheControl: '3600',
+  const debugBase = await buildUploadDebugBase({
+    category,
+    entityId,
+    path,
+    blob,
+    sourceFile,
   })
 
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from(IMAGE_BUCKET)
+    .upload(path, blob, {
+      contentType,
+      upsert: false,
+      cacheControl: '3600',
+    })
+
   if (uploadError) {
+    pushUploadDebug({
+      ...debugBase,
+      ok: false,
+      http_status: uploadError.status ?? uploadError.statusCode ?? null,
+      error_code: uploadError.statusCode ?? uploadError.code ?? uploadError.name ?? null,
+      error_message: uploadError.message ?? String(uploadError),
+      error_name: uploadError.name ?? null,
+      mapped_message: mapUploadError(uploadError.message),
+      upload_data: uploadData ?? null,
+    })
     throw new Error(mapUploadError(uploadError.message))
   }
 
   const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path)
   if (!data?.publicUrl) {
+    pushUploadDebug({
+      ...debugBase,
+      ok: false,
+      http_status: null,
+      error_code: 'NO_PUBLIC_URL',
+      error_message: 'Upload ảnh thất bại: không lấy được URL',
+    })
     throw new Error('Upload ảnh thất bại: không lấy được URL')
   }
+
+  pushUploadDebug({
+    ...debugBase,
+    ok: true,
+    http_status: 200,
+    error_code: null,
+    error_message: null,
+    public_url: data.publicUrl,
+    upload_data: uploadData ?? null,
+  })
 
   return data.publicUrl
 }
@@ -246,5 +358,5 @@ export async function uploadImageFile(file, options = {}) {
   } = options
 
   const blob = await prepareImageBlob(file, { maxBytes, compressThreshold, skipCompress })
-  return uploadImageBlob(blob, { category, entityId })
+  return uploadImageBlob(blob, { category, entityId, sourceFile: file })
 }

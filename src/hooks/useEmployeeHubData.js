@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { fetchEmployeesFiltered } from '../repositories/employeesRepository'
-import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
+import { fetchEmployeesFiltered, subscribeEmployeesChanges } from '../repositories/employeesRepository'
+import { fetchInvoicesFiltered, subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import { normalizeEmployee } from '../utils/employeeStorage'
 import { employeeBelongsToBranch } from '../utils/branchEmployeeMatch'
 import { getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
+import { subscribeToDataSync } from '../utils/supabaseSync'
 
 export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } = {}) {
   const [employees, setEmployees] = useState([])
@@ -56,6 +57,18 @@ export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } 
     load()
     return () => { cancelled = true }
   }, [branchId, month, refreshKey])
+
+  useEffect(() => {
+    const onLiveChange = () => reload()
+    const unsubEmployees = subscribeEmployeesChanges(onLiveChange)
+    const unsubInvoices = subscribeInvoicesChanges(onLiveChange)
+    const unsubDataSync = subscribeToDataSync(onLiveChange)
+    return () => {
+      unsubEmployees()
+      unsubInvoices()
+      unsubDataSync()
+    }
+  }, [reload])
 
   return { employees, invoices, loading, error, reload }
 }

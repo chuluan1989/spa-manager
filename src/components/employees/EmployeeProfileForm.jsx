@@ -35,7 +35,7 @@ function Field({ label, children, full = false }) {
 function ReadOnlyValue({ value, multiline = false }) {
   return (
     <div className={`employee-profile__readonly${multiline ? ' employee-profile__readonly--multiline' : ''}`}>
-      {value || '—'}
+      {value || 'Chưa cập nhật'}
     </div>
   )
 }
@@ -62,7 +62,7 @@ function CccdImageField({ value, readOnly, onChange, onRemove }) {
       {value ? (
         <img src={value} alt="Ảnh CCCD" className="employee-profile__cccd-image-preview" />
       ) : (
-        <div className="employee-profile__cccd-image-placeholder">Chưa có ảnh</div>
+        <div className="employee-profile__cccd-image-placeholder">Chưa cập nhật</div>
       )}
       {!readOnly && (
         <div className="employee-profile__avatar-actions">

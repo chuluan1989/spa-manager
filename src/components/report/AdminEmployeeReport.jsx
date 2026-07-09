@@ -14,7 +14,7 @@ import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../../utils/e
 import { getActiveServicesForBranch, loadServices } from '../../utils/serviceStorage'
 import { formatCurrency } from '../../utils/invoice'
 import { isSupabaseConfigured } from '../../lib/supabaseClient'
-import { fetchInvoicesFiltered } from '../../repositories/invoicesRepository'
+import { fetchInvoicesFiltered, subscribeInvoicesChanges } from '../../repositories/invoicesRepository'
 import { fetchAttendanceFiltered, subscribeAttendanceChanges } from '../../repositories/attendanceRepository'
 import { mergeAttendanceIntoEmployeeReports } from '../../utils/attendancePenalties'
 import { deleteInvoice } from '../../utils/invoiceStorage'
@@ -103,6 +103,10 @@ export default function AdminEmployeeReport({ onNavigate }) {
     setRefreshKey((key) => key + 1)
   }), [])
 
+  useEffect(() => subscribeInvoicesChanges(() => {
+    setRefreshKey((key) => key + 1)
+  }), [])
+
   const branchEmployees = useMemo(
     () => (
       effectiveFilters.branchId
@@ -165,7 +169,7 @@ export default function AdminEmployeeReport({ onNavigate }) {
     if (!canDeleteInvoice()) return
     if (!window.confirm(`Xóa hóa đơn khách "${invoice.customerName || '—'}" ngày ${invoice.date}?`)) return
 
-    const result = deleteInvoice(invoice.id)
+    const result = await deleteInvoice(invoice.id)
     if (!result.success) {
       window.alert(result.error ?? 'Không thể xóa hóa đơn.')
       return

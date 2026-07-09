@@ -61,4 +61,20 @@ const legacyResult = spawnSync('npx', ['vite-node', 'scripts/verify-legacy-impor
   stdio: 'inherit',
 })
 
-process.exit(legacyResult.status ?? 1)
+if (legacyResult.status !== 0) {
+  process.exit(legacyResult.status ?? 1)
+}
+
+console.log('\n--- Kiểm tra Module Lương ---\n')
+
+const payrollResult = spawnSync('npx', ['vite-node', 'scripts/verify-payroll.mjs'], {
+  cwd: ROOT,
+  env: {
+    ...process.env,
+    VITE_SUPABASE_URL: url,
+    VITE_SUPABASE_ANON_KEY: key,
+  },
+  stdio: 'inherit',
+})
+
+process.exit(payrollResult.status ?? 1)

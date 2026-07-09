@@ -10,6 +10,7 @@ import {
 import { filterEmployeeReportInvoices } from '../utils/employeeInvoiceReport'
 import { getMonthStartDate, getTodayDate } from '../utils/invoiceStorage'
 import { fetchReportPeriodData } from '../utils/reportDataFetcher'
+import { subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 import { useDataSyncVersion } from './useDataSyncVersion'
 
@@ -81,6 +82,8 @@ export function useDrillDownData(filters) {
   }, [scopedFilters, refreshKey, syncVersion])
 
   useEffect(() => subscribeToDataSync(() => reload()), [reload])
+
+  useEffect(() => subscribeInvoicesChanges(() => reload()), [reload])
 
   return { invoices, expenses, loading, error, reload, scopedFilters }
 }

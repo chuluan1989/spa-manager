@@ -38,7 +38,9 @@ export const INVOICE_CUSTOMER_REQUIRED_MESSAGE =
 
 /**
  * Validate dữ liệu hồ sơ cá nhân nhân viên tự cập nhật.
- * Bắt buộc: Họ tên, SĐT (đúng định dạng), CCCD (đúng 12 số).
+ * Bắt buộc để Lưu: Họ tên + Số điện thoại.
+ * CCCD và các trường khác được phép trống (cập nhật sau).
+ * Nếu đã nhập CCCD / SĐT liên hệ thì phải đúng định dạng.
  */
 export function validateEmployeeSelfProfile(data) {
   const errors = {}
@@ -53,9 +55,7 @@ export function validateEmployeeSelfProfile(data) {
     errors.phone = 'Số điện thoại không đúng định dạng'
   }
 
-  if (!data.cccd?.trim()) {
-    errors.cccd = 'Vui lòng nhập số CCCD'
-  } else if (!isValidCccd(data.cccd)) {
+  if (data.cccd?.trim() && !isValidCccd(data.cccd)) {
     errors.cccd = 'CCCD phải gồm đúng 12 số'
   }
 

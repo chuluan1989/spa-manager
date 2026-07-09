@@ -1,17 +1,15 @@
 import { getBranchById } from '../constants/branches'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { upsertBranchMinimal } from '../repositories/branchesRepository'
-import { upsertEmployeeMinimal } from '../repositories/employeesRepository'
+import { fetchEmployeeById } from '../repositories/employeesRepository'
 
 /**
- * Đảm bảo chi nhánh + nhân viên tồn tại trên Supabase trước khi ghi hóa đơn/hồ sơ.
- * (Cùng nguyên tắc với chấm công — tránh lỗi FK branch_id trên production.)
+ * Kiểm tra chi nhánh + nhân viên đã tồn tại trên Supabase trước khi ghi hóa đơn/hồ sơ.
+ * Tuyệt đối không tự tạo nhân viên mới.
  */
 export async function ensureBranchAndEmployeeOnServer({
   branchId,
   employeeId,
-  employeeName = '',
-  employeeStatus = 'active',
 }) {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase chưa cấu hình. Không thể lưu dữ liệu.')
@@ -29,10 +27,12 @@ export async function ensureBranchAndEmployeeOnServer({
   }
 
   await upsertBranchMinimal(branch)
-  await upsertEmployeeMinimal({
-    id: employeeId,
-    branchId,
-    name: employeeName,
-    status: employeeStatus ?? 'active',
-  })
+
+  const remoteEmployee = await fetchEmployeeById(employeeId)
+  if (!remoteEmployee) {
+    throw new Error('Nhân viên không tồn tại.')
+  }
+  if (remoteEmployee.branchId && remoteEmployee.branchId !== branchId) {
+    throw new Error('Nhân viên không thuộc chi nhánh này.')
+  }
 }

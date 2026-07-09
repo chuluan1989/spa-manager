@@ -7,8 +7,9 @@
  * Script sẽ:
  *  1. Xác nhận kết nối Supabase + liệt kê số dòng từng bảng.
  *  2. Giả lập 2 "thiết bị" (2 bộ LocalStorage độc lập trong cùng tiến
- *     trình) để kiểm tra tạo/sửa nhân viên + tạo hóa đơn ở thiết bị A và
- *     xác nhận thiết bị B thấy được sau khi đồng bộ.
+ *     trình) để kiểm tra đồng bộ nhân viên có sẵn + tạo hóa đơn ở thiết bị A
+ *     và xác nhận thiết bị B thấy được sau khi đồng bộ.
+ *     (Không tự tạo nhân viên mới — dùng bản ghi đã có trên Supabase.)
  *  3. Kiểm tra Realtime: đăng ký lắng nghe thay đổi bảng employees, sau đó
  *     ghi 1 dòng và xác nhận nhận được sự kiện trong vài giây.
  *  4. Dọn sạch toàn bộ dữ liệu test (KHÔNG để lại rác trong database thật).
@@ -135,9 +136,7 @@ switchStorageDevice(storeA)
 const { loadBranches } = await import('../src/utils/branchStorage.js')
 const { ROLES, ADMIN_BRANCH } = await import('../src/constants/auth.js')
 const {
-  addEmployee,
   updateEmployee,
-  deleteEmployee,
   getEmployeeById,
   loadEmployees,
 } = await import('../src/utils/employeeStorage.js')
@@ -152,71 +151,73 @@ assert.ok(testBranch, 'Cần ít nhất 1 chi nhánh để test')
 
 const TEST_TAG = `__SUPA_VERIFY_${Date.now()}__`
 let testEmployeeId = null
+let testEmployeeOriginalNote = ''
 let testInvoiceId = null
 let testExpenseId = null
 let testServiceId = null
 
-await step('2. Tạo nhân viên mới trên "thiết bị A" (LocalStorage A)', async () => {
+await step('2. Chọn nhân viên có sẵn trên Supabase (không tạo mới)', async () => {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('id,name,branch_id,note')
+    .not('name', 'like', '__SUPA_VERIFY_%')
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  assert.ok(data?.id, 'Cần ít nhất 1 nhân viên trên Supabase để kiểm tra đồng bộ')
+  testEmployeeId = data.id
+  testEmployeeOriginalNote = data.note ?? ''
+})
+
+await step('3. Thiết bị A pull — thấy nhân viên có sẵn', async () => {
   switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
-  const result = addEmployee({
-    name: TEST_TAG,
-    phone: '0900000001',
-    cccd: '000000000001',
-    branchId: testBranch.id,
-    position: 'Test',
-  })
-  assert.equal(result.success, true, result.error)
-  testEmployeeId = result.employee.id
+  const result = await pullAllFromSupabase()
+  assert.equal(result.success, true, JSON.stringify(result.errors))
+  const found = loadEmployees().find((e) => e.id === testEmployeeId)
+  assert.ok(found, 'Thiết bị A phải thấy nhân viên có sẵn trên Supabase')
 })
 
-await wait(1500)
-
-await step('3. Xác nhận bản ghi nhân viên xuất hiện trực tiếp trong Supabase', async () => {
-  const { data, error } = await supabase.from('employees').select('*').eq('id', testEmployeeId).single()
-  if (error) throw error
-  assert.equal(data.name, TEST_TAG)
-  assert.equal(data.branch_id, testBranch.id)
-})
-
-await step('4. "Thiết bị B" (LocalStorage rỗng, chưa từng thấy nhân viên này) pull về và thấy ngay', async () => {
+await step('4. "Thiết bị B" pull về và thấy cùng nhân viên', async () => {
   switchStorageDevice(storeB)
   const result = await pullAllFromSupabase()
   assert.equal(result.success, true, JSON.stringify(result.errors))
   const employees = loadEmployees()
   const found = employees.find((e) => e.id === testEmployeeId)
-  assert.ok(found, 'Thiết bị B phải thấy nhân viên vừa tạo ở thiết bị A sau khi đồng bộ')
+  assert.ok(found, 'Thiết bị B phải thấy nhân viên sau khi đồng bộ')
 })
 
-await step('5. Sửa hồ sơ nhân viên trên thiết bị A, xác nhận Supabase cập nhật', async () => {
+await step('5. Sửa ghi chú nhân viên trên thiết bị A, xác nhận Supabase cập nhật', async () => {
   switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
-  const result = updateEmployee(testEmployeeId, { position: 'Test đã sửa' })
+  const result = await updateEmployee(testEmployeeId, { note: `${TEST_TAG}-note` })
   assert.equal(result.success, true, result.error)
   await wait(1500)
-  const { data, error } = await supabase.from('employees').select('position').eq('id', testEmployeeId).single()
+  const { data, error } = await supabase.from('employees').select('note').eq('id', testEmployeeId).single()
   if (error) throw error
-  assert.equal(data.position, 'Test đã sửa')
+  assert.equal(data.note, `${TEST_TAG}-note`)
 })
 
 await step('6. Thiết bị B pull lại, thấy bản sửa mới nhất', async () => {
   switchStorageDevice(storeB)
   await pullAllFromSupabase()
   const updated = getEmployeeById(testEmployeeId)
-  assert.equal(updated?.position, 'Test đã sửa')
+  assert.equal(updated?.note, `${TEST_TAG}-note`)
 })
 
 await step('7. Nhập hóa đơn/tour trên thiết bị A, xác nhận lưu vào Supabase', async () => {
   switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
+  const employee = getEmployeeById(testEmployeeId)
+  assert.ok(employee, 'Thiếu nhân viên test trên thiết bị A')
   testInvoiceId = `verify-inv-${Date.now()}`
   const result = saveInvoice({
     id: testInvoiceId,
     date: new Date().toISOString().slice(0, 10),
-    branchId: testBranch.id,
+    branchId: employee.branchId ?? testBranch.id,
     branchName: testBranch.name,
     employeeId: testEmployeeId,
-    employeeName: TEST_TAG,
+    employeeName: employee.name ?? '',
     customerName: 'Khách test',
     serviceIds: [],
     services: [],
@@ -337,7 +338,7 @@ await step('9. Realtime: sửa nhân viên và nhận được sự kiện postg
   switchStorageDevice(storeA)
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   await wait(500)
-  updateEmployee(testEmployeeId, { note: 'trigger-realtime' })
+  await updateEmployee(testEmployeeId, { note: 'trigger-realtime' })
 
   await Promise.race([eventPromise, timeout])
 })
@@ -348,15 +349,15 @@ await step('10. Dọn dẹp dữ liệu test khỏi Supabase', async () => {
   deleteInvoice(testInvoiceId)
   if (testExpenseId) deleteExpense(testExpenseId)
   if (testServiceId) softDeleteService(testServiceId)
-  deleteEmployee(testEmployeeId)
+  if (testEmployeeId) {
+    await updateEmployee(testEmployeeId, { note: testEmployeeOriginalNote })
+  }
   await wait(1500)
 
-  const { data: emp } = await supabase.from('employees').select('id').eq('id', testEmployeeId).maybeSingle()
   const { data: inv } = await supabase.from('invoices').select('id').eq('id', testInvoiceId).maybeSingle()
   const { data: exp } = testExpenseId
     ? await supabase.from('expenses').select('id').eq('id', testExpenseId).maybeSingle()
     : { data: null }
-  assert.equal(emp, null, 'Nhân viên test phải được xoá khỏi Supabase')
   assert.equal(inv, null, 'Hóa đơn test phải được xoá khỏi Supabase')
   assert.equal(exp, null, 'Chi phí test phải được xoá khỏi Supabase')
 })

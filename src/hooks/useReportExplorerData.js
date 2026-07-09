@@ -8,6 +8,7 @@ import {
   buildEmployeeDrillRows,
 } from '../utils/drillDownReport'
 import { fetchReportPeriodData } from '../utils/reportDataFetcher'
+import { subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 import { useDataSyncVersion } from './useDataSyncVersion'
 
@@ -125,6 +126,8 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
   }, [filters, enabled, syncVersion, refreshKey])
 
   useEffect(() => subscribeToDataSync(() => reload()), [reload])
+
+  useEffect(() => subscribeInvoicesChanges(() => reload()), [reload])
 
   const summary = useMemo(
     () => buildDrillDownSummary(invoices, expenses, filters),

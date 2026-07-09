@@ -41,6 +41,13 @@ export async function fetchEmployees() {
   return rowsToCamel(data)
 }
 
+export async function fetchEmployeeById(id) {
+  if (!isSupabaseConfigured || !id) return null
+  const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? rowsToCamel([data])[0] : null
+}
+
 export async function upsertEmployee(employee) {
   if (!isSupabaseConfigured || !employee?.id) return
   const row = objectToSnakeRow({ ...toSupabaseEmployeePayload(employee), updatedAt: new Date().toISOString() })
@@ -75,6 +82,25 @@ export async function deleteEmployeeRow(id) {
   if (!isSupabaseConfigured || !id) return
   const { error } = await supabase.from(TABLE).delete().eq('id', id)
   if (error) throw error
+}
+
+export function subscribeEmployeesChanges(onChange) {
+  if (!isSupabaseConfigured || typeof onChange !== 'function') {
+    return () => {}
+  }
+
+  const channel = supabase
+    .channel('spa-employees-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: TABLE },
+      () => onChange(),
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
 }
 
 export async function countEmployees() {

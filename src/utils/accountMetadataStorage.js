@@ -2,6 +2,7 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { upsertAccountMetadata } from '../repositories/accountMetadataRepository'
 import { ADMIN_BRANCH } from '../constants/roles'
 import { loadBranches } from './branchStorage'
+import { isSessionAdmin } from './storageAccess'
 
 const STORAGE_KEY = 'spa-manager-account-metadata'
 
@@ -125,6 +126,7 @@ export function isEmployeeAccountLocked(employeeId) {
 
 export function setEmployeeAccountLocked(employeeId, locked) {
   if (!employeeId) return loadAccountMetadata()
+  if (!isSessionAdmin()) return loadAccountMetadata()
   return setAccountLocked(getEmployeeAccountKey(employeeId), locked)
 }
 

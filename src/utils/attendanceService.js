@@ -8,7 +8,7 @@ import { getBranchById, getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { upsertBranchMinimal } from '../repositories/branchesRepository'
-import { upsertEmployeeMinimal } from '../repositories/employeesRepository'
+import { fetchEmployeeById } from '../repositories/employeesRepository'
 import {
   createAttendanceId,
   createAttendanceLogId,
@@ -86,16 +86,15 @@ async function ensureAttendanceForeignKeys(employeeId) {
     ATTENDANCE_SYNC_TIMEOUT_MS,
     'Không thể chuẩn bị chi nhánh trên máy chủ. Kiểm tra mạng và thử lại.',
   )
-  await withTimeout(
-    upsertEmployeeMinimal({
-      id: employee.id,
-      branchId,
-      name: employee.name ?? '',
-      status: employee.status ?? 'active',
-    }),
+
+  const remoteEmployee = await withTimeout(
+    fetchEmployeeById(employee.id),
     ATTENDANCE_SYNC_TIMEOUT_MS,
-    'Không thể chuẩn bị hồ sơ nhân viên trên máy chủ. Kiểm tra mạng và thử lại.',
+    'Không thể kiểm tra hồ sơ nhân viên trên máy chủ. Kiểm tra mạng và thử lại.',
   )
+  if (!remoteEmployee) {
+    throw new Error('Nhân viên không tồn tại.')
+  }
 
   return { employee, branchId }
 }

@@ -26,9 +26,9 @@
 .myprofile__banner {
   padding: 14px 18px;
   border-radius: 12px;
-  background: #fff7ed;
-  border: 1px solid var(--ks-border);
-  color: #9a3412;
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  color: #92400e;
   font-size: 14px;
 }
 

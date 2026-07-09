@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { fetchEmployeesFiltered } from '../repositories/employeesRepository'
+import { fetchEmployeesFiltered, subscribeEmployeesChanges } from '../repositories/employeesRepository'
 import { fetchAttendanceFiltered, subscribeAttendanceChanges } from '../repositories/attendanceRepository'
 import { fetchInvoicesFiltered, subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import {
@@ -93,11 +93,13 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
     const unsubPayroll = subscribePayrollChanges(onLiveChange)
     const unsubAttendance = subscribeAttendanceChanges(onLiveChange)
     const unsubInvoices = subscribeInvoicesChanges(onLiveChange)
+    const unsubEmployees = subscribeEmployeesChanges(onLiveChange)
     const unsubDataSync = subscribeToDataSync(onLiveChange)
     return () => {
       unsubPayroll()
       unsubAttendance()
       unsubInvoices()
+      unsubEmployees()
       unsubDataSync()
     }
   }, [reload])

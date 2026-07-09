@@ -111,20 +111,20 @@ export default function SettingsEmployeesTab({ showToast }) {
     setErrors({})
   }
 
-  const save = () => {
+  const save = async () => {
     const next = validateForm(form)
     setErrors(next)
     if (Object.keys(next).length > 0) return
 
     if (modal.mode === 'add') {
-      const result = addEmployee(form)
+      const result = await addEmployee(form)
       if (!result.success) {
         showToast(result.error ?? 'Không thể thêm nhân viên')
         return
       }
       showToast('Thêm nhân viên thành công')
     } else {
-      const result = updateEmployee(modal.id, form)
+      const result = await updateEmployee(modal.id, form)
       if (!result.success) {
         showToast(result.error ?? 'Không thể cập nhật nhân viên')
         return
@@ -135,9 +135,9 @@ export default function SettingsEmployeesTab({ showToast }) {
     refresh()
   }
 
-  const handleArchive = (id) => {
+  const handleArchive = async (id) => {
     if (!window.confirm('Lưu trữ nhân viên này? Hồ sơ sẽ ẩn khỏi danh sách mặc định nhưng giữ nguyên dữ liệu lịch sử.')) return
-    const result = archiveEmployee(id)
+    const result = await archiveEmployee(id)
     if (!result.success) {
       showToast(result.error ?? 'Không thể lưu trữ nhân viên')
       return
@@ -157,12 +157,12 @@ export default function SettingsEmployeesTab({ showToast }) {
     refresh()
   }
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
     if (!transfer.employeeId || !transfer.branchId) {
       showToast('Vui lòng chọn nhân viên và chi nhánh đích')
       return
     }
-    const result = transferEmployee(transfer.employeeId, transfer.branchId)
+    const result = await transferEmployee(transfer.employeeId, transfer.branchId)
     if (!result.success) {
       showToast(result.error ?? 'Không thể chuyển chi nhánh')
       return
