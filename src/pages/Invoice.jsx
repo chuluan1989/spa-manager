@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import BranchBanner from '../components/common/BranchBanner'
-import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
+import { useInvoicesData } from '../hooks/useInvoicesData'
 import {
   canDeleteInvoice,
   canEditInvoice,
@@ -43,9 +43,8 @@ import {
 import {
   createInvoiceId,
   deleteInvoice,
+  getMonthStartDate,
   getTodayDate,
-  getInvoiceById,
-  loadInvoices,
   saveInvoice,
   updateInvoice,
 } from '../utils/invoiceStorage'
@@ -61,8 +60,8 @@ import { getCatalogGroupsForBranch } from '../utils/branchPricingStorage'
 import './Invoice.css'
 
 const INITIAL_FILTERS = () => ({
-  fromDate: '',
-  toDate: '',
+  fromDate: getMonthStartDate(),
+  toDate: getTodayDate(),
   branchId: canSelectBranch() ? '' : getCurrentUserBranch(),
   employeeId: '',
   serviceId: '',
@@ -108,7 +107,7 @@ export default function Invoice() {
   const [discountInput, setDiscountInput] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [editingId, setEditingId] = useState(null)
-  const [invoices, setInvoices] = useState(() => loadInvoices())
+  const { invoices, loading: invoicesLoading, error: invoicesError, reload: reloadInvoices } = useInvoicesData()
   const [listFilters, setListFilters] = useState(INITIAL_FILTERS)
   const [listPage, setListPage] = useState(1)
   const [detailInvoice, setDetailInvoice] = useState(null)
@@ -122,10 +121,7 @@ export default function Invoice() {
     return 'list'
   })
 
-  const syncVersion = useDataSyncVersion()
-  useEffect(() => {
-    if (syncVersion > 0) setInvoices(loadInvoices())
-  }, [syncVersion])
+  const getInvoiceByIdFromList = (id) => invoices.find((invoice) => invoice.id === id) ?? null
 
   const visibleInvoices = useMemo(
     () => filterByUserScope(invoices),
@@ -169,12 +165,12 @@ export default function Invoice() {
 
   const catalogGroups = useMemo(
     () => (form.branchId ? getCatalogGroupsForBranch(form.branchId) : []),
-    [form.branchId, syncVersion],
+    [form.branchId],
   )
 
   const branchServices = useMemo(
     () => (form.branchId ? getActiveServicesForBranch(form.branchId) : []),
-    [form.branchId, syncVersion],
+    [form.branchId],
   )
 
   const currentBranch = useMemo(
@@ -335,13 +331,13 @@ export default function Invoice() {
     serviceCommission: totals.serviceCommission,
   })
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return
 
     const branchId = lockedBranch ? getCurrentUserBranch() : form.branchId
     const branch = getBranchById(branchId)
     const employee = getEmployeeById(form.employeeId)
-    const existingInvoice = editingId ? getInvoiceById(editingId) : null
+    const existingInvoice = editingId ? getInvoiceByIdFromList(editingId) : null
 
     if (!branch || !employee || !isEmployeeInBranch(form.employeeId, branchId)) {
       setErrors({ employeeId: 'Nhân viên không thuộc chi nhánh đã chọn' })
@@ -351,12 +347,12 @@ export default function Invoice() {
     const payload = buildInvoicePayload(branchId, branch, employee, existingInvoice)
 
     if (editingId) {
-      const result = updateInvoice(editingId, payload)
+      const result = await updateInvoice(editingId, payload, existingInvoice)
       if (!result.success) {
         showToast(result.error ?? 'Không thể cập nhật hóa đơn')
         return
       }
-      setInvoices(result.invoices)
+      reloadInvoices()
       resetForm()
       setActiveTab('list')
       showToast('Cập nhật hóa đơn thành công')
@@ -369,12 +365,12 @@ export default function Invoice() {
       createdAt: new Date().toISOString(),
     }
 
-    const result = saveInvoice(invoice)
+    const result = await saveInvoice(invoice)
     if (!result.success) {
       showToast(result.error ?? 'Không thể lưu hóa đơn')
       return
     }
-    setInvoices(result.invoices)
+    reloadInvoices()
     resetForm()
     setActiveTab('list')
     showToast('Lưu thành công')
@@ -413,31 +409,33 @@ export default function Invoice() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const pendingEditIdRef = useRef(consumeInvoiceEditPrefill())
+
   useEffect(() => {
-    const editId = consumeInvoiceEditPrefill()
-    if (!editId) return
-    const invoice = getInvoiceById(editId)
+    const editId = pendingEditIdRef.current
+    if (!editId || invoicesLoading) return
+    const invoice = invoices.find((item) => item.id === editId)
     if (invoice) {
+      pendingEditIdRef.current = null
       handleEdit(invoice)
     }
-  // Chạy một lần khi mở trang từ báo cáo nhân viên
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [invoicesLoading, invoices])
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!canDeleteInvoice()) {
       showToast('Bạn không có quyền xóa hóa đơn.')
       return
     }
     if (!window.confirm('Bạn chắc chắn muốn xóa hóa đơn này? Thao tác này không thể hoàn tác.')) return
 
-    const result = deleteInvoice(id)
+    const result = await deleteInvoice(id, invoices.find((inv) => inv.id === id))
     if (!result.success) {
       showToast(result.error ?? 'Bạn không có quyền xóa hóa đơn.')
       return
     }
     if (editingId === id) resetForm()
-    setInvoices(result.invoices)
+    reloadInvoices()
   }
 
   const handleViewInvoice = (invoice) => {
@@ -445,10 +443,7 @@ export default function Invoice() {
   }
 
   const resetListFilters = () => {
-    setListFilters((prev) => ({
-      ...INITIAL_FILTERS(),
-      branchId: prev.branchId,
-    }))
+    setListFilters(INITIAL_FILTERS())
     setListPage(1)
   }
 
@@ -490,6 +485,14 @@ export default function Invoice() {
 
       {activeTab === 'list' && (
         <>
+          {invoicesError && (
+            <div className="invoice__error invoice__error--block" role="alert">
+              Không thể tải hóa đơn từ Supabase: {invoicesError}
+            </div>
+          )}
+          {invoicesLoading && (
+            <p className="invoice__subtitle">Đang tải hóa đơn từ Supabase…</p>
+          )}
           <InvoiceFilters
             filters={effectiveListFilters}
             onChange={setListFilters}

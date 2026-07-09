@@ -3,6 +3,16 @@ import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
 const TABLE = 'invoices'
 
+/** Cột có trên Supabase — không gửi field JS thừa (vd. serviceCommission). */
+const SUPABASE_INVOICE_FIELDS = [
+  'id', 'date', 'branchId', 'branchName', 'employeeId', 'employeeName',
+  'supportEmployeeId', 'supportEmployeeName', 'customerName', 'customerPhone',
+  'customerRequested', 'serviceIds', 'services', 'tips', 'paymentMethod', 'note',
+  'serviceTotal', 'total', 'commission',
+  'originalServiceTotal', 'discountInput', 'discountType', 'discountValue', 'discountAmount',
+  'enteredBy', 'invoiceTime', 'createdAt', 'updatedAt',
+]
+
 /** Cột có thể thiếu trên production — chỉ strip khi UPSERT, KHÔNG dùng trong ORDER BY. */
 const OPTIONAL_INVOICE_COLUMNS = [
   'customer_phone',
@@ -16,10 +26,20 @@ const OPTIONAL_INVOICE_COLUMNS = [
   'original_service_total',
 ]
 
+function toSupabaseInvoicePayload(invoice) {
+  const payload = {}
+  for (const key of SUPABASE_INVOICE_FIELDS) {
+    if (invoice[key] !== undefined) payload[key] = invoice[key]
+  }
+  return payload
+}
+
 function invoiceToRow(invoice) {
+  const now = new Date().toISOString()
   return objectToSnakeRow({
-    ...invoice,
-    createdAt: invoice.createdAt ?? new Date().toISOString(),
+    ...toSupabaseInvoicePayload(invoice),
+    createdAt: invoice.createdAt ?? now,
+    updatedAt: invoice.updatedAt ?? now,
   })
 }
 
@@ -34,14 +54,38 @@ function stripOptionalInvoiceColumns(rows) {
 }
 
 async function upsertInvoiceRows(rows) {
-  let { error } = await supabase.from(TABLE).upsert(rows, { onConflict: 'id' })
+  let payload = rows
+  let { data, error } = await supabase.from(TABLE).upsert(payload, { onConflict: 'id' }).select('id')
+
   if (
     error
     && OPTIONAL_INVOICE_COLUMNS.some((column) => String(error.message).includes(column))
   ) {
-    ;({ error } = await supabase.from(TABLE).upsert(stripOptionalInvoiceColumns(rows), { onConflict: 'id' }))
+    payload = stripOptionalInvoiceColumns(rows)
+    ;({ data, error } = await supabase.from(TABLE).upsert(payload, { onConflict: 'id' }).select('id'))
   }
+
+  // Production có thể thiếu updated_at hoặc cột mới — strip và thử lại.
+  if (error && /column|schema cache|does not exist/i.test(String(error.message))) {
+    payload = payload.map((row) => {
+      const next = { ...row }
+      delete next.updated_at
+      delete next.customer_requested
+      delete next.invoice_time
+      delete next.entered_by
+      delete next.discount_input
+      delete next.discount_type
+      delete next.discount_value
+      delete next.discount_amount
+      delete next.original_service_total
+      delete next.customer_phone
+      return next
+    })
+    ;({ data, error } = await supabase.from(TABLE).upsert(payload, { onConflict: 'id' }).select('id'))
+  }
+
   if (error) throw error
+  return data
 }
 
 /**
@@ -96,8 +140,8 @@ export async function fetchInvoices() {
 }
 
 export async function upsertInvoice(invoice) {
-  if (!isSupabaseConfigured || !invoice?.id) return
-  await upsertInvoiceRows([invoiceToRow(invoice)])
+  if (!isSupabaseConfigured || !invoice?.id) return null
+  return upsertInvoiceRows([invoiceToRow(invoice)])
 }
 
 export async function upsertInvoices(invoices) {

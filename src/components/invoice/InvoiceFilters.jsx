@@ -41,6 +41,10 @@ export default function InvoiceFilters({
     })
   }
 
+  const applyAll = () => {
+    onChange({ ...filters, fromDate: '', toDate: '' })
+  }
+
   return (
     <section className="invoice-filters">
       <div className="invoice-filters__header">
@@ -54,6 +58,9 @@ export default function InvoiceFilters({
         </button>
         <button type="button" className="invoice-filters__preset" onClick={applyThisMonth}>
           Tháng này
+        </button>
+        <button type="button" className="invoice-filters__preset" onClick={applyAll}>
+          Tất cả
         </button>
       </div>
 

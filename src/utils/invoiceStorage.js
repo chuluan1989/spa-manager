@@ -16,19 +16,24 @@ import { normalizeCustomerPhone } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteInvoiceRow, upsertInvoice } from '../repositories/invoicesRepository'
 import { notifyDataSynced } from './dataSyncEvents'
+import { ensureBranchAndEmployeeOnServer } from './syncForeignKeys'
 
-function pushInvoiceToSupabase(invoice) {
-  if (!isSupabaseConfigured || !invoice) return
-  upsertInvoice(invoice).catch((error) => {
-    console.warn('[Supabase] Không thể đồng bộ hóa đơn:', error?.message)
-  })
+async function pushInvoiceToSupabase(invoice) {
+  if (!isSupabaseConfigured || !invoice) {
+    throw new Error('Supabase chưa cấu hình. Không thể lưu hóa đơn.')
+  }
+  const data = await upsertInvoice(invoice)
+  if (!data?.length) {
+    throw new Error('Supabase không trả về dữ liệu sau khi lưu hóa đơn.')
+  }
+  return data
 }
 
-function pushInvoiceDeletionToSupabase(id) {
-  if (!isSupabaseConfigured || !id) return
-  deleteInvoiceRow(id).catch((error) => {
-    console.warn('[Supabase] Không thể xoá hóa đơn trên máy chủ:', error?.message)
-  })
+async function pushInvoiceDeletionToSupabase(id) {
+  if (!isSupabaseConfigured || !id) {
+    throw new Error('Supabase chưa cấu hình. Không thể xoá hóa đơn.')
+  }
+  await deleteInvoiceRow(id)
 }
 
 const EMPLOYEE_EDITABLE_INVOICE_FIELDS = [
@@ -61,6 +66,35 @@ function pickEmployeeEditableInvoiceFields(data) {
 }
 
 const STORAGE_KEY = 'spa-manager-invoices'
+
+function logInvoiceSave(action, invoice, extra = {}) {
+  const services = Array.isArray(invoice?.services) ? invoice.services : []
+  console.info(`[Invoice] ${action}`, {
+    id: invoice?.id,
+    employee_id: invoice?.employeeId,
+    branch_id: invoice?.branchId,
+    invoice_date: invoice?.date,
+    created_at: invoice?.createdAt,
+    customer_name: invoice?.customerName,
+    customer_phone: invoice?.customerPhone,
+    service: services.map((s) => s?.name ?? s?.id).join(', '),
+    price: invoice?.serviceTotal,
+    discount: invoice?.discountAmount,
+    tips: invoice?.tips,
+    total: invoice?.total,
+    ...extra,
+  })
+}
+
+function logInvoiceSaveError(action, invoice, error) {
+  console.error(`[Invoice] ${action} FAILED`, {
+    id: invoice?.id,
+    employee_id: invoice?.employeeId,
+    branch_id: invoice?.branchId,
+    invoice_date: invoice?.date,
+    error: error?.message ?? String(error),
+  })
+}
 
 export function getTodayDate() {
   const d = new Date()
@@ -145,7 +179,7 @@ export function replaceAllInvoices(invoices) {
   return list
 }
 
-export function saveInvoice(invoice) {
+export async function saveInvoice(invoice) {
   if (!canAddInvoice()) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn.' }
   }
@@ -178,22 +212,34 @@ export function saveInvoice(invoice) {
     enteredBy: payload.enteredBy ?? getCurrentUserName(),
     createdAt: payload.createdAt ?? new Date().toISOString(),
   }))
+  try {
+    await ensureBranchAndEmployeeOnServer({
+      branchId: snapshot.branchId ?? '',
+      employeeId: snapshot.employeeId ?? '',
+      employeeName: snapshot.employeeName ?? '',
+      employeeStatus: 'active',
+    })
+    await pushInvoiceToSupabase(snapshot)
+    logInvoiceSave('save OK', snapshot)
+  } catch (error) {
+    logInvoiceSaveError('save', snapshot, error)
+    return { success: false, error: error?.message ?? 'Không thể lưu hóa đơn lên máy chủ.' }
+  }
   const invoices = loadInvoices()
   invoices.unshift(snapshot)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
-  pushInvoiceToSupabase(snapshot)
   notifyDataSynced(['invoices'])
   return { success: true, invoice: snapshot, invoices }
 }
 
-export function updateInvoice(id, data) {
-  const invoices = loadInvoices()
-  const index = invoices.findIndex((invoice) => invoice.id === id)
-  if (index === -1) {
+export async function updateInvoice(id, data, currentFromCaller = null) {
+  const current = currentFromCaller ?? getInvoiceById(id)
+  if (!current) {
     return { success: false, error: 'Không tìm thấy hóa đơn.' }
   }
 
-  const current = invoices[index]
+  const invoices = loadInvoices()
+  const index = invoices.findIndex((invoice) => invoice.id === id)
 
   if (!canEditInvoice(current)) {
     return { success: false, error: 'Bạn không có quyền sửa hóa đơn.' }
@@ -227,19 +273,36 @@ export function updateInvoice(id, data) {
     updatedAt: new Date().toISOString(),
   }))
 
-  invoices[index] = updated
+  try {
+    await ensureBranchAndEmployeeOnServer({
+      branchId: updated.branchId ?? '',
+      employeeId: updated.employeeId ?? '',
+      employeeName: updated.employeeName ?? '',
+      employeeStatus: 'active',
+    })
+    await pushInvoiceToSupabase(updated)
+    logInvoiceSave('update OK', updated)
+  } catch (error) {
+    logInvoiceSaveError('update', updated, error)
+    return { success: false, error: error?.message ?? 'Không thể cập nhật hóa đơn lên máy chủ.' }
+  }
+
+  if (index === -1) {
+    invoices.unshift(updated)
+  } else {
+    invoices[index] = updated
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
-  pushInvoiceToSupabase(updated)
   notifyDataSynced(['invoices'])
   return { success: true, invoice: updated, invoices }
 }
 
-export function deleteInvoice(id) {
+export async function deleteInvoice(id, currentFromCaller = null) {
   if (!canDeleteInvoice()) {
     return { success: false, error: 'Bạn không có quyền xóa hóa đơn.' }
   }
 
-  const current = getInvoiceById(id)
+  const current = currentFromCaller ?? getInvoiceById(id)
   if (!current) {
     return { success: false, error: 'Không tìm thấy hóa đơn.' }
   }
@@ -249,9 +312,14 @@ export function deleteInvoice(id) {
     return { success: false, error: 'Bạn không có quyền xóa hóa đơn này.' }
   }
 
+  try {
+    await pushInvoiceDeletionToSupabase(id)
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể xoá hóa đơn trên máy chủ.' }
+  }
+
   const invoices = loadInvoices().filter((inv) => inv.id !== id)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
-  pushInvoiceDeletionToSupabase(id)
   notifyDataSynced(['invoices'])
   return { success: true, invoices }
 }
