@@ -97,7 +97,7 @@ export function buildExpenseFingerprint(raw) {
   return `legacy-exp-${simpleHash(parts.join('|'))}`
 }
 
-function normalizeLegacyInvoice(raw) {
+export function normalizeLegacyInvoice(raw) {
   const camel = rowToCamel(raw)
   const tips = Number(camel.tips ?? camel.tip ?? 0)
   const services = Array.isArray(camel.services) ? camel.services : []

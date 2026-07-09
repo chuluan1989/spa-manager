@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Layout from './components/layout/Layout'
 import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
+import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -242,6 +243,10 @@ function App() {
         />
       ) : null}
     >
+      <UnsyncedInvoicesBanner
+        user={currentUser}
+        onSyncComplete={() => notifyDataSynced(['invoices'])}
+      />
       <Page key={activePage} onNavigate={handleNavigate} />
     </Layout>
   )
