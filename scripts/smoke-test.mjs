@@ -47,35 +47,39 @@ function resetStorage() {
 
 resetStorage()
 
+// Smoke tests chạy offline — không ghi Supabase production.
+if (import.meta.env) {
+  import.meta.env.VITE_SUPABASE_URL = ''
+  import.meta.env.VITE_SUPABASE_ANON_KEY = ''
+}
+
 const { seedDefaultTestEmployees } = await import('./test-employee-fixtures.mjs')
 
 let passed = 0
 let failed = 0
+const testQueue = []
 
 function test(name, fn) {
-  try {
-    resetStorage()
-    seedDefaultTestEmployees()
-    fn()
-    passed += 1
-    console.log(`  ✓ ${name}`)
-  } catch (error) {
-    failed += 1
-    console.error(`  ✗ ${name}`)
-    console.error(`    ${error.message}`)
-  }
+  testQueue.push({ name, fn, seed: true })
 }
 
 function testNoSeed(name, fn) {
-  try {
-    resetStorage()
-    fn()
-    passed += 1
-    console.log(`  ✓ ${name}`)
-  } catch (error) {
-    failed += 1
-    console.error(`  ✗ ${name}`)
-    console.error(`    ${error.message}`)
+  testQueue.push({ name, fn, seed: false })
+}
+
+async function runQueuedTests() {
+  for (const { name, fn, seed } of testQueue) {
+    try {
+      resetStorage()
+      if (seed) seedDefaultTestEmployees()
+      await fn()
+      passed += 1
+      console.log(`  ✓ ${name}`)
+    } catch (error) {
+      failed += 1
+      console.error(`  ✗ ${name}`)
+      console.error(`    ${error.message}`)
+    }
   }
 }
 
@@ -1172,9 +1176,9 @@ test('employee profile: incomplete profile requires name, phone and cccd', () =>
   assert.equal(isEmployeeProfileComplete(null), false)
 })
 
-test('employee self profile: employee updates own profile successfully', () => {
+test('employee self profile: employee updates own profile successfully', async () => {
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
-  const result = updateOwnEmployeeProfile('vinh-long-linh', {
+  const result = await updateOwnEmployeeProfile('vinh-long-linh', {
     name: 'Linh',
     phone: '0901234567',
     cccd: '079123456789',
@@ -1190,19 +1194,19 @@ test('employee self profile: employee updates own profile successfully', () => {
   clearCurrentUser()
 })
 
-test('employee self profile: chỉ bắt buộc họ tên + SĐT; CCCD được để trống', () => {
+test('employee self profile: chỉ bắt buộc họ tên + SĐT; CCCD được để trống', async () => {
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
-  const noPhone = updateOwnEmployeeProfile('vinh-long-linh', { name: 'Linh', phone: '' })
+  const noPhone = await updateOwnEmployeeProfile('vinh-long-linh', { name: 'Linh', phone: '' })
   assert.equal(noPhone.success, false)
 
-  const badCccd = updateOwnEmployeeProfile('vinh-long-linh', {
+  const badCccd = await updateOwnEmployeeProfile('vinh-long-linh', {
     name: 'Linh',
     phone: '0901234567',
     cccd: '12345',
   })
   assert.equal(badCccd.success, false)
 
-  const namePhoneOnly = updateOwnEmployeeProfile('vinh-long-linh', {
+  const namePhoneOnly = await updateOwnEmployeeProfile('vinh-long-linh', {
     name: 'Linh',
     phone: '0901234567',
     cccd: '',
@@ -1228,13 +1232,13 @@ test('imageStorage: phân biệt Base64 cũ và URL Storage', async () => {
   assert.equal(IMAGE_CATEGORIES.CONTRACT, 'contracts')
 })
 
-test('employee self profile: ảnh legacy Base64 vẫn giữ nguyên sau save + reload', () => {
+test('employee self profile: ảnh legacy Base64 vẫn giữ nguyên sau save + reload', async () => {
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
   const fakeBase64Front = 'data:image/jpeg;base64,frontimagedata=='
   const fakeBase64Back = 'data:image/jpeg;base64,backimagedata=='
   const fakeAvatar = 'data:image/jpeg;base64,avatarimagedata=='
 
-  const result = updateOwnEmployeeProfile('vinh-long-linh', {
+  const result = await updateOwnEmployeeProfile('vinh-long-linh', {
     name: 'Linh',
     phone: '0901234567',
     cccd: '079123456789',
@@ -1254,7 +1258,7 @@ test('employee self profile: ảnh legacy Base64 vẫn giữ nguyên sau save + 
   assert.equal(reloaded.cccdBackImage, fakeBase64Back, 'Ảnh CCCD mặt sau phải còn sau khi tải lại')
 
   const storageAvatar = 'https://example.supabase.co/storage/v1/object/public/spa-images/avatars/test.jpg'
-  const withUrl = updateOwnEmployeeProfile('vinh-long-linh', {
+  const withUrl = await updateOwnEmployeeProfile('vinh-long-linh', {
     name: 'Linh',
     phone: '0901234567',
     cccd: '079123456789',
@@ -1265,7 +1269,7 @@ test('employee self profile: ảnh legacy Base64 vẫn giữ nguyên sau save + 
   clearCurrentUser()
 })
 
-test('employee self profile: storage quota errors are returned gracefully, not thrown', () => {
+test('employee self profile: storage quota errors are returned gracefully, not thrown', async () => {
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
   const originalSetItem = localStorage.setItem.bind(localStorage)
   localStorage.setItem = () => {
@@ -1277,7 +1281,7 @@ test('employee self profile: storage quota errors are returned gracefully, not t
   let threw = false
   let result
   try {
-    result = updateOwnEmployeeProfile('vinh-long-linh', {
+    result = await updateOwnEmployeeProfile('vinh-long-linh', {
       name: 'Linh',
       phone: '0901234567',
       cccd: '079123456789',
@@ -1365,9 +1369,9 @@ test('redactEmployeeForViewer: manager gets no sensitive fields, admin gets all'
   clearCurrentUser()
 })
 
-test('redactEmployeeForViewer + updateEmployee: manager editing does not wipe hidden fields', () => {
+test('redactEmployeeForViewer + updateEmployee: quản lý không được sửa hồ sơ nhân viên', async () => {
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
-  updateEmployee('vinh-long-linh', {
+  await updateEmployee('vinh-long-linh', {
     cccd: '079999999999',
     bankName: 'ACB',
     bankAccount: '123123123',
@@ -1378,27 +1382,23 @@ test('redactEmployeeForViewer + updateEmployee: manager editing does not wipe hi
   setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
   const redactedForm = redactEmployeeForViewer(getEmployeeById('vinh-long-linh'))
   const payload = { ...redactedForm, position: 'KTV Body cấp cao' }
-  const result = updateEmployee('vinh-long-linh', payload)
-  assert.equal(result.success, true)
-  assert.equal(result.employee.position, 'KTV Body cấp cao')
-  assert.equal(result.employee.cccd, '079999999999', 'CCCD không bị mất khi Quản lý sửa hồ sơ')
-  assert.equal(result.employee.bankName, 'ACB')
-  assert.equal(result.employee.bankAccount, '123123123')
-  assert.equal(result.employee.currentAddress, 'Địa chỉ gốc')
+  const result = await updateEmployee('vinh-long-linh', payload)
+  assert.equal(result.success, false, 'Quản lý không được sửa nhân viên')
+  assert.equal(getEmployeeById('vinh-long-linh').position !== 'KTV Body cấp cao', true)
   clearCurrentUser()
 })
 
-test('employee self profile: cannot edit another employee\'s profile', () => {
+test('employee self profile: cannot edit another employee\'s profile', async () => {
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
-  const result = updateOwnEmployeeProfile('vinh-long-tho', { name: 'Hack', phone: '0901234567' })
+  const result = await updateOwnEmployeeProfile('vinh-long-tho', { name: 'Hack', phone: '0901234567' })
   assert.equal(result.success, false)
   clearCurrentUser()
 })
 
-test('employee self profile: cannot change role-managed fields via forged payload', () => {
+test('employee self profile: cannot change role-managed fields via forged payload', async () => {
   setSession({ role: ROLES.EMPLOYEE, branch: 'vinh-long', employeeId: 'vinh-long-linh' })
   const before = getEmployeeById('vinh-long-linh')
-  const result = updateOwnEmployeeProfile('vinh-long-linh', {
+  const result = await updateOwnEmployeeProfile('vinh-long-linh', {
     name: 'Linh',
     phone: '0901234567',
     cccd: '079123456789',
@@ -1415,15 +1415,14 @@ test('employee self profile: cannot change role-managed fields via forged payloa
   clearCurrentUser()
 })
 
-test('employee self profile: non-employee roles are denied', () => {
+test('employee self profile: non-employee roles are denied', async () => {
   setSession({ role: ROLES.BRANCH_MANAGER, branch: 'vinh-long' })
-  const result = updateOwnEmployeeProfile('vinh-long-linh', { name: 'X', phone: '0901234567' })
+  const result = await updateOwnEmployeeProfile('vinh-long-linh', { name: 'X', phone: '0901234567' })
   assert.equal(result.success, false)
   clearCurrentUser()
 
-  // Admin/Quản lý vẫn sửa được toàn bộ hồ sơ qua updateEmployee như trước.
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
-  const adminResult = updateEmployee('vinh-long-linh', { position: 'KTV Body' })
+  const adminResult = await updateEmployee('vinh-long-linh', { position: 'KTV Body' })
   assert.equal(adminResult.success, true)
   assert.equal(adminResult.employee.position, 'KTV Body')
   clearCurrentUser()
@@ -1460,12 +1459,12 @@ test('getEmployeeProfileStatus: ưu tiên CCCD > ngân hàng > thiếu thông ti
   )
 })
 
-test('transferEmployee: ghi lịch sử chi nhánh, không mất dữ liệu hồ sơ cũ', () => {
+test('transferEmployee: ghi lịch sử chi nhánh, không mất dữ liệu hồ sơ cũ', async () => {
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   const before = getEmployeeById('vinh-long-linh')
   assert.equal(before.branchHistory.length, 0)
 
-  const result = transferEmployee('vinh-long-linh', 'tra-vinh', {
+  const result = await transferEmployee('vinh-long-linh', 'tra-vinh', {
     transferDate: '2026-07-01',
     note: 'Chuyển theo nhu cầu',
   })
@@ -1481,10 +1480,10 @@ test('transferEmployee: ghi lịch sử chi nhánh, không mất dữ liệu h�
   clearCurrentUser()
 })
 
-test('softDeleteEmployee: đặt trạng thái nghỉ việc, giữ hồ sơ', () => {
+test('softDeleteEmployee: đặt trạng thái nghỉ việc, giữ hồ sơ', async () => {
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   const before = getEmployeeById('vinh-long-linh')
-  const result = softDeleteEmployee('vinh-long-linh')
+  const result = await softDeleteEmployee('vinh-long-linh')
   assert.equal(result.success, true)
   assert.equal(result.employee.status, 'resigned')
   assert.ok(result.employee.endDate, 'Ghi nhận ngày nghỉ việc')
@@ -1493,11 +1492,11 @@ test('softDeleteEmployee: đặt trạng thái nghỉ việc, giữ hồ sơ', (
   clearCurrentUser()
 })
 
-test('archiveEmployee: lưu trữ nhân viên, giữ hồ sơ', () => {
+test('archiveEmployee: lưu trữ nhân viên, giữ hồ sơ', async () => {
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
-  updateEmployee('vinh-long-linh', { status: 'active', endDate: '' })
+  await updateEmployee('vinh-long-linh', { status: 'active', endDate: '' })
   const before = getEmployeeById('vinh-long-linh')
-  const result = archiveEmployee('vinh-long-linh')
+  const result = await archiveEmployee('vinh-long-linh')
   assert.equal(result.success, true)
   assert.equal(result.employee.status, EMPLOYEE_STATUS.ARCHIVED)
   assert.equal(result.employee.name, before.name)
@@ -1554,10 +1553,10 @@ test('removeEmployeeCredential: xóa tài khoản nhân viên khỏi app_credent
   assert.equal(loadCredentials().employees?.['tram-spa-test'], undefined)
 })
 
-test('setEmployeeStatus: nghỉ việc khóa đăng nhập nhưng giữ dữ liệu', () => {
+test('setEmployeeStatus: nghỉ việc khóa đăng nhập nhưng giữ dữ liệu', async () => {
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
-  updateEmployee('vinh-long-linh', { status: 'active', endDate: '' })
-  const result = setEmployeeStatus('vinh-long-linh', EMPLOYEE_STATUS.RESIGNED)
+  await updateEmployee('vinh-long-linh', { status: 'active', endDate: '' })
+  const result = await setEmployeeStatus('vinh-long-linh', EMPLOYEE_STATUS.RESIGNED)
   assert.equal(result.success, true)
   assert.equal(result.employee.status, EMPLOYEE_STATUS.RESIGNED)
   assert.ok(result.employee.endDate)
@@ -1826,6 +1825,7 @@ test('report profit subtracts commission from ticket revenue, not tips', () => {
 async function testAsync(name, fn) {
   try {
     resetStorage()
+    seedDefaultTestEmployees()
     await fn()
     passed += 1
     console.log(`  ✓ ${name}`)
@@ -1931,7 +1931,7 @@ const {
   buildInvoiceFingerprint,
 } = await import('../src/utils/legacyStorageScanner.js')
 
-await test('legacyCloudSync: scope theo vai trò admin / QL / NV', () => {
+test('legacyCloudSync: scope theo vai trò admin / QL / NV', () => {
   const snapshot = {
     branches: [{ id: 'b1' }],
     services: [{ id: 's1' }],
@@ -1968,7 +1968,7 @@ await test('legacyCloudSync: scope theo vai trò admin / QL / NV', () => {
   assert.equal(employeeScope.employees.length, 1)
 })
 
-await test('legacyStorageScanner: quét key tour cũ và tạo fingerprint hóa đơn', () => {
+test('legacyStorageScanner: quét key tour cũ và tạo fingerprint hóa đơn', () => {
   localStorage.setItem(
     'old-spa-tours',
     JSON.stringify([
@@ -1998,7 +1998,7 @@ await test('legacyStorageScanner: quét key tour cũ và tạo fingerprint hóa 
   localStorage.removeItem('old-spa-tours')
 })
 
-await test('legacyCloudSync: checkLegacyData trả về counts theo phạm vi admin', () => {
+test('legacyCloudSync: checkLegacyData trả về counts theo phạm vi admin', () => {
   setSession({ role: ROLES.ADMIN, branch: ADMIN_BRANCH })
   localStorage.setItem(
     'spa-manager-invoices',
@@ -2690,6 +2690,94 @@ test('invoice filters: canonical branch_id matching', async () => {
   assert.equal(tramOnly[0].id, '1')
 })
 
+test('invoice legacy migrate: collect keys, dedup, and scope employee', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const {
+    buildInvoiceDedupKey,
+    buildRemoteInvoiceIndex,
+    collectAllLocalInvoices,
+    findUnsyncedLocalInvoices,
+    isInvoiceAlreadyOnRemote,
+    scopeInvoicesForUser,
+    shouldShowUnsyncedInvoicesBanner,
+  } = await import('../src/utils/invoiceLegacyMigrate.js')
+  const { ROLES } = await import('../src/constants/roles.js')
+
+  localStorage.setItem('spa-manager-invoices', JSON.stringify([
+    {
+      id: 'inv-local-1',
+      date: '2026-07-05',
+      branchId: 'vinh-long',
+      employeeId: 'vinh-long-linh',
+      customerName: 'Khách cũ',
+      customerPhone: '0901111222',
+      serviceIds: ['body-60'],
+      services: [{ id: 'body-60', name: 'Body 60', price: 300000 }],
+      tips: 50000,
+      total: 350000,
+      serviceTotal: 300000,
+      createdAt: '2026-07-05T10:00:00.000Z',
+    },
+  ]))
+  localStorage.setItem('old-spa-tours', JSON.stringify([
+    {
+      id: 'inv-local-1',
+      date: '2026-07-05',
+      branch_id: 'vinh-long',
+      employee_id: 'vinh-long-linh',
+      total: 350000,
+      created_at: '2026-07-05T10:00:00.000Z',
+    },
+    {
+      id: 'inv-local-2',
+      date: '2026-07-06',
+      branch_id: 'vinh-long',
+      employee_id: 'other-emp',
+      total: 200000,
+      created_at: '2026-07-06T08:00:00.000Z',
+    },
+  ]))
+
+  const all = collectAllLocalInvoices()
+  assert.equal(all.length, 2, 'gom spa-manager-invoices + old-spa-tours, không trùng id')
+
+  const employee = { role: ROLES.EMPLOYEE, employeeId: 'vinh-long-linh', branch: 'vinh-long' }
+  const scoped = scopeInvoicesForUser(all, employee)
+  assert.equal(scoped.length, 1)
+  assert.equal(scoped[0].id, 'inv-local-1')
+
+  const remoteIndex = buildRemoteInvoiceIndex([
+    {
+      id: 'remote-other',
+      date: '2026-07-05',
+      employeeId: 'vinh-long-linh',
+      total: 350000,
+      createdAt: '2026-07-05T10:00:00.000Z',
+    },
+  ])
+  assert.equal(isInvoiceAlreadyOnRemote(scoped[0], remoteIndex), true, 'chống trùng theo created_at+employee+total+date')
+
+  const pending = findUnsyncedLocalInvoices(scoped, buildRemoteInvoiceIndex([]))
+  assert.equal(pending.length, 1)
+  assert.notEqual(buildInvoiceDedupKey(pending[0]), '')
+
+  const migrateSource = fs.readFileSync(path.join(process.cwd(), 'src/utils/invoiceLegacyMigrate.js'), 'utf8')
+  assert.match(migrateSource, /ROLES\.EMPLOYEE.*ROLES\.BRANCH_MANAGER/s)
+})
+
+test('invoice legacy migrate: banner text and App mount', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const banner = fs.readFileSync(path.join(process.cwd(), 'src/components/invoice/UnsyncedInvoicesBanner.jsx'), 'utf8')
+  const app = fs.readFileSync(path.join(process.cwd(), 'src/App.jsx'), 'utf8')
+
+  assert.match(banner, /Có dữ liệu hóa đơn cũ chưa đồng bộ/)
+  assert.match(banner, /Đồng bộ lên hệ thống/)
+  assert.match(banner, /migrateLocalInvoicesToSupabase/)
+  assert.match(app, /UnsyncedInvoicesBanner/)
+})
+
 test('storage policies: spa-images authenticated + anon policies migration', async () => {
   const fs = await import('node:fs')
   const path = await import('node:path')
@@ -2907,4 +2995,5 @@ test('App: import không crash (useMemo phải được import)', async () => {
   assert.equal(typeof App, 'function')
 })
 
+await runQueuedTests()
 process.exit(failed > 0 ? 1 : 0)

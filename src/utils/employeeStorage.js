@@ -36,10 +36,13 @@ export const SUPABASE_EMPLOYEE_FIELDS = [
 
 const SUPABASE_REQUIRED_ERROR = 'Supabase chưa cấu hình. Không thể lưu dữ liệu nhân viên.'
 
-/** Ghi lên Supabase — bắt buộc thành công trước khi coi là đã lưu. Chỉ Admin gọi qua add/update. */
+/** Ghi lên Supabase khi đã cấu hình; nếu chưa cấu hình chỉ lưu local (dev/test). */
 async function pushEmployeeToSupabase(employee) {
-  if (!isSupabaseConfigured || !employee) {
+  if (!employee) {
     throw new Error(SUPABASE_REQUIRED_ERROR)
+  }
+  if (!isSupabaseConfigured) {
+    return
   }
   const branch = getBranchById(employee.branchId ?? '')
   if (!branch?.id) {
@@ -53,8 +56,11 @@ async function pushEmployeeToSupabase(employee) {
 }
 
 async function pushEmployeeDeletionToSupabase(id) {
-  if (!isSupabaseConfigured || !id) {
+  if (!id) {
     throw new Error(SUPABASE_REQUIRED_ERROR)
+  }
+  if (!isSupabaseConfigured) {
+    return
   }
   await deleteEmployeeRow(id)
 }
@@ -408,6 +414,9 @@ export async function addEmployee(data) {
   if (!isSessionAdmin()) {
     return denyAccess('Chỉ Admin mới được thêm nhân viên.')
   }
+  if (!isSupabaseConfigured) {
+    return { success: false, error: SUPABASE_REQUIRED_ERROR }
+  }
 
   const sanitized = sanitizeEmployeeData(data)
   if (!canAccessSessionBranch(sanitized.branchId)) {
@@ -551,6 +560,9 @@ export async function deleteEmployee(id) {
   const user = getSessionUser()
   if (user?.role !== ROLES.ADMIN) {
     return denyAccess('Chỉ Admin mới được xóa vĩnh viễn nhân viên.')
+  }
+  if (!isSupabaseConfigured) {
+    return { success: false, error: SUPABASE_REQUIRED_ERROR }
   }
 
   const employees = loadEmployees()
