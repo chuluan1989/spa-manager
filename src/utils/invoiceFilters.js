@@ -1,3 +1,4 @@
+import { resolveCanonicalBranchId } from '../constants/canonicalBranches'
 import {
   getInvoiceDiscountAmount,
   getInvoiceOriginalServiceTotal,
@@ -95,7 +96,7 @@ export function filterInvoices(invoices, filters) {
   return invoices.filter((invoice) => {
     if (fromDate && invoice.date < fromDate) return false
     if (toDate && invoice.date > toDate) return false
-    if (branchId && invoice.branchId !== branchId) return false
+    if (branchId && resolveCanonicalBranchId(invoice.branchId) !== resolveCanonicalBranchId(branchId)) return false
 
     if (employeeId && invoice.employeeId !== employeeId && invoice.supportEmployeeId !== employeeId) {
       return false

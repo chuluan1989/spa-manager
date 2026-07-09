@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { fetchInvoices, subscribeInvoicesChanges } from '../repositories/invoicesRepository'
+import { replaceAllInvoices } from '../utils/invoiceStorage'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 
 /**
@@ -27,7 +28,9 @@ export function useInvoicesData() {
         }
         const rows = await fetchInvoices()
         if (!cancelled) {
-          setInvoices(Array.isArray(rows) ? rows : [])
+          const list = Array.isArray(rows) ? rows : []
+          setInvoices(list)
+          replaceAllInvoices(list)
           setError('')
         }
       } catch (err) {

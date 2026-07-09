@@ -23,8 +23,8 @@ async function pushInvoiceToSupabase(invoice) {
     throw new Error('Supabase chưa cấu hình. Không thể lưu hóa đơn.')
   }
   const data = await upsertInvoice(invoice)
-  if (!data?.length) {
-    throw new Error('Supabase không trả về dữ liệu sau khi lưu hóa đơn.')
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error('Supabase không xác nhận đã lưu hóa đơn.')
   }
   return data
 }
@@ -179,15 +179,13 @@ export function replaceAllInvoices(invoices) {
   return list
 }
 
-export async function saveInvoice(invoice) {
+export function saveInvoice(invoice) {
   if (!canAddInvoice()) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn.' }
   }
 
   let payload = invoice
 
-  // Nhân viên chỉ được tạo hóa đơn cho chính mình, tại chi nhánh của mình.
-  // Ép cứng ở storage layer để chặn mọi thao tác sửa qua code/browser.
   if (isEmployee()) {
     const employeeId = getCurrentUserEmployeeId()
     const branchId = getCurrentUserBranch()
@@ -212,12 +210,23 @@ export async function saveInvoice(invoice) {
     enteredBy: payload.enteredBy ?? getCurrentUserName(),
     createdAt: payload.createdAt ?? new Date().toISOString(),
   }))
+
+  if (!isSupabaseConfigured) {
+    const invoices = loadInvoices()
+    invoices.unshift(snapshot)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+    notifyDataSynced(['invoices'])
+    return { success: true, invoice: snapshot, invoices }
+  }
+
+  return saveInvoiceRemote(snapshot)
+}
+
+async function saveInvoiceRemote(snapshot) {
   try {
     await ensureBranchAndEmployeeOnServer({
       branchId: snapshot.branchId ?? '',
       employeeId: snapshot.employeeId ?? '',
-      employeeName: snapshot.employeeName ?? '',
-      employeeStatus: 'active',
     })
     await pushInvoiceToSupabase(snapshot)
     logInvoiceSave('save OK', snapshot)
@@ -232,7 +241,7 @@ export async function saveInvoice(invoice) {
   return { success: true, invoice: snapshot, invoices }
 }
 
-export async function updateInvoice(id, data, currentFromCaller = null) {
+export function updateInvoice(id, data, currentFromCaller = null) {
   const current = currentFromCaller ?? getInvoiceById(id)
   if (!current) {
     return { success: false, error: 'Không tìm thấy hóa đơn.' }
@@ -273,12 +282,25 @@ export async function updateInvoice(id, data, currentFromCaller = null) {
     updatedAt: new Date().toISOString(),
   }))
 
+  if (!isSupabaseConfigured) {
+    if (index === -1) {
+      invoices.unshift(updated)
+    } else {
+      invoices[index] = updated
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+    notifyDataSynced(['invoices'])
+    return { success: true, invoice: updated, invoices }
+  }
+
+  return updateInvoiceRemote(updated, invoices, index)
+}
+
+async function updateInvoiceRemote(updated, invoices, index) {
   try {
     await ensureBranchAndEmployeeOnServer({
       branchId: updated.branchId ?? '',
       employeeId: updated.employeeId ?? '',
-      employeeName: updated.employeeName ?? '',
-      employeeStatus: 'active',
     })
     await pushInvoiceToSupabase(updated)
     logInvoiceSave('update OK', updated)
@@ -297,7 +319,7 @@ export async function updateInvoice(id, data, currentFromCaller = null) {
   return { success: true, invoice: updated, invoices }
 }
 
-export async function deleteInvoice(id, currentFromCaller = null) {
+export function deleteInvoice(id, currentFromCaller = null) {
   if (!canDeleteInvoice()) {
     return { success: false, error: 'Bạn không có quyền xóa hóa đơn.' }
   }
@@ -312,6 +334,17 @@ export async function deleteInvoice(id, currentFromCaller = null) {
     return { success: false, error: 'Bạn không có quyền xóa hóa đơn này.' }
   }
 
+  if (!isSupabaseConfigured) {
+    const invoices = loadInvoices().filter((inv) => inv.id !== id)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+    notifyDataSynced(['invoices'])
+    return { success: true, invoices }
+  }
+
+  return deleteInvoiceRemote(id)
+}
+
+async function deleteInvoiceRemote(id) {
   try {
     await pushInvoiceDeletionToSupabase(id)
   } catch (error) {
