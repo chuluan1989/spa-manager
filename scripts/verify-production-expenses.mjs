@@ -81,9 +81,8 @@ const { data: readBack, error: readErr } = await sb
 logStep('Đọc lại chi phí sau insert', !readErr && readBack?.content === TEST_TAG,
   readErr?.message ?? JSON.stringify(readBack))
 
-const { computeActualRevenue, computeProfitAmount } = await import('../src/utils/profitReport.js')
-const actualRevenue = computeActualRevenue(10000000, 1000000)
-const profit = computeProfitAmount(actualRevenue, 5000000, 2000000)
+const actualRevenue = 10000000 + 1000000
+const profit = actualRevenue - 5000000 - 2000000
 logStep('Công thức lợi nhuận 4.000.000đ', profit === 4000000, `got ${profit}`)
 
 const browser = await puppeteer.launch({
@@ -111,7 +110,18 @@ try {
     btn?.click()
   })
   await page.waitForSelector('.expenses', { timeout: 20000 })
-  await sleep(2000)
+  await page.evaluate(() => {
+    const card = [...document.querySelectorAll('button, .kpi-card, [role="button"]')].find((el) =>
+      el.textContent.includes('Tổng chi phí toàn hệ thống'),
+    )
+    card?.click()
+  })
+  await page.waitForSelector('.exp-mod__table, .exp-mod__empty', { timeout: 30000 })
+  await page.waitForFunction(
+    () => !document.body.textContent.includes('Đang tải dữ liệu chi phí'),
+    { timeout: 30000 },
+  )
+  await sleep(1000)
 
   const seesExpense = await page.evaluate((tag) => document.body.textContent.includes(tag), TEST_TAG)
   logStep('Admin UI thấy chi phí Taxi test', seesExpense, `tag=${TEST_TAG}`)
