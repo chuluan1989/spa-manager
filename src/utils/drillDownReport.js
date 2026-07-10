@@ -13,6 +13,10 @@ import {
 import { getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
 import { filterInvoices } from './report'
+import {
+  enrichProfitMetrics,
+  resolveTotalSalary,
+} from './profitReport'
 
 function getInvoiceCommission(invoice) {
   return getInvoiceServiceCommission(invoice)
@@ -53,27 +57,32 @@ export function buildInvoiceMetrics(invoices) {
   )
 }
 
-export function buildDrillDownSummary(invoices, expenses, filters = {}) {
+export function buildDrillDownSummary(invoices, expenses, filters = {}, payrollByBranch = null) {
   const filtered = filterInvoices(invoices, filters)
   const filteredExpenses = filterExpenses(expenses, filters)
   const metrics = buildInvoiceMetrics(filtered)
   const expenseTotal = sumExpenseAmount(filteredExpenses)
-  const salary = metrics.commission + metrics.tips
+  const totalSalary = resolveTotalSalary({
+    ticketRevenue: metrics.ticketRevenue,
+    tips: metrics.tips,
+    commission: metrics.commission,
+    payrollByBranch,
+  })
 
-  return {
+  return enrichProfitMetrics({
     ...metrics,
     revenue: metrics.ticketRevenue,
     payment: metrics.ticketRevenue,
     expenses: expenseTotal,
-    salary,
-    profit: metrics.ticketRevenue - expenseTotal - metrics.commission,
+    salary: totalSalary,
+    totalSalary,
     customerCount: countUniqueCustomers(filtered),
     filtered,
     filteredExpenses,
-  }
+  }, payrollByBranch)
 }
 
-function mergeExpenseIntoRows(rows, expenseRows, keyFn) {
+function mergeExpenseIntoRows(rows, expenseRows, keyFn, payrollByBranch = null) {
   const map = new Map()
   for (const row of rows) {
     map.set(keyFn(row), { ...row, expenses: 0 })
@@ -90,6 +99,7 @@ function mergeExpenseIntoRows(rows, expenseRows, keyFn) {
       invoiceCount: 0,
       customerCount: 0,
       salary: 0,
+      totalSalary: 0,
       profit: 0,
       expenses: 0,
     }
@@ -97,17 +107,12 @@ function mergeExpenseIntoRows(rows, expenseRows, keyFn) {
     map.set(key, current)
   }
 
-  for (const row of map.values()) {
-    row.salary = row.commission + row.tips
-    row.revenue = row.ticketRevenue
-    row.payment = row.ticketRevenue
-    row.profit = row.ticketRevenue - (row.expenses ?? 0) - row.commission
-  }
-
-  return [...map.values()].sort((a, b) => b.ticketRevenue - a.ticketRevenue)
+  return [...map.values()]
+    .map((row) => enrichProfitMetrics(row, payrollByBranch))
+    .sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
-export function buildBranchDrillRows(invoices, expenses, filters = {}) {
+export function buildBranchDrillRows(invoices, expenses, filters = {}, payrollByBranch = null) {
   const filtered = filterInvoices(invoices, filters)
   const filteredExpenses = filterExpenses(expenses, filters)
   const map = new Map()
@@ -154,6 +159,7 @@ export function buildBranchDrillRows(invoices, expenses, filters = {}) {
     revenueRows,
     expenseRows,
     (row) => row.branchId || row.branchName,
+    payrollByBranch,
   )
 }
 
@@ -222,10 +228,11 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
 export const DRILL_METRICS = [
   { id: 'ticketRevenue', label: 'Doanh thu tiền vé' },
   { id: 'tips', label: 'Tips' },
-  { id: 'customerTotal', label: 'Tổng khách thanh toán' },
-  { id: 'commission', label: 'Hoa hồng' },
+  { id: 'actualRevenue', label: 'Tổng doanh thu thực thu' },
+  { id: 'totalSalary', label: 'Tổng lương nhân viên' },
   { id: 'expenses', label: 'Chi phí' },
-  { id: 'profit', label: 'Lợi nhuận dự kiến' },
+  { id: 'profit', label: 'Lợi nhuận' },
+  { id: 'profitMargin', label: 'Tỷ suất lợi nhuận' },
 ]
 
 export const EMPLOYEE_DRILL_METRICS = [

@@ -6,6 +6,10 @@ import {
   sumExpenseAmount,
 } from './expenseStorage'
 import { getMonthStartDate } from './invoiceStorage'
+import {
+  enrichProfitMetrics,
+  resolveTotalSalary,
+} from './profitReport'
 
 export { getMonthStartDate }
 
@@ -105,7 +109,8 @@ function mergeBranchReports(revenueRows, expenseRows) {
   }
 
   for (const row of map.values()) {
-    row.profit = row.ticketRevenue - (row.expenses ?? 0) - row.commission
+    const enriched = enrichProfitMetrics(row)
+    Object.assign(row, enriched)
   }
 
   return [...map.values()].sort((a, b) => b.ticketRevenue - a.ticketRevenue)
@@ -215,22 +220,29 @@ export function computeTopEmployeesByRevenue(invoices) {
   return computeEmployeeReport(invoices)
 }
 
-export function computeReportData(invoices, expenses, filters) {
+export function computeReportData(invoices, expenses, filters, payrollByBranch = null) {
   const filtered = filterInvoices(invoices, filters)
   const filteredExpenses = filterExpenses(expenses, filters)
   const summary = computeReportSummary(filtered)
   const expenseSummary = computeExpenseSummary(filteredExpenses)
   const expenseTotal = expenseSummary.total
+  const totalSalary = resolveTotalSalary({
+    ticketRevenue: summary.ticketRevenue,
+    tips: summary.tips,
+    commission: summary.commission,
+    payrollByBranch,
+  })
+  const profitSummary = enrichProfitMetrics({
+    ...summary,
+    expenses: expenseTotal,
+    salary: totalSalary,
+    totalSalary,
+  }, payrollByBranch)
 
   return {
     filtered,
     filteredExpenses,
-    summary: {
-      ...summary,
-      expenses: expenseTotal,
-      salary: summary.commission + summary.tips,
-      profit: summary.ticketRevenue - expenseTotal - summary.commission,
-    },
+    summary: profitSummary,
     byBranch: mergeBranchReports(
       computeBranchReport(filtered),
       computeExpenseByBranch(filteredExpenses),

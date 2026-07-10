@@ -7,6 +7,7 @@ export const EXPENSE_TYPES = [
   { id: 'dien-nuoc', label: 'Điện nước' },
   { id: 'sua-chua', label: 'Sửa chữa' },
   { id: 'an-uong', label: 'Ăn uống' },
+  { id: 'taxi', label: 'Taxi' },
   { id: 'van-chuyen', label: 'Vận chuyển' },
   { id: 'thue-phi', label: 'Thuế / phí' },
   { id: 'khac', label: 'Khác' },
@@ -41,8 +42,9 @@ export const EXPENSE_CATEGORY_CARDS = [
   {
     id: 'operating',
     label: 'Chi phí vận hành',
-    typeIds: ['dien-nuoc', 'sua-chua', 'an-uong', 'van-chuyen', 'thue-phi'],
+    typeIds: ['dien-nuoc', 'sua-chua', 'an-uong', 'taxi', 'van-chuyen', 'thue-phi'],
   },
+  { id: 'taxi', label: 'Chi phí Taxi', typeIds: ['taxi'] },
   { id: 'marketing', label: 'Chi phí marketing', typeIds: ['marketing'] },
   { id: 'salary', label: 'Chi phí lương', typeIds: ['luong'] },
   { id: 'rent', label: 'Chi phí mặt bằng', typeIds: ['mat-bang'] },

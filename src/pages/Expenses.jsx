@@ -109,10 +109,10 @@ export default function Expenses() {
     setFormOpen(true)
   }
 
-  const handleSaveExpense = (payload) => {
+  const handleSaveExpense = async (payload) => {
     const result = editingExpense
-      ? updateExpense(editingExpense.id, payload)
-      : addExpense(payload)
+      ? await updateExpense(editingExpense.id, payload)
+      : await addExpense(payload)
 
     if (!result.success) {
       showToast(result.error ?? 'Không thể lưu chi phí')
@@ -121,18 +121,18 @@ export default function Expenses() {
 
     setFormOpen(false)
     setEditingExpense(null)
-    reload()
+    await reload()
     showToast(editingExpense ? 'Cập nhật chi phí thành công' : 'Thêm chi phí thành công')
   }
 
-  const handleDeleteExpense = (expense) => {
+  const handleDeleteExpense = async (expense) => {
     if (!window.confirm(`Xóa khoản chi "${expense.content}"?`)) return
-    const result = deleteExpense(expense.id)
+    const result = await deleteExpense(expense.id)
     if (!result.success) {
       showToast(result.error ?? 'Không thể xóa chi phí')
       return
     }
-    reload()
+    await reload()
     showToast('Đã xóa chi phí')
   }
 

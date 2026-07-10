@@ -46,16 +46,18 @@ const LEVEL = {
 const REPORT_KPIS = [
   { id: 'ticketRevenue', label: 'Doanh thu tiền vé', icon: Receipt, variant: 'gold' },
   { id: 'tips', label: 'Tips', icon: Gift, variant: 'green' },
-  { id: 'discount', label: 'Khuyến mãi', icon: Percent, variant: 'orange' },
-  { id: 'commission', label: 'Hoa hồng', icon: TrendingUp, variant: 'purple' },
+  { id: 'actualRevenue', label: 'Tổng doanh thu thực thu', icon: Wallet, variant: 'gold' },
+  { id: 'totalSalary', label: 'Tổng lương nhân viên', icon: Users, variant: 'purple' },
   { id: 'expenses', label: 'Chi phí', icon: Wallet, variant: 'orange' },
-  { id: 'profit', label: 'Lợi nhuận dự kiến', icon: TrendingUp, variant: 'blue' },
+  { id: 'profit', label: 'Lợi nhuận', icon: TrendingUp, variant: 'blue' },
+  { id: 'profitMargin', label: 'Tỷ suất lợi nhuận', icon: Percent, variant: 'blue' },
   { id: 'customerCount', label: 'Tổng khách', icon: Users, variant: 'slate' },
   { id: 'invoiceCount', label: 'Tổng hóa đơn', icon: FileText, variant: 'slate' },
 ]
 
 function formatMetric(id, value) {
   if (id === 'customerCount' || id === 'invoiceCount') return String(value ?? 0)
+  if (id === 'profitMargin') return `${Number(value ?? 0).toLocaleString('vi-VN')}%`
   return formatCurrency(value ?? 0)
 }
 
@@ -414,9 +416,11 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
                 metrics={[
                   { label: 'Doanh thu tiền vé', value: formatCurrency(row.ticketRevenue), highlight: activeMetric === 'ticketRevenue' },
                   { label: 'Tips', value: formatCurrency(row.tips), highlight: activeMetric === 'tips' },
-                  { label: 'Khách', value: String(row.customerCount), highlight: activeMetric === 'customerCount' },
-                  { label: 'Hóa đơn', value: String(row.invoiceCount), highlight: activeMetric === 'invoiceCount' },
+                  { label: 'DT thực thu', value: formatCurrency(row.actualRevenue), highlight: activeMetric === 'actualRevenue' },
+                  { label: 'Tổng lương', value: formatCurrency(row.totalSalary), highlight: activeMetric === 'totalSalary' },
+                  { label: 'Chi phí', value: formatCurrency(row.expenses), highlight: activeMetric === 'expenses' },
                   { label: 'Lợi nhuận', value: formatCurrency(row.profit), highlight: activeMetric === 'profit' },
+                  { label: 'Tỷ suất LN', value: `${row.profitMargin ?? 0}%`, highlight: activeMetric === 'profitMargin' },
                 ]}
                 activeMetric={activeMetric}
                 onClick={() => openBranch(row.branchId)}

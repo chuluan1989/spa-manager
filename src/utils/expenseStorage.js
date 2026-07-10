@@ -21,22 +21,24 @@ import {
 } from '../constants/auth'
 import { checkPermission, PERMISSION_KEYS } from './permissionsStorage'
 import { ROLES } from '../constants/roles'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteExpenseRow, upsertExpense } from '../repositories/expensesRepository'
+import { notifyDataSynced } from './dataSyncEvents'
 
 const STORAGE_KEY = 'spa-manager-expenses'
 
-function pushExpenseToSupabase(expense) {
-  if (!isSupabaseConfigured || !expense) return
-  upsertExpense(expense).catch((error) => {
-    console.warn('[Supabase] Không thể đồng bộ khoản chi:', error?.message)
-  })
+async function pushExpenseToSupabase(expense) {
+  if (!isSupabaseConfigured || !expense) {
+    throw new Error('Supabase chưa cấu hình. Không thể lưu chi phí.')
+  }
+  await upsertExpense(expense)
 }
 
-function pushExpenseDeletionToSupabase(id) {
-  if (!isSupabaseConfigured || !id) return
-  deleteExpenseRow(id).catch((error) => {
-    console.warn('[Supabase] Không thể xoá khoản chi trên máy chủ:', error?.message)
-  })
+async function pushExpenseDeletionToSupabase(id) {
+  if (!isSupabaseConfigured || !id) {
+    throw new Error('Supabase chưa cấu hình. Không thể xoá chi phí.')
+  }
+  await deleteExpenseRow(id)
 }
 
 export const EMPTY_EXPENSE_FORM = {
@@ -199,24 +201,31 @@ function assertExpenseWriteAccess(expense) {
   return { success: true }
 }
 
-export function addExpense(data) {
+export async function addExpense(data) {
   const sanitized = sanitizeExpenseData(data)
   const access = assertExpenseWriteAccess(sanitized)
   if (!access.success) return access
 
-  const expenses = loadExpenses()
   const expense = normalizeExpense({
     id: createExpenseId(),
     ...sanitized,
     updatedAt: new Date().toISOString(),
   })
+
+  try {
+    await pushExpenseToSupabase(expense)
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể lưu chi phí lên máy chủ.' }
+  }
+
+  const expenses = loadExpenses()
   expenses.unshift(expense)
   saveExpenses(expenses)
-  pushExpenseToSupabase(expense)
+  notifyDataSynced(['expenses'])
   return { success: true, expense }
 }
 
-export function updateExpense(id, data) {
+export async function updateExpense(id, data) {
   const expenses = loadExpenses()
   const index = expenses.findIndex((exp) => exp.id === id)
   if (index === -1) {
@@ -237,12 +246,19 @@ export function updateExpense(id, data) {
     ...merged,
     updatedAt: new Date().toISOString(),
   })
+
+  try {
+    await pushExpenseToSupabase(expenses[index])
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể cập nhật chi phí lên máy chủ.' }
+  }
+
   saveExpenses(expenses)
-  pushExpenseToSupabase(expenses[index])
+  notifyDataSynced(['expenses'])
   return { success: true, expense: expenses[index] }
 }
 
-export function deleteExpense(id) {
+export async function deleteExpense(id) {
   const expenses = loadExpenses()
   const current = expenses.find((exp) => exp.id === id)
   if (!current) {
@@ -255,8 +271,15 @@ export function deleteExpense(id) {
   }
 
   const next = expenses.filter((exp) => exp.id !== id)
+
+  try {
+    await pushExpenseDeletionToSupabase(id)
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể xoá chi phí trên máy chủ.' }
+  }
+
   saveExpenses(next)
-  pushExpenseDeletionToSupabase(id)
+  notifyDataSynced(['expenses'])
   return { success: true, expenses: next }
 }
 
