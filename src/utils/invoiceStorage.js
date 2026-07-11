@@ -14,9 +14,77 @@ import { getEmployeeById } from './employeeStorage'
 import { getSelectedServiceDetails } from './invoice'
 import { normalizeCustomerPhone } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { deleteInvoiceRow, upsertInvoice } from '../repositories/invoicesRepository'
+import { deleteInvoiceRow, upsertInvoice, fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import { notifyDataSynced } from './dataSyncEvents'
 import { ensureBranchAndEmployeeOnServer } from './syncForeignKeys'
+
+const DUPLICATE_INVOICE_MESSAGE =
+  'Hóa đơn này có dấu hiệu bị nhập trùng nhiều lần. Vui lòng kiểm tra lại.'
+
+/** Đếm in-flight saves cùng fingerprint để chặn double-click song song. */
+const pendingDuplicateCounts = new Map()
+
+function getInvoiceServiceFingerprint(invoice) {
+  if (Array.isArray(invoice?.serviceIds) && invoice.serviceIds.length > 0) {
+    return [...invoice.serviceIds].map(String).sort().join(',')
+  }
+  const services = Array.isArray(invoice?.services) ? invoice.services : []
+  return services
+    .map((service) => String(service?.id || service?.name || ''))
+    .filter(Boolean)
+    .sort()
+    .join(',')
+}
+
+export function buildInvoiceDuplicateKey(invoice) {
+  const phone = normalizeCustomerPhone(invoice?.customerPhone ?? '')
+  const total = Number(invoice?.total ?? 0)
+  return [
+    invoice?.branchId ?? '',
+    invoice?.employeeId ?? '',
+    phone,
+    getInvoiceServiceFingerprint(invoice),
+    String(total),
+    invoice?.date ?? '',
+  ].join('|')
+}
+
+function invoicesMatchDuplicateKey(invoice, key) {
+  return buildInvoiceDuplicateKey(invoice) === key
+}
+
+async function countDuplicateInvoices(snapshot) {
+  const key = buildInvoiceDuplicateKey(snapshot)
+  let count = 0
+
+  if (isSupabaseConfigured) {
+    try {
+      const rows = await fetchInvoicesFiltered({
+        fromDate: snapshot.date,
+        toDate: snapshot.date,
+        branchId: snapshot.branchId,
+        employeeId: snapshot.employeeId,
+      })
+      count = (rows ?? []).filter((invoice) => invoicesMatchDuplicateKey(invoice, key)).length
+    } catch {
+      count = loadInvoices().filter((invoice) => invoicesMatchDuplicateKey(invoice, key)).length
+    }
+  } else {
+    count = loadInvoices().filter((invoice) => invoicesMatchDuplicateKey(invoice, key)).length
+  }
+
+  return count + (pendingDuplicateCounts.get(key) ?? 0)
+}
+
+function beginDuplicateGuard(key) {
+  pendingDuplicateCounts.set(key, (pendingDuplicateCounts.get(key) ?? 0) + 1)
+}
+
+function endDuplicateGuard(key) {
+  const next = (pendingDuplicateCounts.get(key) ?? 1) - 1
+  if (next <= 0) pendingDuplicateCounts.delete(key)
+  else pendingDuplicateCounts.set(key, next)
+}
 
 async function pushInvoiceToSupabase(invoice) {
   if (!isSupabaseConfigured || !invoice) {
@@ -192,7 +260,7 @@ export function replaceAllInvoices(invoices) {
   return list
 }
 
-export function saveInvoice(invoice) {
+export async function saveInvoice(invoice) {
   if (!canAddInvoice()) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn.' }
   }
@@ -225,6 +293,10 @@ export function saveInvoice(invoice) {
   }))
 
   if (!isSupabaseConfigured) {
+    const duplicateCount = await countDuplicateInvoices(snapshot)
+    if (duplicateCount >= 2) {
+      return { success: false, error: DUPLICATE_INVOICE_MESSAGE }
+    }
     const invoices = loadInvoices()
     invoices.unshift(snapshot)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
@@ -236,14 +308,26 @@ export function saveInvoice(invoice) {
 }
 
 async function saveInvoiceRemote(snapshot) {
+  const duplicateKey = buildInvoiceDuplicateKey(snapshot)
   try {
-    await ensureBranchAndEmployeeOnServer({
-      branchId: snapshot.branchId ?? '',
-      employeeId: snapshot.employeeId ?? '',
-    })
-    await pushInvoiceToSupabase(snapshot)
-    logInvoiceSave('save OK', snapshot)
+    const duplicateCount = await countDuplicateInvoices(snapshot)
+    if (duplicateCount >= 2) {
+      return { success: false, error: DUPLICATE_INVOICE_MESSAGE }
+    }
+
+    beginDuplicateGuard(duplicateKey)
+    try {
+      await ensureBranchAndEmployeeOnServer({
+        branchId: snapshot.branchId ?? '',
+        employeeId: snapshot.employeeId ?? '',
+      })
+      await pushInvoiceToSupabase(snapshot)
+      logInvoiceSave('save OK', snapshot)
+    } finally {
+      endDuplicateGuard(duplicateKey)
+    }
   } catch (error) {
+    endDuplicateGuard(duplicateKey)
     logInvoiceSaveError('save', snapshot, error)
     return { success: false, error: error?.message ?? 'Không thể lưu hóa đơn lên máy chủ.' }
   }

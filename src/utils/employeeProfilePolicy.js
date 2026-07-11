@@ -9,8 +9,6 @@ export const PROFILE_TRACKED_FIELDS = [
   'dateOfBirth',
   'gender',
   'currentAddress',
-  'position',
-  'startDate',
   'emergencyContactName',
   'emergencyContactPhone',
   'cccdIssueDate',
@@ -38,6 +36,8 @@ export function isProfileDeadlinePassed(today = getTodayDate(), deadline = getEm
 }
 
 export function isEmployeeProfileFullyComplete(employee) {
+  // Hồ sơ hoàn thành theo các trường nhân viên tự cập nhật được
+  // (không yêu cầu chức vụ / ngày vào làm do Admin quản lý).
   return getEmployeeProfileStatus(employee).key === PROFILE_STATUS.COMPLETE
 }
 
@@ -66,8 +66,9 @@ export function getEmployeeProfileCompliance(employee, today = getTodayDate()) {
   }
 }
 
-export function isEmployeeProfileLocked(employee, today = getTodayDate()) {
-  return getEmployeeProfileCompliance(employee, today).isLocked
+export function isEmployeeProfileLocked(_employee, _today = getTodayDate()) {
+  // Không khóa chức năng theo hạn hồ sơ — nhân viên luôn được nhập hóa đơn / thao tác.
+  return false
 }
 
 export function getEmployeeProfileBannerMessage(employee, today = getTodayDate()) {

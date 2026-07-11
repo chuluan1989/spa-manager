@@ -9,7 +9,7 @@ import {
 } from './storageAccess'
 import { validateEmployeeSelfProfile } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { deleteEmployeeRow, upsertEmployee } from '../repositories/employeesRepository'
+import { deleteEmployeeRow, fetchEmployeeById, upsertEmployee } from '../repositories/employeesRepository'
 import { upsertBranchMinimal } from '../repositories/branchesRepository'
 import { getBranchById } from '../constants/branches'
 import { syncEmployeeCredentialForEmployee, removeEmployeeCredential, pruneInactiveEmployeeCredentials } from './credentialsStorage'
@@ -310,8 +310,6 @@ const RECOMMENDED_PROFILE_FIELDS = [
   'dateOfBirth',
   'gender',
   'currentAddress',
-  'position',
-  'startDate',
   'emergencyContactName',
   'emergencyContactPhone',
   'cccdIssueDate',
@@ -519,8 +517,24 @@ export async function updateOwnEmployeeProfile(id, data) {
     return denyAccess('Bạn chỉ được sửa hồ sơ của chính mình.')
   }
 
-  const employees = loadEmployees()
-  const index = employees.findIndex((e) => e.id === id)
+  let employees = loadEmployees()
+  let index = employees.findIndex((e) => e.id === id)
+  if (index === -1 && isSupabaseConfigured) {
+    try {
+      const remote = await fetchEmployeeById(id)
+      if (remote) {
+        employees = [...employees, normalizeEmployee(remote)]
+        index = employees.length - 1
+        try {
+          saveEmployees(employees)
+        } catch {
+          /* cache phụ — vẫn tiếp tục lưu lên máy chủ */
+        }
+      }
+    } catch (error) {
+      return { success: false, error: error?.message ?? 'Không thể tải hồ sơ từ máy chủ.' }
+    }
+  }
   if (index === -1) {
     return denyAccess('Không tìm thấy hồ sơ nhân viên.')
   }
@@ -536,12 +550,39 @@ export async function updateOwnEmployeeProfile(id, data) {
   const updated = normalizeEmployee({
     ...current,
     ...pickFields(sanitized, EMPLOYEE_SELF_SERVICE_FIELDS),
+    updatedAt: new Date().toISOString(),
   })
   try {
     await pushEmployeeToSupabase(updated)
   } catch (error) {
     return { success: false, error: error?.message ?? 'Không thể lưu hồ sơ lên máy chủ. Vui lòng thử lại.' }
   }
+
+  // Xác nhận lại từ Supabase — chỉ báo thành công khi dữ liệu đã có trên máy chủ.
+  if (isSupabaseConfigured) {
+    try {
+      const confirmed = await fetchEmployeeById(id)
+      if (!confirmed) {
+        return { success: false, error: 'Máy chủ không xác nhận đã lưu hồ sơ.' }
+      }
+      const confirmedEmployee = normalizeEmployee({
+        ...updated,
+        ...confirmed,
+        ...pickFields(normalizeEmployee(confirmed), EMPLOYEE_SELF_SERVICE_FIELDS),
+      })
+      employees[index] = confirmedEmployee
+      try {
+        saveEmployees(employees)
+      } catch (error) {
+        return { success: false, error: error.message }
+      }
+      notifyDataSynced(['employees'])
+      return { success: true, employee: confirmedEmployee }
+    } catch (error) {
+      return { success: false, error: error?.message ?? 'Không thể xác nhận hồ sơ trên máy chủ.' }
+    }
+  }
+
   employees[index] = updated
   try {
     saveEmployees(employees)

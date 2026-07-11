@@ -262,12 +262,7 @@ export function canViewSystemWide(role = getCurrentUserRole(), branchId = getCur
 }
 
 export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
-  if (!checkPermission(PERMISSION_KEYS.ADD_INVOICE, role, branchId)) return false
-  if (role === ROLES.EMPLOYEE) {
-    const employee = getEmployeeById(getCurrentUserEmployeeId())
-    if (isEmployeeProfileLocked(employee)) return false
-  }
-  return true
+  return checkPermission(PERMISSION_KEYS.ADD_INVOICE, role, branchId)
 }
 
 export function canEditInvoice(invoice = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {

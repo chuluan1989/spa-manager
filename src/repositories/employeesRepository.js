@@ -49,10 +49,16 @@ export async function fetchEmployeeById(id) {
 }
 
 export async function upsertEmployee(employee) {
-  if (!isSupabaseConfigured || !employee?.id) return
+  if (!isSupabaseConfigured || !employee?.id) {
+    throw new Error('Supabase chưa cấu hình. Không thể lưu hồ sơ nhân viên.')
+  }
   const row = objectToSnakeRow({ ...toSupabaseEmployeePayload(employee), updatedAt: new Date().toISOString() })
-  const { error } = await supabase.from(TABLE).upsert(row, { onConflict: 'id' })
+  const { data, error } = await supabase.from(TABLE).upsert(row, { onConflict: 'id' }).select('id')
   if (error) throw error
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error('Supabase không xác nhận đã lưu hồ sơ nhân viên.')
+  }
+  return data
 }
 
 /** Chỉ đủ FK cho chấm công — không gửi ảnh/json lớn (tránh treo khi điểm danh). */
