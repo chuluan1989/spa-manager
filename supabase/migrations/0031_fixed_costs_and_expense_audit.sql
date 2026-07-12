@@ -67,6 +67,7 @@ values
   ('wifi', 'Wifi', 22, true, false),
   ('shopee', 'Shopee', 30, true, false),
   ('sua-chua', 'Sửa chữa', 40, true, false),
+  ('taxi', 'Taxi', 50, true, false),
   ('khac', 'Chi phí khác', 99, true, false)
 on conflict (id) do nothing;
 

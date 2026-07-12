@@ -38,6 +38,7 @@ const DEFAULT_CATEGORIES = [
   { id: 'wifi', label: 'Wifi', sort_order: 22, is_system: true, is_fixed: false },
   { id: 'shopee', label: 'Shopee', sort_order: 30, is_system: true, is_fixed: false },
   { id: 'sua-chua', label: 'Sửa chữa', sort_order: 40, is_system: true, is_fixed: false },
+  { id: 'taxi', label: 'Taxi', sort_order: 50, is_system: true, is_fixed: false },
   { id: 'khac', label: 'Chi phí khác', sort_order: 99, is_system: true, is_fixed: false },
 ]
 

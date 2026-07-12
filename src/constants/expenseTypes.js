@@ -12,6 +12,7 @@ export const DEFAULT_VARIABLE_EXPENSE_TYPES = [
   { id: 'wifi', label: 'Wifi' },
   { id: 'shopee', label: 'Shopee' },
   { id: 'sua-chua', label: 'Sửa chữa' },
+  { id: 'taxi', label: 'Taxi' },
   { id: 'khac', label: 'Chi phí khác' },
 ]
 
@@ -24,7 +25,6 @@ export const EXPENSE_TYPES = [
   { id: 'vat-tu', label: 'Vật tư', isFixed: false },
   { id: 'dien-nuoc', label: 'Điện nước', isFixed: false },
   { id: 'an-uong', label: 'Ăn uống', isFixed: false },
-  { id: 'taxi', label: 'Taxi', isFixed: false },
   { id: 'van-chuyen', label: 'Vận chuyển', isFixed: false },
   { id: 'thue-phi', label: 'Thuế / phí', isFixed: false },
 ]
