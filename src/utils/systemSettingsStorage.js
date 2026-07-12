@@ -29,6 +29,13 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   payroll1LockDate: '2026-07-15',
   payroll1DayReviews: {},
   payroll1Overrides: {},
+  autoAbsentEnabled: false,
+  autoAbsentCloseTime: '00:05',
+  autoAbsentApplyFrom: '2026-07-16',
+  autoAbsentPenaltyAmount: 100000,
+  autoAbsentWorkDays: [1, 2, 3, 4, 5, 6],
+  autoAbsentHolidays: [],
+  autoAbsentExemptEmployeeIds: [],
   realtimeEnabled: true,
   warnLegacyLocalStorage: true,
   vipCustomerThreshold: 10000000,
@@ -75,6 +82,25 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
     // Giữ trạng thái kỳ lương 1 (Supabase SSOT) khi lưu cài đặt khác.
     payroll1DayReviews: settings.payroll1DayReviews ?? current.payroll1DayReviews ?? {},
     payroll1Overrides: settings.payroll1Overrides ?? current.payroll1Overrides ?? {},
+    autoAbsentEnabled: settings.autoAbsentEnabled === true,
+    autoAbsentCloseTime: settings.autoAbsentCloseTime?.trim?.()
+      || DEFAULT_SYSTEM_SETTINGS.autoAbsentCloseTime,
+    autoAbsentApplyFrom: settings.autoAbsentApplyFrom?.trim?.()
+      || DEFAULT_SYSTEM_SETTINGS.autoAbsentApplyFrom,
+    autoAbsentPenaltyAmount: Math.max(
+      0,
+      Number.parseInt(String(settings.autoAbsentPenaltyAmount ?? DEFAULT_SYSTEM_SETTINGS.autoAbsentPenaltyAmount), 10)
+        || DEFAULT_SYSTEM_SETTINGS.autoAbsentPenaltyAmount,
+    ),
+    autoAbsentWorkDays: Array.isArray(settings.autoAbsentWorkDays)
+      ? settings.autoAbsentWorkDays.map((n) => Number(n)).filter((n) => n >= 0 && n <= 6)
+      : DEFAULT_SYSTEM_SETTINGS.autoAbsentWorkDays,
+    autoAbsentHolidays: Array.isArray(settings.autoAbsentHolidays)
+      ? settings.autoAbsentHolidays.map((d) => String(d).trim()).filter(Boolean)
+      : [],
+    autoAbsentExemptEmployeeIds: Array.isArray(settings.autoAbsentExemptEmployeeIds)
+      ? settings.autoAbsentExemptEmployeeIds.map((id) => String(id).trim()).filter(Boolean)
+      : [],
     realtimeEnabled: Boolean(settings.realtimeEnabled),
     warnLegacyLocalStorage: Boolean(settings.warnLegacyLocalStorage),
     vipCustomerThreshold: Math.max(

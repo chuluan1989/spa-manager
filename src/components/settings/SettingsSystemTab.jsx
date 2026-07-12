@@ -168,6 +168,130 @@ export default function SettingsSystemTab({ showToast }) {
             Lưu kỳ lương 1
           </button>
         </div>
+
+        <h4 className="settings__card-title" style={{ marginTop: 20, fontSize: '1rem' }}>
+          Tự động ghi nhận nghỉ không phép
+        </h4>
+        <SettingToggle
+          label="Bật tự động ghi nghỉ không phép khi không chấm công"
+          hint="Chạy sau khi hết ngày (mặc định 00:05 ICT ngày kế tiếp). Không ghi trong thời hạn bổ sung kỳ lương 1."
+          checked={settings.autoAbsentEnabled === true}
+          onChange={(v) => updateSetting('autoAbsentEnabled', v)}
+        />
+        <label className="settings__field">
+          <span className="settings__field-label">Giờ chốt ngày (ICT, tham chiếu)</span>
+          <input
+            type="time"
+            value={settings.autoAbsentCloseTime ?? '00:05'}
+            onChange={(event) => setSettings({
+              ...settings,
+              autoAbsentCloseTime: event.target.value,
+            })}
+          />
+        </label>
+        <label className="settings__field">
+          <span className="settings__field-label">Ngày bắt đầu áp dụng</span>
+          <input
+            type="date"
+            value={settings.autoAbsentApplyFrom ?? '2026-07-16'}
+            onChange={(event) => setSettings({
+              ...settings,
+              autoAbsentApplyFrom: event.target.value,
+            })}
+          />
+          <span className="settings__field-hint">
+            Chỉ tự ghi từ ngày này trở đi. Mặc định sau hạn bổ sung kỳ lương 1 để không biến ngày trống 01/07–15/07 thành nghỉ không phép sớm.
+          </span>
+        </label>
+        <label className="settings__field">
+          <span className="settings__field-label">Mức phạt nghỉ nguyên ngày không phép (₫)</span>
+          <input
+            type="number"
+            min="0"
+            step="10000"
+            value={settings.autoAbsentPenaltyAmount ?? 100000}
+            onChange={(event) => setSettings({
+              ...settings,
+              autoAbsentPenaltyAmount: Number.parseInt(event.target.value, 10) || 0,
+            })}
+          />
+        </label>
+        <fieldset className="settings__field">
+          <span className="settings__field-label">Ngày trong tuần phải chấm công</span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+            {[
+              { id: 1, label: 'T2' },
+              { id: 2, label: 'T3' },
+              { id: 3, label: 'T4' },
+              { id: 4, label: 'T5' },
+              { id: 5, label: 'T6' },
+              { id: 6, label: 'T7' },
+              { id: 0, label: 'CN' },
+            ].map((day) => {
+              const selected = (settings.autoAbsentWorkDays ?? [1, 2, 3, 4, 5, 6]).includes(day.id)
+              return (
+                <label key={day.id} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={(event) => {
+                      const current = settings.autoAbsentWorkDays ?? [1, 2, 3, 4, 5, 6]
+                      const next = event.target.checked
+                        ? [...new Set([...current, day.id])]
+                        : current.filter((id) => id !== day.id)
+                      setSettings({ ...settings, autoAbsentWorkDays: next })
+                    }}
+                  />
+                  {day.label}
+                </label>
+              )
+            })}
+          </div>
+          <span className="settings__field-hint">
+            Nếu không chọn ngày nào, hệ thống không tự ghi nhận (lịch làm việc chưa xác định).
+          </span>
+        </fieldset>
+        <label className="settings__field">
+          <span className="settings__field-label">Ngày nghỉ chung (YYYY-MM-DD, mỗi dòng một ngày)</span>
+          <textarea
+            rows={3}
+            value={(settings.autoAbsentHolidays ?? []).join('\n')}
+            onChange={(event) => setSettings({
+              ...settings,
+              autoAbsentHolidays: event.target.value
+                .split(/[\n,]+/)
+                .map((item) => item.trim())
+                .filter(Boolean),
+            })}
+          />
+        </label>
+        <label className="settings__field">
+          <span className="settings__field-label">Nhân viên miễn chấm công (mã NV, mỗi dòng một mã)</span>
+          <textarea
+            rows={3}
+            value={(settings.autoAbsentExemptEmployeeIds ?? []).join('\n')}
+            onChange={(event) => setSettings({
+              ...settings,
+              autoAbsentExemptEmployeeIds: event.target.value
+                .split(/[\n,]+/)
+                .map((item) => item.trim())
+                .filter(Boolean),
+            })}
+          />
+        </label>
+        <div className="settings__actions-row">
+          <button
+            type="button"
+            className="settings__btn settings__btn--secondary"
+            onClick={() => {
+              saveSystemSettings(settings)
+              showToast('Đã lưu cấu hình tự động nghỉ không phép')
+            }}
+          >
+            Lưu tự động nghỉ không phép
+          </button>
+        </div>
+
         <label className="settings__field">
           <span className="settings__field-label">Ngưỡng doanh thu Khách VIP (₫)</span>
           <input

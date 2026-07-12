@@ -23,6 +23,13 @@ import {
   buildAttendanceMonthMatrix,
 } from '../utils/attendanceViewHelpers'
 import { fetchAttendanceServerDate } from '../repositories/attendanceRepository'
+import {
+  getAttendanceDisplayNote,
+  getAttendanceSourceLabel,
+  isSystemAutoAbsentRecord,
+} from '../utils/autoAbsentAttendance'
+import { loadSystemSettings } from '../utils/systemSettingsStorage'
+import { runAutoAbsentNightlyJob } from '../utils/autoAbsentAttendanceService'
 import './Attendance.css'
 
 function formatDate(value) {
@@ -54,6 +61,7 @@ function AttendanceRecordsTable({
             <th>Chi nhánh</th>
             <th>Nhân viên</th>
             <th>Trạng thái</th>
+            <th>Nguồn</th>
             <th>Có phép / Không phép</th>
             <th>Lý do</th>
             <th>Số tiền phạt</th>
@@ -66,7 +74,7 @@ function AttendanceRecordsTable({
         <tbody>
           {rows.length === 0 && (
             <tr>
-              <td colSpan={11} className="attendance-page__empty">{emptyMessage}</td>
+              <td colSpan={12} className="attendance-page__empty">{emptyMessage}</td>
             </tr>
           )}
           {rows.map((row) => (
@@ -74,11 +82,12 @@ function AttendanceRecordsTable({
               <td>{formatDate(row.date)}</td>
               <td>{getBranchName(row.branchId) || row.branchId}</td>
               <td>{row.employeeName}</td>
-              <td>{row.record ? getAttendanceStatusLabel(row.status) : (row.statusLabel ?? 'Chưa chấm công')}</td>
+              <td>{row.record ? getAttendanceStatusLabel(row.status) : (row.statusLabel ?? 'Chưa có dữ liệu')}</td>
+              <td>{row.record ? getAttendanceSourceLabel(row.record) : '—'}</td>
               <td>{row.record ? getAttendancePermitLabel(row.status) : '—'}</td>
               <td>{row.reason || '—'}</td>
               <td className="is-money">{formatCurrency(row.penaltyAmount ?? 0)}</td>
-              <td>{row.note || '—'}</td>
+              <td>{row.record ? (getAttendanceDisplayNote(row.record) || '—') : '—'}</td>
               <td>{row.submittedBy || '—'}</td>
               <td>{formatDateTime(row.updatedAt || row.submittedAt)}</td>
               <td>
@@ -131,8 +140,11 @@ function AttendancePage() {
   const [branchId, setBranchId] = useState(isAdmin() ? '' : getCurrentUserBranch())
   const [employeeId, setEmployeeId] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [sourceFilter, setSourceFilter] = useState('')
   const [editingRecord, setEditingRecord] = useState(null)
   const [creating, setCreating] = useState(false)
+  const [autoJobBusy, setAutoJobBusy] = useState(false)
+  const [autoJobMessage, setAutoJobMessage] = useState('')
 
   useEffect(() => {
     fetchAttendanceServerDate()
@@ -197,6 +209,7 @@ function AttendancePage() {
     return buildAttendanceDayRoster(employees, records, targetDate).map((row) => ({
       ...row,
       key: row.employeeId,
+      statusLabel: row.record ? undefined : 'Chưa có dữ liệu',
     }))
   }, [screen, todayDate, employees, records])
 
@@ -208,6 +221,12 @@ function AttendancePage() {
         if (dateCompare !== 0) return dateCompare
         return String(a.employeeName ?? '').localeCompare(String(b.employeeName ?? ''), 'vi')
       })
+      .filter((record) => {
+        if (sourceFilter === 'system') return isSystemAutoAbsentRecord(record)
+        if (sourceFilter === 'manual') return !isSystemAutoAbsentRecord(record)
+        if (sourceFilter === 'unpermitted') return String(record.status || '').includes('unpermitted')
+        return true
+      })
       .map((record) => ({
         key: record.id,
         date: record.date,
@@ -216,13 +235,15 @@ function AttendancePage() {
         status: record.status,
         record,
         penaltyAmount: record.penaltyAmount ?? 0,
-        note: record.note,
+        note: getAttendanceDisplayNote(record),
         reason: record.reason,
-        submittedBy: record.submittedByName || record.submittedBy,
+        submittedBy: isSystemAutoAbsentRecord(record)
+          ? 'Hệ thống'
+          : (record.submittedByName || record.submittedBy),
         updatedAt: record.updatedAt,
         submittedAt: record.submittedAt,
       }))
-  }, [screen, records])
+  }, [screen, records, sourceFilter])
 
   const monthMatrix = useMemo(
     () => buildAttendanceMonthMatrix(employees, records, month),
@@ -239,6 +260,31 @@ function AttendancePage() {
   const handleExport = () => {
     if (!canExportReport()) return
     exportAttendanceCsv(records, filters)
+  }
+
+  const handleRunAutoAbsent = async () => {
+    if (!isAdmin()) return
+    setAutoJobBusy(true)
+    setAutoJobMessage('')
+    try {
+      const settings = loadSystemSettings()
+      const activeBranchIds = getActiveBranches().map((branch) => branch.id)
+      const result = await runAutoAbsentNightlyJob({
+        settings,
+        employees,
+        activeBranchIds,
+      })
+      setAutoJobMessage(
+        result.gateReason
+          ? `Không chạy (${result.gateReason}) cho ngày ${result.targetDate}.`
+          : `Đã chốt ngày ${result.targetDate}: tạo ${result.created}, bỏ qua ${result.skipped}.`,
+      )
+      reload()
+    } catch (error) {
+      setAutoJobMessage(error?.message ?? 'Không chạy được job tự động.')
+    } finally {
+      setAutoJobBusy(false)
+    }
   }
 
   const applyMonthRange = () => {
@@ -331,12 +377,33 @@ function AttendancePage() {
             ))}
           </select>
         </label>
+        <label>
+          <span>Nguồn / lọc nhanh</span>
+          <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+            <option value="">Tất cả nguồn</option>
+            <option value="system">Tự động ghi nhận</option>
+            <option value="manual">Nhân viên / Admin</option>
+            <option value="unpermitted">Nghỉ không phép</option>
+          </select>
+        </label>
         {canEditAttendance(branchId || getCurrentUserBranch()) && (
           <button type="button" className="attendance-page__add" onClick={() => setCreating(true)}>
             + Thêm chấm công
           </button>
         )}
+        {isAdmin() && (
+          <button
+            type="button"
+            className="attendance-page__add"
+            disabled={autoJobBusy}
+            onClick={handleRunAutoAbsent}
+          >
+            {autoJobBusy ? 'Đang chốt...' : 'Chốt nghỉ không phép (hôm qua)'}
+          </button>
+        )}
       </section>
+
+      {autoJobMessage && <p className="attendance-page__loading">{autoJobMessage}</p>}
 
       <ErpKpiGrid items={kpiItems} />
 

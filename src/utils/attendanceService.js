@@ -335,6 +335,7 @@ export async function adminUpdateAttendance({
   nextStatus,
   nextReason,
   nextNote,
+  editNote = '',
   editor,
 }) {
   const changes = []
@@ -382,7 +383,9 @@ export async function adminUpdateAttendance({
 
   notifyDataSynced(['attendance'])
 
-  await insertAttendanceEditLogs(buildEditLogs(record.id, editor, changes, nextNote))
+  await insertAttendanceEditLogs(
+    buildEditLogs(record.id, editor, changes, editNote || nextNote),
+  )
 
   for (const sibling of recomputed.filter((row) => row.id !== record.id)) {
     const original = monthRecords.find((row) => row.id === sibling.id)

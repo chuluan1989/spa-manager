@@ -1,0 +1,24 @@
+# Chốt nghỉ không phép sau hết ngày ICT (00:05 = 17:05 UTC ngày trước).
+name: Auto absent attendance
+
+on:
+  schedule:
+    - cron: '5 17 * * *'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install deps
+        run: npm ci
+      - name: Run auto-absent job
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          PRODUCTION_URL: https://www.khoespa.net.vn
+        run: npx vite-node scripts/run-auto-absent-attendance.mjs
