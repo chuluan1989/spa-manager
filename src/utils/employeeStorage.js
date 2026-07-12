@@ -155,6 +155,24 @@ function cacheEmployeeLocally(employee) {
   }
 }
 
+/**
+ * Nguồn sự thật hồ sơ: public.employees trên Supabase.
+ * employeeId lấy từ phiên đăng nhập (app_credentials → session.employeeId).
+ * LocalStorage chỉ ghi cache phụ SAU khi fetch thành công — không dùng cache cũ để render.
+ */
+export async function loadOwnEmployeeProfileFromServer(employeeId) {
+  if (!employeeId) return null
+  if (!isSupabaseConfigured) {
+    const local = getEmployeeById(employeeId)
+    return local ? normalizeEmployee(local) : null
+  }
+  const remote = await fetchEmployeeById(employeeId)
+  if (!remote) return null
+  const normalized = normalizeEmployee(remote)
+  cacheEmployeeLocally(normalized)
+  return normalized
+}
+
 async function pushEmployeeDeletionToSupabase(id) {
   if (!id) {
     throw new Error(SUPABASE_REQUIRED_ERROR)

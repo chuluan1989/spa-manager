@@ -5,14 +5,13 @@ import {
   EMPLOYEE_SELF_SERVICE_FIELDS,
   GENDER_OPTIONS,
   getBranchName,
-  getEmployeeById,
   getStatusLabel,
+  loadOwnEmployeeProfileFromServer,
   normalizeEmployee,
   pickChangedEmployeeFields,
   readAvatarFile,
   updateOwnEmployeeProfile,
 } from '../utils/employeeStorage'
-import { fetchEmployeeById } from '../repositories/employeesRepository'
 import { validateEmployeeSelfProfile } from '../utils/validators'
 import { getCurrentUserEmployeeId } from '../constants/auth'
 import { IMAGE_CATEGORIES } from '../utils/imageStorage'
@@ -99,11 +98,13 @@ function ImageUploadField({ label, value, onChange, onError, category, entityId 
 }
 
 export default function MyProfile({ mandatory = false, onCompleted }) {
+  // employee_id từ phiên đăng nhập (đã gắn với app_credentials lúc login)
   const employeeId = getCurrentUserEmployeeId()
-  const [employee, setEmployee] = useState(() => getEmployeeById(employeeId))
-  const [form, setForm] = useState(() => toFormState(employee ?? {}))
-  const [baseline, setBaseline] = useState(() => toFormState(employee ?? {}))
-  const [loadedUpdatedAt, setLoadedUpdatedAt] = useState(() => employee?.updatedAt ?? '')
+  // Không khởi tạo từ LocalStorage — tránh render hồ sơ cache cũ trên máy mới
+  const [employee, setEmployee] = useState(null)
+  const [form, setForm] = useState(() => toFormState({}))
+  const [baseline, setBaseline] = useState(() => toFormState({}))
+  const [loadedUpdatedAt, setLoadedUpdatedAt] = useState('')
   const [loading, setLoading] = useState(Boolean(employeeId))
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
@@ -125,26 +126,25 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
 
   const reloadFromServer = async () => {
     if (!employeeId) {
-      setLoading(false)
-      return
-    }
-    if (!isSupabaseConfigured) {
-      const local = getEmployeeById(employeeId)
-      if (local) applyEmployee(local)
+      setEmployee(null)
       setLoading(false)
       return
     }
     setLoading(true)
     try {
-      const remote = await fetchEmployeeById(employeeId)
-      if (remote) applyEmployee(remote)
-      else {
-        const local = getEmployeeById(employeeId)
-        if (local) applyEmployee(local)
+      const remote = await loadOwnEmployeeProfileFromServer(employeeId)
+      if (remote) {
+        applyEmployee(remote)
+        return
+      }
+      // Có Supabase nhưng không có bản ghi — không fallback cache cũ
+      setEmployee(null)
+      if (isSupabaseConfigured) {
+        showToast('Không tìm thấy hồ sơ trên máy chủ')
       }
     } catch (error) {
-      const local = getEmployeeById(employeeId)
-      if (local) applyEmployee(local)
+      // Không render từ cache cũ khi lỗi mạng/máy chủ
+      setEmployee(null)
       showToast(error?.message ?? 'Không thể tải hồ sơ từ máy chủ')
     } finally {
       setLoading(false)
@@ -198,10 +198,11 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
     }
   }
 
-  if (!employee && loading) {
+  if (loading) {
     return (
       <div className="myprofile myprofile--denied">
         <h2 className="myprofile__title">Đang tải hồ sơ…</h2>
+        <p className="myprofile__subtitle">Đang lấy dữ liệu từ máy chủ (Supabase).</p>
       </div>
     )
   }
@@ -210,6 +211,14 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
     return (
       <div className="myprofile myprofile--denied">
         <h2 className="myprofile__title">Không tìm thấy hồ sơ nhân viên</h2>
+        <p className="myprofile__subtitle">
+          Hồ sơ được đọc từ máy chủ theo mã đăng nhập. Vui lòng thử tải lại hoặc liên hệ Admin.
+        </p>
+        <div className="myprofile__actions">
+          <button type="button" className="myprofile__save-btn" onClick={reloadFromServer}>
+            Tải lại
+          </button>
+        </div>
       </div>
     )
   }
