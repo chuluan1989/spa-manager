@@ -3,7 +3,7 @@ import { getIctParts, listDatesInclusive, isAfterIctEndOfDay } from './ictTime'
 
 export const AUTO_ABSENT_CREATED_BY = 'system'
 export const AUTO_ABSENT_REASON =
-  'Hệ thống tự ghi nhận do nhân viên không chấm công trong ngày'
+  'Hệ thống tự ghi nhận do không chấm công'
 export const AUTO_ABSENT_NOTE =
   'Không có bản ghi chấm công trong ngày'
 export const AUTO_ABSENT_SOURCE_LABEL = 'Hệ thống tự động'

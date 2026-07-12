@@ -1,4 +1,6 @@
-# Chốt nghỉ không phép sau hết ngày ICT (00:05 = 17:05 UTC ngày trước).
+# Chốt nghỉ không phép sau hết ngày theo Asia/Ho_Chi_Minh.
+# 00:05 ICT = 17:05 UTC ngày hôm trước → cron: 5 17 * * *
+# Job luôn tính targetDate = ngày hôm trước theo ICT (không dùng ngày UTC).
 name: Auto absent attendance
 
 on:
@@ -14,11 +16,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
       - name: Install deps
         run: npm ci
-      - name: Run auto-absent job
+      - name: Verify secrets present
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          PRODUCTION_URL: https://www.khoespa.net.vn
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "FAIL: Missing GitHub secret SUPABASE_URL"
+            exit 1
+          fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "FAIL: Missing GitHub secret SUPABASE_SERVICE_ROLE_KEY"
+            exit 1
+          fi
+          echo "Secrets present (values not printed)."
+      - name: Run auto-absent job (ICT previous day)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AUTO_ABSENT_REQUIRE_SERVICE_ROLE: '1'
+          CI: 'true'
         run: npx vite-node scripts/run-auto-absent-attendance.mjs
