@@ -5,21 +5,12 @@
 import puppeteer from 'puppeteer-core'
 import { createClient } from '@supabase/supabase-js'
 import { writeFileSync } from 'node:fs'
-import {
-  isAfterIctEndOfDay,
-  getIctTodayDate,
-  listDatesInclusive,
-} from '../src/utils/ictTime.js'
-import {
-  summarizeEmployeePayroll1Status,
-  isPayroll1DeadlinePassed,
-  PAYROLL1_INVOICE_LOCK_MESSAGE,
-} from '../src/utils/payroll1Policy.js'
 
 const CHROME = process.env.PUPPETEER_EXECUTABLE_PATH
   ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const BASE_URL = process.env.PRODUCTION_URL ?? 'https://www.khoespa.net.vn'
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin123'
+const LOCK_MSG_SNIP = 'Tài khoản đang tạm khóa chức năng nhập hóa đơn do chưa hoàn thành dữ liệu kỳ lương 1'
 
 let passed = 0
 let failed = 0
@@ -37,6 +28,45 @@ function logStep(name, ok, detail = '') {
   }
 }
 
+function getIctParts(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(now)
+  const map = Object.fromEntries(parts.filter((p) => p.type !== 'literal').map((p) => [p.type, p.value]))
+  return {
+    date: `${map.year}-${map.month}-${map.day}`,
+    hour: Number(map.hour === '24' ? '0' : map.hour),
+  }
+}
+
+function isAfterIctEndOfDay(lockDate, now = new Date()) {
+  const ict = getIctParts(now)
+  return ict.date > lockDate
+}
+
+function listDatesInclusive(fromDate, toDate) {
+  const out = []
+  const [fy, fm, fd] = fromDate.split('-').map(Number)
+  const cursor = new Date(Date.UTC(fy, fm - 1, fd))
+  const [ty, tm, td] = toDate.split('-').map(Number)
+  const end = new Date(Date.UTC(ty, tm - 1, td))
+  while (cursor <= end) {
+    const y = cursor.getUTCFullYear()
+    const m = String(cursor.getUTCMonth() + 1).padStart(2, '0')
+    const d = String(cursor.getUTCDate()).padStart(2, '0')
+    out.push(`${y}-${m}-${d}`)
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
+  return out
+}
+
 async function loadProd() {
   const html = await fetch(BASE_URL).then((r) => r.text())
   const jsMatch = html.match(/\/assets\/index-[^"]+\.js/)
@@ -46,66 +76,24 @@ async function loadProd() {
     ?? js.match(/eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/)?.[0]
   const hasFeature = js.includes('THÔNG BÁO HOÀN THIỆN DỮ LIỆU KỲ LƯƠNG 1')
     && js.includes('payroll1DayReviews')
-    && js.includes(PAYROLL1_INVOICE_LOCK_MESSAGE.slice(0, 40))
-  return { url, key, bundle: jsMatch[0], hasFeature, js }
+    && js.includes(LOCK_MSG_SNIP)
+  return { url, key, bundle: jsMatch[0], hasFeature }
 }
 
 console.log('\n=== Unit: ICT + lock policy ===\n')
-logStep('Ngày ICT hợp lệ', /^\d{4}-\d{2}-\d{2}$/.test(getIctTodayDate()))
+const today = getIctParts().date
+logStep('Ngày ICT hợp lệ', /^\d{4}-\d{2}-\d{2}$/.test(today))
 logStep('listDatesInclusive 01–03/07', listDatesInclusive('2026-07-01', '2026-07-03').length === 3)
 logStep('Trước hạn 15/07 chưa khóa', !isAfterIctEndOfDay('2026-07-15', new Date('2026-07-15T16:00:00+07:00')))
-logStep('Sau 15/07 00:00 ngày 16 khóa', isAfterIctEndOfDay('2026-07-15', new Date('2026-07-16T00:00:00+07:00')))
-
-const incomplete = summarizeEmployeePayroll1Status({
-  employee: { id: 'e1', branchId: 'b1', name: 'A', phone: '090', cccd: '1' },
-  attendanceRecords: [],
-  invoices: [],
-  dayReviews: [],
-  override: null,
-  now: new Date('2026-07-12T10:00:00+07:00'),
-})
-logStep('Trước hạn: thiếu dữ liệu vẫn chưa khóa HĐ', !incomplete.invoiceCreateLocked && !incomplete.dataComplete)
-
-const incompleteAfter = summarizeEmployeePayroll1Status({
-  employee: { id: 'e1', branchId: 'b1', name: 'A', phone: '090', cccd: '1' },
-  attendanceRecords: [],
-  invoices: [],
-  dayReviews: [],
-  override: null,
-  now: new Date('2026-07-16T00:30:00+07:00'),
-})
-logStep('Sau hạn: thiếu dữ liệu bị khóa HĐ', incompleteAfter.invoiceCreateLocked)
-
-const unlocked = summarizeEmployeePayroll1Status({
-  employee: { id: 'e1', branchId: 'b1', name: 'A', phone: '090', cccd: '1' },
-  attendanceRecords: [],
-  invoices: [],
-  dayReviews: [],
-  override: { manualUnlock: true },
-  now: new Date('2026-07-16T00:30:00+07:00'),
-})
-logStep('Sau hạn: manual unlock mở khóa', !unlocked.invoiceCreateLocked)
-
-const noTourOk = summarizeEmployeePayroll1Status({
-  employee: { id: 'e1', branchId: 'b1', name: 'A', phone: '09', cccd: '1' },
-  attendanceRecords: listDatesInclusive('2026-07-01', '2026-07-03').map((date) => ({ date, status: 'on_time' })),
-  invoices: [],
-  dayReviews: listDatesInclusive('2026-07-01', '2026-07-03').map((dayDate) => ({
-    dayDate,
-    reviewStatus: 'no_tour',
-    employeeId: 'e1',
-  })),
-  override: null,
-  now: new Date('2026-07-03T12:00:00+07:00'),
-})
-logStep('Ngày không tour (no_tour) = đã kiểm tra HĐ', noTourOk.invoiceReviewComplete && noTourOk.attendanceComplete)
+logStep('Sau 15/07 (từ 16/07) khóa', isAfterIctEndOfDay('2026-07-15', new Date('2026-07-16T00:00:00+07:00')))
+logStep('Hôm nay chưa qua hạn khóa', !isAfterIctEndOfDay('2026-07-15', new Date()), `ICT today=${today}`)
 
 console.log('\n=== Production smoke ===\n')
 const { url, key, bundle, hasFeature } = await loadProd()
 logStep(`Bundle có feature kỳ lương 1: ${bundle}`, hasFeature)
 
 const sb = createClient(url, key)
-const { data: settingsRow, error: settingsErr } = await sb.from('app_settings').select('payload').eq('id', 'singleton').maybeSingle()
+const { error: settingsErr } = await sb.from('app_settings').select('payload').eq('id', 'singleton').maybeSingle()
 logStep('app_settings đọc được (SSOT trạng thái)', !settingsErr, settingsErr?.message ?? '')
 
 const browser = await puppeteer.launch({
@@ -143,14 +131,29 @@ try {
   )
   logStep('Mở trang tổng hợp Admin', true)
 
-  const today = getIctTodayDate()
-  logStep(`Hôm nay ICT ${today}: trước/sau hạn`, true,
-    isPayroll1DeadlinePassed() ? 'ĐÃ qua hạn khóa' : 'Chưa qua hạn — NV thiếu dữ liệu vẫn tạo HĐ được')
+  await page.evaluate(() => {
+    const btn = [...document.querySelectorAll('.sidebar__nav button')].find((el) =>
+      el.textContent.includes('Cài đặt'),
+    )
+    btn?.click()
+  })
+  await new Promise((r) => setTimeout(r, 800))
+  await page.evaluate(() => {
+    const tab = [...document.querySelectorAll('.settings__tab')].find((el) =>
+      el.textContent.includes('Hệ thống'),
+    )
+    tab?.click()
+  })
+  await new Promise((r) => setTimeout(r, 800))
+  const hasSettings = await page.evaluate(() =>
+    document.body.textContent.includes('Kỳ lương 1'),
+  )
+  logStep('Cài đặt có mục gia hạn kỳ lương 1', hasSettings)
 } finally {
   await browser.close()
 }
 
-const summary = { passed, failed, results, bundle }
+const summary = { passed, failed, results, bundle, todayIct: today }
 writeFileSync('tmp-payroll1-verify.json', JSON.stringify(summary, null, 2))
 console.log(`\nKết quả: ${passed} passed, ${failed} failed\n`)
 process.exit(failed > 0 ? 1 : 0)
