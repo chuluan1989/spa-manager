@@ -23,17 +23,13 @@ import { notifyDataSynced } from './dataSyncEvents'
 
 export { IMAGE_CATEGORIES }
 
-/**
- * Cột employees đã có trên Production.
- * commission_rate / salary_rate / days_off chỉ sync sau khi chạy
- * supabase/RUN_EMPLOYEE_ERP_FIELDS.sql.
- */
+/** Cột employees sync Supabase (days_off map từ endDate trong repository). */
 export const SUPABASE_EMPLOYEE_FIELDS = [
   'id', 'branchId', 'name', 'dateOfBirth', 'gender', 'phone', 'email', 'cccd',
   'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'currentAddress',
   'bankName', 'bankAccountHolder', 'bankAccount',
   'emergencyContactName', 'emergencyContactPhone',
-  'position', 'startDate',
+  'position', 'startDate', 'commissionRate', 'salaryRate',
   'status', 'note', 'avatar',
   'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
 ]
@@ -41,7 +37,7 @@ export const SUPABASE_EMPLOYEE_FIELDS = [
 const SUPABASE_REQUIRED_ERROR = 'Supabase chưa cấu hình. Không thể lưu dữ liệu nhân viên.'
 
 /** Ghi lên Supabase khi đã cấu hình; nếu chưa cấu hình chỉ lưu local (dev/test). */
-async function pushEmployeeToSupabase(employee) {
+async function pushEmployeeToSupabase(employee, options = {}) {
   if (!employee) {
     throw new Error(SUPABASE_REQUIRED_ERROR)
   }
@@ -56,7 +52,7 @@ async function pushEmployeeToSupabase(employee) {
   await upsertEmployee({
     ...employee,
     updatedAt: new Date().toISOString(),
-  })
+  }, options)
 }
 
 async function pushEmployeeDeletionToSupabase(id) {
@@ -193,7 +189,7 @@ export function normalizeEmployee(employee) {
     branchId: resolveCanonicalBranchId(employee.branchId ?? ''),
     position: employee.position ?? '',
     startDate: employee.startDate ?? '',
-    endDate: employee.endDate ?? '',
+    endDate: employee.endDate || employee.daysOff || '',
     commissionRate: employee.commissionRate ?? '',
     salaryRate: employee.salaryRate ?? '',
     status: normalizeStatus(employee.status),
@@ -539,13 +535,36 @@ export async function updateOwnEmployeeProfile(id, data) {
   }
 
   const sanitized = sanitizeEmployeeData({ ...current, ...picked })
+
+  // Nhân viên không sửa ERP — giữ commission_rate / salary_rate / days_off từ local + remote.
+  let erpFields = {
+    commissionRate: current.commissionRate ?? '',
+    salaryRate: current.salaryRate ?? '',
+    endDate: current.endDate ?? '',
+  }
+  if (isSupabaseConfigured) {
+    try {
+      const remote = await fetchEmployeeById(id)
+      if (remote) {
+        erpFields = {
+          commissionRate: current.commissionRate || remote.commissionRate || '',
+          salaryRate: current.salaryRate || remote.salaryRate || '',
+          endDate: current.endDate || remote.endDate || remote.daysOff || '',
+        }
+      }
+    } catch {
+      /* giữ erpFields từ current */
+    }
+  }
+
   const updated = normalizeEmployee({
     ...current,
     ...pickFields(sanitized, EMPLOYEE_SELF_SERVICE_FIELDS),
+    ...erpFields,
     updatedAt: new Date().toISOString(),
   })
   try {
-    await pushEmployeeToSupabase(updated)
+    await pushEmployeeToSupabase(updated, { preserveErpIfEmpty: true })
   } catch (error) {
     return { success: false, error: error?.message ?? 'Không thể lưu hồ sơ lên máy chủ. Vui lòng thử lại.' }
   }
@@ -758,6 +777,9 @@ export function toSupabaseEmployeePayload(employee) {
   const payload = {}
   for (const key of SUPABASE_EMPLOYEE_FIELDS) {
     if (employee[key] !== undefined) payload[key] = employee[key]
+  }
+  if (employee.endDate !== undefined || employee.daysOff !== undefined) {
+    payload.daysOff = employee.endDate || employee.daysOff || ''
   }
   return payload
 }

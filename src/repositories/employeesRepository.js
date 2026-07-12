@@ -1,22 +1,40 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
-/** Khớp cột Production — không gửi commission_rate/salary_rate/days_off khi chưa migrate. */
 const SUPABASE_EMPLOYEE_FIELDS = [
   'id', 'branchId', 'name', 'dateOfBirth', 'gender', 'phone', 'email', 'cccd',
   'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'currentAddress',
   'bankName', 'bankAccountHolder', 'bankAccount',
   'emergencyContactName', 'emergencyContactPhone',
-  'position', 'startDate',
+  'position', 'startDate', 'commissionRate', 'salaryRate',
   'status', 'note', 'avatar',
   'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
 ]
 
-function toSupabaseEmployeePayload(employee) {
+function textOrEmpty(value) {
+  return value == null ? '' : String(value)
+}
+
+/** Giữ giá trị cũ khi payload gửi chuỗi rỗng (tránh ghi đè ERP nếu không sửa). */
+function preserveText(nextValue, previousValue) {
+  const next = textOrEmpty(nextValue).trim()
+  if (next) return textOrEmpty(nextValue).trim()
+  const prev = textOrEmpty(previousValue).trim()
+  return prev || ''
+}
+
+function toSupabaseEmployeePayload(employee, previous = null) {
   const payload = {}
   for (const key of SUPABASE_EMPLOYEE_FIELDS) {
     if (employee[key] !== undefined) payload[key] = employee[key]
   }
+  // UI/local: endDate / commissionRate / salaryRate → Postgres: days_off / commission_rate / salary_rate
+  payload.commissionRate = preserveText(employee.commissionRate, previous?.commissionRate)
+  payload.salaryRate = preserveText(employee.salaryRate, previous?.salaryRate)
+  payload.daysOff = preserveText(
+    employee.endDate ?? employee.daysOff,
+    previous?.endDate || previous?.daysOff,
+  )
   return payload
 }
 
@@ -25,6 +43,8 @@ function normalizeEmployeeFromDb(employee) {
   return {
     ...employee,
     endDate: employee.endDate || employee.daysOff || '',
+    commissionRate: employee.commissionRate ?? '',
+    salaryRate: employee.salaryRate ?? '',
   }
 }
 
@@ -57,11 +77,22 @@ export async function fetchEmployeeById(id) {
   return data ? normalizeEmployeeFromDb(rowsToCamel([data])[0]) : null
 }
 
-export async function upsertEmployee(employee) {
+export async function upsertEmployee(employee, options = {}) {
   if (!isSupabaseConfigured || !employee?.id) {
     throw new Error('Supabase chưa cấu hình. Không thể lưu hồ sơ nhân viên.')
   }
-  const row = objectToSnakeRow({ ...toSupabaseEmployeePayload(employee), updatedAt: new Date().toISOString() })
+  let previous = null
+  if (options.preserveErpIfEmpty) {
+    try {
+      previous = await fetchEmployeeById(employee.id)
+    } catch {
+      previous = null
+    }
+  }
+  const row = objectToSnakeRow({
+    ...toSupabaseEmployeePayload(employee, previous),
+    updatedAt: new Date().toISOString(),
+  })
   const { data, error } = await supabase.from(TABLE).upsert(row, { onConflict: 'id' }).select('id')
   if (error) throw error
   if (!Array.isArray(data) || data.length === 0) {
@@ -87,7 +118,7 @@ export async function upsertEmployeeMinimal({ id, branchId, name, status = 'acti
 export async function upsertEmployees(employees) {
   if (!isSupabaseConfigured || !Array.isArray(employees) || employees.length === 0) return
   const rows = employees.map((employee) =>
-    objectToSnakeRow({ ...toSupabaseEmployeePayload(employee), updatedAt: new Date().toISOString() }),
+    objectToSnakeRow({ ...toSupabaseEmployeePayload(employee, null), updatedAt: new Date().toISOString() }),
   )
   const { error } = await supabase.from(TABLE).upsert(rows, { onConflict: 'id' })
   if (error) throw error
