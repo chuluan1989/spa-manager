@@ -23,13 +23,17 @@ import { notifyDataSynced } from './dataSyncEvents'
 
 export { IMAGE_CATEGORIES }
 
-/** Các cột employees đã có trên Supabase — field ERP mới chỉ lưu local cho tới khi migrate. */
+/**
+ * Cột employees đã có trên Production.
+ * endDate / commissionRate / salaryRate chỉ lưu local cho tới khi chạy
+ * supabase/RUN_EMPLOYEE_ERP_FIELDS.sql (migration 0006).
+ */
 export const SUPABASE_EMPLOYEE_FIELDS = [
   'id', 'branchId', 'name', 'dateOfBirth', 'gender', 'phone', 'email', 'cccd',
   'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'currentAddress',
   'bankName', 'bankAccountHolder', 'bankAccount',
   'emergencyContactName', 'emergencyContactPhone',
-  'position', 'startDate', 'endDate', 'commissionRate', 'salaryRate',
+  'position', 'startDate',
   'status', 'note', 'avatar',
   'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
 ]

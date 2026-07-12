@@ -1,12 +1,13 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
+/** Khớp cột Production — không gửi end_date/commission_rate/salary_rate khi chưa migrate. */
 const SUPABASE_EMPLOYEE_FIELDS = [
   'id', 'branchId', 'name', 'dateOfBirth', 'gender', 'phone', 'email', 'cccd',
   'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'currentAddress',
   'bankName', 'bankAccountHolder', 'bankAccount',
   'emergencyContactName', 'emergencyContactPhone',
-  'position', 'startDate', 'endDate', 'commissionRate', 'salaryRate',
+  'position', 'startDate',
   'status', 'note', 'avatar',
   'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
 ]
