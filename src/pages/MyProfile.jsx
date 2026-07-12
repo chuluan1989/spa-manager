@@ -1,17 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import EmployeeAvatar from '../components/employees/EmployeeAvatar'
 import '../components/employees/EmployeeProfileForm.css'
 import {
+  EMPLOYEE_SELF_SERVICE_FIELDS,
   GENDER_OPTIONS,
   getBranchName,
   getEmployeeById,
   getStatusLabel,
+  normalizeEmployee,
+  pickChangedEmployeeFields,
   readAvatarFile,
   updateOwnEmployeeProfile,
 } from '../utils/employeeStorage'
+import { fetchEmployeeById } from '../repositories/employeesRepository'
 import { validateEmployeeSelfProfile } from '../utils/validators'
 import { getCurrentUserEmployeeId } from '../constants/auth'
 import { IMAGE_CATEGORIES } from '../utils/imageStorage'
+import { isSupabaseConfigured } from '../lib/supabaseClient'
 import './MyProfile.css'
 
 function Field({ label, children, full = false, hint }) {
@@ -97,13 +102,59 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
   const employeeId = getCurrentUserEmployeeId()
   const [employee, setEmployee] = useState(() => getEmployeeById(employeeId))
   const [form, setForm] = useState(() => toFormState(employee ?? {}))
+  const [baseline, setBaseline] = useState(() => toFormState(employee ?? {}))
+  const [loadedUpdatedAt, setLoadedUpdatedAt] = useState(() => employee?.updatedAt ?? '')
+  const [loading, setLoading] = useState(Boolean(employeeId))
+  const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState('')
 
   const showToast = (message) => {
     setToast(message)
-    setTimeout(() => setToast(''), 3000)
+    setTimeout(() => setToast(''), 4000)
   }
+
+  const applyEmployee = (next) => {
+    const normalized = normalizeEmployee(next)
+    setEmployee(normalized)
+    const formState = toFormState(normalized)
+    setForm(formState)
+    setBaseline(formState)
+    setLoadedUpdatedAt(normalized.updatedAt ?? '')
+  }
+
+  const reloadFromServer = async () => {
+    if (!employeeId) {
+      setLoading(false)
+      return
+    }
+    if (!isSupabaseConfigured) {
+      const local = getEmployeeById(employeeId)
+      if (local) applyEmployee(local)
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    try {
+      const remote = await fetchEmployeeById(employeeId)
+      if (remote) applyEmployee(remote)
+      else {
+        const local = getEmployeeById(employeeId)
+        if (local) applyEmployee(local)
+      }
+    } catch (error) {
+      const local = getEmployeeById(employeeId)
+      if (local) applyEmployee(local)
+      showToast(error?.message ?? 'Không thể tải hồ sơ từ máy chủ')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    reloadFromServer()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeeId])
 
   const updateField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -118,17 +169,41 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
       return
     }
 
-    const result = await updateOwnEmployeeProfile(employeeId, form)
-    if (!result.success) {
-      if (result.errors) setErrors(result.errors)
-      showToast(result.error ?? 'Không thể lưu hồ sơ')
+    const dirty = pickChangedEmployeeFields(form, baseline, EMPLOYEE_SELF_SERVICE_FIELDS)
+    if (Object.keys(dirty).length === 0) {
+      showToast('Không có thay đổi cần lưu')
       return
     }
 
-    setEmployee(result.employee)
-    setForm(toFormState(result.employee))
-    showToast('Cập nhật hồ sơ thành công')
-    onCompleted?.(result.employee)
+    setSaving(true)
+    try {
+      const result = await updateOwnEmployeeProfile(employeeId, dirty, {
+        expectedUpdatedAt: loadedUpdatedAt,
+        baseline,
+      })
+      if (!result.success) {
+        if (result.errors) setErrors(result.errors)
+        showToast(result.error ?? 'Không thể lưu hồ sơ')
+        if (result.conflict) await reloadFromServer()
+        return
+      }
+
+      applyEmployee(result.employee)
+      showToast(result.unchanged ? 'Không có thay đổi cần lưu' : 'Cập nhật hồ sơ thành công')
+      onCompleted?.(result.employee)
+    } catch (error) {
+      showToast(error?.message ?? 'Không thể lưu hồ sơ')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!employee && loading) {
+    return (
+      <div className="myprofile myprofile--denied">
+        <h2 className="myprofile__title">Đang tải hồ sơ…</h2>
+      </div>
+    )
   }
 
   if (!employee) {
@@ -399,8 +474,11 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
       </section>
 
       <div className="myprofile__actions">
-        <button type="button" className="myprofile__save-btn" onClick={handleSave}>
-          Lưu hồ sơ
+        <button type="button" className="myprofile__save-btn" onClick={reloadFromServer} disabled={saving || loading}>
+          Tải lại
+        </button>
+        <button type="button" className="myprofile__save-btn" onClick={handleSave} disabled={saving || loading}>
+          {saving ? 'Đang lưu…' : 'Lưu hồ sơ'}
         </button>
       </div>
     </div>

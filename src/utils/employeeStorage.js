@@ -9,7 +9,17 @@ import {
 } from './storageAccess'
 import { validateEmployeeSelfProfile } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { deleteEmployeeRow, fetchEmployeeById, upsertEmployee } from '../repositories/employeesRepository'
+import {
+  ADMIN_ONLY_EMPLOYEE_FIELDS,
+  EMPLOYEE_PROFILE_EDITABLE_FIELDS,
+  PROFILE_CONFLICT_MESSAGE,
+  ProfileConflictError,
+  deleteEmployeeRow,
+  fetchEmployeeById,
+  patchEmployeeProfile,
+  upsertEmployee,
+} from '../repositories/employeesRepository'
+import { insertEmployeeProfileAuditLog } from '../repositories/employeeProfileAuditRepository'
 import { upsertBranchMinimal } from '../repositories/branchesRepository'
 import { getBranchById } from '../constants/branches'
 import { syncEmployeeCredentialForEmployee, removeEmployeeCredential, pruneInactiveEmployeeCredentials } from './credentialsStorage'
@@ -34,10 +44,12 @@ export const SUPABASE_EMPLOYEE_FIELDS = [
   'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
 ]
 
+export { EMPLOYEE_PROFILE_EDITABLE_FIELDS, ADMIN_ONLY_EMPLOYEE_FIELDS, PROFILE_CONFLICT_MESSAGE }
+
 const SUPABASE_REQUIRED_ERROR = 'Supabase chưa cấu hình. Không thể lưu dữ liệu nhân viên.'
 
-/** Ghi lên Supabase khi đã cấu hình; nếu chưa cấu hình chỉ lưu local (dev/test). */
-async function pushEmployeeToSupabase(employee, options = {}) {
+/** Upsert đầy đủ — chỉ dùng khi thêm nhân viên mới. */
+async function pushEmployeeToSupabase(employee) {
   if (!employee) {
     throw new Error(SUPABASE_REQUIRED_ERROR)
   }
@@ -52,7 +64,95 @@ async function pushEmployeeToSupabase(employee, options = {}) {
   await upsertEmployee({
     ...employee,
     updatedAt: new Date().toISOString(),
-  }, options)
+  })
+}
+
+function valuesEqual(a, b) {
+  if (a === b) return true
+  if (a == null && b == null) return true
+  if (typeof a === 'object' || typeof b === 'object') {
+    try {
+      return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+    } catch {
+      return false
+    }
+  }
+  return String(a ?? '') === String(b ?? '')
+}
+
+/** Chỉ lấy field thực sự đổi so với baseline. Không gửi undefined/null. */
+export function pickChangedEmployeeFields(nextValues, baseline, allowedFields) {
+  const patch = {}
+  for (const key of allowedFields) {
+    if (!Object.prototype.hasOwnProperty.call(nextValues, key)) continue
+    const next = nextValues[key]
+    if (next === undefined || next === null) continue
+    const prev = baseline?.[key]
+    if (!valuesEqual(next, prev)) {
+      patch[key] = next
+    }
+  }
+  return patch
+}
+
+function stripDisallowedFields(patch, disallowedFields) {
+  const next = { ...patch }
+  for (const key of disallowedFields) {
+    delete next[key]
+  }
+  delete next.role
+  delete next.id
+  return next
+}
+
+function createProfileAuditId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `epa-${crypto.randomUUID()}`
+  }
+  return `epa-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+async function writeEmployeeProfileAudit({
+  employeeId,
+  changedFields,
+  oldValues,
+  newValues,
+  sourceDevice = '',
+}) {
+  if (!employeeId || !Array.isArray(changedFields) || changedFields.length === 0) return
+  const user = getSessionUser()
+  const entry = {
+    id: createProfileAuditId(),
+    employeeId,
+    changedBy: user?.employeeName || user?.name || user?.employeeId || user?.role || 'unknown',
+    changedByRole: user?.role ?? 'unknown',
+    changedFields,
+    oldValues,
+    newValues,
+    changedAt: new Date().toISOString(),
+    sourceDevice: sourceDevice || (typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 180) : ''),
+  }
+  if (!isSupabaseConfigured) return entry
+  try {
+    await insertEmployeeProfileAuditLog(entry)
+  } catch (error) {
+    console.warn('[ProfileAudit] Không ghi được audit log:', error?.message)
+  }
+  return entry
+}
+
+function cacheEmployeeLocally(employee) {
+  if (!employee?.id) return
+  const employees = loadEmployees()
+  const index = employees.findIndex((item) => item.id === employee.id)
+  const normalized = normalizeEmployee(employee)
+  if (index === -1) employees.push(normalized)
+  else employees[index] = normalized
+  try {
+    saveEmployees(employees)
+  } catch {
+    /* cache phụ — không làm fail lưu máy chủ */
+  }
 }
 
 async function pushEmployeeDeletionToSupabase(id) {
@@ -118,25 +218,12 @@ export const PROFILE_STATUS = {
 }
 
 /** Các trường nhân viên được tự cập nhật trong "Hồ sơ cá nhân". */
-export const EMPLOYEE_SELF_SERVICE_FIELDS = [
-  'name',
-  'gender',
-  'dateOfBirth',
-  'phone',
-  'email',
-  'cccd',
-  'cccdIssueDate',
-  'cccdIssuePlace',
-  'cccdAddress',
-  'currentAddress',
-  'emergencyContactName',
-  'emergencyContactPhone',
-  'bankName',
-  'bankAccountHolder',
-  'bankAccount',
-  'avatar',
-  'cccdFrontImage',
-  'cccdBackImage',
+export const EMPLOYEE_SELF_SERVICE_FIELDS = EMPLOYEE_PROFILE_EDITABLE_FIELDS
+
+/** Field Admin được sửa thêm (ngoài self-service). */
+export const ADMIN_EMPLOYEE_EDITABLE_FIELDS = [
+  ...EMPLOYEE_PROFILE_EDITABLE_FIELDS,
+  ...ADMIN_ONLY_EMPLOYEE_FIELDS,
 ]
 
 function normalizeStatus(status) {
@@ -429,179 +516,189 @@ export async function addEmployee(data) {
   return { success: true, employee }
 }
 
-export async function updateEmployee(id, data) {
+export async function updateEmployee(id, data, options = {}) {
   if (!isSessionAdmin()) {
     return denyAccess('Chỉ Admin mới được sửa nhân viên.')
   }
+  if (!isSupabaseConfigured) {
+    return { success: false, error: SUPABASE_REQUIRED_ERROR }
+  }
 
-  const employees = loadEmployees()
-  const index = employees.findIndex((e) => e.id === id)
-  if (index === -1) {
+  let remote
+  try {
+    remote = await fetchEmployeeById(id)
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể tải hồ sơ từ máy chủ.' }
+  }
+  if (!remote) {
     return denyAccess('Không tìm thấy nhân viên.')
   }
 
-  const current = employees[index]
+  const current = normalizeEmployee(remote)
   if (!canAccessSessionBranch(current.branchId)) {
     return denyAccess('Bạn không có quyền sửa nhân viên này.')
   }
 
-  const sanitized = sanitizeEmployeeData({ ...current, ...data })
-  if (sanitized.branchId !== current.branchId && !isSessionAdmin()) {
-    return denyAccess('Chỉ Admin mới được đổi chi nhánh nhân viên.')
+  const expectedUpdatedAt = options.expectedUpdatedAt ?? current.updatedAt ?? ''
+  const baseline = options.baseline ? normalizeEmployee({ ...current, ...options.baseline }) : current
+  const patch = pickChangedEmployeeFields(data, baseline, ADMIN_EMPLOYEE_EDITABLE_FIELDS)
+
+  if (Object.keys(patch).length === 0) {
+    cacheEmployeeLocally(current)
+    return { success: true, employee: current, unchanged: true }
   }
-  if (!canAccessSessionBranch(sanitized.branchId)) {
+
+  if (patch.branchId && patch.branchId !== current.branchId && !canAccessSessionBranch(patch.branchId)) {
     return denyAccess('Bạn không có quyền chuyển nhân viên sang chi nhánh này.')
   }
 
-  employees[index] = normalizeEmployee({
-    ...current,
-    ...sanitized,
-  })
+  const mergedForValidate = sanitizeEmployeeData({ ...current, ...patch })
+  if (!mergedForValidate.name?.trim()) {
+    return { success: false, error: 'Vui lòng nhập họ và tên', errors: { name: 'Vui lòng nhập họ và tên' } }
+  }
+
+  const oldValues = {}
+  const newValues = {}
+  for (const key of Object.keys(patch)) {
+    oldValues[key] = current[key] ?? ''
+    newValues[key] = patch[key]
+  }
+
+  let confirmed
   try {
-    await pushEmployeeToSupabase(employees[index])
+    if (patch.branchId) {
+      const branch = getBranchById(patch.branchId)
+      if (branch?.id) await upsertBranchMinimal(branch)
+    }
+    confirmed = await patchEmployeeProfile(id, patch, { expectedUpdatedAt })
   } catch (error) {
+    if (error instanceof ProfileConflictError || error?.code === 'PROFILE_CONFLICT') {
+      return { success: false, conflict: true, error: PROFILE_CONFLICT_MESSAGE }
+    }
     return { success: false, error: error?.message ?? 'Không thể lưu hồ sơ nhân viên lên máy chủ.' }
   }
-  try {
-    saveEmployees(employees)
-  } catch (error) {
-    return denyAccess(error.message)
-  }
+
+  const employee = normalizeEmployee(confirmed)
+  cacheEmployeeLocally(employee)
   notifyDataSynced(['employees'])
 
-  if (sanitized.branchId !== current.branchId || sanitized.name !== current.name) {
+  await writeEmployeeProfileAudit({
+    employeeId: id,
+    changedFields: Object.keys(patch),
+    oldValues,
+    newValues,
+    sourceDevice: options.sourceDevice,
+  })
+
+  if (patch.branchId || patch.name) {
     syncEmployeeCredentialForEmployee(id).catch((error) => {
       console.warn('[Credentials] Không thể đồng bộ tài khoản nhân viên:', error?.message)
     })
   }
 
-  if (sanitized.status !== current.status) {
+  if (patch.status && patch.status !== current.status) {
     appendEmployeeAuditLog({
       employeeId: id,
-      employeeName: employees[index].name,
+      employeeName: employee.name,
       action: EMPLOYEE_AUDIT_ACTIONS.STATUS_CHANGE,
-      details: `${getStatusLabel(current.status)} → ${getStatusLabel(sanitized.status)}`,
+      details: `${getStatusLabel(current.status)} → ${getStatusLabel(patch.status)}`,
     })
-  } else if (sanitized.branchId === current.branchId) {
+  } else {
     appendEmployeeAuditLog({
       employeeId: id,
-      employeeName: employees[index].name,
+      employeeName: employee.name,
       action: EMPLOYEE_AUDIT_ACTIONS.PROFILE_UPDATE,
-      details: 'Cập nhật hồ sơ nhân viên',
+      details: `Cập nhật hồ sơ: ${Object.keys(patch).join(', ')}`,
     })
   }
 
-  return { success: true, employee: employees[index] }
+  return { success: true, employee, changedFields: Object.keys(patch) }
 }
 
 /**
- * Nhân viên tự cập nhật hồ sơ cá nhân của chính mình. Chỉ được đổi các
- * trường trong EMPLOYEE_SELF_SERVICE_FIELDS. Không đổi: mã NV, chi nhánh,
- * chức vụ, ngày vào làm, trạng thái, vai trò (dù payload cố tình gửi lên).
+ * Nhân viên tự cập nhật hồ sơ — chỉ partial patch field self-service đã đổi.
+ * Không ghi đè field Admin (commission_rate, salary_rate, days_off, branch, status…).
  */
-export async function updateOwnEmployeeProfile(id, data) {
+export async function updateOwnEmployeeProfile(id, data, options = {}) {
   const user = getSessionUser()
   if (user?.role !== ROLES.EMPLOYEE || user.employeeId !== id) {
     return denyAccess('Bạn chỉ được sửa hồ sơ của chính mình.')
   }
-
-  let employees = loadEmployees()
-  let index = employees.findIndex((e) => e.id === id)
-  if (index === -1 && isSupabaseConfigured) {
-    try {
-      const remote = await fetchEmployeeById(id)
-      if (remote) {
-        employees = [...employees, normalizeEmployee(remote)]
-        index = employees.length - 1
-        try {
-          saveEmployees(employees)
-        } catch {
-          /* cache phụ — vẫn tiếp tục lưu lên máy chủ */
-        }
-      }
-    } catch (error) {
-      return { success: false, error: error?.message ?? 'Không thể tải hồ sơ từ máy chủ.' }
-    }
+  if (!isSupabaseConfigured) {
+    return { success: false, error: SUPABASE_REQUIRED_ERROR }
   }
-  if (index === -1) {
+
+  let remote
+  try {
+    remote = await fetchEmployeeById(id)
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể tải hồ sơ từ máy chủ.' }
+  }
+  if (!remote) {
     return denyAccess('Không tìm thấy hồ sơ nhân viên.')
   }
 
-  const current = employees[index]
-  const picked = pickFields(data, EMPLOYEE_SELF_SERVICE_FIELDS)
-  const errors = validateEmployeeSelfProfile({ ...current, ...picked })
+  const current = normalizeEmployee(remote)
+  const expectedUpdatedAt = options.expectedUpdatedAt ?? current.updatedAt ?? ''
+  const baseline = options.baseline
+    ? { ...pickFields(current, EMPLOYEE_SELF_SERVICE_FIELDS), ...pickFields(options.baseline, EMPLOYEE_SELF_SERVICE_FIELDS) }
+    : pickFields(current, EMPLOYEE_SELF_SERVICE_FIELDS)
+
+  const safeData = stripDisallowedFields(data ?? {}, ADMIN_ONLY_EMPLOYEE_FIELDS)
+  const patch = pickChangedEmployeeFields(safeData, baseline, EMPLOYEE_SELF_SERVICE_FIELDS)
+
+  if (Object.keys(patch).length === 0) {
+    cacheEmployeeLocally(current)
+    return { success: true, employee: current, unchanged: true }
+  }
+
+  const merged = { ...current, ...patch }
+  const errors = validateEmployeeSelfProfile(merged)
   if (Object.keys(errors).length > 0) {
     return { success: false, errors, error: Object.values(errors)[0] }
   }
 
-  const sanitized = sanitizeEmployeeData({ ...current, ...picked })
-
-  // Nhân viên không sửa ERP — giữ commission_rate / salary_rate / days_off từ local + remote.
-  let erpFields = {
-    commissionRate: current.commissionRate ?? '',
-    salaryRate: current.salaryRate ?? '',
-    endDate: current.endDate ?? '',
-  }
-  if (isSupabaseConfigured) {
-    try {
-      const remote = await fetchEmployeeById(id)
-      if (remote) {
-        erpFields = {
-          commissionRate: current.commissionRate || remote.commissionRate || '',
-          salaryRate: current.salaryRate || remote.salaryRate || '',
-          endDate: current.endDate || remote.endDate || remote.daysOff || '',
-        }
-      }
-    } catch {
-      /* giữ erpFields từ current */
-    }
+  const oldValues = {}
+  const newValues = {}
+  for (const key of Object.keys(patch)) {
+    oldValues[key] = current[key] ?? ''
+    newValues[key] = patch[key]
   }
 
-  const updated = normalizeEmployee({
-    ...current,
-    ...pickFields(sanitized, EMPLOYEE_SELF_SERVICE_FIELDS),
-    ...erpFields,
-    updatedAt: new Date().toISOString(),
-  })
+  let confirmed
   try {
-    await pushEmployeeToSupabase(updated, { preserveErpIfEmpty: true })
+    confirmed = await patchEmployeeProfile(id, patch, { expectedUpdatedAt })
   } catch (error) {
+    if (error instanceof ProfileConflictError || error?.code === 'PROFILE_CONFLICT') {
+      return { success: false, conflict: true, error: PROFILE_CONFLICT_MESSAGE }
+    }
     return { success: false, error: error?.message ?? 'Không thể lưu hồ sơ lên máy chủ. Vui lòng thử lại.' }
   }
 
-  // Xác nhận lại từ Supabase — chỉ báo thành công khi dữ liệu đã có trên máy chủ.
-  if (isSupabaseConfigured) {
-    try {
-      const confirmed = await fetchEmployeeById(id)
-      if (!confirmed) {
-        return { success: false, error: 'Máy chủ không xác nhận đã lưu hồ sơ.' }
-      }
-      const confirmedEmployee = normalizeEmployee({
-        ...updated,
-        ...confirmed,
-        ...pickFields(normalizeEmployee(confirmed), EMPLOYEE_SELF_SERVICE_FIELDS),
-      })
-      employees[index] = confirmedEmployee
-      try {
-        saveEmployees(employees)
-      } catch (error) {
-        return { success: false, error: error.message }
-      }
-      notifyDataSynced(['employees'])
-      return { success: true, employee: confirmedEmployee }
-    } catch (error) {
-      return { success: false, error: error?.message ?? 'Không thể xác nhận hồ sơ trên máy chủ.' }
-    }
+  if (!confirmed) {
+    return { success: false, error: 'Máy chủ không xác nhận đã lưu hồ sơ.' }
   }
 
-  employees[index] = updated
-  try {
-    saveEmployees(employees)
-  } catch (error) {
-    return { success: false, error: error.message }
-  }
+  const employee = normalizeEmployee(confirmed)
+  cacheEmployeeLocally(employee)
   notifyDataSynced(['employees'])
-  return { success: true, employee: updated }
+
+  await writeEmployeeProfileAudit({
+    employeeId: id,
+    changedFields: Object.keys(patch),
+    oldValues,
+    newValues,
+    sourceDevice: options.sourceDevice,
+  })
+
+  appendEmployeeAuditLog({
+    employeeId: id,
+    employeeName: employee.name,
+    action: EMPLOYEE_AUDIT_ACTIONS.PROFILE_UPDATE,
+    details: `Tự cập nhật hồ sơ: ${Object.keys(patch).join(', ')}`,
+  })
+
+  return { success: true, employee, changedFields: Object.keys(patch) }
 }
 
 export async function deleteEmployee(id) {

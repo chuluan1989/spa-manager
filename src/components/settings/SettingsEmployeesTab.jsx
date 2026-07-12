@@ -124,12 +124,18 @@ export default function SettingsEmployeesTab({ showToast }) {
       }
       showToast('Thêm nhân viên thành công')
     } else {
-      const result = await updateEmployee(modal.id, form)
+      const baseline = { ...modal }
+      delete baseline.id
+      delete baseline.mode
+      const result = await updateEmployee(modal.id, form, {
+        expectedUpdatedAt: modal.updatedAt ?? '',
+        baseline,
+      })
       if (!result.success) {
         showToast(result.error ?? 'Không thể cập nhật nhân viên')
         return
       }
-      showToast('Cập nhật nhân viên thành công')
+      showToast(result.unchanged ? 'Không có thay đổi cần lưu' : 'Cập nhật nhân viên thành công')
     }
     closeModal()
     refresh()

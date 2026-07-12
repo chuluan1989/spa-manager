@@ -94,6 +94,39 @@ export default function EmployeeHubSettings({
     setMode('edit')
   }
 
+  const handleSaveEmployee = async () => {
+    const payload = {
+      ...form,
+      branchId: canSelectBranch() ? form.branchId : getCurrentUserBranch(),
+    }
+    const next = validateForm(payload)
+    setErrors(next)
+    if (Object.keys(next).length > 0) return
+
+    if (mode === 'add') {
+      const result = await addEmployee(payload)
+      if (!result.success) {
+        showToast(result.error ?? 'Không thể thêm nhân viên')
+        return
+      }
+      showToast('Thêm nhân viên thành công')
+    } else if (mode === 'edit') {
+      const baseline = employeeToForm(selectedEmployee)
+      const result = await updateEmployee(selectedEmployeeId, payload, {
+        expectedUpdatedAt: selectedEmployee?.updatedAt ?? '',
+        baseline,
+      })
+      if (!result.success) {
+        showToast(result.error ?? 'Không thể cập nhật')
+        return
+      }
+      showToast(result.unchanged ? 'Không có thay đổi cần lưu' : 'Cập nhật hồ sơ thành công')
+    }
+
+    onSaved()
+    closeAll()
+  }
+
   const openTransfer = () => {
     if (!selectedEmployee) {
       showToast('Chọn nhân viên trước')
@@ -122,35 +155,6 @@ export default function EmployeeHubSettings({
     if (!data.name?.trim()) next.name = 'Vui lòng nhập họ và tên'
     if (!data.branchId) next.branchId = 'Vui lòng chọn chi nhánh'
     return next
-  }
-
-  const handleSaveEmployee = async () => {
-    const payload = {
-      ...form,
-      branchId: canSelectBranch() ? form.branchId : getCurrentUserBranch(),
-    }
-    const next = validateForm(payload)
-    setErrors(next)
-    if (Object.keys(next).length > 0) return
-
-    if (mode === 'add') {
-      const result = await addEmployee(payload)
-      if (!result.success) {
-        showToast(result.error ?? 'Không thể thêm nhân viên')
-        return
-      }
-      showToast('Thêm nhân viên thành công')
-    } else if (mode === 'edit') {
-      const result = await updateEmployee(selectedEmployeeId, payload)
-      if (!result.success) {
-        showToast(result.error ?? 'Không thể cập nhật')
-        return
-      }
-      showToast('Cập nhật hồ sơ thành công')
-    }
-
-    onSaved()
-    closeAll()
   }
 
   const handleTransfer = async (e) => {

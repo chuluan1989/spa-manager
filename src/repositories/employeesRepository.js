@@ -1,6 +1,7 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
+/** Cột employees dùng cho upsert đầy đủ (addEmployee / bulk). */
 const SUPABASE_EMPLOYEE_FIELDS = [
   'id', 'branchId', 'name', 'dateOfBirth', 'gender', 'phone', 'email', 'cccd',
   'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'currentAddress',
@@ -11,30 +12,61 @@ const SUPABASE_EMPLOYEE_FIELDS = [
   'cccdFrontImage', 'cccdBackImage', 'branchHistory', 'updatedAt',
 ]
 
-function textOrEmpty(value) {
-  return value == null ? '' : String(value)
+/** Field nhân viên được tự sửa trên hồ sơ cá nhân. */
+export const EMPLOYEE_PROFILE_EDITABLE_FIELDS = [
+  'name',
+  'gender',
+  'dateOfBirth',
+  'phone',
+  'email',
+  'cccd',
+  'cccdIssueDate',
+  'cccdIssuePlace',
+  'cccdAddress',
+  'currentAddress',
+  'emergencyContactName',
+  'emergencyContactPhone',
+  'bankName',
+  'bankAccountHolder',
+  'bankAccount',
+  'avatar',
+  'cccdFrontImage',
+  'cccdBackImage',
+]
+
+/** Field chỉ Admin được sửa — nhân viên không được gửi lên. */
+export const ADMIN_ONLY_EMPLOYEE_FIELDS = [
+  'branchId',
+  'status',
+  'commissionRate',
+  'salaryRate',
+  'endDate',
+  'daysOff',
+  'position',
+  'startDate',
+  'note',
+  'branchHistory',
+]
+
+export const PROFILE_CONFLICT_MESSAGE =
+  'Hồ sơ đã được cập nhật ở thiết bị khác. Vui lòng tải lại để tránh ghi đè dữ liệu.'
+
+export class ProfileConflictError extends Error {
+  constructor(message = PROFILE_CONFLICT_MESSAGE) {
+    super(message)
+    this.name = 'ProfileConflictError'
+    this.code = 'PROFILE_CONFLICT'
+  }
 }
 
-/** Giữ giá trị cũ khi payload gửi chuỗi rỗng (tránh ghi đè ERP nếu không sửa). */
-function preserveText(nextValue, previousValue) {
-  const next = textOrEmpty(nextValue).trim()
-  if (next) return textOrEmpty(nextValue).trim()
-  const prev = textOrEmpty(previousValue).trim()
-  return prev || ''
-}
-
-function toSupabaseEmployeePayload(employee, previous = null) {
+function toSupabaseEmployeePayload(employee) {
   const payload = {}
   for (const key of SUPABASE_EMPLOYEE_FIELDS) {
     if (employee[key] !== undefined) payload[key] = employee[key]
   }
-  // UI/local: endDate / commissionRate / salaryRate → Postgres: days_off / commission_rate / salary_rate
-  payload.commissionRate = preserveText(employee.commissionRate, previous?.commissionRate)
-  payload.salaryRate = preserveText(employee.salaryRate, previous?.salaryRate)
-  payload.daysOff = preserveText(
-    employee.endDate ?? employee.daysOff,
-    previous?.endDate || previous?.daysOff,
-  )
+  if (employee.endDate !== undefined || employee.daysOff !== undefined) {
+    payload.daysOff = employee.endDate ?? employee.daysOff ?? ''
+  }
   return payload
 }
 
@@ -46,6 +78,23 @@ function normalizeEmployeeFromDb(employee) {
     commissionRate: employee.commissionRate ?? '',
     salaryRate: employee.salaryRate ?? '',
   }
+}
+
+/** Chuẩn hóa patch camelCase → snake_case (days_off từ endDate). */
+export function buildEmployeePatchRow(patch) {
+  if (!patch || typeof patch !== 'object') return {}
+  const camel = { ...patch }
+  if (Object.prototype.hasOwnProperty.call(camel, 'endDate')) {
+    camel.daysOff = camel.endDate
+    delete camel.endDate
+  }
+  delete camel.id
+  delete camel.updatedAt
+  delete camel.role
+  const row = objectToSnakeRow(camel)
+  delete row.id
+  delete row.updated_at
+  return row
 }
 
 const TABLE = 'employees'
@@ -77,22 +126,51 @@ export async function fetchEmployeeById(id) {
   return data ? normalizeEmployeeFromDb(rowsToCamel([data])[0]) : null
 }
 
-export async function upsertEmployee(employee, options = {}) {
+/**
+ * Partial update theo employee_id.
+ * Chỉ ghi các cột trong `patch`. Chống ghi đè đa máy qua expectedUpdatedAt.
+ */
+export async function patchEmployeeProfile(id, patch, { expectedUpdatedAt } = {}) {
+  if (!isSupabaseConfigured || !id) {
+    throw new Error('Supabase chưa cấu hình. Không thể lưu hồ sơ nhân viên.')
+  }
+  const row = buildEmployeePatchRow(patch)
+  const keys = Object.keys(row)
+  if (keys.length === 0) {
+    return fetchEmployeeById(id)
+  }
+
+  const nextUpdatedAt = new Date().toISOString()
+  row.updated_at = nextUpdatedAt
+
+  let query = supabase.from(TABLE).update(row).eq('id', id)
+  if (expectedUpdatedAt) {
+    query = query.eq('updated_at', expectedUpdatedAt)
+  }
+
+  const { data, error } = await query.select('*')
+  if (error) throw error
+  if (!Array.isArray(data) || data.length === 0) {
+    if (expectedUpdatedAt) {
+      throw new ProfileConflictError()
+    }
+    throw new Error('Supabase không xác nhận đã lưu hồ sơ nhân viên.')
+  }
+  return normalizeEmployeeFromDb(rowsToCamel(data)[0])
+}
+
+/** Upsert đầy đủ — chỉ dùng khi thêm nhân viên mới / migrate. */
+export async function upsertEmployee(employee) {
   if (!isSupabaseConfigured || !employee?.id) {
     throw new Error('Supabase chưa cấu hình. Không thể lưu hồ sơ nhân viên.')
   }
-  let previous = null
-  if (options.preserveErpIfEmpty) {
-    try {
-      previous = await fetchEmployeeById(employee.id)
-    } catch {
-      previous = null
-    }
-  }
   const row = objectToSnakeRow({
-    ...toSupabaseEmployeePayload(employee, previous),
+    ...toSupabaseEmployeePayload(employee),
     updatedAt: new Date().toISOString(),
   })
+  if (employee.endDate !== undefined || employee.daysOff !== undefined) {
+    row.days_off = employee.endDate ?? employee.daysOff ?? ''
+  }
   const { data, error } = await supabase.from(TABLE).upsert(row, { onConflict: 'id' }).select('id')
   if (error) throw error
   if (!Array.isArray(data) || data.length === 0) {
@@ -117,9 +195,16 @@ export async function upsertEmployeeMinimal({ id, branchId, name, status = 'acti
 
 export async function upsertEmployees(employees) {
   if (!isSupabaseConfigured || !Array.isArray(employees) || employees.length === 0) return
-  const rows = employees.map((employee) =>
-    objectToSnakeRow({ ...toSupabaseEmployeePayload(employee, null), updatedAt: new Date().toISOString() }),
-  )
+  const rows = employees.map((employee) => {
+    const row = objectToSnakeRow({
+      ...toSupabaseEmployeePayload(employee),
+      updatedAt: new Date().toISOString(),
+    })
+    if (employee.endDate !== undefined || employee.daysOff !== undefined) {
+      row.days_off = employee.endDate ?? employee.daysOff ?? ''
+    }
+    return row
+  })
   const { error } = await supabase.from(TABLE).upsert(rows, { onConflict: 'id' })
   if (error) throw error
 }
