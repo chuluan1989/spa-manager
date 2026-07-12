@@ -3,11 +3,22 @@ import { canSelectBranch, getCurrentUserBranch, isAdmin, isBranchManager } from 
 import { getActiveBranches } from '../constants/branches'
 import { getBranchName } from '../utils/branchStorage'
 import { formatVnDate } from '../utils/ictTime'
+import { filterPayroll1AdminRows } from '../utils/payroll1Policy'
 import { loadPayroll1AdminRows, setPayroll1EmployeeOverride } from '../utils/payroll1Service'
 import '../components/payroll1/payroll1.css'
 
+const FILTERS = [
+  { id: 'all', label: 'Tất cả' },
+  { id: 'incomplete_profile', label: 'Chưa hoàn thành Hồ sơ' },
+  { id: 'incomplete_attendance', label: 'Chưa hoàn thành Chấm công' },
+  { id: 'incomplete_invoices', label: 'Chưa hoàn thành Hóa đơn' },
+  { id: 'incomplete', label: 'Chưa xong' },
+  { id: 'complete', label: 'Đã hoàn thành 100%' },
+]
+
 export default function Payroll1AdminPage() {
   const [branchId, setBranchId] = useState(() => (canSelectBranch() ? '' : getCurrentUserBranch()))
+  const [filter, setFilter] = useState('all')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -15,6 +26,7 @@ export default function Payroll1AdminPage() {
   const [busyId, setBusyId] = useState('')
 
   const branches = useMemo(() => getActiveBranches(), [])
+  const visibleRows = useMemo(() => filterPayroll1AdminRows(rows, filter), [rows, filter])
 
   const reload = async () => {
     setLoading(true)
@@ -59,20 +71,34 @@ export default function Payroll1AdminPage() {
     <div className="payroll1-page">
       <header className="payroll1-page__head">
         <h1>Tổng hợp hoàn thiện dữ liệu kỳ lương 1</h1>
-        <p>Trạng thái lấy từ Supabase — đồng bộ đa máy. Quản lý chỉ xem nhân viên chi nhánh mình.</p>
+        <p>Tiến độ tính trực tiếp từ Supabase — đồng bộ đa máy.</p>
       </header>
 
-      {canSelectBranch() && (
-        <label className="payroll1-backfill" style={{ maxWidth: 320 }}>
-          Chi nhánh
-          <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-            <option value="">Tất cả</option>
-            {branches.map((branch) => (
-              <option key={branch.id} value={branch.id}>{branch.name}</option>
-            ))}
-          </select>
-        </label>
-      )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'end' }}>
+        {canSelectBranch() && (
+          <label className="payroll1-backfill" style={{ maxWidth: 280, margin: 0 }}>
+            Chi nhánh
+            <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+              <option value="">Tất cả</option>
+              {branches.map((branch) => (
+                <option key={branch.id} value={branch.id}>{branch.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        <div className="payroll1-admin-filters" role="group" aria-label="Lọc tiến độ">
+          {FILTERS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={filter === item.id ? 'is-active' : ''}
+              onClick={() => setFilter(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {toast && (
         <div className={`payroll1-toast${toast.isError ? ' payroll1-toast--error' : ''}`}>
@@ -88,29 +114,32 @@ export default function Payroll1AdminPage() {
             <tr>
               <th>Chi nhánh</th>
               <th>Nhân viên</th>
-              <th>Hồ sơ</th>
-              <th>Thiếu chấm công</th>
-              <th>Hóa đơn</th>
+              <th>Tiến độ</th>
+              <th>Còn thiếu</th>
               <th>Khóa HĐ</th>
               <th>Cập nhật cuối</th>
               <th>Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {visibleRows.map((row) => (
               <tr key={row.employeeId}>
                 <td>{getBranchName(row.branchId) || row.branchName || '—'}</td>
                 <td>{row.employeeName}</td>
                 <td>
-                  <span className={`payroll1-badge ${row.profileComplete ? 'payroll1-badge--ok' : 'payroll1-badge--warn'}`}>
-                    {row.profileStatusLabel}
-                  </span>
+                  <strong>{row.progressPercent ?? 0}%</strong>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                    {row.profileComplete ? '✓ Hồ sơ' : '○ Hồ sơ'}
+                    {' · '}
+                    {row.attendanceComplete ? '✓ Chấm công' : '○ Chấm công'}
+                    {' · '}
+                    {row.invoiceReviewComplete ? '✓ Hóa đơn' : '○ Hóa đơn'}
+                  </div>
                 </td>
-                <td>{row.missingAttendanceCount}</td>
                 <td>
-                  <span className={`payroll1-badge ${row.invoiceReviewComplete ? 'payroll1-badge--ok' : 'payroll1-badge--warn'}`}>
-                    {row.invoiceStatusLabel}
-                  </span>
+                  {(row.missingSummary ?? []).length > 0
+                    ? (row.missingSummary ?? []).join('; ')
+                    : '—'}
                 </td>
                 <td>
                   <span className={`payroll1-badge ${row.invoiceCreateLocked ? 'payroll1-badge--lock' : 'payroll1-badge--ok'}`}>
@@ -158,9 +187,9 @@ export default function Payroll1AdminPage() {
                 </td>
               </tr>
             ))}
-            {!loading && rows.length === 0 && (
+            {!loading && visibleRows.length === 0 && (
               <tr>
-                <td colSpan={8}>Không có nhân viên trong phạm vi.</td>
+                <td colSpan={7}>Không có nhân viên phù hợp bộ lọc.</td>
               </tr>
             )}
           </tbody>
@@ -168,7 +197,6 @@ export default function Payroll1AdminPage() {
       </div>
       <p style={{ color: '#6b7280', fontSize: 13 }}>
         Hạn chốt mặc định: hết ngày {formatVnDate('2026-07-15')} (ICT). Gia hạn trong Cài đặt → Kỳ lương 1.
-        Sửa chấm công: dùng trang Chấm công Admin.
       </p>
     </div>
   )

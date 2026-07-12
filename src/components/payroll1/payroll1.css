@@ -105,6 +105,150 @@
   color: #fff !important;
 }
 
+.payroll1-progress {
+  margin: 0 0 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.payroll1-progress--compact {
+  margin: 0;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+}
+
+.payroll1-progress__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.payroll1-progress__bar {
+  height: 10px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.payroll1-progress__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #059669, #10b981);
+  transition: width 0.25s ease;
+}
+
+.payroll1-progress__checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.payroll1-progress__checklist li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+}
+
+.payroll1-progress__checklist li.is-done {
+  color: #047857;
+  font-weight: 600;
+}
+
+.payroll1-progress__checklist li.is-pending {
+  color: #b45309;
+}
+
+.payroll1-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.payroll1-banner--done {
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.payroll1-banner--todo {
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.payroll1-banner__body {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.payroll1-banner__summary {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.payroll1-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payroll1-banner__actions button {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.payroll1-banner__more {
+  border-color: #b45309 !important;
+  color: #b45309;
+}
+
+.payroll1-admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payroll1-admin-filters button {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.payroll1-admin-filters button.is-active {
+  border-color: #b45309;
+  background: #fffbeb;
+  color: #92400e;
+  font-weight: 600;
+}
+
 .payroll1-page {
   display: grid;
   gap: 16px;

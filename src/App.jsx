@@ -3,6 +3,7 @@ import Layout from './components/layout/Layout'
 import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
 import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
 import Payroll1NoticeModal from './components/payroll1/Payroll1NoticeModal'
+import Payroll1StatusBanner from './components/payroll1/Payroll1StatusBanner'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -56,8 +57,6 @@ import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
 import { loadEmployeePayroll1Status } from './utils/payroll1Service'
 import { shouldShowPayroll1Notice } from './utils/payroll1Policy'
-
-const PAYROLL1_NOTICE_ACK_KEY = 'spa-manager-payroll1-notice-acked'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -121,6 +120,7 @@ function App() {
   })
   const [payroll1Status, setPayroll1Status] = useState(null)
   const [showPayroll1Notice, setShowPayroll1Notice] = useState(false)
+  const [payroll1ModalDismissed, setPayroll1ModalDismissed] = useState(false)
   const syncVersion = useDataSyncVersion()
 
   useEffect(() => {
@@ -147,15 +147,17 @@ function App() {
         const status = await loadEmployeePayroll1Status(getCurrentUserEmployeeId())
         if (cancelled) return
         setPayroll1Status(status)
-        const acked = sessionStorage.getItem(PAYROLL1_NOTICE_ACK_KEY) === getCurrentUserEmployeeId()
-        setShowPayroll1Notice(shouldShowPayroll1Notice(status) && !acked)
+        // Không lưu "đã đọc" — chỉ ẩn popup trong phiên hiện tại sau khi user chọn Tiếp tục.
+        const incomplete = shouldShowPayroll1Notice(status)
+        setShowPayroll1Notice(incomplete && !payroll1ModalDismissed)
+        if (status?.dataComplete) setPayroll1ModalDismissed(false)
       } catch (error) {
         console.warn('[payroll1] Không tải trạng thái thông báo:', error?.message)
       }
     }
     loadNotice()
     return () => { cancelled = true }
-  }, [authReady, currentUser, attendanceGatePassed, syncVersion, activePage])
+  }, [authReady, currentUser, attendanceGatePassed, syncVersion, activePage, payroll1ModalDismissed])
 
   const completeAttendanceGate = useCallback(() => {
     setAttendanceGatePassed(true)
@@ -224,7 +226,7 @@ function App() {
         onLogin={(user) => {
           saveCurrentUser(user)
           setCurrentUser(user)
-          sessionStorage.removeItem(PAYROLL1_NOTICE_ACK_KEY)
+          setPayroll1ModalDismissed(false)
           if (user.role === ROLES.EMPLOYEE) {
             setAttendanceGatePassed(false)
             setAttendanceCheckReady(true)
@@ -265,12 +267,12 @@ function App() {
 
   const handleLogout = () => {
     clearCurrentUser()
-    sessionStorage.removeItem(PAYROLL1_NOTICE_ACK_KEY)
     setCurrentUser(null)
     setAttendanceGatePassed(true)
     setAttendanceCheckReady(true)
     setShowPayroll1Notice(false)
     setPayroll1Status(null)
+    setPayroll1ModalDismissed(false)
   }
 
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)
@@ -291,16 +293,26 @@ function App() {
         user={currentUser}
         onSyncComplete={() => notifyDataSynced(['invoices'])}
       />
+      {isEmployee() && payroll1Status && (
+        <Payroll1StatusBanner
+          status={payroll1Status}
+          onNavigate={handleNavigate}
+          onOpenTasks={() => {
+            setPayroll1ModalDismissed(false)
+            setShowPayroll1Notice(shouldShowPayroll1Notice(payroll1Status))
+          }}
+        />
+      )}
       {showPayroll1Notice && (
         <Payroll1NoticeModal
           status={payroll1Status}
           onNavigate={(pageId) => {
-            sessionStorage.setItem(PAYROLL1_NOTICE_ACK_KEY, getCurrentUserEmployeeId())
+            setPayroll1ModalDismissed(true)
             setShowPayroll1Notice(false)
             handleNavigate(pageId)
           }}
-          onConfirmRead={() => {
-            sessionStorage.setItem(PAYROLL1_NOTICE_ACK_KEY, getCurrentUserEmployeeId())
+          onContinue={() => {
+            setPayroll1ModalDismissed(true)
             setShowPayroll1Notice(false)
           }}
         />

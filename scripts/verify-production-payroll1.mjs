@@ -88,6 +88,13 @@ logStep('Trước hạn 15/07 chưa khóa', !isAfterIctEndOfDay('2026-07-15', ne
 logStep('Sau 15/07 (từ 16/07) khóa', isAfterIctEndOfDay('2026-07-15', new Date('2026-07-16T00:00:00+07:00')))
 logStep('Hôm nay chưa qua hạn khóa', !isAfterIctEndOfDay('2026-07-15', new Date()), `ICT today=${today}`)
 
+function progressOf({ profile, attendance, invoices }) {
+  const n = [profile, attendance, invoices].filter(Boolean).length
+  return Math.round((n / 3) * 100)
+}
+logStep('Tiến độ 2/3 = 67%', progressOf({ profile: true, attendance: true, invoices: false }) === 67)
+logStep('Tiến độ 3/3 = 100%', progressOf({ profile: true, attendance: true, invoices: true }) === 100)
+
 console.log('\n=== Production smoke ===\n')
 const { url, key, bundle, hasFeature } = await loadProd()
 logStep(`Bundle có feature kỳ lương 1: ${bundle}`, hasFeature)

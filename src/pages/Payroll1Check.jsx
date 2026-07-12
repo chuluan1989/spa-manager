@@ -9,6 +9,7 @@ import { submitEmployeeAttendanceBackfill } from '../utils/attendanceService'
 import { fetchAttendanceByEmployeeAndDate } from '../repositories/attendanceRepository'
 import { setInvoiceCreateDatePrefill } from '../utils/navigationPrefill'
 import { getEmployeeById } from '../utils/employeeStorage'
+import Payroll1Progress from '../components/payroll1/Payroll1Progress'
 import '../components/payroll1/payroll1.css'
 
 export default function Payroll1CheckPage({ onNavigate }) {
@@ -142,6 +143,8 @@ export default function Payroll1CheckPage({ onNavigate }) {
       )}
       {error && <div className="payroll1-toast payroll1-toast--error">{error}</div>}
       {loading && <p>Đang tải...</p>}
+
+      {status && <Payroll1Progress status={status} />}
 
       {status && (
         <div className="payroll1-status-cards">

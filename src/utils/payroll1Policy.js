@@ -78,6 +78,40 @@ export function summarizeEmployeePayroll1Status({
   const deadlinePassed = isPayroll1DeadlinePassed(now)
   const invoiceCreateLocked = deadlinePassed && !dataComplete && !manualUnlock
 
+  const completedCount = [profileComplete, attendanceComplete, invoiceReviewComplete].filter(Boolean).length
+  const progressPercent = Math.round((completedCount / 3) * 100)
+
+  const pendingTasks = []
+  if (!profileComplete) {
+    pendingTasks.push({
+      id: 'profile',
+      pageId: 'profile',
+      label: 'Hoàn thiện hồ sơ cá nhân',
+      detail: 'Hồ sơ chưa đủ thông tin bắt buộc',
+      buttonLabel: 'Kiểm tra hồ sơ',
+    })
+  }
+  if (!attendanceComplete) {
+    pendingTasks.push({
+      id: 'attendance',
+      pageId: 'attendance',
+      label: `Kiểm tra chấm công (còn thiếu ${missingAttendanceDates.length} ngày)`,
+      detail: `Còn thiếu ${missingAttendanceDates.length} ngày từ ${formatVnDate(start)} đến nay`,
+      buttonLabel: 'Kiểm tra chấm công',
+    })
+  }
+  if (!invoiceReviewComplete) {
+    pendingTasks.push({
+      id: 'invoices',
+      pageId: 'payroll1-check',
+      label: `Kiểm tra hóa đơn từ ${formatVnDate(start)} đến nay`,
+      detail: `Còn ${uncheckedInvoiceDates.length} ngày chưa xác nhận`,
+      buttonLabel: 'Kiểm tra hóa đơn',
+    })
+  }
+
+  const missingSummary = pendingTasks.map((task) => task.label)
+
   const lastUpdatedCandidates = [
     employee?.updatedAt,
     ...(attendanceRecords ?? []).map((r) => r.updatedAt || r.submittedAt),
@@ -102,6 +136,10 @@ export function summarizeEmployeePayroll1Status({
     invoiceStatusLabel: invoiceReviewComplete ? 'Đã kiểm tra' : 'Chưa xác nhận đầy đủ',
     uncheckedInvoiceCount: uncheckedInvoiceDates.length,
     uncheckedInvoiceDates,
+    completedCount,
+    progressPercent,
+    pendingTasks,
+    missingSummary,
     dataComplete,
     adminConfirmed,
     manualUnlock,
@@ -140,4 +178,16 @@ export function shouldShowPayroll1Notice(status) {
   if (!isPayroll1FeatureEnabled()) return false
   if (!status) return true
   return !status.dataComplete
+}
+
+export function filterPayroll1AdminRows(rows, filter) {
+  if (!filter || filter === 'all') return rows
+  return rows.filter((row) => {
+    if (filter === 'incomplete_profile') return !row.profileComplete
+    if (filter === 'incomplete_attendance') return !row.attendanceComplete
+    if (filter === 'incomplete_invoices') return !row.invoiceReviewComplete
+    if (filter === 'complete') return row.dataComplete || row.progressPercent === 100
+    if (filter === 'incomplete') return !row.dataComplete
+    return true
+  })
 }
