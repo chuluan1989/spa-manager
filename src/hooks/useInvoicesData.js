@@ -31,17 +31,20 @@ export function useInvoicesData() {
           const list = Array.isArray(rows) ? rows : []
           setInvoices(list)
           setError('')
-          // Cache phụ — lỗi localStorage không được coi là lỗi Supabase.
+          // Cache phụ — lỗi localStorage không được coi là lỗi Supabase / không xóa UI.
           try {
             replaceAllInvoices(list)
           } catch (cacheError) {
-            console.warn('[Invoice] Cache localStorage thất bại — UI vẫn dùng Supabase.', cacheError?.message)
+            console.warn(
+              '[Invoice] Cache localStorage thất bại — UI vẫn dùng Supabase.',
+              cacheError?.message,
+            )
           }
         }
       } catch (err) {
         if (!cancelled) {
           setError(err?.message ?? 'Không thể tải hóa đơn từ Supabase.')
-          setInvoices([])
+          // Giữ danh sách trước đó — không xóa UI khi fetch lỗi tạm thời.
         }
       } finally {
         if (!cancelled) setLoading(false)

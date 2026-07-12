@@ -218,7 +218,7 @@ function migrateInvoices(invoices) {
   })
 
   if (changed) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
+    writeInvoiceCache(migrated, { action: 'migrateSnapshots' })
   }
 
   return migrated
@@ -242,21 +242,101 @@ export function getInvoiceById(id) {
 
 function isStorageQuotaError(error) {
   return error?.name === 'QuotaExceededError'
+    || error?.code === 22
     || /quota/i.test(String(error?.message ?? ''))
 }
 
-/** Ghi đè toàn bộ cache LocalStorage — dùng khi kéo dữ liệu mới nhất từ Supabase về. */
+/** Giới hạn cache phụ — UI Admin vẫn đọc đủ từ Supabase. */
+export const INVOICE_CACHE_LIMIT = 100
+
+const SAVE_IN_FLIGHT_MESSAGE = 'Đang lưu hóa đơn, vui lòng đợi...'
+
+/** Chặn double-click tạo nhiều request song song (id khác nhau). */
+let saveInvoiceInFlight = false
+let updateInvoiceInFlightId = null
+
+function warnInvoiceCacheFailure(error, context = {}) {
+  console.warn('[Invoice] Cache spa-manager-invoices bỏ qua — không ảnh hưởng dữ liệu Supabase.', {
+    error: error?.message ?? String(error),
+    quotaExceeded: isStorageQuotaError(error),
+    ...context,
+  })
+}
+
+/** Ghi cache phụ — lỗi quota chỉ warn, không ném, không rollback Supabase. */
+function writeInvoiceCache(list, context = {}) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.isArray(list) ? list : []))
+    return true
+  } catch (error) {
+    warnInvoiceCacheFailure(error, {
+      count: Array.isArray(list) ? list.length : 0,
+      ...context,
+    })
+    return false
+  }
+}
+
+function readInvoiceCacheRaw() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return []
+    const data = JSON.parse(raw)
+    return Array.isArray(data) ? data : []
+  } catch {
+    return []
+  }
+}
+
+function sortInvoicesForCache(list) {
+  return [...list].sort((a, b) => {
+    const dateCmp = String(b?.date ?? '').localeCompare(String(a?.date ?? ''))
+    if (dateCmp !== 0) return dateCmp
+    return String(b?.createdAt ?? '').localeCompare(String(a?.createdAt ?? ''))
+  })
+}
+
+/**
+ * Cache có giới hạn từ danh sách remote, nhưng giữ hóa đơn local-only
+ * (ứng viên migrate) — không xóa trước khi server đã đủ / migrate xong.
+ */
+function buildBoundedInvoiceCache(remoteList) {
+  const remote = Array.isArray(remoteList) ? remoteList : []
+  const remoteIds = new Set(remote.map((invoice) => invoice?.id).filter(Boolean))
+  const localOnly = readInvoiceCacheRaw().filter(
+    (invoice) => invoice?.id && !remoteIds.has(invoice.id),
+  )
+  const boundedRemote = sortInvoicesForCache(remote).slice(0, INVOICE_CACHE_LIMIT)
+  const byId = new Map()
+  for (const invoice of localOnly) byId.set(invoice.id, invoice)
+  for (const invoice of boundedRemote) byId.set(invoice.id, invoice)
+  return [...byId.values()]
+}
+
+/** Sau save/update remote: cập nhật cache phụ (giới hạn), lỗi chỉ warn. */
+function patchInvoiceCacheAfterRemote(invoice) {
+  if (!invoice?.id) return
+  const existing = readInvoiceCacheRaw().filter((row) => row?.id !== invoice.id)
+  const next = sortInvoicesForCache([invoice, ...existing])
+  const keepSaved = next.filter((row) => row.id === invoice.id)
+  const others = next.filter((row) => row.id !== invoice.id).slice(0, INVOICE_CACHE_LIMIT - 1)
+  writeInvoiceCache([...keepSaved, ...others], { action: 'patch', id: invoice.id })
+}
+
+function removeInvoiceFromCache(id) {
+  const next = readInvoiceCacheRaw().filter((invoice) => invoice?.id !== id)
+  writeInvoiceCache(next, { action: 'delete', id })
+}
+
+/** Ghi đè cache phụ từ Supabase — không unbounded; trả về list remote đầy đủ cho caller. */
 export function replaceAllInvoices(invoices) {
   const list = Array.isArray(invoices) ? invoices : []
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
-  } catch (error) {
-    console.warn('[Invoice] Cache spa-manager-invoices bỏ qua — không ảnh hưởng dữ liệu Supabase.', {
-      count: list.length,
-      error: error?.message ?? String(error),
-      quotaExceeded: isStorageQuotaError(error),
-    })
-  }
+  const toStore = buildBoundedInvoiceCache(list)
+  writeInvoiceCache(toStore, {
+    action: 'replaceAll',
+    remoteCount: list.length,
+    cachedCount: toStore.length,
+  })
   return list
 }
 
@@ -265,50 +345,62 @@ export async function saveInvoice(invoice) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn.' }
   }
 
-  let payload = invoice
+  if (saveInvoiceInFlight) {
+    return { success: false, error: SAVE_IN_FLIGHT_MESSAGE }
+  }
+  saveInvoiceInFlight = true
 
-  if (isEmployee()) {
-    const employeeId = getCurrentUserEmployeeId()
-    const branchId = getCurrentUserBranch()
-    payload = {
-      ...invoice,
-      branchId,
-      branchName: getBranchName(branchId),
-      employeeId,
-      employeeName: getEmployeeById(employeeId)?.name ?? invoice.employeeName ?? '',
-      supportEmployeeId: '',
-      supportEmployeeName: '',
+  try {
+    let payload = invoice
+
+    if (isEmployee()) {
+      const employeeId = getCurrentUserEmployeeId()
+      const branchId = getCurrentUserBranch()
+      payload = {
+        ...invoice,
+        branchId,
+        branchName: getBranchName(branchId),
+        employeeId,
+        employeeName: getEmployeeById(employeeId)?.name ?? invoice.employeeName ?? '',
+        supportEmployeeId: '',
+        supportEmployeeName: '',
+      }
     }
-  }
 
-  const branchId = payload.branchId ?? ''
-  if (!isAdmin() && branchId !== getCurrentUserBranch()) {
-    return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
-  }
-
-  const snapshot = normalizeInvoiceCustomerFields(ensureInvoiceSnapshot({
-    ...payload,
-    enteredBy: payload.enteredBy ?? getCurrentUserName(),
-    createdAt: payload.createdAt ?? new Date().toISOString(),
-  }))
-
-  if (!isSupabaseConfigured) {
-    const duplicateCount = await countDuplicateInvoices(snapshot)
-    if (duplicateCount >= 2) {
-      return { success: false, error: DUPLICATE_INVOICE_MESSAGE }
+    const branchId = payload.branchId ?? ''
+    if (!isAdmin() && branchId !== getCurrentUserBranch()) {
+      return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
     }
-    const invoices = loadInvoices()
-    invoices.unshift(snapshot)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
-    notifyDataSynced(['invoices'])
-    return { success: true, invoice: snapshot, invoices }
-  }
 
-  return saveInvoiceRemote(snapshot)
+    const snapshot = normalizeInvoiceCustomerFields(ensureInvoiceSnapshot({
+      ...payload,
+      enteredBy: payload.enteredBy ?? getCurrentUserName(),
+      createdAt: payload.createdAt ?? new Date().toISOString(),
+    }))
+
+    if (!isSupabaseConfigured) {
+      const duplicateCount = await countDuplicateInvoices(snapshot)
+      if (duplicateCount >= 2) {
+        return { success: false, error: DUPLICATE_INVOICE_MESSAGE }
+      }
+      const invoices = loadInvoices()
+      invoices.unshift(snapshot)
+      if (!writeInvoiceCache(invoices, { action: 'saveLocal' })) {
+        return { success: false, error: 'Không thể lưu hóa đơn vào bộ nhớ máy (LocalStorage đầy).' }
+      }
+      notifyDataSynced(['invoices'])
+      return { success: true, invoice: snapshot, invoices }
+    }
+
+    return await saveInvoiceRemote(snapshot)
+  } finally {
+    saveInvoiceInFlight = false
+  }
 }
 
 async function saveInvoiceRemote(snapshot) {
   const duplicateKey = buildInvoiceDuplicateKey(snapshot)
+  let guardStarted = false
   try {
     const duplicateCount = await countDuplicateInvoices(snapshot)
     if (duplicateCount >= 2) {
@@ -316,32 +408,34 @@ async function saveInvoiceRemote(snapshot) {
     }
 
     beginDuplicateGuard(duplicateKey)
-    try {
-      await ensureBranchAndEmployeeOnServer({
-        branchId: snapshot.branchId ?? '',
-        employeeId: snapshot.employeeId ?? '',
-      })
-      await pushInvoiceToSupabase(snapshot)
-      logInvoiceSave('save OK', snapshot)
-    } finally {
-      endDuplicateGuard(duplicateKey)
-    }
+    guardStarted = true
+    await ensureBranchAndEmployeeOnServer({
+      branchId: snapshot.branchId ?? '',
+      employeeId: snapshot.employeeId ?? '',
+    })
+    await pushInvoiceToSupabase(snapshot)
+    logInvoiceSave('save OK', snapshot)
   } catch (error) {
-    endDuplicateGuard(duplicateKey)
     logInvoiceSaveError('save', snapshot, error)
     return { success: false, error: error?.message ?? 'Không thể lưu hóa đơn lên máy chủ.' }
+  } finally {
+    if (guardStarted) endDuplicateGuard(duplicateKey)
   }
-  const invoices = loadInvoices()
-  invoices.unshift(snapshot)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+
+  // Supabase đã thành công — cache phụ thất bại chỉ warn.
+  patchInvoiceCacheAfterRemote(snapshot)
   notifyDataSynced(['invoices'])
-  return { success: true, invoice: snapshot, invoices }
+  return { success: true, invoice: snapshot, invoices: loadInvoices() }
 }
 
 export function updateInvoice(id, data, currentFromCaller = null) {
   const current = currentFromCaller ?? getInvoiceById(id)
   if (!current) {
     return { success: false, error: 'Không tìm thấy hóa đơn.' }
+  }
+
+  if (updateInvoiceInFlightId) {
+    return Promise.resolve({ success: false, error: SAVE_IN_FLIGHT_MESSAGE })
   }
 
   const invoices = loadInvoices()
@@ -385,15 +479,20 @@ export function updateInvoice(id, data, currentFromCaller = null) {
     } else {
       invoices[index] = updated
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+    if (!writeInvoiceCache(invoices, { action: 'updateLocal', id })) {
+      return { success: false, error: 'Không thể cập nhật hóa đơn trên bộ nhớ máy (LocalStorage đầy).' }
+    }
     notifyDataSynced(['invoices'])
     return { success: true, invoice: updated, invoices }
   }
 
-  return updateInvoiceRemote(updated, invoices, index)
+  updateInvoiceInFlightId = updated.id
+  return updateInvoiceRemote(updated).finally(() => {
+    updateInvoiceInFlightId = null
+  })
 }
 
-async function updateInvoiceRemote(updated, invoices, index) {
+async function updateInvoiceRemote(updated) {
   try {
     await ensureBranchAndEmployeeOnServer({
       branchId: updated.branchId ?? '',
@@ -406,14 +505,9 @@ async function updateInvoiceRemote(updated, invoices, index) {
     return { success: false, error: error?.message ?? 'Không thể cập nhật hóa đơn lên máy chủ.' }
   }
 
-  if (index === -1) {
-    invoices.unshift(updated)
-  } else {
-    invoices[index] = updated
-  }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+  patchInvoiceCacheAfterRemote(updated)
   notifyDataSynced(['invoices'])
-  return { success: true, invoice: updated, invoices }
+  return { success: true, invoice: updated, invoices: loadInvoices() }
 }
 
 export function deleteInvoice(id, currentFromCaller = null) {
@@ -433,7 +527,9 @@ export function deleteInvoice(id, currentFromCaller = null) {
 
   if (!isSupabaseConfigured) {
     const invoices = loadInvoices().filter((inv) => inv.id !== id)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+    if (!writeInvoiceCache(invoices, { action: 'deleteLocal', id })) {
+      return { success: false, error: 'Không thể xoá hóa đơn trên bộ nhớ máy (LocalStorage đầy).' }
+    }
     notifyDataSynced(['invoices'])
     return { success: true, invoices }
   }
@@ -448,10 +544,9 @@ async function deleteInvoiceRemote(id) {
     return { success: false, error: error?.message ?? 'Không thể xoá hóa đơn trên máy chủ.' }
   }
 
-  const invoices = loadInvoices().filter((inv) => inv.id !== id)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices))
+  removeInvoiceFromCache(id)
   notifyDataSynced(['invoices'])
-  return { success: true, invoices }
+  return { success: true, invoices: loadInvoices() }
 }
 
 export function createInvoiceId() {

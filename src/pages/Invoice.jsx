@@ -113,6 +113,7 @@ export default function Invoice() {
   const [detailInvoice, setDetailInvoice] = useState(null)
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState('')
+  const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState(() => {
     if (isEmployee()) {
       if (isEmployeeProfileLocked(getEmployeeById(getCurrentUserEmployeeId()))) return 'list'
@@ -332,6 +333,7 @@ export default function Invoice() {
   })
 
   const handleSave = async () => {
+    if (saving) return
     if (!validate()) return
 
     const branchId = lockedBranch ? getCurrentUserBranch() : form.branchId
@@ -345,35 +347,39 @@ export default function Invoice() {
     }
 
     const payload = buildInvoicePayload(branchId, branch, employee, existingInvoice)
+    setSaving(true)
+    try {
+      if (editingId) {
+        const result = await updateInvoice(editingId, payload, existingInvoice)
+        if (!result.success) {
+          showToast(result.error ?? 'Không thể cập nhật hóa đơn')
+          return
+        }
+        reloadInvoices()
+        resetForm()
+        setActiveTab('list')
+        showToast('Cập nhật hóa đơn thành công')
+        return
+      }
 
-    if (editingId) {
-      const result = await updateInvoice(editingId, payload, existingInvoice)
+      const invoice = {
+        id: createInvoiceId(),
+        ...payload,
+        createdAt: new Date().toISOString(),
+      }
+
+      const result = await saveInvoice(invoice)
       if (!result.success) {
-        showToast(result.error ?? 'Không thể cập nhật hóa đơn')
+        showToast(result.error ?? 'Không thể lưu hóa đơn')
         return
       }
       reloadInvoices()
       resetForm()
       setActiveTab('list')
-      showToast('Cập nhật hóa đơn thành công')
-      return
+      showToast('Lưu thành công')
+    } finally {
+      setSaving(false)
     }
-
-    const invoice = {
-      id: createInvoiceId(),
-      ...payload,
-      createdAt: new Date().toISOString(),
-    }
-
-    const result = await saveInvoice(invoice)
-    if (!result.success) {
-      showToast(result.error ?? 'Không thể lưu hóa đơn')
-      return
-    }
-    reloadInvoices()
-    resetForm()
-    setActiveTab('list')
-    showToast('Lưu thành công')
   }
 
   const handleEdit = (invoice) => {
@@ -705,8 +711,13 @@ export default function Invoice() {
           </section>
 
           <div className="invoice__actions">
-            <button type="button" className="invoice__save-btn" onClick={handleSave}>
-              {editingId ? 'Cập nhật hóa đơn' : 'Lưu hóa đơn'}
+            <button
+              type="button"
+              className="invoice__save-btn"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? 'Đang lưu...' : editingId ? 'Cập nhật hóa đơn' : 'Lưu hóa đơn'}
             </button>
             {editingId && (
               <button type="button" className="invoice__quick-btn" onClick={resetForm}>
