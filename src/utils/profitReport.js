@@ -6,7 +6,10 @@ export function computeActualRevenue(ticketRevenue, tips) {
   return Number(ticketRevenue ?? 0) + Number(tips ?? 0)
 }
 
-/** Lợi nhuận = doanh thu thực thu − tổng lương − chi phí. */
+/**
+ * Lợi nhuận = (doanh thu tiền vé + tips) − (lương + chi phí cố định + chi phí phát sinh).
+ * `expenses` = tổng chi phí cố định + phát sinh trong kỳ.
+ */
 export function computeProfitAmount(actualRevenue, totalSalary, expenses) {
   return actualRevenue - totalSalary - expenses
 }
@@ -108,7 +111,13 @@ export function enrichProfitMetrics(row, payrollByBranch = null) {
   const ticketRevenue = Number(row.ticketRevenue ?? row.revenue ?? 0)
   const tips = Number(row.tips ?? 0)
   const commission = Number(row.commission ?? 0)
-  const expenses = Number(row.expenses ?? 0)
+  const fixedExpenses = Number(row.fixedExpenses ?? 0)
+  const variableExpenses = Number(row.variableExpenses ?? row.expenses ?? 0)
+  const expenses = Number(
+    row.expenses != null
+      ? row.expenses
+      : fixedExpenses + variableExpenses,
+  )
   const branchId = row.branchId ?? ''
 
   const actualRevenue = computeActualRevenue(ticketRevenue, tips)
@@ -126,6 +135,8 @@ export function enrichProfitMetrics(row, payrollByBranch = null) {
     ticketRevenue,
     tips,
     commission,
+    fixedExpenses,
+    variableExpenses: row.variableExpenses != null ? variableExpenses : Math.max(0, expenses - fixedExpenses),
     expenses,
     actualRevenue,
     totalSalary,

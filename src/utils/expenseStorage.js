@@ -1,6 +1,7 @@
 import { getBranchName as resolveBranchName } from './branchStorage'
 import {
   getExpenseTypeLabel,
+  isFixedExpenseType,
   normalizeExpenseTypeId,
 } from '../constants/expenseTypes'
 import { deriveExpenseTimeFromTimestamp } from '../repositories/expenseSchema'
@@ -12,17 +13,19 @@ import {
   getSessionUser,
   isSessionAdmin,
 } from './storageAccess'
-import { getCurrentUserName } from '../constants/auth'
 import {
   canAddExpense as authCanAddExpense,
   canDeleteExpense as authCanDeleteExpense,
   canEditExpense as authCanEditExpense,
   canViewExpense as authCanViewExpense,
+  getCurrentUserName,
+  getCurrentUserRole,
 } from '../constants/auth'
 import { checkPermission, PERMISSION_KEYS } from './permissionsStorage'
 import { ROLES } from '../constants/roles'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteExpenseRow, upsertExpense } from '../repositories/expensesRepository'
+import { insertExpenseChangeLog } from '../repositories/expenseChangeLogsRepository'
 import { notifyDataSynced } from './dataSyncEvents'
 
 const STORAGE_KEY = 'spa-manager-expenses'
@@ -201,8 +204,52 @@ function assertExpenseWriteAccess(expense) {
   return { success: true }
 }
 
+function createChangeLogId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `ecl-${crypto.randomUUID()}`
+  }
+  return `ecl-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+}
+
+async function logExpenseChange({ action, entityId, branchId, oldValues, newValues }) {
+  try {
+    await insertExpenseChangeLog({
+      id: createChangeLogId(),
+      entityType: 'expense',
+      entityId: entityId ?? '',
+      branchId: branchId ?? '',
+      action,
+      changedBy: getCurrentUserName(),
+      changedByRole: getCurrentUserRole() ?? '',
+      oldValues: oldValues ?? {},
+      newValues: newValues ?? {},
+    })
+  } catch {
+    // Không chặn thao tác chính nếu audit log lỗi tạm thời.
+  }
+}
+
+function expenseAuditSnapshot(expense) {
+  if (!expense) return {}
+  return {
+    date: expense.date,
+    branchId: expense.branchId,
+    expenseType: expense.expenseType,
+    content: expense.content,
+    amount: expense.amount,
+    note: expense.note,
+    enteredBy: expense.enteredBy,
+  }
+}
+
 export async function addExpense(data) {
   const sanitized = sanitizeExpenseData(data)
+  if (isFixedExpenseType(sanitized.expenseType)) {
+    return {
+      success: false,
+      error: 'Chi phí mặt bằng là chi phí cố định — chỉ Admin sửa trong mục Chi phí cố định.',
+    }
+  }
   const access = assertExpenseWriteAccess(sanitized)
   if (!access.success) return access
 
@@ -217,6 +264,14 @@ export async function addExpense(data) {
   } catch (error) {
     return { success: false, error: error?.message ?? 'Không thể lưu chi phí lên máy chủ.' }
   }
+
+  await logExpenseChange({
+    action: 'create',
+    entityId: expense.id,
+    branchId: expense.branchId,
+    oldValues: {},
+    newValues: expenseAuditSnapshot(expense),
+  })
 
   const expenses = loadExpenses()
   expenses.unshift(expense)
@@ -238,9 +293,16 @@ export async function updateExpense(id, data) {
   }
 
   const merged = sanitizeExpenseData({ ...expenses[index], ...data })
+  if (isFixedExpenseType(merged.expenseType)) {
+    return {
+      success: false,
+      error: 'Không thể chuyển khoản chi sang nhóm chi phí cố định.',
+    }
+  }
   const access = assertExpenseWriteAccess(merged)
   if (!access.success) return access
 
+  const previous = expenses[index]
   expenses[index] = normalizeExpense({
     ...expenses[index],
     ...merged,
@@ -252,6 +314,14 @@ export async function updateExpense(id, data) {
   } catch (error) {
     return { success: false, error: error?.message ?? 'Không thể cập nhật chi phí lên máy chủ.' }
   }
+
+  await logExpenseChange({
+    action: 'update',
+    entityId: id,
+    branchId: expenses[index].branchId,
+    oldValues: expenseAuditSnapshot(previous),
+    newValues: expenseAuditSnapshot(expenses[index]),
+  })
 
   saveExpenses(expenses)
   notifyDataSynced(['expenses'])
@@ -277,6 +347,14 @@ export async function deleteExpense(id) {
   } catch (error) {
     return { success: false, error: error?.message ?? 'Không thể xoá chi phí trên máy chủ.' }
   }
+
+  await logExpenseChange({
+    action: 'delete',
+    entityId: id,
+    branchId: current.branchId,
+    oldValues: expenseAuditSnapshot(current),
+    newValues: {},
+  })
 
   saveExpenses(next)
   notifyDataSynced(['expenses'])

@@ -30,6 +30,7 @@ export function buildDefaultDrillFilters(overrides = {}) {
 export function useDrillDownData(filters) {
   const [invoices, setInvoices] = useState([])
   const [expenses, setExpenses] = useState([])
+  const [fixedCosts, setFixedCosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
@@ -65,12 +66,14 @@ export function useDrillDownData(filters) {
 
         setInvoices(filterEmployeeReportInvoices(result.invoices, scopedFilters))
         setExpenses(result.expenses)
+        setFixedCosts(result.fixedCosts ?? [])
         setError('')
       } catch (err) {
         if (!cancelled) {
           setError(err?.message ?? 'Không thể tải dữ liệu báo cáo.')
           setInvoices([])
           setExpenses([])
+          setFixedCosts([])
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -85,5 +88,5 @@ export function useDrillDownData(filters) {
 
   useEffect(() => subscribeInvoicesChanges(() => reload()), [reload])
 
-  return { invoices, expenses, loading, error, reload, scopedFilters }
+  return { invoices, expenses, fixedCosts, loading, error, reload, scopedFilters }
 }

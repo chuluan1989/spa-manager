@@ -1,6 +1,7 @@
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { fetchExpensesFiltered } from '../repositories/expensesRepository'
 import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
+import { loadBranchFixedCosts } from './fixedCostStorage'
 
 /**
  * Nguồn dữ liệu thống nhất cho Dashboard + Báo cáo + Doanh thu.
@@ -19,7 +20,7 @@ export async function fetchReportPeriodData(filters = {}) {
     throw new Error('Supabase chưa cấu hình. Không thể tải dữ liệu báo cáo.')
   }
 
-  const [remoteInvoices, remoteExpenses] = await Promise.all([
+  const [remoteInvoices, remoteExpenses, fixedCosts] = await Promise.all([
     fetchInvoicesFiltered({
       fromDate,
       toDate,
@@ -28,11 +29,13 @@ export async function fetchReportPeriodData(filters = {}) {
       customerSearch,
     }),
     fetchExpensesFiltered({ fromDate, toDate, branchId }),
+    loadBranchFixedCosts({ branchId }).catch(() => []),
   ])
 
   return {
     invoices: Array.isArray(remoteInvoices) ? remoteInvoices : [],
     expenses: Array.isArray(remoteExpenses) ? remoteExpenses : [],
+    fixedCosts: Array.isArray(fixedCosts) ? fixedCosts : [],
     source: 'cloud',
   }
 }

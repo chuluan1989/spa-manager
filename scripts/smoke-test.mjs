@@ -2091,6 +2091,66 @@ test('expense types: Taxi available in catalog', async () => {
   assert.ok(EXPENSE_CATEGORY_CARDS.some((card) => card.id === 'taxi'))
 })
 
+test('fixed costs: monthly rent auto-applies and profit formula', async () => {
+  const { DEFAULT_BRANCH_FIXED_RENT, DEFAULT_VARIABLE_EXPENSE_TYPES } = await import('../src/constants/expenseTypes.js')
+  const { countMonthsInDateRange, computeFixedCostTotals, buildDefaultFixedCosts } = await import('../src/utils/fixedCostStorage.js')
+  const { buildBranchProfitBreakdown } = await import('../src/utils/branchProfitBreakdown.js')
+  const { computeReportData } = await import('../src/utils/report.js')
+
+  assert.equal(DEFAULT_BRANCH_FIXED_RENT['soc-trang'], 10_000_000)
+  assert.equal(DEFAULT_BRANCH_FIXED_RENT['vinh-long'], 20_000_000)
+  assert.ok(DEFAULT_VARIABLE_EXPENSE_TYPES.some((item) => item.id === 'quang-cao-facebook'))
+  assert.equal(countMonthsInDateRange('2026-07-01', '2026-07-12'), 1)
+  assert.equal(countMonthsInDateRange('2026-06-15', '2026-07-12'), 2)
+
+  const fixedCosts = buildDefaultFixedCosts()
+  const totals = computeFixedCostTotals(fixedCosts, {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-31',
+    branchId: 'soc-trang',
+  })
+  assert.equal(totals.total, 10_000_000)
+
+  const invoices = [{
+    id: '1',
+    date: '2026-07-08',
+    branchId: 'soc-trang',
+    services: [{ id: 's1', name: 'Body', price: 200000, commissionAmount: 40000 }],
+    tips: 10000,
+    total: 210000,
+  }]
+  const expenses = [{
+    id: 'x1',
+    date: '2026-07-08',
+    branchId: 'soc-trang',
+    expenseType: 'quang-cao-facebook',
+    amount: 50000,
+  }]
+  const report = computeReportData(invoices, expenses, {
+    fromDate: '2026-07-01',
+    toDate: '2026-07-31',
+    branchId: 'soc-trang',
+  }, null, fixedCosts)
+  assert.equal(report.summary.fixedExpenses, 10_000_000)
+  assert.equal(report.summary.variableExpenses, 50000)
+  assert.equal(report.summary.expenses, 10_050_000)
+  assert.equal(report.summary.totalSalary, 50000)
+  assert.equal(report.summary.profit, 210000 - 50000 - 10_050_000)
+
+  const breakdown = buildBranchProfitBreakdown({
+    ticketRevenue: 200000,
+    tips: 10000,
+    totalSalary: 50000,
+    expenses,
+    fixedCosts,
+    fromDate: '2026-07-01',
+    toDate: '2026-07-31',
+    branchId: 'soc-trang',
+  })
+  assert.equal(breakdown.rent, 10_000_000)
+  assert.equal(breakdown.lines.find((l) => l.id === 'quang-cao-facebook')?.amount, 50000)
+})
+
 test('customer CRM: build key by phone and classify segments', async () => {
   const {
     buildCustomerKey,

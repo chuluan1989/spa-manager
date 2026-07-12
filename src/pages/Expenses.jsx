@@ -5,17 +5,19 @@ import ErpPageHeader from '../components/erp/ErpPageHeader'
 import ExpenseBranchDetail from '../components/expenses/ExpenseBranchDetail'
 import ExpenseBranchGrid from '../components/expenses/ExpenseBranchGrid'
 import ExpenseCategoryCards from '../components/expenses/ExpenseCategoryCards'
+import ExpenseCategoryManager from '../components/expenses/ExpenseCategoryManager'
 import ExpenseDetailModal from '../components/expenses/ExpenseDetailModal'
 import ExpenseFilters from '../components/expenses/ExpenseFilters'
 import ExpenseFormModal from '../components/expenses/ExpenseFormModal'
 import ExpenseOverview from '../components/expenses/ExpenseOverview'
 import ExpenseTable from '../components/expenses/ExpenseTable'
+import FixedCostsPanel from '../components/expenses/FixedCostsPanel'
 import {
   canSelectBranch,
   getCurrentUserBranch,
   isAdmin,
 } from '../constants/auth'
-import { EXPENSE_CATEGORY_CARDS } from '../constants/expenseTypes'
+import { EXPENSE_CATEGORY_CARDS, getVariableExpenseTypes } from '../constants/expenseTypes'
 import { buildDefaultExpenseFilters, useExpensesData } from '../hooks/useExpensesData'
 import {
   computeAdminExpenseOverview,
@@ -30,6 +32,7 @@ import {
   deleteExpense,
   updateExpense,
 } from '../utils/expenseStorage'
+import { filterVariableExpenses } from '../utils/branchProfitBreakdown'
 import { formatCurrency } from '../utils/invoice'
 import { getBranchName } from '../utils/branchStorage'
 import { getMonthStartDate, getTodayDate } from '../utils/invoiceStorage'
@@ -48,17 +51,35 @@ export default function Expenses() {
   const [editingExpense, setEditingExpense] = useState(null)
   const [viewingExpense, setViewingExpense] = useState(null)
 
-  const { expenses, invoices, loading, error, reload } = useExpensesData(appliedFilters)
+  const {
+    expenses,
+    invoices,
+    fixedCosts,
+    categories,
+    loading,
+    error,
+    reload,
+  } = useExpensesData(appliedFilters)
+
+  const variableExpenseTypes = useMemo(
+    () => getVariableExpenseTypes(categories),
+    [categories],
+  )
+
+  const variableExpenses = useMemo(
+    () => filterVariableExpenses(expenses),
+    [expenses],
+  )
 
   const monthExpenses = useMemo(() => {
     const monthStart = getMonthStartDate()
     const today = getTodayDate()
-    return expenses.filter((exp) => exp.date >= monthStart && exp.date <= today)
-  }, [expenses])
+    return variableExpenses.filter((exp) => exp.date >= monthStart && exp.date <= today)
+  }, [variableExpenses])
 
   const overview = useMemo(
-    () => computeAdminExpenseOverview(expenses, invoices),
-    [expenses, invoices],
+    () => computeAdminExpenseOverview(variableExpenses, invoices),
+    [variableExpenses, invoices],
   )
 
   const categoryCards = useMemo(
@@ -67,7 +88,7 @@ export default function Expenses() {
   )
 
   const filteredExpenses = useMemo(() => {
-    let rows = filterExpensesAdvanced(expenses, appliedFilters)
+    let rows = filterExpensesAdvanced(variableExpenses, appliedFilters)
     if (activeCategoryId && activeCategoryId !== 'total') {
       rows = filterExpensesAdvanced(rows, { categoryId: activeCategoryId })
     }
@@ -79,7 +100,7 @@ export default function Expenses() {
       if (dateCmp !== 0) return dateCmp
       return (b.expenseTime || '').localeCompare(a.expenseTime || '')
     })
-  }, [expenses, appliedFilters, activeCategoryId, screen, selectedBranchId])
+  }, [variableExpenses, appliedFilters, activeCategoryId, screen, selectedBranchId])
 
   const showToast = (message) => {
     setToast(message)
@@ -188,11 +209,11 @@ export default function Expenses() {
 
       <ErpPageHeader
         title="Chi phí"
-        subtitle="Quản trị chi phí — Tổng quan → Chi nhánh → Danh mục → Phiếu chi."
+        subtitle="Chi phí cố định + chi phí phát sinh — đồng bộ Supabase, dùng chung với Báo cáo lợi nhuận."
         actions={(
           <button type="button" className="expenses__add-btn" onClick={openCreateForm}>
             <Plus size={18} />
-            Thêm chi phí
+            Thêm chi phí phát sinh
           </button>
         )}
       />
@@ -202,6 +223,30 @@ export default function Expenses() {
       {error && <div className="expenses__alert">{error}</div>}
       {loading && <div className="expenses__loading">Đang tải dữ liệu chi phí...</div>}
 
+      <FixedCostsPanel
+        fixedCosts={fixedCosts}
+        canEdit={isAdmin()}
+        onUpdated={() => reload()}
+      />
+
+      {isAdmin() && (
+        <ExpenseCategoryManager
+          categories={categories}
+          canManage={isAdmin()}
+          onChanged={() => reload()}
+        />
+      )}
+
+      <section className="exp-mod__section">
+        <div className="exp-mod__section-head">
+          <h3 className="exp-mod__section-title">Chi phí phát sinh hàng tháng</h3>
+          <p className="exp-mod__section-desc">
+            Nhập Facebook, TikTok, điện, nước, wifi, Shopee, sửa chữa và các khoản khác theo ngày.
+            {!isAdmin() && ' Chỉ được nhập chi phí của chi nhánh mình.'}
+          </p>
+        </div>
+      </section>
+
       <ExpenseFilters
         draftFilters={draftFilters}
         appliedFilters={appliedFilters}
@@ -209,6 +254,7 @@ export default function Expenses() {
         onSearch={handleSearch}
         onReset={handleReset}
         onExport={handleExport}
+        expenseTypes={variableExpenseTypes}
       />
 
       {isAdmin() && screen === 'overview' && (
@@ -240,7 +286,7 @@ export default function Expenses() {
       {screen === 'branch' && selectedBranchId && (
         <ExpenseBranchDetail
           branchId={selectedBranchId}
-          expenses={expenses.filter((exp) => exp.branchId === selectedBranchId)}
+          expenses={variableExpenses.filter((exp) => exp.branchId === selectedBranchId)}
           onBack={() => {
             setScreen(isAdmin() ? 'overview' : 'branch')
             if (isAdmin()) setSelectedBranchId('')
@@ -256,7 +302,7 @@ export default function Expenses() {
       {(screen === 'list' || (screen === 'overview' && !isAdmin())) && (
         <section className="expenses__card">
           <div className="expenses__card-head">
-            <h3>Danh sách khoản chi</h3>
+            <h3>Danh sách khoản chi phát sinh</h3>
             <span>{filteredExpenses.length} khoản · {formatCurrency(filteredExpenses.reduce((s, e) => s + e.amount, 0))}</span>
           </div>
           <ExpenseTable
@@ -279,6 +325,7 @@ export default function Expenses() {
           setEditingExpense(null)
         }}
         onSubmit={handleSaveExpense}
+        expenseTypes={variableExpenseTypes}
         initialData={editingExpense ? {
           date: editingExpense.date,
           expenseTime: editingExpense.expenseTime,
@@ -291,7 +338,7 @@ export default function Expenses() {
           note: editingExpense.note,
           receiptImage: editingExpense.receiptImage,
         } : null}
-        title={editingExpense ? 'Sửa chi phí' : 'Thêm chi phí'}
+        title={editingExpense ? 'Sửa chi phí phát sinh' : 'Thêm chi phí phát sinh'}
       />
 
       <ExpenseDetailModal

@@ -1,0 +1,91 @@
+.branch-profit {
+  margin-bottom: 28px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.branch-profit__head h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: #111827;
+}
+
+.branch-profit__head p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.branch-profit__kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.branch-profit__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+}
+
+.branch-profit__kpi span {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.branch-profit__kpi strong {
+  font-size: 16px;
+  color: #111827;
+}
+
+.branch-profit__kpi.is-profit strong {
+  color: #047857;
+}
+
+.branch-profit__kpi.is-loss strong {
+  color: #b91c1c;
+}
+
+.branch-profit__panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.branch-profit__panel h4,
+.exp-mod__chart-panel h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.branch-profit__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.branch-profit__table th,
+.branch-profit__table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
+}
+
+.branch-profit__table .is-money {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 860px) {
+  .branch-profit__panels {
+    grid-template-columns: 1fr;
+  }
+}

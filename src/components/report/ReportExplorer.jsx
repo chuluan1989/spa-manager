@@ -4,7 +4,6 @@ import {
   Download,
   FileText,
   Gift,
-  Percent,
   Receipt,
   Search,
   TrendingUp,
@@ -13,10 +12,12 @@ import {
 } from 'lucide-react'
 import InvoiceDetailModal from '../invoice/InvoiceDetailModal'
 import KpiCard from '../ui/KpiCard'
+import BranchProfitBreakdown from './BranchProfitBreakdown'
 import {
   canEditInvoice,
   canExportReport,
   canSelectBranch,
+  getCurrentUserBranch,
   getCurrentUserBranchName,
   isAdmin,
   isEmployee,
@@ -28,6 +29,7 @@ import { formatCurrency } from '../../utils/invoice'
 import { setInvoiceEditPrefill } from '../../utils/navigationPrefill'
 import { buildDefaultDrillFilters } from '../../hooks/useDrillDownData'
 import { useReportExplorerData } from '../../hooks/useReportExplorerData'
+import { buildBranchProfitBreakdown } from '../../utils/branchProfitBreakdown'
 import {
   exportReportBranchCsv,
   exportReportEmployeeCsv,
@@ -44,13 +46,13 @@ const LEVEL = {
 }
 
 const REPORT_KPIS = [
-  { id: 'ticketRevenue', label: 'Doanh thu tiền vé', icon: Receipt, variant: 'gold' },
+  { id: 'ticketRevenue', label: 'Doanh thu', icon: Receipt, variant: 'gold' },
   { id: 'tips', label: 'Tips', icon: Gift, variant: 'green' },
-  { id: 'actualRevenue', label: 'Tổng doanh thu thực thu', icon: Wallet, variant: 'gold' },
-  { id: 'totalSalary', label: 'Tổng lương nhân viên', icon: Users, variant: 'purple' },
-  { id: 'expenses', label: 'Chi phí', icon: Wallet, variant: 'orange' },
+  { id: 'actualRevenue', label: 'Tổng doanh thu', icon: Wallet, variant: 'gold' },
+  { id: 'totalSalary', label: 'Tổng lương', icon: Users, variant: 'purple' },
+  { id: 'fixedExpenses', label: 'Chi phí mặt bằng', icon: Wallet, variant: 'orange' },
+  { id: 'variableExpenses', label: 'Chi phí phát sinh', icon: Wallet, variant: 'orange' },
   { id: 'profit', label: 'Lợi nhuận', icon: TrendingUp, variant: 'blue' },
-  { id: 'profitMargin', label: 'Tỷ suất lợi nhuận', icon: Percent, variant: 'blue' },
   { id: 'customerCount', label: 'Tổng khách', icon: Users, variant: 'slate' },
   { id: 'invoiceCount', label: 'Tổng hóa đơn', icon: FileText, variant: 'slate' },
 ]
@@ -131,18 +133,23 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
     if (initialPrefill?.level === 'invoices') return LEVEL.INVOICES
     if (initialPrefill?.level === 'employee') return LEVEL.EMPLOYEE
     if (initialPrefill?.level === 'branch' && isAdmin()) return LEVEL.BRANCH
+    if (!isAdmin()) return LEVEL.EMPLOYEE
     return LEVEL.OVERVIEW
   })
 
   const [draftFilters, setDraftFilters] = useState(() => buildDefaultDrillFilters(initialPrefill?.filters ?? {}))
   const [appliedFilters, setAppliedFilters] = useState(() => buildDefaultDrillFilters(initialPrefill?.filters ?? {}))
   const [activeMetric, setActiveMetric] = useState('')
-  const [selectedBranchId, setSelectedBranchId] = useState(initialPrefill?.filters?.branchId ?? '')
+  const [selectedBranchId, setSelectedBranchId] = useState(
+    initialPrefill?.filters?.branchId ?? (isAdmin() ? '' : getCurrentUserBranch()),
+  )
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(initialPrefill?.filters?.employeeId ?? '')
   const [selectedInvoice, setSelectedInvoice] = useState(null)
 
   const {
     invoices,
+    expenses,
+    fixedCosts,
     summary,
     branchRows,
     employeeRows,
@@ -162,6 +169,25 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
     if (!selectedBranchId) return employeeRows
     return employeeRows.filter((row) => row.branchId === selectedBranchId)
   }, [employeeRows, selectedBranchId])
+
+  const selectedBranchRow = useMemo(
+    () => branchRows.find((row) => row.branchId === selectedBranchId) ?? null,
+    [branchRows, selectedBranchId],
+  )
+
+  const branchProfitBreakdown = useMemo(() => {
+    if (!selectedBranchId || !selectedBranchRow) return null
+    return buildBranchProfitBreakdown({
+      ticketRevenue: selectedBranchRow.ticketRevenue,
+      tips: selectedBranchRow.tips,
+      totalSalary: selectedBranchRow.totalSalary,
+      expenses,
+      fixedCosts,
+      fromDate: appliedFilters.fromDate,
+      toDate: appliedFilters.toDate,
+      branchId: selectedBranchId,
+    })
+  }, [selectedBranchId, selectedBranchRow, expenses, fixedCosts, appliedFilters])
 
   const employeeInvoiceDetail = useMemo(() => {
     if (!selectedEmployeeId) return null
@@ -414,13 +440,13 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
                 key={row.branchId}
                 title={row.branchName}
                 metrics={[
-                  { label: 'Doanh thu tiền vé', value: formatCurrency(row.ticketRevenue), highlight: activeMetric === 'ticketRevenue' },
+                  { label: 'Doanh thu', value: formatCurrency(row.ticketRevenue), highlight: activeMetric === 'ticketRevenue' },
                   { label: 'Tips', value: formatCurrency(row.tips), highlight: activeMetric === 'tips' },
-                  { label: 'DT thực thu', value: formatCurrency(row.actualRevenue), highlight: activeMetric === 'actualRevenue' },
+                  { label: 'Tổng DT', value: formatCurrency(row.actualRevenue), highlight: activeMetric === 'actualRevenue' },
                   { label: 'Tổng lương', value: formatCurrency(row.totalSalary), highlight: activeMetric === 'totalSalary' },
-                  { label: 'Chi phí', value: formatCurrency(row.expenses), highlight: activeMetric === 'expenses' },
+                  { label: 'Mặt bằng', value: formatCurrency(row.fixedExpenses), highlight: activeMetric === 'fixedExpenses' },
+                  { label: 'Phát sinh', value: formatCurrency(row.variableExpenses), highlight: activeMetric === 'variableExpenses' },
                   { label: 'Lợi nhuận', value: formatCurrency(row.profit), highlight: activeMetric === 'profit' },
-                  { label: 'Tỷ suất LN', value: `${row.profitMargin ?? 0}%`, highlight: activeMetric === 'profitMargin' },
                 ]}
                 activeMetric={activeMetric}
                 onClick={() => openBranch(row.branchId)}
@@ -432,6 +458,12 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
 
       {!loading && !error && level === LEVEL.EMPLOYEE && (
         <section className="report-tier">
+          {selectedBranchId && branchProfitBreakdown && (
+            <BranchProfitBreakdown
+              breakdown={branchProfitBreakdown}
+              branchName={getBranchById(selectedBranchId)?.name ?? ''}
+            />
+          )}
           <h2 className="report-tier__title">
             {selectedBranchId
               ? `Nhân viên — ${getBranchById(selectedBranchId)?.name ?? ''}`

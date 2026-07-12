@@ -1,7 +1,6 @@
 import { getInvoiceServiceDetails, getInvoicePayment, getInvoiceServiceCommission, getInvoiceTips, getInvoiceCustomerTotal, invoiceHasDiscount, getServiceLineCommissionAmount } from './invoice'
 import {
   computeExpenseByBranch,
-  computeExpenseSummary,
   filterExpenses,
   sumExpenseAmount,
 } from './expenseStorage'
@@ -10,6 +9,10 @@ import {
   enrichProfitMetrics,
   resolveTotalSalary,
 } from './profitReport'
+import {
+  computePeriodExpenseTotals,
+  filterVariableExpenses,
+} from './branchProfitBreakdown'
 
 export { getMonthStartDate }
 
@@ -220,12 +223,11 @@ export function computeTopEmployeesByRevenue(invoices) {
   return computeEmployeeReport(invoices)
 }
 
-export function computeReportData(invoices, expenses, filters, payrollByBranch = null) {
+export function computeReportData(invoices, expenses, filters, payrollByBranch = null, fixedCosts = []) {
   const filtered = filterInvoices(invoices, filters)
-  const filteredExpenses = filterExpenses(expenses, filters)
+  const filteredExpenses = filterVariableExpenses(filterExpenses(expenses, filters))
   const summary = computeReportSummary(filtered)
-  const expenseSummary = computeExpenseSummary(filteredExpenses)
-  const expenseTotal = expenseSummary.total
+  const periodCosts = computePeriodExpenseTotals({ expenses, fixedCosts, filters })
   const totalSalary = resolveTotalSalary({
     ticketRevenue: summary.ticketRevenue,
     tips: summary.tips,
@@ -234,7 +236,9 @@ export function computeReportData(invoices, expenses, filters, payrollByBranch =
   })
   const profitSummary = enrichProfitMetrics({
     ...summary,
-    expenses: expenseTotal,
+    fixedExpenses: periodCosts.fixedTotal,
+    variableExpenses: periodCosts.variableTotal,
+    expenses: periodCosts.total,
     salary: totalSalary,
     totalSalary,
   }, payrollByBranch)

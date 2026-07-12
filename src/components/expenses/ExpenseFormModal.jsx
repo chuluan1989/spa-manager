@@ -18,6 +18,7 @@ export default function ExpenseFormModal({
   onSubmit,
   initialData = null,
   title = 'Thêm chi phí',
+  expenseTypes = EXPENSE_TYPES,
 }) {
   const lockedBranch = !canSelectBranch()
   const [form, setForm] = useState(() => initialData ?? {
@@ -108,7 +109,7 @@ export default function ExpenseFormModal({
               <span>Nhóm chi phí</span>
               <select value={form.expenseType} onChange={(e) => setForm({ ...form, expenseType: e.target.value })}>
                 <option value="">Chọn nhóm</option>
-                {EXPENSE_TYPES.map((type) => (
+                {expenseTypes.filter((type) => !type.isFixed).map((type) => (
                   <option key={type.id} value={type.id}>{type.label}</option>
                 ))}
               </select>

@@ -8,7 +8,6 @@ import {
 import {
   computeExpenseByBranch,
   filterExpenses,
-  sumExpenseAmount,
 } from './expenseStorage'
 import { getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
@@ -17,6 +16,11 @@ import {
   enrichProfitMetrics,
   resolveTotalSalary,
 } from './profitReport'
+import {
+  computePeriodExpenseTotals,
+  filterVariableExpenses,
+} from './branchProfitBreakdown'
+import { computeFixedCostTotals } from './fixedCostStorage'
 
 function getInvoiceCommission(invoice) {
   return getInvoiceServiceCommission(invoice)
@@ -57,11 +61,21 @@ export function buildInvoiceMetrics(invoices) {
   )
 }
 
-export function buildDrillDownSummary(invoices, expenses, filters = {}, payrollByBranch = null) {
+export function buildDrillDownSummary(
+  invoices,
+  expenses,
+  filters = {},
+  payrollByBranch = null,
+  fixedCosts = [],
+) {
   const filtered = filterInvoices(invoices, filters)
-  const filteredExpenses = filterExpenses(expenses, filters)
+  const filteredExpenses = filterVariableExpenses(filterExpenses(expenses, filters))
   const metrics = buildInvoiceMetrics(filtered)
-  const expenseTotal = sumExpenseAmount(filteredExpenses)
+  const periodCosts = computePeriodExpenseTotals({
+    expenses,
+    fixedCosts,
+    filters,
+  })
   const totalSalary = resolveTotalSalary({
     ticketRevenue: metrics.ticketRevenue,
     tips: metrics.tips,
@@ -73,7 +87,9 @@ export function buildDrillDownSummary(invoices, expenses, filters = {}, payrollB
     ...metrics,
     revenue: metrics.ticketRevenue,
     payment: metrics.ticketRevenue,
-    expenses: expenseTotal,
+    fixedExpenses: periodCosts.fixedTotal,
+    variableExpenses: periodCosts.variableTotal,
+    expenses: periodCosts.total,
     salary: totalSalary,
     totalSalary,
     customerCount: countUniqueCustomers(filtered),
@@ -82,10 +98,10 @@ export function buildDrillDownSummary(invoices, expenses, filters = {}, payrollB
   }, payrollByBranch)
 }
 
-function mergeExpenseIntoRows(rows, expenseRows, keyFn, payrollByBranch = null) {
+function mergeExpenseIntoRows(rows, expenseRows, keyFn, payrollByBranch = null, fixedByBranch = new Map()) {
   const map = new Map()
   for (const row of rows) {
-    map.set(keyFn(row), { ...row, expenses: 0 })
+    map.set(keyFn(row), { ...row, expenses: 0, fixedExpenses: 0, variableExpenses: 0 })
   }
   for (const expRow of expenseRows) {
     const key = keyFn(expRow)
@@ -102,19 +118,57 @@ function mergeExpenseIntoRows(rows, expenseRows, keyFn, payrollByBranch = null) 
       totalSalary: 0,
       profit: 0,
       expenses: 0,
+      fixedExpenses: 0,
+      variableExpenses: 0,
     }
-    current.expenses = expRow.total ?? expRow.expenses ?? 0
+    current.variableExpenses = expRow.total ?? expRow.variableExpenses ?? 0
+    map.set(key, current)
+  }
+
+  for (const [branchId, amount] of fixedByBranch.entries()) {
+    const key = branchId
+    const current = map.get(key) ?? {
+      branchId,
+      branchName: getBranchName(branchId) || '—',
+      ticketRevenue: 0,
+      customerTotal: 0,
+      tips: 0,
+      discount: 0,
+      commission: 0,
+      invoiceCount: 0,
+      customerCount: 0,
+      salary: 0,
+      totalSalary: 0,
+      profit: 0,
+      variableExpenses: 0,
+    }
+    current.fixedExpenses = amount
     map.set(key, current)
   }
 
   return [...map.values()]
-    .map((row) => enrichProfitMetrics(row, payrollByBranch))
+    .map((row) => {
+      const fixedExpenses = Number(row.fixedExpenses ?? fixedByBranch.get(row.branchId) ?? 0)
+      const variableExpenses = Number(row.variableExpenses ?? 0)
+      return enrichProfitMetrics({
+        ...row,
+        fixedExpenses,
+        variableExpenses,
+        expenses: fixedExpenses + variableExpenses,
+      }, payrollByBranch)
+    })
     .sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
-export function buildBranchDrillRows(invoices, expenses, filters = {}, payrollByBranch = null) {
+export function buildBranchDrillRows(
+  invoices,
+  expenses,
+  filters = {},
+  payrollByBranch = null,
+  fixedCosts = [],
+) {
   const filtered = filterInvoices(invoices, filters)
-  const filteredExpenses = filterExpenses(expenses, filters)
+  const filteredExpenses = filterVariableExpenses(filterExpenses(expenses, filters))
   const map = new Map()
 
   for (const inv of filtered) {
@@ -155,11 +209,38 @@ export function buildBranchDrillRows(invoices, expenses, filters = {}, payrollBy
     total: row.total,
   }))
 
+  const fixed = computeFixedCostTotals(fixedCosts, {
+    fromDate: filters.fromDate,
+    toDate: filters.toDate,
+    branchId: filters.branchId,
+  })
+
+  // Đảm bảo chi nhánh chỉ có fixed cost (chưa có doanh thu) vẫn hiện trong báo cáo
+  for (const [branchId, amount] of fixed.byBranch.entries()) {
+    if (map.has(branchId)) continue
+    revenueRows.push({
+      branchId,
+      branchName: getBranchName(branchId) || '—',
+      ticketRevenue: 0,
+      customerTotal: 0,
+      tips: 0,
+      discount: 0,
+      commission: 0,
+      invoiceCount: 0,
+      customerCount: 0,
+      revenue: 0,
+      payment: 0,
+      salary: 0,
+    })
+    void amount
+  }
+
   return mergeExpenseIntoRows(
     revenueRows,
     expenseRows,
     (row) => row.branchId || row.branchName,
     payrollByBranch,
+    fixed.byBranch,
   )
 }
 
@@ -224,15 +305,16 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
     .sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
-/** KPI Dashboard — không trùng lặp doanh thu tiền vé / tổng khách thanh toán. */
+/** KPI Dashboard / Báo cáo — công thức lợi nhuận chuẩn. */
 export const DRILL_METRICS = [
-  { id: 'ticketRevenue', label: 'Doanh thu tiền vé' },
+  { id: 'ticketRevenue', label: 'Doanh thu' },
   { id: 'tips', label: 'Tips' },
-  { id: 'actualRevenue', label: 'Tổng doanh thu thực thu' },
-  { id: 'totalSalary', label: 'Tổng lương nhân viên' },
-  { id: 'expenses', label: 'Chi phí' },
+  { id: 'actualRevenue', label: 'Tổng doanh thu' },
+  { id: 'totalSalary', label: 'Tổng lương' },
+  { id: 'fixedExpenses', label: 'Chi phí mặt bằng' },
+  { id: 'variableExpenses', label: 'Chi phí phát sinh' },
+  { id: 'expenses', label: 'Tổng chi phí' },
   { id: 'profit', label: 'Lợi nhuận' },
-  { id: 'profitMargin', label: 'Tỷ suất lợi nhuận' },
 ]
 
 export const EMPLOYEE_DRILL_METRICS = [

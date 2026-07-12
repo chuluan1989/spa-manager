@@ -17,6 +17,7 @@ export default function ExpenseFilters({
   onSearch,
   onReset,
   onExport,
+  expenseTypes = EXPENSE_TYPES,
 }) {
   return (
     <section className="exp-mod__filters">
@@ -58,7 +59,7 @@ export default function ExpenseFilters({
             onChange={(e) => onChange({ ...draftFilters, expenseType: e.target.value })}
           >
             <option value="">Tất cả nhóm</option>
-            {EXPENSE_TYPES.map((type) => (
+            {expenseTypes.map((type) => (
               <option key={type.id} value={type.id}>{type.label}</option>
             ))}
           </select>

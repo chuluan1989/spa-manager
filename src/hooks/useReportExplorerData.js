@@ -56,7 +56,13 @@ function computeTrend(current, previous) {
 async function fetchPeriodData(filters) {
   const result = await fetchReportPeriodData(filters)
   let invoices = filterEmployeeReportInvoices(result.invoices, filters)
-  return { invoices, expenses: result.expenses, source: result.source, error: result.error }
+  return {
+    invoices,
+    expenses: result.expenses,
+    fixedCosts: result.fixedCosts ?? [],
+    source: result.source,
+    error: result.error,
+  }
 }
 
 async function fetchAttendanceForPeriod(filters) {
@@ -76,6 +82,7 @@ async function fetchAttendanceForPeriod(filters) {
 export function useReportExplorerData(filters, { enabled = true } = {}) {
   const [invoices, setInvoices] = useState([])
   const [expenses, setExpenses] = useState([])
+  const [fixedCosts, setFixedCosts] = useState([])
   const [attendance, setAttendance] = useState([])
   const [employees, setEmployees] = useState([])
   const [adjustments, setAdjustments] = useState([])
@@ -102,7 +109,7 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
           fetchPeriodData(filters),
           prevPeriod.fromDate && prevPeriod.toDate
             ? fetchPeriodData({ ...filters, ...prevPeriod })
-            : Promise.resolve({ invoices: [], expenses: [], source: 'cloud' }),
+            : Promise.resolve({ invoices: [], expenses: [], fixedCosts: [], source: 'cloud' }),
           fetchAttendanceForPeriod(filters),
           isSupabaseConfigured ? fetchEmployeesFiltered({}) : Promise.resolve([]),
           isSupabaseConfigured && payrollMonth
@@ -136,11 +143,18 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
 
         setInvoices(current.invoices)
         setExpenses(current.expenses)
+        setFixedCosts(current.fixedCosts ?? [])
         setAttendance(attendanceRows ?? [])
         setEmployees(normalizedEmployees)
         setAdjustments(adjustmentRows ?? [])
         setPrevSummary(
-          buildDrillDownSummary(previous.invoices, previous.expenses, filters, prevPayrollByBranch),
+          buildDrillDownSummary(
+            previous.invoices,
+            previous.expenses,
+            { ...filters, ...prevPeriod },
+            prevPayrollByBranch,
+            previous.fixedCosts ?? [],
+          ),
         )
         setPayrollByBranch(payrollByBranch)
 
@@ -150,6 +164,7 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
           setError(err?.message ?? 'Không thể tải dữ liệu báo cáo.')
           setInvoices([])
           setExpenses([])
+          setFixedCosts([])
           setAttendance([])
           setEmployees([])
           setAdjustments([])
@@ -170,13 +185,13 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
   useEffect(() => subscribeInvoicesChanges(() => reload()), [reload])
 
   const summary = useMemo(
-    () => buildDrillDownSummary(invoices, expenses, filters, payrollByBranch),
-    [invoices, expenses, filters, payrollByBranch],
+    () => buildDrillDownSummary(invoices, expenses, filters, payrollByBranch, fixedCosts),
+    [invoices, expenses, filters, payrollByBranch, fixedCosts],
   )
 
   const branchRows = useMemo(
-    () => buildBranchDrillRows(invoices, expenses, filters, payrollByBranch),
-    [invoices, expenses, filters, payrollByBranch],
+    () => buildBranchDrillRows(invoices, expenses, filters, payrollByBranch, fixedCosts),
+    [invoices, expenses, filters, payrollByBranch, fixedCosts],
   )
 
   const employeeRows = useMemo(
@@ -207,6 +222,8 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
       discount: computeTrend(summary.discount, prevSummary.discount),
       commission: computeTrend(summary.commission, prevSummary.commission),
       expenses: computeTrend(summary.expenses, prevSummary.expenses),
+      fixedExpenses: computeTrend(summary.fixedExpenses, prevSummary.fixedExpenses),
+      variableExpenses: computeTrend(summary.variableExpenses, prevSummary.variableExpenses),
       profit: computeTrend(summary.profit, prevSummary.profit),
       actualRevenue: computeTrend(summary.actualRevenue, prevSummary.actualRevenue),
       totalSalary: computeTrend(summary.totalSalary, prevSummary.totalSalary),
@@ -222,6 +239,7 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
   return {
     invoices,
     expenses,
+    fixedCosts,
     attendance,
     summary,
     branchRows,

@@ -54,11 +54,15 @@ const METRIC_ICONS = {
   discount: Percent,
   commission: TrendingUp,
   expenses: Wallet,
+  fixedExpenses: Wallet,
+  variableExpenses: Wallet,
   profit: TrendingUp,
   invoiceCount: FileText,
   customerCount: Users,
   payment: Receipt,
   salary: Wallet,
+  totalSalary: Users,
+  actualRevenue: HandCoins,
 }
 
 const METRIC_VARIANTS = {
@@ -68,11 +72,15 @@ const METRIC_VARIANTS = {
   discount: 'orange',
   commission: 'purple',
   expenses: 'orange',
+  fixedExpenses: 'orange',
+  variableExpenses: 'orange',
   profit: 'blue',
   invoiceCount: 'slate',
   customerCount: 'slate',
   payment: 'gold',
   salary: 'purple',
+  totalSalary: 'purple',
+  actualRevenue: 'gold',
 }
 
 
@@ -92,16 +100,16 @@ export default function DrillDownExplorer({
   const [activeMetric, setActiveMetric] = useState('')
   const [selectedInvoice, setSelectedInvoice] = useState(null)
 
-  const { invoices, expenses, loading, error, scopedFilters } = useDrillDownData(filters)
+  const { invoices, expenses, fixedCosts, loading, error, scopedFilters } = useDrillDownData(filters)
 
   const summary = useMemo(
-    () => buildDrillDownSummary(invoices, expenses, scopedFilters),
-    [invoices, expenses, scopedFilters],
+    () => buildDrillDownSummary(invoices, expenses, scopedFilters, null, fixedCosts),
+    [invoices, expenses, scopedFilters, fixedCosts],
   )
 
   const branchRows = useMemo(
-    () => buildBranchDrillRows(invoices, expenses, scopedFilters),
-    [invoices, expenses, scopedFilters],
+    () => buildBranchDrillRows(invoices, expenses, scopedFilters, null, fixedCosts),
+    [invoices, expenses, scopedFilters, fixedCosts],
   )
 
   const employeeRows = useMemo(
