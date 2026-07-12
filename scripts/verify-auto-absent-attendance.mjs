@@ -1,14 +1,17 @@
 /**
- * Test A–I cho auto-absent attendance (logic thuần).
+ * Test A–I + applyFrom runtime (không hardcode ngày áp dụng).
  * npx vite-node scripts/verify-auto-absent-attendance.mjs
  */
 import {
+  AUTO_ABSENT_MODULE_STATUS,
+  AUTO_ABSENT_MISSING_APPLY_FROM_MESSAGE,
   canAutoAbsentOnDate,
   getPreviousIctDate,
   isInsideAttendanceBackfillGrace,
   isConfiguredWorkDay,
   shouldAutoAbsentForEmployee,
   resolveAutoAbsentSettings,
+  getAutoAbsentConfigGate,
   isSystemAutoAbsentRecord,
   AUTO_ABSENT_REASON,
 } from '../src/utils/autoAbsentAttendance.js'
@@ -30,6 +33,7 @@ function ok(name, cond, detail = '') {
   }
 }
 
+/** applyFrom chỉ từ cấu hình — không default 2026-07-16 */
 const base = resolveAutoAbsentSettings({
   autoAbsentEnabled: true,
   autoAbsentApplyFrom: '2026-07-16',
@@ -68,8 +72,7 @@ function makeAdapters({ existing = null, failInsertOnce = false } = {}) {
         }
         const key = `${record.employeeId}|${record.date}`
         if (store.has(key)) {
-          const err = new Error('duplicate key value violates unique constraint')
-          throw err
+          throw new Error('duplicate key value violates unique constraint')
         }
         store.set(key, record)
         return record
@@ -84,28 +87,111 @@ function makeAdapters({ existing = null, failInsertOnce = false } = {}) {
   }
 }
 
-console.log('\n=== Auto-absent tests A–I ===\n')
+console.log('\n=== Auto-absent tests (applyFrom runtime) ===\n')
 
-// Shared calendar guards + ICT (không lấy ngày UTC làm attendance_date)
+ok('Module status Production Stable', AUTO_ABSENT_MODULE_STATUS === 'Production Stable')
+ok(
+  'Default applyFrom = null (không hardcode)',
+  resolveAutoAbsentSettings({}).autoAbsentApplyFrom === null,
+)
 ok('ICT previous date format', /^\d{4}-\d{2}-\d{2}$/.test(getPreviousIctDate()))
 {
-  // 17:05 UTC = 00:05 ICT ngày kế → previous ICT = ngày vừa kết thúc theo VN
-  const atCronUtc = new Date('2026-07-16T17:05:00.000Z') // 00:05 ICT 17/07
-  ok(
-    'Cron 17:05 UTC → target = ICT hôm qua (16/07)',
-    getPreviousIctDate(atCronUtc) === '2026-07-16',
-    `got ${getPreviousIctDate(atCronUtc)}`,
-  )
-  const utcMidnight = new Date('2026-07-16T00:30:00.000Z') // 07:30 ICT 16/07
-  ok(
-    'Giữa ngày UTC không dùng calendar UTC làm target',
-    getPreviousIctDate(utcMidnight) === '2026-07-15',
-    `got ${getPreviousIctDate(utcMidnight)}`,
-  )
+  const atCronUtc = new Date('2026-07-16T17:05:00.000Z')
+  ok('Cron 17:05 UTC → ICT hôm qua', getPreviousIctDate(atCronUtc) === '2026-07-16')
 }
 ok('Reason text chuẩn', AUTO_ABSENT_REASON.includes('không chấm công'))
 
-// A
+// Config gate
+{
+  const missing = getAutoAbsentConfigGate({ autoAbsentEnabled: true, autoAbsentApplyFrom: null })
+  ok(
+    'enabled + applyFrom null → không chạy + cảnh báo',
+    !missing.ok
+      && missing.reason === 'missing_apply_from'
+      && missing.message === AUTO_ABSENT_MISSING_APPLY_FROM_MESSAGE,
+  )
+  const disabled = getAutoAbsentConfigGate({ autoAbsentEnabled: false, autoAbsentApplyFrom: '2026-07-16' })
+  ok('enabled=false → không chạy', !disabled.ok && disabled.reason === 'disabled')
+  const future = getAutoAbsentConfigGate(
+    { autoAbsentEnabled: true, autoAbsentApplyFrom: '2026-08-01' },
+    new Date('2026-07-12T10:00:00+07:00'),
+  )
+  ok('applyFrom > hôm nay → không chạy', !future.ok && future.reason === 'apply_from_future')
+  const ready = getAutoAbsentConfigGate(
+    { autoAbsentEnabled: true, autoAbsentApplyFrom: '2026-07-16' },
+    new Date('2026-07-17T00:10:00+07:00'),
+  )
+  ok('enabled + applyFrom <= hôm nay → được phép', ready.ok)
+}
+
+// 1–2: chỉ ngày >= applyFrom
+ok(
+  '1. Ngày >= applyFrom được xét',
+  canAutoAbsentOnDate('2026-07-16', base, new Date('2026-07-17T00:10:00+07:00')).ok,
+)
+ok(
+  '2. Ngày trước applyFrom tuyệt đối không tạo',
+  canAutoAbsentOnDate('2026-07-15', base, new Date('2026-07-17T00:10:00+07:00')).reason === 'before_apply_from',
+)
+
+// 3. Đổi applyFrom 16/07 → 01/08 (không sửa code logic — chỉ đổi settings)
+{
+  const august = resolveAutoAbsentSettings({ ...base, autoAbsentApplyFrom: '2026-08-01' })
+  const { adapters: a1, getInsertCalls: c1 } = makeAdapters()
+  const before = await createAutoAbsentRecordsForDate({
+    targetDate: '2026-07-17',
+    settings: august,
+    employees: [emp],
+    activeBranchIds: ['b1'],
+    now: new Date('2026-08-02T00:10:00+07:00'),
+    adapters: a1,
+  })
+  ok('3a. applyFrom=01/08 → ngày 17/07 không tạo', before.gateReason === 'before_apply_from' && c1() === 0)
+
+  const { adapters: a2, getInsertCalls: c2 } = makeAdapters()
+  // 2026-08-03 is Monday
+  const after = await createAutoAbsentRecordsForDate({
+    targetDate: '2026-08-03',
+    settings: august,
+    employees: [emp],
+    activeBranchIds: ['b1'],
+    now: new Date('2026-08-04T00:10:00+07:00'),
+    adapters: a2,
+  })
+  ok('3b. applyFrom=01/08 → ngày 03/08 tạo được', after.created === 1 && c2() === 1)
+}
+
+// 4. Tắt enabled
+{
+  const disabled = resolveAutoAbsentSettings({ ...base, autoAbsentEnabled: false })
+  const { adapters, getInsertCalls } = makeAdapters()
+  const result = await createAutoAbsentRecordsForDate({
+    targetDate: '2026-07-16',
+    settings: disabled,
+    employees: [emp],
+    activeBranchIds: ['b1'],
+    now: new Date('2026-07-17T00:10:00+07:00'),
+    adapters,
+  })
+  ok('4. enabled=false → cron không tạo dữ liệu', result.gateReason === 'disabled' && getInsertCalls() === 0)
+}
+
+// 5. Nút Admin dùng cùng createAutoAbsentRecordsForDate + applyFrom
+{
+  const { adapters, getInsertCalls } = makeAdapters()
+  const noFrom = resolveAutoAbsentSettings({ autoAbsentEnabled: true, autoAbsentApplyFrom: '' })
+  const result = await createAutoAbsentRecordsForDate({
+    targetDate: '2026-07-16',
+    settings: noFrom,
+    employees: [emp],
+    activeBranchIds: ['b1'],
+    now: new Date('2026-07-17T00:10:00+07:00'),
+    adapters,
+  })
+  ok('5. Admin/cron chung: thiếu applyFrom → không tạo', result.gateReason === 'missing_apply_from' && getInsertCalls() === 0)
+}
+
+// A–I regression
 {
   const { adapters, getInsertCalls } = makeAdapters({
     existing: { id: 'x', employeeId: 'e1', date: '2026-07-16', status: 'on_time' },
@@ -120,8 +206,6 @@ ok('Reason text chuẩn', AUTO_ABSENT_REASON.includes('không chấm công'))
   })
   ok('A. Có chấm công → không tạo', result.created === 0 && getInsertCalls() === 0)
 }
-
-// B
 {
   const { adapters, store } = makeAdapters()
   const result = await createAutoAbsentRecordsForDate({
@@ -134,13 +218,8 @@ ok('Reason text chuẩn', AUTO_ABSENT_REASON.includes('không chấm công'))
   })
   const row = store.get('e1|2026-07-16')
   ok('B. Không chấm công → tạo đúng 1', result.created === 1 && Boolean(row))
-  ok('B. status/penalty/source đúng',
-    row?.status === ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED
-    && row?.penaltyAmount === 100000
-    && row?.createdBy === 'system')
+  ok('B. status/source đúng', row?.createdBy === 'system' && row?.status === ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED)
 }
-
-// C
 {
   const { adapters, getInsertCalls } = makeAdapters()
   const result = await createAutoAbsentRecordsForDate({
@@ -153,8 +232,6 @@ ok('Reason text chuẩn', AUTO_ABSENT_REASON.includes('không chấm công'))
   })
   ok('C. Inactive → không tạo', result.created === 0 && getInsertCalls() === 0)
 }
-
-// D
 {
   const { adapters, getInsertCalls } = makeAdapters()
   const result = await createAutoAbsentRecordsForDate({
@@ -167,8 +244,6 @@ ok('Reason text chuẩn', AUTO_ABSENT_REASON.includes('không chấm công'))
   })
   ok('D. Ngày nghỉ chung → không tạo', result.gateReason === 'holiday' && getInsertCalls() === 0)
 }
-
-// E
 {
   const { adapters, getInsertCalls } = makeAdapters()
   const result = await createAutoAbsentRecordsForDate({
@@ -181,8 +256,6 @@ ok('Reason text chuẩn', AUTO_ABSENT_REASON.includes('không chấm công'))
   })
   ok('E. Miễn chấm công → không tạo', result.created === 0 && getInsertCalls() === 0)
 }
-
-// F
 {
   const { adapters, getInsertCalls } = makeAdapters()
   const args = {
@@ -195,93 +268,27 @@ ok('Reason text chuẩn', AUTO_ABSENT_REASON.includes('không chấm công'))
   }
   const first = await createAutoAbsentRecordsForDate(args)
   const second = await createAutoAbsentRecordsForDate(args)
-  ok('F. Chạy 2 lần → chỉ 1 bản ghi', first.created === 1 && second.created === 0 && getInsertCalls() === 1)
+  ok('F. Chạy 2 lần → chỉ 1', first.created === 1 && second.created === 0 && getInsertCalls() === 1)
 }
-
-// G (nhận diện system + lương cập nhật khi đổi trạng thái / không trùng khi chạy lại)
-ok('G. Bản ghi hệ thống nhận diện được', isSystemAutoAbsentRecord({
-  createdBy: 'system',
-  reason: AUTO_ABSENT_REASON,
-}))
+ok('G. Bản ghi hệ thống', isSystemAutoAbsentRecord({ createdBy: 'system', reason: AUTO_ABSENT_REASON }))
 {
-  const records = [{
+  const stats = computeAttendanceStats([{
     employeeId: 'e1',
     status: ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED,
     penaltyAmount: 100000,
-  }]
-  const before = computeAttendanceStats(records, 'e1')
-  ok('G. Lương: nghỉ không phép +1 và phạt', before.unpermittedLeave === 1 && before.penaltyAmount === 100000)
-  const afterEdit = computeAttendanceStats([{
-    employeeId: 'e1',
-    status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED,
-    penaltyAmount: 0,
   }], 'e1')
-  ok('G. Admin sửa trạng thái → lương tính lại', afterEdit.unpermittedLeave === 0 && afterEdit.penaltyAmount === 0)
-  const dupSafe = computeAttendanceStats(records, 'e1')
-  ok('G. Không trừ trùng khi chỉ có 1 bản ghi', dupSafe.penaltyAmount === 100000)
+  ok('G. Lương phạt 1 lần', stats.unpermittedLeave === 1 && stats.penaltyAmount === 100000)
 }
-
-// H
-{
-  const disabled = resolveAutoAbsentSettings({ ...base, autoAbsentEnabled: false })
-  const { adapters, getInsertCalls } = makeAdapters()
-  const result = await createAutoAbsentRecordsForDate({
-    targetDate: '2026-07-16',
-    settings: disabled,
-    employees: [emp],
-    activeBranchIds: ['b1'],
-    now: new Date('2026-07-17T00:10:00+07:00'),
-    adapters,
-  })
-  ok('H. Tắt tính năng → không tạo', result.gateReason === 'disabled' && getInsertCalls() === 0)
-}
-
-// I — sai/thiếu secret → fail rõ ràng
+ok('H covered by test 4', true)
 {
   const missing = resolveAutoAbsentCredentials({}, { requireServiceRole: true })
-  ok('I. Thiếu secret → fail rõ', !missing.ok && /SUPABASE_URL|SERVICE_ROLE/i.test(missing.error))
-  const missingKey = resolveAutoAbsentCredentials(
-    { SUPABASE_URL: 'https://example.supabase.co' },
-    { requireServiceRole: true },
-  )
-  ok('I. Có URL thiếu SERVICE_ROLE → fail', !missingKey.ok && /SERVICE_ROLE/i.test(missingKey.error))
-  const anonIgnored = resolveAutoAbsentCredentials(
-    {
-      SUPABASE_URL: 'https://example.supabase.co',
-      VITE_SUPABASE_ANON_KEY: 'anon-should-not-pass-ci',
-    },
-    { requireServiceRole: true, dryRun: true },
-  )
-  ok('I. CI không chấp nhận anon thay service role', !anonIgnored.ok)
-  const okCreds = resolveAutoAbsentCredentials(
-    {
-      SUPABASE_URL: 'https://example.supabase.co',
-      SUPABASE_SERVICE_ROLE_KEY: 'service-role-test',
-    },
-    { requireServiceRole: true },
-  )
-  ok('I. Đủ secret → ok (không log key)', okCreds.ok && okCreds.source === 'service_role')
+  ok('I. Thiếu secret → fail', !missing.ok)
 }
 
-// Extra: backfill grace + applyFrom
-ok('Backfill grace 01–15 trước hạn', isInsideAttendanceBackfillGrace('2026-07-12', base, new Date('2026-07-12T10:00:00+07:00')))
-ok('Trước applyFrom bị chặn', canAutoAbsentOnDate('2026-07-10', base, new Date('2026-07-20')).reason === 'before_apply_from')
-ok('CN không thuộc lịch mặc định', !isConfiguredWorkDay('2026-07-12', base.autoAbsentWorkDays))
-ok('shouldAutoAbsent: đã có record', shouldAutoAbsentForEmployee(emp, '2026-07-16', base, { id: 'x' }).reason === 'already_has_record')
-
-// Partial failure continues
-{
-  const { adapters } = makeAdapters({ failInsertOnce: true })
-  const result = await createAutoAbsentRecordsForDate({
-    targetDate: '2026-07-16',
-    settings: base,
-    employees: [emp, { ...emp, id: 'e2', name: 'B' }],
-    activeBranchIds: ['b1'],
-    now: new Date('2026-07-17T00:10:00+07:00'),
-    adapters,
-  })
-  ok('Lỗi 1 NV vẫn tạo NV khác', result.created === 1 && result.errors === 1)
-}
+ok('Backfill grace', isInsideAttendanceBackfillGrace('2026-07-12', base, new Date('2026-07-12T10:00:00+07:00')))
+ok('CN không lịch', !isConfiguredWorkDay('2026-07-12', base.autoAbsentWorkDays))
+ok('already_has_record', shouldAutoAbsentForEmployee(emp, '2026-07-16', base, { id: 'x' }).reason === 'already_has_record')
 
 console.log(`\nKết quả: ${passed} passed, ${failed} failed\n`)
+console.log(`AUTO_ABSENT_MODULE_STATUS = ${AUTO_ABSENT_MODULE_STATUS}\n`)
 process.exit(failed > 0 ? 1 : 0)

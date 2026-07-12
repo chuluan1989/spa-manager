@@ -31,7 +31,8 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   payroll1Overrides: {},
   autoAbsentEnabled: false,
   autoAbsentCloseTime: '00:05',
-  autoAbsentApplyFrom: '2026-07-16',
+  /** Rỗng = chưa cấu hình → không tự chạy auto-absent. */
+  autoAbsentApplyFrom: '',
   autoAbsentPenaltyAmount: 100000,
   autoAbsentWorkDays: [1, 2, 3, 4, 5, 6],
   autoAbsentHolidays: [],
@@ -85,8 +86,7 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
     autoAbsentEnabled: settings.autoAbsentEnabled === true,
     autoAbsentCloseTime: settings.autoAbsentCloseTime?.trim?.()
       || DEFAULT_SYSTEM_SETTINGS.autoAbsentCloseTime,
-    autoAbsentApplyFrom: settings.autoAbsentApplyFrom?.trim?.()
-      || DEFAULT_SYSTEM_SETTINGS.autoAbsentApplyFrom,
+    autoAbsentApplyFrom: settings.autoAbsentApplyFrom?.trim?.() || '',
     autoAbsentPenaltyAmount: Math.max(
       0,
       Number.parseInt(String(settings.autoAbsentPenaltyAmount ?? DEFAULT_SYSTEM_SETTINGS.autoAbsentPenaltyAmount), 10)

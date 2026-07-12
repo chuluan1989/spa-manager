@@ -24,9 +24,13 @@ import {
 } from '../utils/attendanceViewHelpers'
 import { fetchAttendanceServerDate } from '../repositories/attendanceRepository'
 import {
+  AUTO_ABSENT_MISSING_APPLY_FROM_MESSAGE,
   getAttendanceDisplayNote,
   getAttendanceSourceLabel,
+  getAutoAbsentConfigGate,
+  getAutoAbsentGateMessage,
   isSystemAutoAbsentRecord,
+  resolveAutoAbsentSettings,
 } from '../utils/autoAbsentAttendance'
 import { loadSystemSettings } from '../utils/systemSettingsStorage'
 import { runAutoAbsentNightlyJob } from '../utils/autoAbsentAttendanceService'
@@ -268,6 +272,11 @@ function AttendancePage() {
     setAutoJobMessage('')
     try {
       const settings = loadSystemSettings()
+      const gate = getAutoAbsentConfigGate(settings)
+      if (!gate.ok) {
+        setAutoJobMessage(gate.message || getAutoAbsentGateMessage(gate.reason))
+        return
+      }
       const activeBranchIds = getActiveBranches().map((branch) => branch.id)
       const result = await runAutoAbsentNightlyJob({
         settings,
@@ -276,7 +285,7 @@ function AttendancePage() {
       })
       setAutoJobMessage(
         result.gateReason
-          ? `Không chạy (${result.gateReason}) cho ngày ${result.targetDate}.`
+          ? `${getAutoAbsentGateMessage(result.gateReason)} (ngày ${result.targetDate}).`
           : `Đã chốt ngày ${result.targetDate}: tạo ${result.created}, bỏ qua ${result.skipped}.`,
       )
       reload()
@@ -286,6 +295,11 @@ function AttendancePage() {
       setAutoJobBusy(false)
     }
   }
+
+  const autoAbsentSettings = resolveAutoAbsentSettings(loadSystemSettings())
+  const autoAbsentConfigGate = getAutoAbsentConfigGate(autoAbsentSettings)
+  const showMissingApplyFromWarning = autoAbsentSettings.autoAbsentEnabled
+    && !autoAbsentSettings.autoAbsentApplyFrom
 
   const applyMonthRange = () => {
     setFromDate(`${month}-01`)
@@ -395,14 +409,20 @@ function AttendancePage() {
           <button
             type="button"
             className="attendance-page__add"
-            disabled={autoJobBusy}
+            disabled={autoJobBusy || !autoAbsentConfigGate.ok}
             onClick={handleRunAutoAbsent}
+            title={!autoAbsentConfigGate.ok ? autoAbsentConfigGate.message : undefined}
           >
             {autoJobBusy ? 'Đang chốt...' : 'Chốt nghỉ không phép (hôm qua)'}
           </button>
         )}
       </section>
 
+      {isAdmin() && showMissingApplyFromWarning && (
+        <p className="attendance-page__error" role="alert">
+          {AUTO_ABSENT_MISSING_APPLY_FROM_MESSAGE}
+        </p>
+      )}
       {autoJobMessage && <p className="attendance-page__loading">{autoJobMessage}</p>}
 
       <ErpKpiGrid items={kpiItems} />

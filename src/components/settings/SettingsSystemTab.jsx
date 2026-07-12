@@ -190,18 +190,24 @@ export default function SettingsSystemTab({ showToast }) {
           />
         </label>
         <label className="settings__field">
-          <span className="settings__field-label">Ngày bắt đầu áp dụng</span>
+          <span className="settings__field-label">Ngày bắt đầu áp dụng *</span>
           <input
             type="date"
-            value={settings.autoAbsentApplyFrom ?? '2026-07-16'}
+            value={settings.autoAbsentApplyFrom ?? ''}
             onChange={(event) => setSettings({
               ...settings,
-              autoAbsentApplyFrom: event.target.value,
+              autoAbsentApplyFrom: event.target.value || '',
             })}
           />
           <span className="settings__field-hint">
-            Chỉ tự ghi từ ngày này trở đi. Mặc định sau hạn bổ sung kỳ lương 1 để không biến ngày trống 01/07–15/07 thành nghỉ không phép sớm.
+            Bắt buộc khi bật tính năng. Chỉ tự ghi từ ngày này trở đi (đổi trong Cài đặt, không cần deploy).
+            Ngày trống = không tự động chạy.
           </span>
+          {settings.autoAbsentEnabled && !String(settings.autoAbsentApplyFrom || '').trim() && (
+            <p className="settings__field-hint" style={{ color: '#b45309', marginTop: 6 }} role="alert">
+              Chưa cấu hình ngày bắt đầu áp dụng nghỉ không phép.
+            </p>
+          )}
         </label>
         <label className="settings__field">
           <span className="settings__field-label">Mức phạt nghỉ nguyên ngày không phép (₫)</span>

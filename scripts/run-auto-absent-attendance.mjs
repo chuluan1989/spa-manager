@@ -208,6 +208,9 @@ async function main() {
 
   if (result.gateReason) {
     console.log(`Skip (no create): ${result.gateReason}`)
+    if (result.gateReason === 'missing_apply_from') {
+      console.log('Chưa cấu hình ngày bắt đầu áp dụng nghỉ không phép.')
+    }
   }
   console.log(`Done: created=${result.created} skipped=${result.skipped} errors=${result.errors}${dryRun ? ' (dry-run)' : ''}`)
   console.log('Chi tiết: tmp-auto-absent-result.json\n')
