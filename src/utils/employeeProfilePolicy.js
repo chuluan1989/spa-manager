@@ -1,4 +1,4 @@
-import { PROFILE_STATUS, getEmployeeProfileStatus } from './employeeStorage'
+import { getEmployeeProfileStatus, isEmployeeProfileComplete } from './employeeStorage'
 import { loadSystemSettings } from './systemSettingsStorage'
 
 export const PROFILE_TRACKED_FIELDS = [
@@ -36,9 +36,8 @@ export function isProfileDeadlinePassed(today = getTodayDate(), deadline = getEm
 }
 
 export function isEmployeeProfileFullyComplete(employee) {
-  // Hồ sơ hoàn thành theo các trường nhân viên tự cập nhật được
-  // (không yêu cầu chức vụ / ngày vào làm do Admin quản lý).
-  return getEmployeeProfileStatus(employee).key === PROFILE_STATUS.COMPLETE
+  // Đủ tối thiểu: Họ tên + SĐT + CCCD (khớp isEmployeeProfileComplete).
+  return isEmployeeProfileComplete(employee)
 }
 
 export function computeProfileCompletionPercent(employee) {

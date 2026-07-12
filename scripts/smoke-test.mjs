@@ -1429,33 +1429,25 @@ test('employee self profile: non-employee roles are denied', async () => {
 })
 
 test('getEmployeeProfileStatus: ưu tiên CCCD > ngân hàng > thiếu thông tin > đầy đủ', () => {
-  const base = {
-    name: 'Test',
-    phone: '0901234567',
-    email: 'a@b.com',
-    dateOfBirth: '1990-01-01',
-    gender: 'male',
-    currentAddress: 'Đ/c hiện tại',
-    position: 'KTV',
-    startDate: '2024-01-01',
-    emergencyContactName: 'X',
-    emergencyContactPhone: '0909999999',
-    cccdIssueDate: '2020-01-01',
-    cccdIssuePlace: 'CA',
-    cccdAddress: 'Đ/c CCCD',
-    bankName: 'ACB',
-    bankAccountHolder: 'Test',
-  }
-
-  assert.equal(getEmployeeProfileStatus({ ...base, cccd: '', bankAccount: '123' }).key, 'missing_cccd')
-  assert.equal(getEmployeeProfileStatus({ ...base, cccd: '079123456789', bankAccount: '' }).key, 'missing_bank')
+  assert.equal(getEmployeeProfileStatus({ name: 'Test', phone: '0901234567', cccd: '' }).key, 'missing_cccd')
   assert.equal(
-    getEmployeeProfileStatus({ ...base, cccd: '079123456789', bankAccount: '123', email: '' }).key,
+    getEmployeeProfileStatus({ name: 'Test', phone: '', cccd: '079123456789' }).key,
     'incomplete',
   )
   assert.equal(
-    getEmployeeProfileStatus({ ...base, cccd: '079123456789', bankAccount: '123' }).key,
+    getEmployeeProfileStatus({ name: 'Test', phone: '0901234567', cccd: '079123456789' }).key,
     'complete',
+  )
+  assert.equal(
+    getEmployeeProfileStatus({
+      name: 'Test',
+      phone: '0901234567',
+      cccd: '079123456789',
+      bankAccount: '',
+      email: '',
+    }).key,
+    'complete',
+    'Đủ tên + SĐT + CCCD là Đầy đủ, không bắt buộc email/ngân hàng',
   )
 })
 
@@ -2907,19 +2899,7 @@ test('getEmployeeProfileStatus: không yêu cầu chức vụ/ngày vào làm đ
   const completeWithoutAdminFields = {
     name: 'Test',
     phone: '0901234567',
-    email: 'a@b.com',
-    dateOfBirth: '1990-01-01',
-    gender: 'male',
-    currentAddress: 'Đ/c hiện tại',
-    emergencyContactName: 'X',
-    emergencyContactPhone: '0909999999',
     cccd: '079123456789',
-    cccdIssueDate: '2020-01-01',
-    cccdIssuePlace: 'CA',
-    cccdAddress: 'Đ/c CCCD',
-    bankName: 'ACB',
-    bankAccountHolder: 'Test',
-    bankAccount: '123',
   }
   assert.equal(getEmployeeProfileStatus(completeWithoutAdminFields).key, 'complete')
 })

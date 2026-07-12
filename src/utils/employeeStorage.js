@@ -304,45 +304,33 @@ export function isEmployeeProfileComplete(employee) {
   )
 }
 
-const RECOMMENDED_PROFILE_FIELDS = [
-  'phone',
-  'email',
-  'dateOfBirth',
-  'gender',
-  'currentAddress',
-  'emergencyContactName',
-  'emergencyContactPhone',
-  'cccdIssueDate',
-  'cccdIssuePlace',
-  'cccdAddress',
-  'bankName',
-  'bankAccountHolder',
-]
-
 /**
  * Trạng thái hồ sơ dùng để hiển thị badge cho Admin trong màn quản lý
- * nhân viên. Thứ tự ưu tiên: thiếu CCCD > thiếu ngân hàng > thiếu thông
- * tin khác > đầy đủ.
+ * nhân viên. Đầy đủ = Họ tên + SĐT + CCCD (tối thiểu theo nghiệp vụ).
+ * Thứ tự ưu tiên khi chưa đủ: thiếu CCCD > thiếu ngân hàng > thiếu thông tin.
  */
 export function getEmployeeProfileStatus(employee) {
   if (!employee) {
     return { key: PROFILE_STATUS.INCOMPLETE, label: 'Thiếu thông tin' }
   }
 
+  if (isEmployeeProfileComplete(employee)) {
+    return { key: PROFILE_STATUS.COMPLETE, label: 'Đầy đủ' }
+  }
+
   if (!employee.cccd?.trim()) {
     return { key: PROFILE_STATUS.MISSING_CCCD, label: 'Chưa có CCCD' }
+  }
+
+  if (!employee.name?.trim() || !employee.phone?.trim()) {
+    return { key: PROFILE_STATUS.INCOMPLETE, label: 'Thiếu thông tin' }
   }
 
   if (!employee.bankAccount?.trim()) {
     return { key: PROFILE_STATUS.MISSING_BANK, label: 'Chưa có ngân hàng' }
   }
 
-  const hasMissingField = RECOMMENDED_PROFILE_FIELDS.some((field) => !employee[field]?.trim?.())
-  if (hasMissingField) {
-    return { key: PROFILE_STATUS.INCOMPLETE, label: 'Thiếu thông tin' }
-  }
-
-  return { key: PROFILE_STATUS.COMPLETE, label: 'Đầy đủ' }
+  return { key: PROFILE_STATUS.INCOMPLETE, label: 'Thiếu thông tin' }
 }
 
 export function getProfileStatusLabel(key) {
