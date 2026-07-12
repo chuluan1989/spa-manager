@@ -126,6 +126,49 @@ export default function SettingsSystemTab({ showToast }) {
           </button>
         </div>
         <label className="settings__field">
+          <span className="settings__field-label">Kỳ lương 1 — ngày bắt đầu kiểm tra</span>
+          <input
+            type="date"
+            value={settings.payroll1PeriodStart ?? '2026-07-01'}
+            onChange={(event) => setSettings({
+              ...settings,
+              payroll1PeriodStart: event.target.value,
+            })}
+          />
+        </label>
+        <label className="settings__field">
+          <span className="settings__field-label">Kỳ lương 1 — hạn chốt (khóa sau 23:59 ICT)</span>
+          <input
+            type="date"
+            value={settings.payroll1LockDate ?? '2026-07-15'}
+            onChange={(event) => setSettings({
+              ...settings,
+              payroll1LockDate: event.target.value,
+            })}
+          />
+          <span className="settings__field-hint">
+            Sau 23:59 ngày này (Asia/Ho_Chi_Minh), nhân viên thiếu dữ liệu bị khóa tạo hóa đơn mới cho đến khi hoàn tất.
+            Gia hạn bằng cách chọn ngày mới rồi Lưu.
+          </span>
+        </label>
+        <SettingToggle
+          label="Bật thông báo / khóa kỳ lương 1"
+          checked={settings.payroll1Enabled !== false}
+          onChange={(v) => updateSetting('payroll1Enabled', v)}
+        />
+        <div className="settings__actions-row">
+          <button
+            type="button"
+            className="settings__btn settings__btn--secondary"
+            onClick={() => {
+              saveSystemSettings(settings)
+              showToast('Đã lưu cấu hình kỳ lương 1')
+            }}
+          >
+            Lưu kỳ lương 1
+          </button>
+        </div>
+        <label className="settings__field">
           <span className="settings__field-label">Ngưỡng doanh thu Khách VIP (₫)</span>
           <input
             type="number"

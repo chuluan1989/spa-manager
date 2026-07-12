@@ -17,6 +17,8 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteInvoiceRow, upsertInvoice, fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import { notifyDataSynced } from './dataSyncEvents'
 import { ensureBranchAndEmployeeOnServer } from './syncForeignKeys'
+import { PAYROLL1_INVOICE_LOCK_MESSAGE } from './payroll1Policy'
+import { isEmployeeInvoiceCreateLocked } from './payroll1Service'
 
 const DUPLICATE_INVOICE_MESSAGE =
   'Hóa đơn này có dấu hiệu bị nhập trùng nhiều lần. Vui lòng kiểm tra lại.'
@@ -343,6 +345,17 @@ export function replaceAllInvoices(invoices) {
 export async function saveInvoice(invoice) {
   if (!canAddInvoice()) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn.' }
+  }
+
+  if (isEmployee()) {
+    try {
+      const locked = await isEmployeeInvoiceCreateLocked(getCurrentUserEmployeeId())
+      if (locked) {
+        return { success: false, error: PAYROLL1_INVOICE_LOCK_MESSAGE }
+      }
+    } catch (error) {
+      console.warn('[Invoice] Không kiểm tra được khóa kỳ lương 1:', error?.message)
+    }
   }
 
   if (saveInvoiceInFlight) {

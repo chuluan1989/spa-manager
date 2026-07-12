@@ -1,6 +1,7 @@
 const REPORT_PREFILL_KEY = 'spa-manager-report-prefill'
 const DRILL_DOWN_PREFILL_KEY = 'spa-manager-drill-down-prefill'
 const INVOICE_EDIT_KEY = 'spa-manager-invoice-edit-id'
+const INVOICE_CREATE_DATE_KEY = 'spa-manager-invoice-create-date'
 
 export function setDrillDownPrefill(payload) {
   sessionStorage.setItem(DRILL_DOWN_PREFILL_KEY, JSON.stringify(payload))
@@ -43,4 +44,15 @@ export function consumeInvoiceEditPrefill() {
   const id = sessionStorage.getItem(INVOICE_EDIT_KEY)
   sessionStorage.removeItem(INVOICE_EDIT_KEY)
   return id || null
+}
+
+/** Prefill ngày tour khi nhân viên nhập bổ sung hóa đơn cũ. */
+export function setInvoiceCreateDatePrefill(date) {
+  if (date) sessionStorage.setItem(INVOICE_CREATE_DATE_KEY, date)
+}
+
+export function consumeInvoiceCreateDatePrefill() {
+  const date = sessionStorage.getItem(INVOICE_CREATE_DATE_KEY)
+  sessionStorage.removeItem(INVOICE_CREATE_DATE_KEY)
+  return date || null
 }

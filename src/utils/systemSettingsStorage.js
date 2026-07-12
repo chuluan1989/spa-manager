@@ -24,6 +24,11 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   onlyAdminDeleteInvoice: true,
   requireCompleteProfileBeforeTour: true,
   employeeProfileDeadline: '2026-07-10',
+  payroll1Enabled: true,
+  payroll1PeriodStart: '2026-07-01',
+  payroll1LockDate: '2026-07-15',
+  payroll1DayReviews: {},
+  payroll1Overrides: {},
   realtimeEnabled: true,
   warnLegacyLocalStorage: true,
   vipCustomerThreshold: 10000000,
@@ -44,6 +49,7 @@ export function loadSystemSettings() {
 }
 
 export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
+  const current = loadSystemSettings()
   const normalized = {
     ...DEFAULT_SYSTEM_SETTINGS,
     ...settings,
@@ -61,6 +67,14 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
     requireCompleteProfileBeforeTour: Boolean(settings.requireCompleteProfileBeforeTour),
     employeeProfileDeadline: settings.employeeProfileDeadline?.trim?.()
       || DEFAULT_SYSTEM_SETTINGS.employeeProfileDeadline,
+    payroll1Enabled: settings.payroll1Enabled !== false,
+    payroll1PeriodStart: settings.payroll1PeriodStart?.trim?.()
+      || DEFAULT_SYSTEM_SETTINGS.payroll1PeriodStart,
+    payroll1LockDate: settings.payroll1LockDate?.trim?.()
+      || DEFAULT_SYSTEM_SETTINGS.payroll1LockDate,
+    // Giữ trạng thái kỳ lương 1 (Supabase SSOT) khi lưu cài đặt khác.
+    payroll1DayReviews: settings.payroll1DayReviews ?? current.payroll1DayReviews ?? {},
+    payroll1Overrides: settings.payroll1Overrides ?? current.payroll1Overrides ?? {},
     realtimeEnabled: Boolean(settings.realtimeEnabled),
     warnLegacyLocalStorage: Boolean(settings.warnLegacyLocalStorage),
     vipCustomerThreshold: Math.max(

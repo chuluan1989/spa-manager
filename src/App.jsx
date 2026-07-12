@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Layout from './components/layout/Layout'
 import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
 import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
+import Payroll1NoticeModal from './components/payroll1/Payroll1NoticeModal'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -12,6 +13,8 @@ import {
   canAccessInvoicesPage,
   canAccessLegacySyncPage,
   canAccessMyProfilePage,
+  canAccessPayroll1AdminPage,
+  canAccessPayroll1CheckPage,
   canAccessSettingsPage,
   canAccessBranchesPage,
   canAccessServiceCatalogPage,
@@ -36,6 +39,8 @@ import Salary from './pages/Salary'
 import LegacySync from './pages/LegacySync'
 import Settings from './pages/Settings'
 import AdminBranches from './pages/AdminBranches'
+import Payroll1Check from './pages/Payroll1Check'
+import Payroll1Admin from './pages/Payroll1Admin'
 import EmployeeAttendanceLanding from './components/attendance/EmployeeAttendanceLanding'
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
@@ -49,6 +54,10 @@ import { getEmployeeById } from './utils/employeeStorage'
 import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
+import { loadEmployeePayroll1Status } from './utils/payroll1Service'
+import { shouldShowPayroll1Notice } from './utils/payroll1Policy'
+
+const PAYROLL1_NOTICE_ACK_KEY = 'spa-manager-payroll1-notice-acked'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -66,6 +75,8 @@ const PAGES = {
   'legacy-sync': LegacySync,
   profile: MyProfile,
   settings: Settings,
+  'payroll1-check': Payroll1Check,
+  'payroll1-admin': Payroll1Admin,
 }
 
 function getDefaultPage(user) {
@@ -87,6 +98,8 @@ function canAccessPage(pageId) {
   if (pageId === 'reports') return canViewReport()
   if (pageId === 'legacy-sync') return canAccessLegacySyncPage()
   if (pageId === 'profile') return canAccessMyProfilePage()
+  if (pageId === 'payroll1-check') return canAccessPayroll1CheckPage()
+  if (pageId === 'payroll1-admin') return canAccessPayroll1AdminPage()
   return true
 }
 
@@ -106,6 +119,8 @@ function App() {
     const user = loadCurrentUser()
     return user?.role !== ROLES.EMPLOYEE
   })
+  const [payroll1Status, setPayroll1Status] = useState(null)
+  const [showPayroll1Notice, setShowPayroll1Notice] = useState(false)
   const syncVersion = useDataSyncVersion()
 
   useEffect(() => {
@@ -117,6 +132,30 @@ function App() {
     }
     setAttendanceCheckReady(true)
   }, [authReady, currentUser])
+
+  useEffect(() => {
+    if (!authReady || !currentUser || currentUser.role !== ROLES.EMPLOYEE) {
+      setShowPayroll1Notice(false)
+      setPayroll1Status(null)
+      return
+    }
+    if (!attendanceGatePassed) return
+
+    let cancelled = false
+    async function loadNotice() {
+      try {
+        const status = await loadEmployeePayroll1Status(getCurrentUserEmployeeId())
+        if (cancelled) return
+        setPayroll1Status(status)
+        const acked = sessionStorage.getItem(PAYROLL1_NOTICE_ACK_KEY) === getCurrentUserEmployeeId()
+        setShowPayroll1Notice(shouldShowPayroll1Notice(status) && !acked)
+      } catch (error) {
+        console.warn('[payroll1] Không tải trạng thái thông báo:', error?.message)
+      }
+    }
+    loadNotice()
+    return () => { cancelled = true }
+  }, [authReady, currentUser, attendanceGatePassed, syncVersion, activePage])
 
   const completeAttendanceGate = useCallback(() => {
     setAttendanceGatePassed(true)
@@ -185,9 +224,11 @@ function App() {
         onLogin={(user) => {
           saveCurrentUser(user)
           setCurrentUser(user)
+          sessionStorage.removeItem(PAYROLL1_NOTICE_ACK_KEY)
           if (user.role === ROLES.EMPLOYEE) {
             setAttendanceGatePassed(false)
             setAttendanceCheckReady(true)
+            setShowPayroll1Notice(false)
           } else {
             setAttendanceGatePassed(true)
             setAttendanceCheckReady(true)
@@ -224,9 +265,12 @@ function App() {
 
   const handleLogout = () => {
     clearCurrentUser()
+    sessionStorage.removeItem(PAYROLL1_NOTICE_ACK_KEY)
     setCurrentUser(null)
     setAttendanceGatePassed(true)
     setAttendanceCheckReady(true)
+    setShowPayroll1Notice(false)
+    setPayroll1Status(null)
   }
 
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)
@@ -247,6 +291,20 @@ function App() {
         user={currentUser}
         onSyncComplete={() => notifyDataSynced(['invoices'])}
       />
+      {showPayroll1Notice && (
+        <Payroll1NoticeModal
+          status={payroll1Status}
+          onNavigate={(pageId) => {
+            sessionStorage.setItem(PAYROLL1_NOTICE_ACK_KEY, getCurrentUserEmployeeId())
+            setShowPayroll1Notice(false)
+            handleNavigate(pageId)
+          }}
+          onConfirmRead={() => {
+            sessionStorage.setItem(PAYROLL1_NOTICE_ACK_KEY, getCurrentUserEmployeeId())
+            setShowPayroll1Notice(false)
+          }}
+        />
+      )}
       <Page key={activePage} onNavigate={handleNavigate} />
     </Layout>
   )

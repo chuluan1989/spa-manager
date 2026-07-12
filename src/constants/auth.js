@@ -355,6 +355,14 @@ export function canAccessMyProfilePage(role = getCurrentUserRole()) {
   return role === ROLES.EMPLOYEE
 }
 
+export function canAccessPayroll1CheckPage(role = getCurrentUserRole()) {
+  return role === ROLES.EMPLOYEE
+}
+
+export function canAccessPayroll1AdminPage(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER
+}
+
 export function getVisibleNavItems(role = getCurrentUserRole()) {
   if (role === ROLES.ADMIN) {
     return pickNavItems(NAV_ITEMS, ADMIN_NAV_ORDER)

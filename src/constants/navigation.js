@@ -9,6 +9,8 @@ export const NAV_ITEMS = [
   { id: 'expenses', label: 'Chi phí', icon: 'expense', description: 'Quản lý chi phí' },
   { id: 'admin-services', label: 'Dịch vụ', icon: 'service', description: 'Bảng giá & dịch vụ' },
   { id: 'attendance', label: 'Chấm công', icon: 'attendance', description: 'Điểm danh nhân viên' },
+  { id: 'payroll1-check', label: 'Kỳ lương 1', icon: 'invoice', description: 'Hoàn thiện dữ liệu kỳ lương 1' },
+  { id: 'payroll1-admin', label: 'KL1 tổng hợp', icon: 'report', description: 'Tổng hợp hoàn thiện kỳ lương 1' },
   { id: 'settings', label: 'Cài đặt', icon: 'settings', description: 'Hệ thống & phân quyền' },
   { id: 'revenue', label: 'Doanh thu', icon: 'revenue', description: 'Theo dõi doanh thu chi nhánh' },
   { id: 'employees', label: 'Nhân viên', icon: 'employee', description: 'Nhân sự & hồ sơ' },
@@ -28,6 +30,7 @@ export const ADMIN_NAV_ORDER = [
   'expenses',
   'admin-services',
   'attendance',
+  'payroll1-admin',
   'settings',
 ]
 
@@ -42,6 +45,7 @@ export const BRANCH_MANAGER_NAV_ORDER = [
   'expenses',
   'admin-services',
   'attendance',
+  'payroll1-admin',
   'legacy-sync',
 ]
 
@@ -52,6 +56,7 @@ export const EMPLOYEE_NAV_ORDER = [
   'invoices',
   'customers',
   'attendance',
+  'payroll1-check',
   'salary',
   'profile',
   'legacy-sync',

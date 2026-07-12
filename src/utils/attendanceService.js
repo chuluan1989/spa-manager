@@ -183,6 +183,83 @@ export async function submitEmployeeAttendance({
   }
 }
 
+/**
+ * Bổ sung chấm công lùi (kỳ lương 1): từ periodStart đến hôm nay ICT.
+ * Không tạo trùng nếu ngày đã có bản ghi.
+ */
+export async function submitEmployeeAttendanceBackfill({
+  employeeId,
+  date,
+  status,
+  reason = '',
+  note = '',
+  minDate = '2026-07-01',
+}) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Hệ thống chưa kết nối máy chủ. Liên hệ quản trị viên.')
+  }
+  if (!employeeId) throw new Error('Không xác định được nhân viên.')
+  if (!status) throw new Error('Vui lòng chọn trạng thái điểm danh.')
+  if (!date) throw new Error('Vui lòng chọn ngày cần bổ sung.')
+
+  const { date: serverDate } = await getServerAttendanceDate()
+  if (date > serverDate) {
+    throw new Error('Không được chọn ngày tương lai.')
+  }
+  if (date < minDate) {
+    throw new Error(`Chỉ được bổ sung từ ngày ${minDate}.`)
+  }
+
+  let employee
+  let branchId
+  try {
+    ;({ employee, branchId } = await ensureAttendanceForeignKeys(employeeId))
+  } catch (err) {
+    throw new Error(parseAttendanceError(err))
+  }
+
+  try {
+    const saved = await withTimeout(
+      (async () => {
+        const existing = await fetchAttendanceByEmployeeAndDate(employee.id, date)
+        if (existing) {
+          const err = new Error('Ngày này đã có chấm công. Không tạo bản ghi trùng.')
+          err.existing = existing
+          throw err
+        }
+
+        const monthPrefix = getMonthPrefixFromDate(date)
+        const monthRecords = await fetchAttendanceForEmployeeMonth(employee.id, monthPrefix)
+        const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+
+        return insertAttendanceRecord({
+          id: createAttendanceId(),
+          date,
+          branchId,
+          employeeId: employee.id,
+          employeeName: employee.name ?? '',
+          status,
+          reason: reason.trim(),
+          note: note.trim(),
+          penaltyAmount,
+          submittedAt: new Date().toISOString(),
+          submittedBy: employee.id,
+          createdBy: employee.id,
+        }, {
+          onForeignKeyError: () => ensureAttendanceForeignKeys(employee.id),
+        })
+      })(),
+      ATTENDANCE_SAVE_TIMEOUT_MS,
+      'Lưu điểm danh quá lâu. Kiểm tra mạng và thử lại.',
+    )
+    notifyDataSynced(['attendance'])
+    return saved
+  } catch (err) {
+    if (err?.existing) throw err
+    throw new Error(parseAttendanceError(err))
+  }
+}
+
 function buildEditLogs(attendanceId, editor, changes, editNote = '') {
   return changes.map((change) => ({
     id: createAttendanceLogId(),

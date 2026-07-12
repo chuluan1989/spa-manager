@@ -54,7 +54,11 @@ import {
   normalizeCustomerPhone,
   sanitizeCustomerPhoneInput,
 } from '../utils/validators'
-import { consumeInvoiceEditPrefill } from '../utils/navigationPrefill'
+import { consumeInvoiceEditPrefill, consumeInvoiceCreateDatePrefill } from '../utils/navigationPrefill'
+import {
+  PAYROLL1_INVOICE_LOCK_MESSAGE,
+} from '../utils/payroll1Policy'
+import { isEmployeeInvoiceCreateLocked } from '../utils/payroll1Service'
 import { exportInvoicesCsv } from '../utils/invoiceExport'
 import { getCatalogGroupsForBranch } from '../utils/branchPricingStorage'
 import './Invoice.css'
@@ -98,7 +102,8 @@ export default function Invoice() {
   const lockedEmployee = isEmployee()
   const myEmployee = lockedEmployee ? getEmployeeById(getCurrentUserEmployeeId()) : null
   const profileLocked = lockedEmployee && isEmployeeProfileLocked(myEmployee)
-  const canCreateInvoice = canAddInvoice()
+  const [payroll1Locked, setPayroll1Locked] = useState(false)
+  const canCreateInvoice = canAddInvoice() && !payroll1Locked && !profileLocked
   const activeBranchName = getCurrentUserBranchName()
   const [form, setForm] = useState(INITIAL_FORM())
   const [selectedIds, setSelectedIds] = useState([])
@@ -121,6 +126,34 @@ export default function Invoice() {
     }
     return 'list'
   })
+
+  useEffect(() => {
+    let cancelled = false
+    async function checkLock() {
+      if (!isEmployee() || !canAddInvoice()) {
+        if (!cancelled) setPayroll1Locked(false)
+        return
+      }
+      try {
+        const locked = await isEmployeeInvoiceCreateLocked(getCurrentUserEmployeeId())
+        if (!cancelled) {
+          setPayroll1Locked(Boolean(locked))
+          if (locked) setActiveTab((tab) => (tab === 'create' && !editingId ? 'list' : tab))
+        }
+      } catch {
+        if (!cancelled) setPayroll1Locked(false)
+      }
+    }
+    checkLock()
+    return () => { cancelled = true }
+  }, [invoices, editingId])
+
+  useEffect(() => {
+    const prefillDate = consumeInvoiceCreateDatePrefill()
+    if (!prefillDate) return
+    setForm((prev) => ({ ...prev, date: prefillDate }))
+    if (!payroll1Locked) setActiveTab('create')
+  }, [])
 
   const getInvoiceByIdFromList = (id) => invoices.find((invoice) => invoice.id === id) ?? null
 
@@ -483,7 +516,12 @@ export default function Invoice() {
         )}
       </div>
 
-      {profileLocked && (
+      {payroll1Locked && (
+        <div className="invoice__profile-lock" role="alert">
+          {PAYROLL1_INVOICE_LOCK_MESSAGE}
+        </div>
+      )}
+      {profileLocked && !payroll1Locked && (
         <div className="invoice__profile-lock">
           {getEmployeeProfileLockMessage()}
         </div>
