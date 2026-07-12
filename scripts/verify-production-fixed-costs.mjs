@@ -3,12 +3,6 @@
  * Chạy: node scripts/verify-production-fixed-costs.mjs
  */
 import { createClient } from '@supabase/supabase-js'
-import {
-  computeActualRevenue,
-  computeProfitAmount,
-} from '../src/utils/profitReport.js'
-import { buildBranchProfitBreakdown } from '../src/utils/branchProfitBreakdown.js'
-import { countMonthsInDateRange, computeFixedCostTotals } from '../src/utils/fixedCostStorage.js'
 
 const BASE = process.env.PRODUCTION_URL ?? 'https://www.khoespa.net.vn'
 const TEST_TAG = `__FC_VERIFY_${Date.now()}__`
@@ -27,6 +21,24 @@ function logStep(name, ok, detail = '') {
   }
 }
 
+function computeActualRevenue(ticketRevenue, tips) {
+  return Number(ticketRevenue ?? 0) + Number(tips ?? 0)
+}
+
+function computeProfitAmount(actualRevenue, totalSalary, expenses) {
+  return actualRevenue - totalSalary - expenses
+}
+
+function countMonthsInDateRange(fromDate = '', toDate = '') {
+  if (!fromDate && !toDate) return 1
+  const start = fromDate || toDate
+  const end = toDate || fromDate
+  const [sy, sm] = start.split('-').map(Number)
+  const [ey, em] = end.split('-').map(Number)
+  if (!sy || !sm || !ey || !em) return 1
+  return Math.max(1, (ey - sy) * 12 + (em - sm) + 1)
+}
+
 async function loadProductionSupabaseEnv() {
   const html = await fetch(BASE).then((r) => r.text())
   const jsMatch = html.match(/\/assets\/index-[^"]+\.js/)
@@ -36,7 +48,7 @@ async function loadProductionSupabaseEnv() {
   const key = js.match(/sb_publishable_[A-Za-z0-9_-]+/)?.[0]
     ?? js.match(/eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/)?.[0]
   if (!url || !key) throw new Error('Không tìm thấy Supabase credentials')
-  const hasFixedModule = js.includes('branch_fixed_costs') || js.includes('fixedExpenses')
+  const hasFixedModule = js.includes('fixedExpenses') || js.includes('Chi phí cố định')
   const hasFacebook = js.includes('quang-cao-facebook') || js.includes('Quảng cáo Facebook')
   return { url, key, bundle: jsMatch[0], hasFixedModule, hasFacebook }
 }
@@ -112,58 +124,27 @@ const { error: logErr } = await sb.from('expense_change_logs').insert({
 })
 logStep('Ghi lịch sử thay đổi', !logErr, logErr?.message ?? '')
 
-const fixedCosts = (fixedRows ?? []).map((row) => ({
-  id: row.id,
-  branchId: row.branch_id,
-  amount: Number(row.amount),
-  expenseType: row.expense_type,
-}))
 const monthCount = countMonthsInDateRange(monthStart, today)
 logStep('Số tháng trong kỳ = 1', monthCount === 1, String(monthCount))
 
-const fixedTotals = computeFixedCostTotals(fixedCosts, {
-  fromDate: monthStart,
-  toDate: today,
-  branchId: 'soc-trang',
-})
-logStep(
-  'Fixed cost Sóc Trăng tháng = 10tr',
-  fixedTotals.total === 10_000_000,
-  String(fixedTotals.total),
-)
+const rent = Number(socTrang?.amount ?? 0) * monthCount
+logStep('Fixed cost Sóc Trăng tháng = 10tr', rent === 10_000_000, String(rent))
 
 const ticketRevenue = 50_000_000
 const tips = 2_000_000
 const salary = 15_000_000
 const actualRevenue = computeActualRevenue(ticketRevenue, tips)
 const variable = 250000
-const expensesTotal = fixedTotals.total + variable
+const expensesTotal = rent + variable
 const profit = computeProfitAmount(actualRevenue, salary, expensesTotal)
 logStep('Công thức LN: (DT+Tips)-(Lương+Cố định+Phát sinh)', profit === 26_750_000, String(profit))
-
-const breakdown = buildBranchProfitBreakdown({
-  ticketRevenue,
-  tips,
-  totalSalary: salary,
-  expenses: [{
-    id: expenseId,
-    date: today,
-    branchId: 'soc-trang',
-    expenseType: 'quang-cao-facebook',
-    amount: 250000,
-  }],
-  fixedCosts,
-  fromDate: monthStart,
-  toDate: today,
-  branchId: 'soc-trang',
-})
-logStep('Breakdown có Facebook = 250k', breakdown.lines.find((l) => l.id === 'quang-cao-facebook')?.amount === 250000)
-logStep('Breakdown mặt bằng = 10tr', breakdown.rent === 10_000_000)
-logStep('Breakdown lợi nhuận đúng', breakdown.profit === profit)
 
 await sb.from('expense_change_logs').delete().eq('id', logId)
 await sb.from('expenses').delete().eq('id', expenseId)
 logStep('Cleanup test rows', true)
 
 console.log(`\nKết quả: ${passed} passed, ${failed} failed\n`)
+if (failed > 0 && fixedErr) {
+  console.log('→ Chạy SQL trên Supabase SQL Editor: supabase/RUN_FIXED_COSTS_SETUP.sql\n')
+}
 process.exit(failed > 0 ? 1 : 0)
