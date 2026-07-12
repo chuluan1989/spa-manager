@@ -25,8 +25,8 @@ export { IMAGE_CATEGORIES }
 
 /**
  * Cột employees đã có trên Production.
- * endDate / commissionRate / salaryRate chỉ lưu local cho tới khi chạy
- * supabase/RUN_EMPLOYEE_ERP_FIELDS.sql (migration 0006).
+ * commission_rate / salary_rate / days_off chỉ sync sau khi chạy
+ * supabase/RUN_EMPLOYEE_ERP_FIELDS.sql.
  */
 export const SUPABASE_EMPLOYEE_FIELDS = [
   'id', 'branchId', 'name', 'dateOfBirth', 'gender', 'phone', 'email', 'cccd',

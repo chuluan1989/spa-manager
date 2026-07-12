@@ -1,7 +1,7 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
 import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
-/** Khớp cột Production — không gửi end_date/commission_rate/salary_rate khi chưa migrate. */
+/** Khớp cột Production — không gửi commission_rate/salary_rate/days_off khi chưa migrate. */
 const SUPABASE_EMPLOYEE_FIELDS = [
   'id', 'branchId', 'name', 'dateOfBirth', 'gender', 'phone', 'email', 'cccd',
   'cccdIssueDate', 'cccdIssuePlace', 'cccdAddress', 'currentAddress',
@@ -20,6 +20,14 @@ function toSupabaseEmployeePayload(employee) {
   return payload
 }
 
+function normalizeEmployeeFromDb(employee) {
+  if (!employee) return employee
+  return {
+    ...employee,
+    endDate: employee.endDate || employee.daysOff || '',
+  }
+}
+
 const TABLE = 'employees'
 
 export async function fetchEmployeesFiltered({ branchId } = {}) {
@@ -28,7 +36,7 @@ export async function fetchEmployeesFiltered({ branchId } = {}) {
   if (branchId) query = query.eq('branch_id', branchId)
   const { data, error } = await query
   if (error) throw error
-  return rowsToCamel(data ?? [])
+  return rowsToCamel(data ?? []).map(normalizeEmployeeFromDb)
 }
 
 export async function fetchEmployees() {
@@ -39,14 +47,14 @@ export async function fetchEmployees() {
     .order('branch_id', { ascending: true })
     .order('name', { ascending: true })
   if (error) throw error
-  return rowsToCamel(data)
+  return rowsToCamel(data).map(normalizeEmployeeFromDb)
 }
 
 export async function fetchEmployeeById(id) {
   if (!isSupabaseConfigured || !id) return null
   const { data, error } = await supabase.from(TABLE).select('*').eq('id', id).maybeSingle()
   if (error) throw error
-  return data ? rowsToCamel([data])[0] : null
+  return data ? normalizeEmployeeFromDb(rowsToCamel([data])[0]) : null
 }
 
 export async function upsertEmployee(employee) {
