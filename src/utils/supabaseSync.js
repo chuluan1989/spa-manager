@@ -5,6 +5,7 @@ import { countBranches, fetchBranches, upsertBranches } from '../repositories/br
 import {
   countEmployees,
   fetchEmployees,
+  fetchEmployeesForLogin,
   upsertEmployees,
 } from '../repositories/employeesRepository'
 import { fetchInvoices, upsertInvoices } from '../repositories/invoicesRepository'
@@ -21,7 +22,7 @@ import { fetchAccountMetadata, upsertAccountMetadata } from '../repositories/acc
 import { fetchCommissionPolicyMap, upsertCommissionPolicyMap } from '../repositories/commissionPolicyRepository'
 
 import { loadBranches, normalizeBranch, saveBranches, sortBranchesForDisplay } from './branchStorage'
-import { loadEmployees, normalizeEmployee, saveEmployees } from './employeeStorage'
+import { loadEmployees, mergeEmployeesPreservingMedia, normalizeEmployee, saveEmployees } from './employeeStorage'
 import { loadInvoices, replaceAllInvoices } from './invoiceStorage'
 import { loadExpenses, normalizeExpense, saveExpenses } from './expenseStorage'
 import { loadServices, normalizeService, saveServices } from './serviceStorage'
@@ -170,12 +171,15 @@ export async function pullAllFromSupabase() {
       fetch: fetchEmployees,
       apply: (data) => {
         const local = loadEmployees()
-        applyRemoteList(local, data, (merged) => {
-          saveEmployees(merged.map(normalizeEmployee), CACHE_ONLY)
-          syncEmployeeCredentialsFromEmployees().catch((error) => {
-            console.warn('[Supabase] Không thể đồng bộ credential nhân viên:', error?.message)
-          })
-        }, 'employees')
+        if (!shouldApplyRemoteList(data, local)) {
+          console.warn('[Supabase] Pull employees rỗng — giữ cache local')
+          return
+        }
+        const merged = mergeEmployeesPreservingMedia(local, data)
+        saveEmployees(merged.map(normalizeEmployee), CACHE_ONLY)
+        syncEmployeeCredentialsFromEmployees().catch((error) => {
+          console.warn('[Supabase] Không thể đồng bộ credential nhân viên:', error?.message)
+        })
       },
     },
     {
@@ -481,7 +485,17 @@ export async function runInitialSync({ timeoutMs = 8000 } = {}) {
 
   const work = autoMigrateIfNeeded()
     .catch((error) => console.warn('[Supabase] autoMigrateIfNeeded lỗi:', error?.message))
-    .then(() => pullAllFromSupabase())
+    .then(async () => {
+      try {
+        const loginRows = await fetchEmployeesForLogin()
+        if (loginRows?.length) {
+          saveEmployees(loginRows.map(normalizeEmployee), CACHE_ONLY)
+        }
+      } catch (error) {
+        console.warn('[Supabase] Pull employees (login) thất bại:', error?.message)
+      }
+      return pullAllFromSupabase()
+    })
 
   const timeout = new Promise((resolve) =>
     setTimeout(() => resolve({ success: false, reason: 'timeout' }), timeoutMs),

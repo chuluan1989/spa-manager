@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getBranchById } from '../../constants/branches'
 import {
   canViewEmployeeAvatar,
@@ -14,6 +14,7 @@ import {
   getEmployeeProfileStatus,
   getGenderLabel,
   getStatusLabel,
+  loadEmployeeProfileMediaFromServer,
 } from '../../utils/employeeStorage'
 import {
   getAuditActionLabel,
@@ -92,6 +93,47 @@ export default function EmployeeProfileDetail({
   onClose,
 }) {
   const [lightbox, setLightbox] = useState(null)
+  const [resolvedEmployee, setResolvedEmployee] = useState(employee)
+
+  useEffect(() => {
+    setResolvedEmployee(employee)
+  }, [employee])
+
+  useEffect(() => {
+    const employeeId = employee?.id
+    if (!employeeId) return
+
+    const canLoadAvatar = forceAdminFields || canViewEmployeeAvatar()
+    const canLoadCccd = forceAdminFields || canViewEmployeeCccd()
+    if (!canLoadAvatar && !canLoadCccd) return
+
+    const hasAvatar = Boolean(employee?.avatar)
+    const hasCccd = Boolean(employee?.cccdFrontImage || employee?.cccdBackImage)
+    const needsAvatar = canLoadAvatar && !hasAvatar
+    const needsCccd = canLoadCccd && !hasCccd
+    if (!needsAvatar && !needsCccd) return
+
+    let cancelled = false
+    loadEmployeeProfileMediaFromServer(employeeId)
+      .then((next) => {
+        if (!cancelled && next) setResolvedEmployee(next)
+      })
+      .catch((error) => {
+        console.warn('[EmployeeProfileDetail] Không tải được ảnh hồ sơ:', error?.message)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    employee?.id,
+    employee?.avatar,
+    employee?.cccdFrontImage,
+    employee?.cccdBackImage,
+    forceAdminFields,
+  ])
+
+  const viewEmployee = resolvedEmployee ?? employee
 
   const showContact = forceAdminFields || canViewEmployeePersonalInfo()
   const showCurrentAddress = forceAdminFields || canViewEmployeeCurrentAddress()
@@ -133,7 +175,7 @@ export default function EmployeeProfileDetail({
     <div className="employee-detail">
       <div className="employee-detail__header">
         {showAvatar && (
-          <EmployeeAvatar name={employee.name} avatar={employee.avatar} size="lg" />
+          <EmployeeAvatar name={viewEmployee.name} avatar={viewEmployee.avatar} size="lg" />
         )}
         <div className="employee-detail__header-info">
           <h3 className="employee-detail__name">{employee.name || 'Chưa cập nhật'}</h3>
@@ -212,8 +254,8 @@ export default function EmployeeProfileDetail({
             <Row label="Nơi cấp" value={employee.cccdIssuePlace} />
             <Row label="Địa chỉ trên CCCD" value={employee.cccdAddress} />
             <div className="employee-detail__thumbs">
-              <Thumb label="Ảnh CCCD mặt trước" src={employee.cccdFrontImage} onOpen={(src, label) => setLightbox({ src, label })} />
-              <Thumb label="Ảnh CCCD mặt sau" src={employee.cccdBackImage} onOpen={(src, label) => setLightbox({ src, label })} />
+              <Thumb label="Ảnh CCCD mặt trước" src={viewEmployee.cccdFrontImage} onOpen={(src, label) => setLightbox({ src, label })} />
+              <Thumb label="Ảnh CCCD mặt sau" src={viewEmployee.cccdBackImage} onOpen={(src, label) => setLightbox({ src, label })} />
             </div>
           </div>
         )}
@@ -229,7 +271,7 @@ export default function EmployeeProfileDetail({
         {currentTab === 'images' && (
           <div className="employee-detail__section">
             <div className="employee-detail__thumbs">
-              <Thumb label="Ảnh chân dung" src={employee.avatar} onOpen={(src, label) => setLightbox({ src, label })} />
+              <Thumb label="Ảnh chân dung" src={viewEmployee.avatar} onOpen={(src, label) => setLightbox({ src, label })} />
             </div>
             <p className="employee-detail__hint">Ảnh hồ sơ khác: Chưa có</p>
           </div>
