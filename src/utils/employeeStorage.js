@@ -16,6 +16,7 @@ import {
   ProfileConflictError,
   deleteEmployeeRow,
   fetchEmployeeById,
+  fetchEmployeeProfileMediaById,
   patchEmployeeProfile,
   upsertEmployee,
 } from '../repositories/employeesRepository'
@@ -173,6 +174,25 @@ export async function loadOwnEmployeeProfileFromServer(employeeId) {
   return normalized
 }
 
+/**
+ * Lazy-load avatar + CCCD khi mở Hồ sơ (Admin/Quản lý xem NV khác).
+ * Gộp vào cache local — không ghi đè text fields nếu đã có từ list sync.
+ */
+export async function loadEmployeeProfileMediaFromServer(employeeId) {
+  if (!employeeId) return null
+  const local = getEmployeeById(employeeId)
+  if (!isSupabaseConfigured) {
+    return local ? normalizeEmployee(local) : null
+  }
+
+  const media = await fetchEmployeeProfileMediaById(employeeId)
+  if (!media) return local ? normalizeEmployee(local) : null
+
+  const merged = mergeEmployeePreservingMedia(local ?? { id: employeeId }, media)
+  cacheEmployeeLocally(merged)
+  return merged
+}
+
 async function pushEmployeeDeletionToSupabase(id) {
   if (!id) {
     throw new Error(SUPABASE_REQUIRED_ERROR)
@@ -197,6 +217,46 @@ export const GENDER_OPTIONS = [
 ]
 
 const STORAGE_KEY = 'spa-manager-employees'
+
+/** Cột ảnh — giữ cache local khi pullAll không SELECT các cột này. */
+export const EMPLOYEE_MEDIA_FIELDS = ['avatar', 'cccdFrontImage', 'cccdBackImage']
+
+export function mergeEmployeePreservingMedia(existing, incoming) {
+  if (!incoming) return existing ?? null
+  if (!existing) return normalizeEmployee(incoming)
+
+  const existingTime = Date.parse(existing.updatedAt ?? 0)
+  const incomingTime = Date.parse(incoming.updatedAt ?? 0)
+  const base = incomingTime >= existingTime
+    ? { ...existing, ...incoming }
+    : { ...incoming, ...existing }
+
+  for (const key of EMPLOYEE_MEDIA_FIELDS) {
+    if (incoming[key]) base[key] = incoming[key]
+    else if (existing[key]) base[key] = existing[key]
+    else base[key] = ''
+  }
+
+  return normalizeEmployee(base)
+}
+
+export function mergeEmployeesPreservingMedia(localList, remoteList) {
+  if (!Array.isArray(localList) || localList.length === 0) {
+    return (remoteList ?? []).map(normalizeEmployee)
+  }
+  if (!Array.isArray(remoteList) || remoteList.length === 0) return localList
+
+  const map = new Map()
+  for (const item of localList) {
+    if (item?.id) map.set(item.id, item)
+  }
+  for (const item of remoteList) {
+    if (!item?.id) continue
+    const existing = map.get(item.id)
+    map.set(item.id, existing ? mergeEmployeePreservingMedia(existing, item) : normalizeEmployee(item))
+  }
+  return [...map.values()]
+}
 
 export const EMPTY_EMPLOYEE_FORM = {
   name: '',

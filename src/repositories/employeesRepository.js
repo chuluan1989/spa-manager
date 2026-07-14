@@ -99,9 +99,61 @@ export function buildEmployeePatchRow(patch) {
 
 const TABLE = 'employees'
 
+/** Cột ảnh — lazy-load khi mở Hồ sơ, không kéo trong list/pullAll. */
+export const EMPLOYEE_IMAGE_COLUMNS =
+  'avatar,cccd_front_image,cccd_back_image'
+
+/** Login: dropdown + verifyLogin — không cần ảnh hay PII. */
+export const EMPLOYEE_LOGIN_COLUMNS =
+  'id,name,branch_id,status,position,updated_at'
+
+/** List/sync: toàn bộ text + metadata, không gồm ảnh base64. */
+export const EMPLOYEE_LIST_COLUMNS = [
+  'id',
+  'branch_id',
+  'name',
+  'date_of_birth',
+  'gender',
+  'phone',
+  'email',
+  'cccd',
+  'cccd_issue_date',
+  'cccd_issue_place',
+  'cccd_address',
+  'current_address',
+  'bank_name',
+  'bank_account_holder',
+  'bank_account',
+  'emergency_contact_name',
+  'emergency_contact_phone',
+  'position',
+  'start_date',
+  'commission_rate',
+  'salary_rate',
+  'status',
+  'note',
+  'days_off',
+  'branch_history',
+  'updated_at',
+].join(',')
+
+export async function fetchEmployeesForLogin() {
+  if (!isSupabaseConfigured) return null
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select(EMPLOYEE_LOGIN_COLUMNS)
+    .order('branch_id', { ascending: true })
+    .order('name', { ascending: true })
+  if (error) throw error
+  return rowsToCamel(data ?? []).map(normalizeEmployeeFromDb)
+}
+
 export async function fetchEmployeesFiltered({ branchId } = {}) {
   if (!isSupabaseConfigured) return null
-  let query = supabase.from(TABLE).select('*').order('name', { ascending: true })
+  let query = supabase
+    .from(TABLE)
+    .select(EMPLOYEE_LIST_COLUMNS)
+    .order('name', { ascending: true })
   if (branchId) query = query.eq('branch_id', branchId)
   const { data, error } = await query
   if (error) throw error
@@ -112,11 +164,22 @@ export async function fetchEmployees() {
   if (!isSupabaseConfigured) return null
   const { data, error } = await supabase
     .from(TABLE)
-    .select('*')
+    .select(EMPLOYEE_LIST_COLUMNS)
     .order('branch_id', { ascending: true })
     .order('name', { ascending: true })
   if (error) throw error
   return rowsToCamel(data).map(normalizeEmployeeFromDb)
+}
+
+export async function fetchEmployeeProfileMediaById(id) {
+  if (!isSupabaseConfigured || !id) return null
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select(EMPLOYEE_IMAGE_COLUMNS)
+    .eq('id', id)
+    .maybeSingle()
+  if (error) throw error
+  return data ? normalizeEmployeeFromDb(rowsToCamel([data])[0]) : null
 }
 
 export async function fetchEmployeeById(id) {

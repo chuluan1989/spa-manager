@@ -13,6 +13,7 @@ import {
   getEmployeeProfileStatus,
   getStatusLabel,
   groupEmployeesByBranch,
+  loadEmployeeProfileMediaFromServer,
   loadEmployees,
   normalizeEmployee,
   transferEmployee,
@@ -94,10 +95,15 @@ export default function SettingsEmployeesTab({ showToast }) {
     setModal({ mode: 'add' })
   }
 
-  const openEdit = (employee) => {
-    setForm(employeeToForm(employee))
+  const openEdit = async (employee) => {
     setErrors({})
     setModal({ mode: 'edit', id: employee.id })
+    try {
+      const hydrated = await loadEmployeeProfileMediaFromServer(employee.id)
+      setForm(employeeToForm(hydrated ?? employee))
+    } catch {
+      setForm(employeeToForm(employee))
+    }
   }
 
   const openView = (employee) => {
