@@ -140,15 +140,15 @@ export default function SettingsSystemTab({ showToast }) {
           <span className="settings__field-label">Kỳ lương 1 — hạn chốt (khóa sau 23:59 ICT)</span>
           <input
             type="date"
-            value={settings.payroll1LockDate ?? '2026-07-15'}
+            value={settings.payroll1LockDate ?? '2026-07-18'}
             onChange={(event) => setSettings({
               ...settings,
               payroll1LockDate: event.target.value,
             })}
           />
           <span className="settings__field-hint">
-            Sau 23:59 ngày này (Asia/Ho_Chi_Minh), nhân viên thiếu dữ liệu bị khóa tạo hóa đơn mới cho đến khi hoàn tất.
-            Gia hạn bằng cách chọn ngày mới rồi Lưu.
+            Sau 23:59 ngày này (Asia/Ho_Chi_Minh), nhân viên thiếu dữ liệu bị hạn chế tạo hóa đơn mới cho đến khi hoàn tất.
+            Mặc định 18/07/2026 → hạn chế từ 00:00 ngày 19/07/2026. Gia hạn bằng cách chọn ngày mới rồi Lưu.
           </span>
         </label>
         <SettingToggle

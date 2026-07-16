@@ -9,8 +9,6 @@ export const PROFILE_TRACKED_FIELDS = [
   'dateOfBirth',
   'gender',
   'currentAddress',
-  'emergencyContactName',
-  'emergencyContactPhone',
   'cccdIssueDate',
   'cccdIssuePlace',
   'cccdAddress',

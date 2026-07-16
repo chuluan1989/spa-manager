@@ -97,7 +97,7 @@ function readInvoiceTimeForForm(invoice) {
   return getCurrentTime(parsed)
 }
 
-export default function Invoice() {
+export default function Invoice({ onNavigate }) {
   const lockedBranch = !canSelectBranch()
   const lockedEmployee = isEmployee()
   const myEmployee = lockedEmployee ? getEmployeeById(getCurrentUserEmployeeId()) : null
@@ -518,7 +518,18 @@ export default function Invoice() {
 
       {payroll1Locked && (
         <div className="invoice__profile-lock" role="alert">
-          {PAYROLL1_INVOICE_LOCK_MESSAGE}
+          <p>{PAYROLL1_INVOICE_LOCK_MESSAGE}</p>
+          <div className="invoice__profile-lock-actions">
+            <button type="button" className="app-tabs__btn" onClick={() => onNavigate?.('profile')}>
+              Hoàn thiện hồ sơ
+            </button>
+            <button type="button" className="app-tabs__btn" onClick={() => onNavigate?.('attendance')}>
+              Bổ sung chấm công
+            </button>
+            <button type="button" className="app-tabs__btn" onClick={() => onNavigate?.('payroll1-check')}>
+              Kiểm tra hóa đơn cũ
+            </button>
+          </div>
         </div>
       )}
       {profileLocked && !payroll1Locked && (

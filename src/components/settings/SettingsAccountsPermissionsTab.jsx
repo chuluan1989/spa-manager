@@ -5,10 +5,12 @@ import {
   getAccountList,
   updateAdminPassword,
   updateBranchPassword,
+  updateEmployeePassword,
 } from '../../utils/credentialsStorage'
 import {
   formatLastLogin,
   setAccountLocked,
+  setEmployeeAccountLocked,
 } from '../../utils/accountMetadataStorage'
 import {
   getBranchPermissionMatrix,
@@ -16,6 +18,7 @@ import {
   toggleBranchPermission,
   toggleEmployeePermission,
 } from '../../utils/permissionsStorage'
+import { setPayroll1EmployeeOverride } from '../../utils/payroll1Service'
 
 function Toggle({ checked, disabled, onChange, label }) {
   return (
@@ -31,12 +34,22 @@ function Toggle({ checked, disabled, onChange, label }) {
   )
 }
 
+function formatPasswordUpdatedAt(iso) {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleString('vi-VN')
+  } catch {
+    return '—'
+  }
+}
+
 export default function SettingsAccountsPermissionsTab({ showToast }) {
   const [accounts, setAccounts] = useState(() => getAccountList())
   const [matrixRevision, setMatrixRevision] = useState(0)
   const [passwordModal, setPasswordModal] = useState(null)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
   const [branchFilter, setBranchFilter] = useState('')
 
   const branches = useMemo(() => getMatrixBranches(), [matrixRevision])
@@ -55,27 +68,53 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
     setPasswordModal(null)
     setNewPassword('')
     setConfirmPassword('')
+    setSavingPassword(false)
   }
 
   const savePassword = async () => {
-    if (!newPassword.trim()) {
-      showToast('Vui lòng nhập mật khẩu mới')
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      showToast('Mật khẩu xác nhận không khớp')
-      return
-    }
+    if (savingPassword) return
+    setSavingPassword(true)
+    try {
+      if (passwordModal.isEmployee) {
+        const result = await updateEmployeePassword(
+          passwordModal.id,
+          newPassword,
+          confirmPassword,
+        )
+        if (!result.success) {
+          showToast(result.error ?? 'Không thể reset mật khẩu')
+          return
+        }
+      } else if (passwordModal.id === 'admin') {
+        if (!newPassword.trim() || newPassword !== confirmPassword) {
+          showToast(newPassword !== confirmPassword ? 'Mật khẩu xác nhận không khớp' : 'Vui lòng nhập mật khẩu mới')
+          return
+        }
+        if (newPassword.trim().length < 6) {
+          showToast('Mật khẩu mới tối thiểu 6 ký tự')
+          return
+        }
+        await updateAdminPassword(newPassword.trim())
+      } else {
+        if (!newPassword.trim() || newPassword !== confirmPassword) {
+          showToast(newPassword !== confirmPassword ? 'Mật khẩu xác nhận không khớp' : 'Vui lòng nhập mật khẩu mới')
+          return
+        }
+        if (newPassword.trim().length < 6) {
+          showToast('Mật khẩu mới tối thiểu 6 ký tự')
+          return
+        }
+        await updateBranchPassword(passwordModal.branchId, newPassword.trim())
+      }
 
-    if (passwordModal.id === 'admin') {
-      await updateAdminPassword(newPassword)
-    } else {
-      await updateBranchPassword(passwordModal.branchId, newPassword)
+      closePasswordModal()
+      refreshAccounts()
+      showToast('Đã đặt mật khẩu mới')
+    } catch (error) {
+      showToast(error?.message ?? 'Không thể lưu mật khẩu')
+    } finally {
+      setSavingPassword(false)
     }
-
-    closePasswordModal()
-    refreshAccounts()
-    showToast('Reset mật khẩu thành công')
   }
 
   const handleToggleBranch = (branchId, permissionKey, enabled) => {
@@ -92,10 +131,27 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
 
   const handleToggleLock = (account) => {
     const nextLocked = account.status !== 'locked'
-    const key = account.id === 'admin' ? 'admin' : account.branchId
-    setAccountLocked(key, nextLocked)
+    if (account.isEmployee) {
+      setEmployeeAccountLocked(account.id, nextLocked)
+    } else {
+      const key = account.id === 'admin' ? 'admin' : account.branchId
+      setAccountLocked(key, nextLocked)
+    }
     refreshAccounts()
-    showToast(nextLocked ? 'Đã khóa tài khoản' : 'Đã mở khóa tài khoản')
+    showToast(nextLocked ? 'Đã khóa đăng nhập' : 'Đã mở khóa đăng nhập')
+  }
+
+  const handleUnlockInvoice = async (account) => {
+    if (!account.isEmployee) return
+    try {
+      await setPayroll1EmployeeOverride({
+        employeeId: account.id,
+        manualUnlock: true,
+      })
+      showToast('Đã mở hạn chế nhập hóa đơn (thủ công)')
+    } catch (error) {
+      showToast(error?.message ?? 'Không thể mở hạn chế hóa đơn')
+    }
   }
 
   const filteredAccounts = branchFilter
@@ -112,6 +168,9 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
     <>
       <section className="settings__card">
         <h3 className="settings__card-title">Danh sách tài khoản</h3>
+        <p className="settings__hint">
+          Khóa đăng nhập và hạn chế nhập hóa đơn là hai trạng thái độc lập. Không hiển thị mật khẩu.
+        </p>
         <div className="settings__filters settings__filters--inline">
           <label className="settings__filter-field">
             <span>Lọc chi nhánh</span>
@@ -128,24 +187,28 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
             <thead>
               <tr>
                 <th>Tên</th>
+                <th>Username</th>
                 <th>Vai trò</th>
                 <th>Chi nhánh</th>
-                <th>Trạng thái</th>
+                <th>Trạng thái đăng nhập</th>
+                <th>Cập nhật MK</th>
                 <th>Đăng nhập gần nhất</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {filteredAccounts.map((account) => (
-                <tr key={account.id}>
+                <tr key={account.accountKey || account.id}>
                   <td>{account.label}</td>
+                  <td><code>{account.username || account.id}</code></td>
                   <td>{account.role}</td>
                   <td>{account.branchName}</td>
                   <td>
                     <span className={`settings__status settings__status--${account.status === 'locked' ? 'inactive' : 'active'}`}>
-                      {account.status === 'locked' ? 'Khóa' : 'Hoạt động'}
+                      {account.status === 'locked' ? 'Khóa đăng nhập' : 'Hoạt động'}
                     </span>
                   </td>
+                  <td>{formatPasswordUpdatedAt(account.passwordUpdatedAt)}</td>
                   <td>{account.lastLogin ?? formatLastLogin(null)}</td>
                   <td>
                     <div className="settings__actions-cell">
@@ -154,7 +217,7 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
                         className="settings__btn settings__btn--small settings__btn--secondary"
                         onClick={() => openPasswordModal(account)}
                       >
-                        Reset MK
+                        Đặt MK mới
                       </button>
                       {account.id !== 'admin' && (
                         <button
@@ -162,7 +225,16 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
                           className="settings__btn settings__btn--small"
                           onClick={() => handleToggleLock(account)}
                         >
-                          {account.status === 'locked' ? 'Mở khóa' : 'Khóa'}
+                          {account.status === 'locked' ? 'Mở khóa ĐN' : 'Khóa ĐN'}
+                        </button>
+                      )}
+                      {account.isEmployee && (
+                        <button
+                          type="button"
+                          className="settings__btn settings__btn--small settings__btn--secondary"
+                          onClick={() => handleUnlockInvoice(account)}
+                        >
+                          Mở hạn chế HĐ
                         </button>
                       )}
                     </div>
@@ -177,15 +249,14 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
       <section className="settings__card">
         <h3 className="settings__card-title">Ma trận phân quyền theo chi nhánh</h3>
         <p className="settings__hint">
-          Mỗi quản lý chi nhánh có quyền riêng. Quyền chỉ Admin không thể bật cho chi nhánh.
+          Bật/tắt quyền theo từng chi nhánh. Nhân viên dùng cột quyền chung.
         </p>
-        <div className="settings__matrix-wrap">
-          <table className="settings__matrix">
+        <div className="settings__table-wrap">
+          <table className="settings__table">
             <thead>
               <tr>
-                <th>Tính năng</th>
-                <th>Admin</th>
-                {branches.map((branch, index) => (
+                <th>Quyền</th>
+                {branches.map((branch) => (
                   <th key={branch.id}>{branchLabel(branch)}</th>
                 ))}
                 <th>Nhân viên</th>
@@ -195,13 +266,10 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
               {matrix.map((row) => (
                 <tr key={row.key}>
                   <td>{row.label}</td>
-                  <td>
-                    <Toggle checked label={row.label} disabled onChange={() => {}} />
-                  </td>
                   {branches.map((branch) => (
                     <td key={branch.id}>
                       <Toggle
-                        checked={row.branches[branch.id]}
+                        checked={Boolean(row.branches?.[branch.id])}
                         disabled={row.adminOnly}
                         label={`${row.label} — ${branch.name}`}
                         onChange={(enabled) => handleToggleBranch(branch.id, row.key, enabled)}
@@ -210,7 +278,7 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
                   ))}
                   <td>
                     <Toggle
-                      checked={row.employee}
+                      checked={Boolean(row.employee)}
                       disabled={row.adminOnly}
                       label={`${row.label} — Nhân viên`}
                       onChange={(enabled) => handleToggleEmployee(row.key, enabled)}
@@ -226,20 +294,46 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
       {passwordModal && (
         <div className="settings__modal-backdrop" onClick={closePasswordModal}>
           <div className="settings__modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="settings__modal-title">Reset mật khẩu — {passwordModal.label}</h3>
+            <h3 className="settings__modal-title">
+              Đặt mật khẩu mới — {passwordModal.label}
+            </h3>
+            <p className="settings__hint">
+              Không hiển thị mật khẩu cũ. Chỉ đặt mật khẩu mới (tối thiểu 6 ký tự).
+            </p>
             <div className="settings__form-grid">
               <label className="settings__field settings__field--full">
                 <span>Mật khẩu mới</span>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={savingPassword}
+                />
               </label>
               <label className="settings__field settings__field--full">
                 <span>Xác nhận mật khẩu</span>
-                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={savingPassword}
+                />
               </label>
             </div>
             <div className="settings__modal-actions">
-              <button type="button" className="settings__btn settings__btn--primary" onClick={savePassword}>Lưu</button>
-              <button type="button" className="settings__btn" onClick={closePasswordModal}>Hủy</button>
+              <button
+                type="button"
+                className="settings__btn settings__btn--primary"
+                onClick={savePassword}
+                disabled={savingPassword}
+              >
+                {savingPassword ? 'Đang lưu...' : 'Lưu mật khẩu'}
+              </button>
+              <button type="button" className="settings__btn" onClick={closePasswordModal} disabled={savingPassword}>
+                Hủy
+              </button>
             </div>
           </div>
         </div>

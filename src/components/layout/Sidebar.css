@@ -399,6 +399,40 @@
   }
 }
 
+.sidebar__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 16px;
+}
+
+.sidebar__modal {
+  width: min(420px, 100%);
+  background: #fff;
+  color: #111827;
+  border-radius: 12px;
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+}
+
+.sidebar__toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  background: #111827;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sidebar__link,
   .sidebar__link-icon,

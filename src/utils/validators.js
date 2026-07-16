@@ -59,12 +59,5 @@ export function validateEmployeeSelfProfile(data) {
     errors.cccd = 'CCCD phải gồm đúng 12 số'
   }
 
-  if (
-    data.emergencyContactPhone?.trim()
-    && !isValidVietnamesePhone(data.emergencyContactPhone)
-  ) {
-    errors.emergencyContactPhone = 'Số điện thoại không đúng định dạng'
-  }
-
   return errors
 }

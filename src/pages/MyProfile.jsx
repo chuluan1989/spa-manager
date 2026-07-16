@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import EmployeeAvatar from '../components/employees/EmployeeAvatar'
+import ChangePasswordForm from '../components/account/ChangePasswordForm'
 import '../components/employees/EmployeeProfileForm.css'
 import {
   EMPLOYEE_SELF_SERVICE_FIELDS,
@@ -42,8 +43,6 @@ function toFormState(employee) {
     cccdIssuePlace: employee.cccdIssuePlace ?? '',
     cccdAddress: employee.cccdAddress ?? '',
     currentAddress: employee.currentAddress ?? '',
-    emergencyContactName: employee.emergencyContactName ?? '',
-    emergencyContactPhone: employee.emergencyContactPhone ?? '',
     bankName: employee.bankName ?? '',
     bankAccountHolder: employee.bankAccountHolder ?? '',
     bankAccount: employee.bankAccount ?? '',
@@ -368,26 +367,6 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
               placeholder="Chưa cập nhật"
             />
           </Field>
-
-          <Field label="Người liên hệ khẩn cấp">
-            <input
-              value={form.emergencyContactName}
-              onChange={(e) => updateField('emergencyContactName', e.target.value)}
-              placeholder="Chưa cập nhật"
-            />
-          </Field>
-
-          <Field label="SĐT người liên hệ">
-            <input
-              value={form.emergencyContactPhone}
-              onChange={(e) => updateField('emergencyContactPhone', e.target.value)}
-              placeholder="Chưa cập nhật"
-              className={errors.emergencyContactPhone ? 'employee-profile__input--error' : ''}
-            />
-            {errors.emergencyContactPhone && (
-              <span className="employee-profile__error">{errors.emergencyContactPhone}</span>
-            )}
-          </Field>
         </div>
       </section>
 
@@ -480,6 +459,14 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
             entityId={employeeId}
           />
         </div>
+      </section>
+
+      <section className="myprofile__card">
+        <ChangePasswordForm
+          mode="employee"
+          employeeId={employeeId}
+          showToast={showToast}
+        />
       </section>
 
       <div className="myprofile__actions">

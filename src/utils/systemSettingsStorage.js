@@ -26,7 +26,7 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   employeeProfileDeadline: '2026-07-10',
   payroll1Enabled: true,
   payroll1PeriodStart: '2026-07-01',
-  payroll1LockDate: '2026-07-15',
+  payroll1LockDate: '2026-07-18',
   payroll1DayReviews: {},
   payroll1Overrides: {},
   autoAbsentEnabled: false,

@@ -9,6 +9,7 @@ import './payroll1.css'
 export default function Payroll1NoticeModal({ status, onNavigate, onContinue }) {
   const pending = status?.pendingTasks ?? []
   const count = pending.length
+  const deadlinePassed = Boolean(status?.deadlinePassed)
 
   return (
     <div className="payroll1-notice" role="dialog" aria-modal="true" aria-labelledby="payroll1-notice-title">
@@ -20,50 +21,48 @@ export default function Payroll1NoticeModal({ status, onNavigate, onContinue }) 
 
         {status && (
           <div className="payroll1-notice__statuses">
-            <div className="payroll1-notice__status-row">
-              <span>Hồ sơ</span>
-              <strong className={status.profileComplete ? 'payroll1-notice__ok' : 'payroll1-notice__warn'}>
-                {status.profileComplete ? '🟢 Đã hoàn thành' : '🔴 Chưa hoàn thành'}
-              </strong>
-            </div>
-            <div className="payroll1-notice__status-row">
-              <span>Chấm công</span>
-              <strong className={status.attendanceComplete ? 'payroll1-notice__ok' : 'payroll1-notice__warn'}>
-                {status.attendanceComplete
-                  ? '🟢 Đã kiểm tra'
-                  : `🟡 Còn thiếu ${status.missingAttendanceCount} ngày`}
-              </strong>
-            </div>
-            <div className="payroll1-notice__status-row">
-              <span>Hóa đơn</span>
-              <strong className={status.invoiceReviewComplete ? 'payroll1-notice__ok' : 'payroll1-notice__warn'}>
-                {status.invoiceReviewComplete
-                  ? '🟢 Đã kiểm tra'
-                  : '🔴 Chưa kiểm tra dữ liệu'}
-              </strong>
-            </div>
+            {!status.profileComplete && (
+              <div className="payroll1-notice__status-row">
+                <span>Hồ sơ</span>
+                <strong className="payroll1-notice__warn">
+                  Còn thiếu {(status.pendingTasks.find((t) => t.id === 'profile')?.detail || '').replace(/^Còn thiếu:\s*/, '') || 'thông tin bắt buộc'}
+                </strong>
+              </div>
+            )}
+            {!status.attendanceComplete && (
+              <div className="payroll1-notice__status-row">
+                <span>Chấm công</span>
+                <strong className="payroll1-notice__warn">
+                  Còn thiếu {status.missingAttendanceCount} ngày
+                </strong>
+              </div>
+            )}
+            {!status.invoiceReviewComplete && (
+              <div className="payroll1-notice__status-row">
+                <span>Hóa đơn</span>
+                <strong className="payroll1-notice__warn">
+                  Chưa xác nhận {status.uncheckedInvoiceCount} ngày
+                </strong>
+              </div>
+            )}
           </div>
         )}
 
         {count > 0 ? (
           <>
             <p>
-              <strong>
-                Còn {count} việc cần hoàn thành:
-              </strong>
+              {deadlinePassed
+                ? 'Tài khoản đang tạm hạn chế nhập hóa đơn do chưa hoàn thành dữ liệu kỳ lương. Vui lòng hoàn thành các mục còn thiếu hoặc liên hệ Admin.'
+                : 'Vui lòng hoàn thành hồ sơ, chấm công và kiểm tra hóa đơn từ ngày 01/07/2026 trước ngày 19/07/2026. Sau thời hạn này, chức năng nhập hóa đơn sẽ tạm bị hạn chế cho đến khi dữ liệu được hoàn tất.'}
             </p>
             <ul>
               {pending.map((task) => (
                 <li key={task.id}>{task.label}</li>
               ))}
             </ul>
-            <p>
-              Hết ngày {status?.lockDateLabel ?? '15/07/2026'}, hệ thống sẽ chốt dữ liệu tính lương kỳ 1.
-              Tài khoản thiếu dữ liệu có thể bị khóa nhập hóa đơn sau hạn.
-            </p>
           </>
         ) : (
-          <p>✅ Dữ liệu kỳ lương 1 đã hoàn thành. Cảm ơn bạn.</p>
+          <p>Dữ liệu đã hoàn thành. Cảm ơn bạn.</p>
         )}
 
         <div className="payroll1-notice__actions">
