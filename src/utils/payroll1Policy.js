@@ -7,9 +7,15 @@ export const PAYROLL1_PERIOD_START = '2026-07-01'
 export const PAYROLL1_DEFAULT_LOCK_DATE = '2026-07-18'
 
 export const PAYROLL1_INVOICE_LOCK_MESSAGE =
-  'Tài khoản đang tạm hạn chế nhập hóa đơn do chưa hoàn thành dữ liệu kỳ lương. Vui lòng hoàn thành các mục còn thiếu hoặc liên hệ Admin.'
+  'Tài khoản đang tạm hạn chế nhập hóa đơn do chưa hoàn thành Hồ sơ nhân viên hoặc Chấm công. Vui lòng hoàn thành các mục còn thiếu hoặc liên hệ Admin.'
 
 export const PAYROLL1_NOTICE_TITLE = 'THÔNG BÁO HOÀN THIỆN DỮ LIỆU'
+
+export const PAYROLL1_NOTICE_BEFORE_DEADLINE =
+  'Vui lòng hoàn thành Hồ sơ nhân viên và Chấm công trước ngày 19/07/2026. Sau thời gian này, tài khoản chưa hoàn thành sẽ bị hạn chế cho đến khi bổ sung đầy đủ hoặc được Admin mở lại.'
+
+export const PAYROLL1_NOTICE_AFTER_DEADLINE =
+  'Tài khoản đang tạm hạn chế nhập hóa đơn do chưa hoàn thành Hồ sơ nhân viên hoặc Chấm công. Vui lòng hoàn thành các mục còn thiếu hoặc liên hệ Admin.'
 
 export function getPayroll1PeriodStart() {
   return loadSystemSettings().payroll1PeriodStart || PAYROLL1_PERIOD_START
@@ -69,6 +75,8 @@ export function summarizeEmployeePayroll1Status({
   const missingAttendanceDates = dates.filter((date) => !attendanceByDate.has(date))
   const attendanceComplete = missingAttendanceDates.length === 0
 
+  // Hóa đơn / tour KHÔNG phải tiêu chí hoàn thành hay hạn chế tạo HĐ.
+  // Giữ tính toán review chỉ để màn Admin xem (không dùng cho lock).
   const uncheckedInvoiceDates = dates.filter((date) => {
     const review = reviewByDate.get(date)
     return !review || (review.reviewStatus !== 'checked' && review.reviewStatus !== 'no_tour')
@@ -79,12 +87,13 @@ export function summarizeEmployeePayroll1Status({
   const adminConfirmed = Boolean(override?.adminConfirmed)
   const manualUnlock = Boolean(override?.manualUnlock)
 
-  const dataComplete = adminConfirmed || (profileComplete && attendanceComplete && invoiceReviewComplete)
+  // Chỉ Hồ sơ + Chấm công. Không dùng hóa đơn / tour / doanh thu.
+  const dataComplete = adminConfirmed || (profileComplete && attendanceComplete)
   const deadlinePassed = isPayroll1DeadlinePassed(now)
   const invoiceCreateLocked = deadlinePassed && !dataComplete && !manualUnlock
 
-  const completedCount = [profileComplete, attendanceComplete, invoiceReviewComplete].filter(Boolean).length
-  const progressPercent = Math.round((completedCount / 3) * 100)
+  const completedCount = [profileComplete, attendanceComplete].filter(Boolean).length
+  const progressPercent = Math.round((completedCount / 2) * 100)
 
   const pendingTasks = []
   if (!profileComplete) {
@@ -106,15 +115,6 @@ export function summarizeEmployeePayroll1Status({
       label: `Bổ sung chấm công (còn thiếu ${missingAttendanceDates.length} ngày)`,
       detail: `Còn thiếu ${missingAttendanceDates.length} ngày từ ${formatVnDate(start)} đến nay`,
       buttonLabel: 'Bổ sung chấm công',
-    })
-  }
-  if (!invoiceReviewComplete) {
-    pendingTasks.push({
-      id: 'invoices',
-      pageId: 'payroll1-check',
-      label: `Kiểm tra hóa đơn từ ${formatVnDate(start)} đến nay`,
-      detail: `Còn ${uncheckedInvoiceDates.length} ngày chưa xác nhận`,
-      buttonLabel: 'Kiểm tra hóa đơn cũ',
     })
   }
 

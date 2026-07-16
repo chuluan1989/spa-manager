@@ -526,9 +526,6 @@ export default function Invoice({ onNavigate }) {
             <button type="button" className="app-tabs__btn" onClick={() => onNavigate?.('attendance')}>
               Bổ sung chấm công
             </button>
-            <button type="button" className="app-tabs__btn" onClick={() => onNavigate?.('payroll1-check')}>
-              Kiểm tra hóa đơn cũ
-            </button>
           </div>
         </div>
       )}
