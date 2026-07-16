@@ -11,7 +11,7 @@ export default function Payroll1StatusBanner({ status, onOpenTasks, onNavigate }
   if (status.dataComplete) {
     return (
       <div className="payroll1-banner payroll1-banner--done" role="status">
-        ✅ Dữ liệu kỳ lương 1 đã hoàn thành. Cảm ơn bạn.
+        ✅ Hồ sơ và Chấm công đã hoàn thành. Cảm ơn bạn.
       </div>
     )
   }

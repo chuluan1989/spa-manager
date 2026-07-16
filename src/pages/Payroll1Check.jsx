@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ATTENDANCE_STATUS_OPTIONS, getAttendanceStatusLabel } from '../constants/attendanceTypes'
 import { getCurrentUserEmployeeId } from '../constants/auth'
-import { formatCurrency } from '../utils/invoice'
 import { getPayroll1PeriodStart } from '../utils/payroll1Policy'
 import { getIctTodayDate } from '../utils/ictTime'
-import { loadEmployeePayroll1Status, markPayroll1DayReview } from '../utils/payroll1Service'
+import { loadEmployeePayroll1Status } from '../utils/payroll1Service'
 import { submitEmployeeAttendanceBackfill } from '../utils/attendanceService'
 import { fetchAttendanceByEmployeeAndDate } from '../repositories/attendanceRepository'
 import { setInvoiceCreateDatePrefill } from '../utils/navigationPrefill'
@@ -19,7 +18,6 @@ export default function Payroll1CheckPage({ onNavigate }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
-  const [busyDate, setBusyDate] = useState('')
 
   const [backfillDate, setBackfillDate] = useState('')
   const [backfillStatus, setBackfillStatus] = useState(ATTENDANCE_STATUS_OPTIONS[0]?.id ?? '')
@@ -75,21 +73,6 @@ export default function Payroll1CheckPage({ onNavigate }) {
     window.setTimeout(() => setToast(''), 3500)
   }
 
-  const handleMark = async (dayDate, reviewStatus) => {
-    setBusyDate(dayDate)
-    try {
-      await markPayroll1DayReview({ employeeId, dayDate, reviewStatus })
-      showToast(reviewStatus === 'no_tour'
-        ? 'Đã ghi nhận ngày không phát sinh tour.'
-        : 'Đã xác nhận kiểm tra hóa đơn ngày này.')
-      await reload()
-    } catch (err) {
-      showToast(err?.message ?? 'Không lưu được xác nhận.', true)
-    } finally {
-      setBusyDate('')
-    }
-  }
-
   const handleAddInvoice = (dayDate) => {
     setInvoiceCreateDatePrefill(dayDate)
     onNavigate?.('invoices')
@@ -129,10 +112,10 @@ export default function Payroll1CheckPage({ onNavigate }) {
   return (
     <div className="payroll1-page">
       <header className="payroll1-page__head">
-        <h1>Kiểm tra dữ liệu kỳ lương 1</h1>
+        <h1>Hoàn thiện hồ sơ & chấm công</h1>
         <p>
           Từ {periodStart.split('-').reverse().join('/')} đến hôm nay ({today.split('-').reverse().join('/')}).
-          Không bắt buộc mỗi ngày phải có hóa đơn — ngày không có tour hãy chọn “Không phát sinh tour”.
+          Chỉ cần hoàn thành Hồ sơ nhân viên và Chấm công. Không bắt buộc có hóa đơn hay Tour mỗi ngày.
         </p>
       </header>
 
@@ -161,15 +144,9 @@ export default function Payroll1CheckPage({ onNavigate }) {
             </strong>
           </div>
           <div className="payroll1-status-card">
-            <span>Hóa đơn</span>
-            <strong className={status.invoiceReviewComplete ? 'payroll1-notice__ok' : 'payroll1-notice__warn'}>
-              {status.invoiceStatusLabel}
-            </strong>
-          </div>
-          <div className="payroll1-status-card">
             <span>Nhập hóa đơn</span>
             <strong className={status.invoiceCreateLocked ? 'payroll1-notice__warn' : 'payroll1-notice__ok'}>
-              {status.invoiceCreateLocked ? 'Đang khóa' : 'Được phép'}
+              {status.invoiceCreateLocked ? 'Đang hạn chế' : 'Được phép'}
             </strong>
           </div>
         </div>
@@ -234,11 +211,7 @@ export default function Payroll1CheckPage({ onNavigate }) {
           <thead>
             <tr>
               <th>Ngày</th>
-              <th>Số tour</th>
-              <th>Tổng giá vé</th>
-              <th>Tổng Tips</th>
               <th>Chấm công</th>
-              <th>Trạng thái HĐ</th>
               <th>Thao tác</th>
             </tr>
           </thead>
@@ -246,37 +219,15 @@ export default function Payroll1CheckPage({ onNavigate }) {
             {(status?.dayRows ?? []).map((row) => (
               <tr key={row.date}>
                 <td>{row.dateLabel}</td>
-                <td>{row.tourCount}</td>
-                <td>{formatCurrency(row.ticketTotal)}</td>
-                <td>{formatCurrency(row.tipsTotal)}</td>
                 <td>
                   {row.attendance
                     ? getAttendanceStatusLabel(row.attendanceStatus)
                     : <span className="payroll1-badge payroll1-badge--warn">Thiếu</span>}
                 </td>
                 <td>
-                  <span className={`payroll1-badge ${row.reviewed ? 'payroll1-badge--ok' : 'payroll1-badge--warn'}`}>
-                    {row.statusLabel}
-                  </span>
-                </td>
-                <td>
                   <div className="payroll1-table__actions">
                     <button type="button" onClick={() => handleAddInvoice(row.date)}>
-                      Nhập bổ sung hóa đơn
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busyDate === row.date || row.reviewStatus === 'checked'}
-                      onClick={() => handleMark(row.date, 'checked')}
-                    >
-                      Đã kiểm tra
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busyDate === row.date || row.reviewStatus === 'no_tour'}
-                      onClick={() => handleMark(row.date, 'no_tour')}
-                    >
-                      Ngày này không phát sinh tour
+                      Nhập hóa đơn (tuỳ chọn)
                     </button>
                   </div>
                 </td>

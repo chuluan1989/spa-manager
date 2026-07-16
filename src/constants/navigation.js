@@ -56,7 +56,6 @@ export const EMPLOYEE_NAV_ORDER = [
   'invoices',
   'customers',
   'attendance',
-  'payroll1-check',
   'salary',
   'profile',
   'legacy-sync',

@@ -60,34 +60,19 @@ export function summarizeEmployeePayroll1Status({
       .filter((row) => row?.date >= start && row?.date <= end)
       .map((row) => [row.date, row]),
   )
-  const reviewByDate = new Map(
-    (dayReviews ?? [])
-      .filter((row) => row?.dayDate >= start && row?.dayDate <= end)
-      .map((row) => [row.dayDate, row]),
-  )
-  const invoicesByDate = new Map()
-  for (const invoice of invoices ?? []) {
-    if (!invoice?.date || invoice.date < start || invoice.date > end) continue
-    if (!invoicesByDate.has(invoice.date)) invoicesByDate.set(invoice.date, [])
-    invoicesByDate.get(invoice.date).push(invoice)
-  }
+
+  // invoices / dayReviews: tham số giữ tương thích caller; không dùng cho hoàn thành / hạn chế.
+  void invoices
+  void dayReviews
 
   const missingAttendanceDates = dates.filter((date) => !attendanceByDate.has(date))
   const attendanceComplete = missingAttendanceDates.length === 0
-
-  // Hóa đơn / tour KHÔNG phải tiêu chí hoàn thành hay hạn chế tạo HĐ.
-  // Giữ tính toán review chỉ để màn Admin xem (không dùng cho lock).
-  const uncheckedInvoiceDates = dates.filter((date) => {
-    const review = reviewByDate.get(date)
-    return !review || (review.reviewStatus !== 'checked' && review.reviewStatus !== 'no_tour')
-  })
-  const invoiceReviewComplete = uncheckedInvoiceDates.length === 0
 
   const profileComplete = isEmployeeProfileComplete(employee)
   const adminConfirmed = Boolean(override?.adminConfirmed)
   const manualUnlock = Boolean(override?.manualUnlock)
 
-  // Chỉ Hồ sơ + Chấm công. Không dùng hóa đơn / tour / doanh thu.
+  // Chỉ Hồ sơ + Chấm công. Không dùng hóa đơn / tour / doanh thu / no_tour.
   const dataComplete = adminConfirmed || (profileComplete && attendanceComplete)
   const deadlinePassed = isPayroll1DeadlinePassed(now)
   const invoiceCreateLocked = deadlinePassed && !dataComplete && !manualUnlock
@@ -123,7 +108,6 @@ export function summarizeEmployeePayroll1Status({
   const lastUpdatedCandidates = [
     employee?.updatedAt,
     ...(attendanceRecords ?? []).map((r) => r.updatedAt || r.submittedAt),
-    ...(dayReviews ?? []).map((r) => r.updatedAt),
     override?.updatedAt,
   ].filter(Boolean)
   lastUpdatedCandidates.sort()
@@ -140,10 +124,6 @@ export function summarizeEmployeePayroll1Status({
     attendanceStatusLabel: attendanceComplete ? 'Đã kiểm tra' : 'Còn thiếu ngày',
     missingAttendanceCount: missingAttendanceDates.length,
     missingAttendanceDates,
-    invoiceReviewComplete,
-    invoiceStatusLabel: invoiceReviewComplete ? 'Đã kiểm tra' : 'Chưa xác nhận đầy đủ',
-    uncheckedInvoiceCount: uncheckedInvoiceDates.length,
-    uncheckedInvoiceDates,
     completedCount,
     progressPercent,
     pendingTasks,
@@ -157,26 +137,12 @@ export function summarizeEmployeePayroll1Status({
     lockDateLabel: formatVnDate(getPayroll1LockDate()),
     lastUpdatedAt,
     dayRows: dates.map((date) => {
-      const dayInvoices = invoicesByDate.get(date) ?? []
-      const review = reviewByDate.get(date)
       const attendance = attendanceByDate.get(date)
-      const tourCount = dayInvoices.length
-      const ticketTotal = dayInvoices.reduce((sum, inv) => sum + Number(inv.serviceTotal ?? inv.total ?? 0), 0)
-      const tipsTotal = dayInvoices.reduce((sum, inv) => sum + Number(inv.tips ?? 0), 0)
-      const reviewed = review?.reviewStatus === 'checked' || review?.reviewStatus === 'no_tour'
       return {
         date,
         dateLabel: formatVnDate(date),
-        tourCount,
-        ticketTotal,
-        tipsTotal,
         attendance,
         attendanceStatus: attendance?.status ?? '',
-        reviewStatus: review?.reviewStatus ?? '',
-        reviewed,
-        statusLabel: reviewed
-          ? (review.reviewStatus === 'no_tour' ? 'Không phát sinh tour' : 'Đã kiểm tra')
-          : 'Chưa kiểm tra',
       }
     }),
   }
@@ -193,7 +159,6 @@ export function filterPayroll1AdminRows(rows, filter) {
   return rows.filter((row) => {
     if (filter === 'incomplete_profile') return !row.profileComplete
     if (filter === 'incomplete_attendance') return !row.attendanceComplete
-    if (filter === 'incomplete_invoices') return !row.invoiceReviewComplete
     if (filter === 'complete') return row.dataComplete || row.progressPercent === 100
     if (filter === 'incomplete') return !row.dataComplete
     return true

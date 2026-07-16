@@ -11,7 +11,6 @@ const FILTERS = [
   { id: 'all', label: 'Tất cả' },
   { id: 'incomplete_profile', label: 'Chưa hoàn thành Hồ sơ' },
   { id: 'incomplete_attendance', label: 'Chưa hoàn thành Chấm công' },
-  { id: 'incomplete_invoices', label: 'Chưa hoàn thành Hóa đơn' },
   { id: 'incomplete', label: 'Chưa xong' },
   { id: 'complete', label: 'Đã hoàn thành 100%' },
 ]
@@ -132,8 +131,6 @@ export default function Payroll1AdminPage() {
                     {row.profileComplete ? '✓ Hồ sơ' : '○ Hồ sơ'}
                     {' · '}
                     {row.attendanceComplete ? '✓ Chấm công' : '○ Chấm công'}
-                    {' · '}
-                    {row.invoiceReviewComplete ? '✓ Hóa đơn' : '○ Hóa đơn'}
                   </div>
                 </td>
                 <td>
