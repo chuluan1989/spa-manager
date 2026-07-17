@@ -18,7 +18,6 @@ import {
   toggleBranchPermission,
   toggleEmployeePermission,
 } from '../../utils/permissionsStorage'
-import { setPayroll1EmployeeOverride } from '../../utils/payroll1Service'
 
 function Toggle({ checked, disabled, onChange, label }) {
   return (
@@ -141,19 +140,6 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
     showToast(nextLocked ? 'Đã khóa đăng nhập' : 'Đã mở khóa đăng nhập')
   }
 
-  const handleUnlockInvoice = async (account) => {
-    if (!account.isEmployee) return
-    try {
-      await setPayroll1EmployeeOverride({
-        employeeId: account.id,
-        manualUnlock: true,
-      })
-      showToast('Đã mở hạn chế nhập hóa đơn (thủ công)')
-    } catch (error) {
-      showToast(error?.message ?? 'Không thể mở hạn chế hóa đơn')
-    }
-  }
-
   const filteredAccounts = branchFilter
     ? accounts.filter((account) => account.branchId === branchFilter || account.id === 'admin')
     : accounts
@@ -169,7 +155,7 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
       <section className="settings__card">
         <h3 className="settings__card-title">Danh sách tài khoản</h3>
         <p className="settings__hint">
-          Khóa đăng nhập và hạn chế nhập hóa đơn là hai trạng thái độc lập. Không hiển thị mật khẩu.
+          Khóa đăng nhập chỉ chặn đăng nhập — không ảnh hưởng quyền nhập hóa đơn. Không hiển thị mật khẩu.
         </p>
         <div className="settings__filters settings__filters--inline">
           <label className="settings__filter-field">
@@ -226,15 +212,6 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
                           onClick={() => handleToggleLock(account)}
                         >
                           {account.status === 'locked' ? 'Mở khóa ĐN' : 'Khóa ĐN'}
-                        </button>
-                      )}
-                      {account.isEmployee && (
-                        <button
-                          type="button"
-                          className="settings__btn settings__btn--small settings__btn--secondary"
-                          onClick={() => handleUnlockInvoice(account)}
-                        >
-                          Mở hạn chế HĐ
                         </button>
                       )}
                     </div>

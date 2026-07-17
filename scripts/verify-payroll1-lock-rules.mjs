@@ -1,5 +1,5 @@
 /**
- * Verify: payroll1 không bao giờ khóa tạo HĐ; chỉ nhắc Hồ sơ + Chấm công.
+ * Verify: payroll1 chỉ nhắc Hồ sơ + Chấm công, không khóa hóa đơn.
  * Run: npx vite-node scripts/verify-payroll1-lock-rules.mjs
  */
 import assert from 'node:assert/strict'
@@ -28,7 +28,6 @@ localStorage.setItem('spa-manager-system-settings', JSON.stringify({
 }))
 
 const { summarizeEmployeePayroll1Status } = await import('../src/utils/payroll1Policy.js')
-const { isEmployeeInvoiceCreateLocked } = await import('../src/utils/payroll1Service.js')
 
 const employee = {
   id: 'emp-1',
@@ -51,9 +50,9 @@ const before = summarizeEmployeePayroll1Status({
   dayReviews: [],
   now: new Date('2026-07-16T10:00:00+07:00'),
 })
-assert.equal(before.invoiceCreateLocked, false, 'Trước 19/07: không khóa tạo HĐ')
 assert.equal(before.deadlinePassed, false)
 assert.ok(before.pendingTasks.length > 0, 'Vẫn nhắc hồ sơ/chấm công nếu thiếu')
+assert.equal('invoiceCreateLocked' in before, false, 'Không còn field invoiceCreateLocked')
 
 const afterIncomplete = summarizeEmployeePayroll1Status({
   employee,
@@ -63,15 +62,8 @@ const afterIncomplete = summarizeEmployeePayroll1Status({
   now: new Date('2026-07-19T00:05:00+07:00'),
 })
 assert.equal(afterIncomplete.deadlinePassed, true)
-assert.equal(afterIncomplete.invoiceCreateLocked, false, 'Sau 19/07 thiếu hồ sơ/chấm công → vẫn không khóa HĐ')
 assert.ok(afterIncomplete.pendingTasks.some((t) => t.id === 'attendance'), 'Vẫn nhắc chấm công')
 assert.ok(!afterIncomplete.pendingTasks.some((t) => t.id === 'invoices'), 'Không nhắc nhiệm vụ hóa đơn')
-
-assert.equal(
-  await isEmployeeInvoiceCreateLocked('emp-1', new Date('2026-07-20T08:00:00+07:00')),
-  false,
-  'isEmployeeInvoiceCreateLocked luôn false',
-)
 
 const incompleteProfile = summarizeEmployeePayroll1Status({
   employee: { ...employee, phone: '', cccd: '' },
@@ -81,6 +73,6 @@ const incompleteProfile = summarizeEmployeePayroll1Status({
   now: new Date('2026-07-20T08:00:00+07:00'),
 })
 assert.equal(incompleteProfile.profileComplete, false)
-assert.equal(incompleteProfile.invoiceCreateLocked, false, 'Thiếu hồ sơ không khóa tạo HĐ')
+assert.ok(incompleteProfile.pendingTasks.some((t) => t.id === 'profile'), 'Vẫn nhắc hồ sơ')
 
-console.log('PASS — payroll1 never locks invoice create; profile/attendance remind only')
+console.log('PASS — payroll1 remind only; no invoice lock fields')

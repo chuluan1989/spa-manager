@@ -3,11 +3,8 @@ import { loadSystemSettings } from './systemSettingsStorage'
 import { formatVnDate, getIctTodayDate, isAfterIctEndOfDay, listDatesInclusive } from './ictTime'
 
 export const PAYROLL1_PERIOD_START = '2026-07-01'
-/** Hết ngày này (ICT) → từ 00:00 ngày 19/07 hạn chế tạo HĐ nếu thiếu dữ liệu. */
+/** Ngày tham chiếu thông báo nhắc Hồ sơ / Chấm công (không khóa hóa đơn). */
 export const PAYROLL1_DEFAULT_LOCK_DATE = '2026-07-18'
-
-export const PAYROLL1_INVOICE_LOCK_MESSAGE =
-  'Tài khoản đang tạm hạn chế nhập hóa đơn do chưa hoàn thành Hồ sơ nhân viên hoặc Chấm công. Vui lòng hoàn thành các mục còn thiếu hoặc liên hệ Admin.'
 
 export const PAYROLL1_NOTICE_TITLE = 'THÔNG BÁO HOÀN THIỆN DỮ LIỆU'
 
@@ -23,8 +20,6 @@ export function getPayroll1PeriodStart() {
 
 export function getPayroll1LockDate() {
   const stored = loadSystemSettings().payroll1LockDate || PAYROLL1_DEFAULT_LOCK_DATE
-  // Mở lại hạn chế hiện tại: mọi lock date cũ trước 18/07 được nâng tối thiểu lên 18/07
-  // → hạn chế chỉ áp từ 00:00 19/07/2026. Admin vẫn được gia hạn sang ngày sau.
   if (stored < PAYROLL1_DEFAULT_LOCK_DATE) return PAYROLL1_DEFAULT_LOCK_DATE
   return stored
 }
@@ -33,7 +28,7 @@ export function isPayroll1FeatureEnabled() {
   return loadSystemSettings().payroll1Enabled !== false
 }
 
-/** Khóa tạo HĐ sau 23:59 ngày lockDate (ICT) — tức từ 00:00 ngày kế tiếp. */
+/** Sau ngày lockDate (ICT) — chỉ dùng cho copy thông báo nhắc, không khóa hóa đơn. */
 export function isPayroll1DeadlinePassed(now = new Date()) {
   if (!isPayroll1FeatureEnabled()) return false
   return isAfterIctEndOfDay(getPayroll1LockDate(), now)
@@ -70,12 +65,10 @@ export function summarizeEmployeePayroll1Status({
 
   const profileComplete = isEmployeeProfileComplete(employee)
   const adminConfirmed = Boolean(override?.adminConfirmed)
-  const manualUnlock = Boolean(override?.manualUnlock)
 
-  // Chỉ Hồ sơ + Chấm công cho nhắc nhở. Không bao giờ khóa tạo hóa đơn.
+  // Chỉ Hồ sơ + Chấm công cho nhắc nhở. Không khóa tạo/sửa hóa đơn.
   const dataComplete = adminConfirmed || (profileComplete && attendanceComplete)
   const deadlinePassed = isPayroll1DeadlinePassed(now)
-  const invoiceCreateLocked = false
 
   const completedCount = [profileComplete, attendanceComplete].filter(Boolean).length
   const progressPercent = Math.round((completedCount / 2) * 100)
@@ -130,9 +123,7 @@ export function summarizeEmployeePayroll1Status({
     missingSummary,
     dataComplete,
     adminConfirmed,
-    manualUnlock,
     deadlinePassed,
-    invoiceCreateLocked,
     lockDate: getPayroll1LockDate(),
     lockDateLabel: formatVnDate(getPayroll1LockDate()),
     lastUpdatedAt,

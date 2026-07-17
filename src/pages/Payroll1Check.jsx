@@ -143,10 +143,6 @@ export default function Payroll1CheckPage({ onNavigate }) {
               {status.attendanceStatusLabel}
             </strong>
           </div>
-          <div className="payroll1-status-card">
-            <span>Nhập hóa đơn</span>
-            <strong className="payroll1-notice__ok">Được phép</strong>
-          </div>
         </div>
       )}
 

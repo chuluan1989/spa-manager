@@ -150,8 +150,3 @@ export async function setPayroll1EmployeeOverride({
   notifyDataSynced(['payroll1'])
   return saved
 }
-
-/** Luôn false — Hồ sơ/Chấm công chỉ nhắc, không khóa tạo HĐ. */
-export async function isEmployeeInvoiceCreateLocked(_employeeId, _now = new Date()) {
-  return false
-}

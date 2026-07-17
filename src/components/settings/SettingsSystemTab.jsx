@@ -111,7 +111,7 @@ export default function SettingsSystemTab({ showToast }) {
               employeeProfileDeadline: event.target.value,
             })}
           />
-          <span className="settings__field-hint">Sau ngày này, nhân viên chưa hoàn thiện hồ sơ sẽ bị khóa tạo hóa đơn và chấm công.</span>
+          <span className="settings__field-hint">Chỉ dùng để nhắc hoàn thiện hồ sơ. Không khóa nhập hóa đơn.</span>
         </label>
         <div className="settings__actions-row">
           <button
