@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import Layout from './components/layout/Layout'
 import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
 import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
-import Payroll1NoticeModal from './components/payroll1/Payroll1NoticeModal'
 import Payroll1StatusBanner from './components/payroll1/Payroll1StatusBanner'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
@@ -55,7 +54,6 @@ import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
 import { loadEmployeePayroll1Status } from './utils/payroll1Service'
-import { shouldShowPayroll1Notice } from './utils/payroll1Policy'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -109,13 +107,11 @@ function App() {
   const [activePage, setActivePage] = useState(() => getDefaultPage(loadCurrentUser()))
   const [authReady, setAuthReady] = useState(false)
   const [payroll1Status, setPayroll1Status] = useState(null)
-  const [showPayroll1Notice, setShowPayroll1Notice] = useState(false)
-  const [payroll1ModalDismissed, setPayroll1ModalDismissed] = useState(false)
   const syncVersion = useDataSyncVersion()
 
+  // Chỉ tải trạng thái để hiện banner nhắc — không modal, không chặn Hóa đơn.
   useEffect(() => {
     if (!authReady || !currentUser || currentUser.role !== ROLES.EMPLOYEE) {
-      setShowPayroll1Notice(false)
       setPayroll1Status(null)
       return
     }
@@ -124,19 +120,14 @@ function App() {
     async function loadNotice() {
       try {
         const status = await loadEmployeePayroll1Status(getCurrentUserEmployeeId())
-        if (cancelled) return
-        setPayroll1Status(status)
-        // Không lưu "đã đọc" — chỉ ẩn popup trong phiên hiện tại sau khi user chọn Tiếp tục.
-        const incomplete = shouldShowPayroll1Notice(status)
-        setShowPayroll1Notice(incomplete && !payroll1ModalDismissed)
-        if (status?.dataComplete) setPayroll1ModalDismissed(false)
+        if (!cancelled) setPayroll1Status(status)
       } catch (error) {
-        console.warn('[payroll1] Không tải trạng thái thông báo:', error?.message)
+        console.warn('[payroll1] Không tải trạng thái nhắc:', error?.message)
       }
     }
     loadNotice()
     return () => { cancelled = true }
-  }, [authReady, currentUser, syncVersion, activePage, payroll1ModalDismissed])
+  }, [authReady, currentUser, syncVersion, activePage])
 
   useEffect(() => {
     let cancelled = false
@@ -200,8 +191,6 @@ function App() {
         onLogin={(user) => {
           saveCurrentUser(user)
           setCurrentUser(user)
-          setPayroll1ModalDismissed(false)
-          setShowPayroll1Notice(false)
           setActivePage(getDefaultPage(user))
         }}
       />
@@ -211,9 +200,7 @@ function App() {
   const handleLogout = () => {
     clearCurrentUser()
     setCurrentUser(null)
-    setShowPayroll1Notice(false)
     setPayroll1Status(null)
-    setPayroll1ModalDismissed(false)
   }
 
   const handleNavigate = (pageId) => {
@@ -250,24 +237,6 @@ function App() {
         <Payroll1StatusBanner
           status={payroll1Status}
           onNavigate={handleNavigate}
-          onOpenTasks={() => {
-            setPayroll1ModalDismissed(false)
-            setShowPayroll1Notice(shouldShowPayroll1Notice(payroll1Status))
-          }}
-        />
-      )}
-      {showPayroll1Notice && (
-        <Payroll1NoticeModal
-          status={payroll1Status}
-          onNavigate={(pageId) => {
-            setPayroll1ModalDismissed(true)
-            setShowPayroll1Notice(false)
-            handleNavigate(pageId)
-          }}
-          onContinue={() => {
-            setPayroll1ModalDismissed(true)
-            setShowPayroll1Notice(false)
-          }}
         />
       )}
       <Page key={activePage} onNavigate={handleNavigate} />

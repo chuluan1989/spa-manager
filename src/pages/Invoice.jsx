@@ -95,7 +95,9 @@ function readInvoiceTimeForForm(invoice) {
 export default function Invoice({ onNavigate }) {
   const lockedBranch = !canSelectBranch()
   const lockedEmployee = isEmployee()
+  // Quyền tạo HĐ chỉ theo role đăng nhập — không phụ thuộc hồ sơ/chấm công/payroll1.
   const canCreateInvoice = canAddInvoice()
+  void onNavigate
   const activeBranchName = getCurrentUserBranchName()
   const [form, setForm] = useState(INITIAL_FORM())
   const [selectedIds, setSelectedIds] = useState([])

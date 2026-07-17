@@ -2,10 +2,9 @@ import Payroll1Progress from './Payroll1Progress'
 import './payroll1.css'
 
 /**
- * Dòng nhắc nhỏ sau khi đóng popup / khi đã hoàn thành.
- * Trạng thái luôn tính từ Supabase (qua props status).
+ * Banner nhắc Hồ sơ / Chấm công — không chặn, không modal, không khóa Hóa đơn.
  */
-export default function Payroll1StatusBanner({ status, onOpenTasks, onNavigate }) {
+export default function Payroll1StatusBanner({ status, onNavigate }) {
   if (!status) return null
 
   if (status.dataComplete) {
@@ -23,7 +22,7 @@ export default function Payroll1StatusBanner({ status, onOpenTasks, onNavigate }
       <div className="payroll1-banner__body">
         <Payroll1Progress status={status} compact />
         <p className="payroll1-banner__summary">
-          Còn {pending.length} việc: {pending.map((task) => task.label).join(' · ')}
+          Nhắc nhở: {pending.map((task) => task.label).join(' · ')}. Bạn vẫn tạo và sửa hóa đơn bình thường.
         </p>
       </div>
       <div className="payroll1-banner__actions">
@@ -32,9 +31,6 @@ export default function Payroll1StatusBanner({ status, onOpenTasks, onNavigate }
             {task.buttonLabel}
           </button>
         ))}
-        <button type="button" className="payroll1-banner__more" onClick={onOpenTasks}>
-          Xem chi tiết
-        </button>
       </div>
     </div>
   )
