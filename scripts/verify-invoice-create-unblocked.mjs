@@ -25,8 +25,10 @@ if (!globalThis.crypto?.subtle) {
 
 const appSrc = readFileSync(join(process.cwd(), 'src/App.jsx'), 'utf8')
 assert.equal(appSrc.includes('Payroll1NoticeModal'), false, 'App không được mở Payroll1NoticeModal')
+assert.equal(appSrc.includes('Payroll1StatusBanner'), false, 'App không hiện banner payroll1 trên luồng chính')
 assert.equal(appSrc.includes('EmployeeAttendanceLanding'), false, 'App không được chặn bằng EmployeeAttendanceLanding')
-assert.equal(appSrc.includes('showPayroll1Notice'), false, 'App không còn state modal payroll1')
+assert.equal(appSrc.includes('loadEmployeePayroll1Status'), false, 'App không tải payroll1 trong luồng chính')
+assert.ok(appSrc.includes('PREVIEW_BUILD_MARKER') || appSrc.includes('buildMarker'), 'App phải có dấu Preview')
 
 const invoiceSrc = readFileSync(join(process.cwd(), 'src/pages/Invoice.jsx'), 'utf8')
 assert.equal(invoiceSrc.includes('payroll1Locked'), false, 'Invoice không dùng payroll1Locked')

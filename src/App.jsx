@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import Layout from './components/layout/Layout'
 import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
 import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
-import Payroll1StatusBanner from './components/payroll1/Payroll1StatusBanner'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -53,7 +52,7 @@ import { getEmployeeById } from './utils/employeeStorage'
 import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
-import { loadEmployeePayroll1Status } from './utils/payroll1Service'
+import { PREVIEW_BUILD_MARKER } from './constants/buildMarker'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -106,28 +105,7 @@ function App() {
   })
   const [activePage, setActivePage] = useState(() => getDefaultPage(loadCurrentUser()))
   const [authReady, setAuthReady] = useState(false)
-  const [payroll1Status, setPayroll1Status] = useState(null)
   const syncVersion = useDataSyncVersion()
-
-  // Chỉ tải trạng thái để hiện banner nhắc — không modal, không chặn Hóa đơn.
-  useEffect(() => {
-    if (!authReady || !currentUser || currentUser.role !== ROLES.EMPLOYEE) {
-      setPayroll1Status(null)
-      return
-    }
-
-    let cancelled = false
-    async function loadNotice() {
-      try {
-        const status = await loadEmployeePayroll1Status(getCurrentUserEmployeeId())
-        if (!cancelled) setPayroll1Status(status)
-      } catch (error) {
-        console.warn('[payroll1] Không tải trạng thái nhắc:', error?.message)
-      }
-    }
-    loadNotice()
-    return () => { cancelled = true }
-  }, [authReady, currentUser, syncVersion, activePage])
 
   useEffect(() => {
     let cancelled = false
@@ -200,7 +178,6 @@ function App() {
   const handleLogout = () => {
     clearCurrentUser()
     setCurrentUser(null)
-    setPayroll1Status(null)
   }
 
   const handleNavigate = (pageId) => {
@@ -229,16 +206,23 @@ function App() {
         />
       ) : null}
     >
+      <div
+        style={{
+          background: '#0f766e',
+          color: '#ecfdf5',
+          fontSize: 12,
+          padding: '6px 12px',
+          textAlign: 'center',
+          fontWeight: 600,
+        }}
+        data-build-marker={PREVIEW_BUILD_MARKER}
+      >
+        {PREVIEW_BUILD_MARKER} — Không khóa Hóa đơn theo kỳ lương 1 / Hồ sơ / Chấm công
+      </div>
       <UnsyncedInvoicesBanner
         user={currentUser}
         onSyncComplete={() => notifyDataSynced(['invoices'])}
       />
-      {isEmployee() && payroll1Status && (
-        <Payroll1StatusBanner
-          status={payroll1Status}
-          onNavigate={handleNavigate}
-        />
-      )}
       <Page key={activePage} onNavigate={handleNavigate} />
     </Layout>
   )
