@@ -217,7 +217,7 @@ function App() {
         }}
         data-build-marker={PREVIEW_BUILD_MARKER}
       >
-        {PREVIEW_BUILD_MARKER} — Không khóa Hóa đơn theo kỳ lương 1 / Hồ sơ / Chấm công
+        {PREVIEW_BUILD_MARKER} — Không popup / banner kỳ lương 1 · Hóa đơn mở ngay
       </div>
       <UnsyncedInvoicesBanner
         user={currentUser}

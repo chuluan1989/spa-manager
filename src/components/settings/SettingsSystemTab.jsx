@@ -153,7 +153,7 @@ export default function SettingsSystemTab({ showToast }) {
         </label>
         <SettingToggle
           label="Bật thông báo kỳ lương 1 (Hồ sơ / Chấm công)"
-          checked={settings.payroll1Enabled !== false}
+          checked={settings.payroll1Enabled === true}
           onChange={(v) => updateSetting('payroll1Enabled', v)}
         />
         <div className="settings__actions-row">

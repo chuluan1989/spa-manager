@@ -3,16 +3,8 @@ import { loadSystemSettings } from './systemSettingsStorage'
 import { formatVnDate, getIctTodayDate, isAfterIctEndOfDay, listDatesInclusive } from './ictTime'
 
 export const PAYROLL1_PERIOD_START = '2026-07-01'
-/** Ngày tham chiếu thông báo nhắc Hồ sơ / Chấm công (không khóa hóa đơn). */
+/** Ngày tham chiếu nội bộ (không dùng để khóa HĐ / không hiện popup). */
 export const PAYROLL1_DEFAULT_LOCK_DATE = '2026-07-18'
-
-export const PAYROLL1_NOTICE_TITLE = 'THÔNG BÁO HOÀN THIỆN DỮ LIỆU'
-
-export const PAYROLL1_NOTICE_BEFORE_DEADLINE =
-  'Vui lòng hoàn thành Hồ sơ nhân viên và Chấm công trước ngày 19/07/2026. Bạn vẫn có thể tạo và sửa hóa đơn bình thường.'
-
-export const PAYROLL1_NOTICE_AFTER_DEADLINE =
-  'Vui lòng hoàn thành Hồ sơ nhân viên và Chấm công còn thiếu. Bạn vẫn có thể tạo và sửa hóa đơn bình thường.'
 
 export function getPayroll1PeriodStart() {
   return loadSystemSettings().payroll1PeriodStart || PAYROLL1_PERIOD_START
@@ -139,10 +131,9 @@ export function summarizeEmployeePayroll1Status({
   }
 }
 
-export function shouldShowPayroll1Notice(status) {
-  if (!isPayroll1FeatureEnabled()) return false
-  if (!status) return true
-  return !status.dataComplete
+/** Popup kỳ lương 1 đã tắt — luôn không hiện. */
+export function shouldShowPayroll1Notice(_status) {
+  return false
 }
 
 export function filterPayroll1AdminRows(rows, filter) {

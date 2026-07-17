@@ -1,6 +1,6 @@
 /**
- * Modal khóa kỳ lương 1 đã tắt hoàn toàn — không render gì.
- * Giữ file để tránh import cũ vỡ build nếu còn reference ngoài.
+ * Popup "Kỳ lương 1" đã gỡ hoàn toàn — không render.
+ * Không mở modal, không banner, không tiến độ.
  */
 export default function Payroll1NoticeModal() {
   return null

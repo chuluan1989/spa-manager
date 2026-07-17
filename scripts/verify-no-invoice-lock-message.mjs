@@ -12,6 +12,11 @@ const FORBIDDEN = [
   'PAYROLL1_INVOICE_LOCK_MESSAGE',
   'isEmployeeInvoiceCreateLocked',
   'invoiceCreateLocked',
+  'THÔNG BÁO HOÀN THIỆN DỮ LIỆU KỲ LƯƠNG 1',
+  'THÔNG BÁO HOÀN THÀNH DỮ LIỆU KỲ LƯƠNG 1',
+  'THÔNG BÁO HOÀN THIỆN DỮ LIỆU',
+  'Kiểm tra hóa đơn từ ngày 01/07',
+  'Kiểm tra hóa đơn từ 01/07',
 ]
 
 const assetsDir = join(process.cwd(), 'dist/assets')
