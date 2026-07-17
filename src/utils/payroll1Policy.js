@@ -12,10 +12,10 @@ export const PAYROLL1_INVOICE_LOCK_MESSAGE =
 export const PAYROLL1_NOTICE_TITLE = 'THÔNG BÁO HOÀN THIỆN DỮ LIỆU'
 
 export const PAYROLL1_NOTICE_BEFORE_DEADLINE =
-  'Vui lòng hoàn thành Hồ sơ nhân viên và Chấm công trước ngày 19/07/2026. Sau thời gian này, tài khoản chưa hoàn thành sẽ bị hạn chế cho đến khi bổ sung đầy đủ hoặc được Admin mở lại.'
+  'Vui lòng hoàn thành Hồ sơ nhân viên và Chấm công trước ngày 19/07/2026. Bạn vẫn có thể tạo và sửa hóa đơn bình thường.'
 
 export const PAYROLL1_NOTICE_AFTER_DEADLINE =
-  'Tài khoản đang tạm hạn chế nhập hóa đơn do chưa hoàn thành Hồ sơ nhân viên hoặc Chấm công. Vui lòng hoàn thành các mục còn thiếu hoặc liên hệ Admin.'
+  'Vui lòng hoàn thành Hồ sơ nhân viên và Chấm công còn thiếu. Bạn vẫn có thể tạo và sửa hóa đơn bình thường.'
 
 export function getPayroll1PeriodStart() {
   return loadSystemSettings().payroll1PeriodStart || PAYROLL1_PERIOD_START
@@ -72,10 +72,10 @@ export function summarizeEmployeePayroll1Status({
   const adminConfirmed = Boolean(override?.adminConfirmed)
   const manualUnlock = Boolean(override?.manualUnlock)
 
-  // Chỉ Hồ sơ + Chấm công. Không dùng hóa đơn / tour / doanh thu / no_tour.
+  // Chỉ Hồ sơ + Chấm công cho nhắc nhở. Không bao giờ khóa tạo hóa đơn.
   const dataComplete = adminConfirmed || (profileComplete && attendanceComplete)
   const deadlinePassed = isPayroll1DeadlinePassed(now)
-  const invoiceCreateLocked = deadlinePassed && !dataComplete && !manualUnlock
+  const invoiceCreateLocked = false
 
   const completedCount = [profileComplete, attendanceComplete].filter(Boolean).length
   const progressPercent = Math.round((completedCount / 2) * 100)

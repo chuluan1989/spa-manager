@@ -272,17 +272,15 @@ export function canEditInvoice(invoice = null, role = getCurrentUserRole(), bran
 
   if (role === ROLES.BRANCH_MANAGER) {
     if (!settings.allowManagerEditBranchInvoice) return false
-    if (!checkPermission(PERMISSION_KEYS.EDIT_INVOICE, role, branchId)) return false
     if (!invoice) return true
     return invoice.branchId === getCurrentUserBranch()
   }
 
   if (role === ROLES.EMPLOYEE) {
     if (!settings.allowEmployeeEditOwnInvoice) return false
-    if (!checkPermission(PERMISSION_KEYS.EDIT_INVOICE, role, branchId)) {
-      return Boolean(invoice) && invoice.employeeId === getCurrentUserEmployeeId()
-    }
-    return Boolean(invoice) && invoice.employeeId === getCurrentUserEmployeeId()
+    if (!invoice) return false
+    return invoice.employeeId === getCurrentUserEmployeeId()
+      && invoice.branchId === getCurrentUserBranch()
   }
 
   return false

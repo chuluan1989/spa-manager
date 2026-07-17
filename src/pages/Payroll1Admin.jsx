@@ -139,8 +139,8 @@ export default function Payroll1AdminPage() {
                     : '—'}
                 </td>
                 <td>
-                  <span className={`payroll1-badge ${row.invoiceCreateLocked ? 'payroll1-badge--lock' : 'payroll1-badge--ok'}`}>
-                    {row.invoiceCreateLocked ? 'Đang khóa' : 'Mở'}
+                  <span className="payroll1-badge payroll1-badge--ok">
+                    Mở
                     {row.manualUnlock ? ' (thủ công)' : ''}
                     {row.adminConfirmed ? ' (Admin OK)' : ''}
                   </span>

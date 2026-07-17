@@ -1,5 +1,5 @@
 /**
- * Verify: hạn chế tạo HĐ chỉ dựa trên Hồ sơ + Chấm công, không dựa hóa đơn/tour.
+ * Verify: payroll1 không bao giờ khóa tạo HĐ; chỉ nhắc Hồ sơ + Chấm công.
  * Run: npx vite-node scripts/verify-payroll1-lock-rules.mjs
  */
 import assert from 'node:assert/strict'
@@ -28,6 +28,7 @@ localStorage.setItem('spa-manager-system-settings', JSON.stringify({
 }))
 
 const { summarizeEmployeePayroll1Status } = await import('../src/utils/payroll1Policy.js')
+const { isEmployeeInvoiceCreateLocked } = await import('../src/utils/payroll1Service.js')
 
 const employee = {
   id: 'emp-1',
@@ -43,7 +44,6 @@ const attendance = [
   { date: '2026-07-02', employeeId: 'emp-1' },
 ]
 
-// Before deadline (16/07): never locked even if missing attendance for many days
 const before = summarizeEmployeePayroll1Status({
   employee,
   attendanceRecords: attendance,
@@ -51,10 +51,10 @@ const before = summarizeEmployeePayroll1Status({
   dayReviews: [],
   now: new Date('2026-07-16T10:00:00+07:00'),
 })
-assert.equal(before.invoiceCreateLocked, false, 'Trước 19/07: không hạn chế tạo HĐ')
+assert.equal(before.invoiceCreateLocked, false, 'Trước 19/07: không khóa tạo HĐ')
 assert.equal(before.deadlinePassed, false)
+assert.ok(before.pendingTasks.length > 0, 'Vẫn nhắc hồ sơ/chấm công nếu thiếu')
 
-// After deadline, profile+attendance incomplete for full period → locked
 const afterIncomplete = summarizeEmployeePayroll1Status({
   employee,
   attendanceRecords: attendance,
@@ -63,42 +63,24 @@ const afterIncomplete = summarizeEmployeePayroll1Status({
   now: new Date('2026-07-19T00:05:00+07:00'),
 })
 assert.equal(afterIncomplete.deadlinePassed, true)
-assert.equal(afterIncomplete.invoiceCreateLocked, true, 'Sau 19/07 thiếu chấm công → hạn chế HĐ')
+assert.equal(afterIncomplete.invoiceCreateLocked, false, 'Sau 19/07 thiếu hồ sơ/chấm công → vẫn không khóa HĐ')
+assert.ok(afterIncomplete.pendingTasks.some((t) => t.id === 'attendance'), 'Vẫn nhắc chấm công')
 assert.ok(!afterIncomplete.pendingTasks.some((t) => t.id === 'invoices'), 'Không nhắc nhiệm vụ hóa đơn')
 
-// After deadline, profile OK + attendance complete for all days in range → unlocked
-// Build attendance for every day 01/07..19/07
-const dates = []
-for (let d = 1; d <= 19; d += 1) {
-  dates.push(`2026-07-${String(d).padStart(2, '0')}`)
-}
-const fullAttendance = dates.map((date) => ({ date, employeeId: 'emp-1' }))
-const afterComplete = summarizeEmployeePayroll1Status({
-  employee,
-  attendanceRecords: fullAttendance,
-  invoices: [], // zero invoices — must NOT lock
-  dayReviews: [], // no day reviews — must NOT lock
-  now: new Date('2026-07-19T12:00:00+07:00'),
-})
-assert.equal(afterComplete.profileComplete, true)
-assert.equal(afterComplete.attendanceComplete, true)
-assert.equal(afterComplete.dataComplete, true)
-assert.equal(afterComplete.invoiceCreateLocked, false, 'Không khóa vì thiếu hóa đơn/tour')
+assert.equal(
+  await isEmployeeInvoiceCreateLocked('emp-1', new Date('2026-07-20T08:00:00+07:00')),
+  false,
+  'isEmployeeInvoiceCreateLocked luôn false',
+)
 
-// Missing invoices only, profile+attendance OK through today → still unlocked
-const datesTo20 = []
-for (let d = 1; d <= 20; d += 1) {
-  datesTo20.push(`2026-07-${String(d).padStart(2, '0')}`)
-}
-const attendanceTo20 = datesTo20.map((date) => ({ date, employeeId: 'emp-1' }))
-const noInvoices = summarizeEmployeePayroll1Status({
-  employee,
-  attendanceRecords: attendanceTo20,
+const incompleteProfile = summarizeEmployeePayroll1Status({
+  employee: { ...employee, phone: '', cccd: '' },
+  attendanceRecords: attendance,
   invoices: [],
   dayReviews: [],
   now: new Date('2026-07-20T08:00:00+07:00'),
 })
-assert.equal(noInvoices.attendanceComplete, true, 'Chấm công đủ đến 20/07')
-assert.equal(noInvoices.invoiceCreateLocked, false, 'Thiếu hóa đơn không khóa tạo HĐ')
+assert.equal(incompleteProfile.profileComplete, false)
+assert.equal(incompleteProfile.invoiceCreateLocked, false, 'Thiếu hồ sơ không khóa tạo HĐ')
 
-console.log('PASS — payroll1 lock rules: profile+attendance only; invoices ignored')
+console.log('PASS — payroll1 never locks invoice create; profile/attendance remind only')

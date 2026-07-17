@@ -145,9 +145,7 @@ export default function Payroll1CheckPage({ onNavigate }) {
           </div>
           <div className="payroll1-status-card">
             <span>Nhập hóa đơn</span>
-            <strong className={status.invoiceCreateLocked ? 'payroll1-notice__warn' : 'payroll1-notice__ok'}>
-              {status.invoiceCreateLocked ? 'Đang hạn chế' : 'Được phép'}
-            </strong>
+            <strong className="payroll1-notice__ok">Được phép</strong>
           </div>
         </div>
       )}

@@ -151,7 +151,7 @@ export async function setPayroll1EmployeeOverride({
   return saved
 }
 
-export async function isEmployeeInvoiceCreateLocked(employeeId, now = new Date()) {
-  const status = await loadEmployeePayroll1Status(employeeId, now)
-  return Boolean(status?.invoiceCreateLocked)
+/** Luôn false — Hồ sơ/Chấm công chỉ nhắc, không khóa tạo HĐ. */
+export async function isEmployeeInvoiceCreateLocked(_employeeId, _now = new Date()) {
+  return false
 }
