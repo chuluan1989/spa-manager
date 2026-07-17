@@ -5,7 +5,6 @@ import {
   canViewEmployeeBankInfo,
   canViewEmployeeCccd,
   canViewEmployeeCurrentAddress,
-  canViewEmployeeEmergencyContact,
   canViewEmployeeNote,
   canViewEmployeePersonalInfo,
   canViewEmployeePosition,
@@ -137,14 +136,13 @@ export default function EmployeeProfileDetail({
 
   const showContact = forceAdminFields || canViewEmployeePersonalInfo()
   const showCurrentAddress = forceAdminFields || canViewEmployeeCurrentAddress()
-  const showEmergencyContact = forceAdminFields || canViewEmployeeEmergencyContact()
   const showCccd = forceAdminFields || canViewEmployeeCccd()
   const showBankInfo = forceAdminFields || canViewEmployeeBankInfo()
   const showAvatar = forceAdminFields || canViewEmployeeAvatar()
   const showNote = forceAdminFields || canViewEmployeeNote()
   const showPosition = forceAdminFields || canViewEmployeePosition()
 
-  const hasContactTab = showContact || showCurrentAddress || showEmergencyContact
+  const hasContactTab = showContact || showCurrentAddress
   const hasImagesTab = showAvatar
 
   const tabs = useMemo(() => {
@@ -238,12 +236,6 @@ export default function EmployeeProfileDetail({
             {showContact && <Row label="Ngày sinh" value={employee.dateOfBirth} />}
             {showContact && <Row label="Giới tính" value={getGenderLabel(employee.gender)} />}
             {showCurrentAddress && <Row label="Địa chỉ hiện tại" value={employee.currentAddress} />}
-            {showEmergencyContact && (
-              <>
-                <Row label="Người liên hệ khẩn cấp" value={employee.emergencyContactName} />
-                <Row label="SĐT người liên hệ" value={employee.emergencyContactPhone} />
-              </>
-            )}
           </div>
         )}
 

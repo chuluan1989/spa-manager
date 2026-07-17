@@ -17,8 +17,6 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteInvoiceRow, upsertInvoice, fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import { notifyDataSynced } from './dataSyncEvents'
 import { ensureBranchAndEmployeeOnServer } from './syncForeignKeys'
-import { PAYROLL1_INVOICE_LOCK_MESSAGE } from './payroll1Policy'
-import { isEmployeeInvoiceCreateLocked } from './payroll1Service'
 
 const DUPLICATE_INVOICE_MESSAGE =
   'Hóa đơn này có dấu hiệu bị nhập trùng nhiều lần. Vui lòng kiểm tra lại.'
@@ -347,17 +345,6 @@ export async function saveInvoice(invoice) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn.' }
   }
 
-  if (isEmployee()) {
-    try {
-      const locked = await isEmployeeInvoiceCreateLocked(getCurrentUserEmployeeId())
-      if (locked) {
-        return { success: false, error: PAYROLL1_INVOICE_LOCK_MESSAGE }
-      }
-    } catch (error) {
-      console.warn('[Invoice] Không kiểm tra được khóa kỳ lương 1:', error?.message)
-    }
-  }
-
   if (saveInvoiceInFlight) {
     return { success: false, error: SAVE_IN_FLIGHT_MESSAGE }
   }
@@ -466,6 +453,7 @@ export function updateInvoice(id, data, currentFromCaller = null) {
   // Nhân viên chỉ được sửa nội dung dịch vụ/khách/tips/thanh toán/ghi chú;
   // không được đổi chi nhánh, nhân viên chính, nhân viên hỗ trợ — kể cả khi
   // dữ liệu gửi lên (qua code/browser) cố tình chứa các trường này.
+  // Quản lý được sửa nội dung HĐ chi nhánh mình nhưng không đổi branch_id.
   const safeData = isEmployee()
     ? {
         ...pickEmployeeEditableInvoiceFields(data),
@@ -476,7 +464,13 @@ export function updateInvoice(id, data, currentFromCaller = null) {
         supportEmployeeId: current.supportEmployeeId,
         supportEmployeeName: current.supportEmployeeName,
       }
-    : data
+    : isAdmin()
+      ? data
+      : {
+          ...data,
+          branchId: current.branchId,
+          branchName: current.branchName,
+        }
 
   const updated = normalizeInvoiceCustomerFields(ensureInvoiceSnapshot({
     ...current,

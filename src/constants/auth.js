@@ -262,6 +262,10 @@ export function canViewSystemWide(role = getCurrentUserRole(), branchId = getCur
 }
 
 export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  // Nhân viên / Quản lý / Admin luôn được tạo HĐ — không phụ thuộc ma trận quyền hay trạng thái hồ sơ/chấm công.
+  if (role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE) {
+    return true
+  }
   return checkPermission(PERMISSION_KEYS.ADD_INVOICE, role, branchId)
 }
 
@@ -272,17 +276,15 @@ export function canEditInvoice(invoice = null, role = getCurrentUserRole(), bran
 
   if (role === ROLES.BRANCH_MANAGER) {
     if (!settings.allowManagerEditBranchInvoice) return false
-    if (!checkPermission(PERMISSION_KEYS.EDIT_INVOICE, role, branchId)) return false
     if (!invoice) return true
     return invoice.branchId === getCurrentUserBranch()
   }
 
   if (role === ROLES.EMPLOYEE) {
     if (!settings.allowEmployeeEditOwnInvoice) return false
-    if (!checkPermission(PERMISSION_KEYS.EDIT_INVOICE, role, branchId)) {
-      return Boolean(invoice) && invoice.employeeId === getCurrentUserEmployeeId()
-    }
-    return Boolean(invoice) && invoice.employeeId === getCurrentUserEmployeeId()
+    if (!invoice) return false
+    return invoice.employeeId === getCurrentUserEmployeeId()
+      && invoice.branchId === getCurrentUserBranch()
   }
 
   return false

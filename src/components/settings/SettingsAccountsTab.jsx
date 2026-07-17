@@ -72,7 +72,6 @@ export default function SettingsAccountsTab({ showToast }) {
               <tr>
                 <th>Tài khoản</th>
                 <th>Chi nhánh</th>
-                <th>Mật khẩu hiện tại</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -81,7 +80,6 @@ export default function SettingsAccountsTab({ showToast }) {
                 <tr key={account.id}>
                   <td>{account.id === 'admin' ? 'Admin' : 'Quản lý chi nhánh'}</td>
                   <td>{account.id === 'admin' ? 'Tất cả' : account.branchName}</td>
-                  <td className="settings__password">{account.password}</td>
                   <td>
                     <button
                       type="button"

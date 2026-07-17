@@ -24,8 +24,6 @@ export const EMPLOYEE_PROFILE_EDITABLE_FIELDS = [
   'cccdIssuePlace',
   'cccdAddress',
   'currentAddress',
-  'emergencyContactName',
-  'emergencyContactPhone',
   'bankName',
   'bankAccountHolder',
   'bankAccount',

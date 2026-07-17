@@ -24,9 +24,9 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   onlyAdminDeleteInvoice: true,
   requireCompleteProfileBeforeTour: true,
   employeeProfileDeadline: '2026-07-10',
-  payroll1Enabled: true,
+  payroll1Enabled: false,
   payroll1PeriodStart: '2026-07-01',
-  payroll1LockDate: '2026-07-15',
+  payroll1LockDate: '2026-07-18',
   payroll1DayReviews: {},
   payroll1Overrides: {},
   autoAbsentEnabled: false,
@@ -75,7 +75,7 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
     requireCompleteProfileBeforeTour: Boolean(settings.requireCompleteProfileBeforeTour),
     employeeProfileDeadline: settings.employeeProfileDeadline?.trim?.()
       || DEFAULT_SYSTEM_SETTINGS.employeeProfileDeadline,
-    payroll1Enabled: settings.payroll1Enabled !== false,
+    payroll1Enabled: settings.payroll1Enabled === true,
     payroll1PeriodStart: settings.payroll1PeriodStart?.trim?.()
       || DEFAULT_SYSTEM_SETTINGS.payroll1PeriodStart,
     payroll1LockDate: settings.payroll1LockDate?.trim?.()

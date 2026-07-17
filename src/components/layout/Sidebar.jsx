@@ -1,15 +1,19 @@
+import { useState } from 'react'
 import { LogOut } from 'lucide-react'
 import KhoeSpaLogo from '../brand/KhoeSpaLogo'
 import {
   getCurrentUser,
+  getCurrentUserBranch,
   getCurrentUserName,
   getRoleLabel,
   getVisibleNavItems,
   isAdmin,
+  isBranchManager,
   ROLES,
 } from '../../constants/auth'
 import { getEmployeeById } from '../../utils/employeeStorage'
 import { loadAdminProfile } from '../../utils/adminProfileStorage'
+import ChangePasswordForm from '../account/ChangePasswordForm'
 import NavIcon from './NavIcon'
 import './Sidebar.css'
 
@@ -50,6 +54,13 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
   const roleLabel = getSidebarRoleLabel()
   const avatarUrl = getSidebarAvatar()
   const avatarInitial = userName.charAt(0).toUpperCase() || 'K'
+  const [passwordOpen, setPasswordOpen] = useState(false)
+  const [toast, setToast] = useState('')
+
+  const showToast = (message) => {
+    setToast(message)
+    setTimeout(() => setToast(''), 3000)
+  }
 
   return (
     <aside className="sidebar" aria-label="Menu chính">
@@ -96,21 +107,45 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
           </div>
         </div>
 
+        {isBranchManager() && (
+          <button
+            type="button"
+            className="sidebar__logout"
+            onClick={() => setPasswordOpen(true)}
+          >
+            Đổi mật khẩu
+          </button>
+        )}
+
         <button
           type="button"
           className="sidebar__logout"
           onClick={onLogout}
-          aria-label="Đăng xuất"
         >
-          <LogOut size={18} strokeWidth={1.75} />
-          <span>Đăng xuất</span>
+          <LogOut size={16} aria-hidden />
+          Đăng xuất
         </button>
 
-        <p className="sidebar__version">
-          <span className="sidebar__version-label">Phiên bản</span>
-          Khoẻ Spa Manager {APP_VERSION}
-        </p>
+        <p className="sidebar__version">PHIÊN BẢN<br />Khoẻ Spa Manager {APP_VERSION}</p>
       </div>
+
+      {toast && <div className="sidebar__toast">{toast}</div>}
+
+      {passwordOpen && (
+        <div className="sidebar__modal-backdrop" onClick={() => setPasswordOpen(false)}>
+          <div className="sidebar__modal" onClick={(e) => e.stopPropagation()}>
+            <ChangePasswordForm
+              mode="branch"
+              branchId={getCurrentUserBranch()}
+              showToast={showToast}
+              onSuccess={() => setPasswordOpen(false)}
+            />
+            <button type="button" className="sidebar__logout" onClick={() => setPasswordOpen(false)}>
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   )
 }

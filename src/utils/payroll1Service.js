@@ -150,8 +150,3 @@ export async function setPayroll1EmployeeOverride({
   notifyDataSynced(['payroll1'])
   return saved
 }
-
-export async function isEmployeeInvoiceCreateLocked(employeeId, now = new Date()) {
-  const status = await loadEmployeePayroll1Status(employeeId, now)
-  return Boolean(status?.invoiceCreateLocked)
-}

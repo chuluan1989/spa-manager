@@ -1,6 +1,6 @@
 import './payroll1.css'
 
-/** Thanh tiến độ + checklist 3 mục kỳ lương 1. */
+/** Thanh tiến độ: chỉ Hồ sơ + Chấm công (không dùng hóa đơn/tour). */
 export default function Payroll1Progress({ status, compact = false }) {
   if (!status) return null
 
@@ -8,13 +8,12 @@ export default function Payroll1Progress({ status, compact = false }) {
   const items = [
     { id: 'profile', label: 'Hồ sơ', done: status.profileComplete },
     { id: 'attendance', label: 'Chấm công', done: status.attendanceComplete },
-    { id: 'invoices', label: 'Hóa đơn', done: status.invoiceReviewComplete },
   ]
 
   return (
     <div className={`payroll1-progress${compact ? ' payroll1-progress--compact' : ''}`}>
       <div className="payroll1-progress__head">
-        <span>Hoàn thành dữ liệu kỳ lương 1</span>
+        <span>Hoàn thành hồ sơ & chấm công</span>
         <strong>{percent}%</strong>
       </div>
       <div

@@ -37,7 +37,7 @@ import {
   loadBranchServicePricesV2,
 } from './serviceCatalogV2Storage'
 import { loadBranchPricingMap, saveBranchPricingMap } from './branchPricingStorage'
-import { loadCredentials, saveCredentials, syncEmployeeCredentialsFromEmployees } from './credentialsStorage'
+import { loadCredentials, saveCredentials, syncEmployeeCredentialsFromEmployees, mergeCredentialsPreservingPasswords } from './credentialsStorage'
 import {
   collectPermissionsSnapshot,
   loadBranchPermissions,
@@ -247,11 +247,8 @@ export async function pullAllFromSupabase() {
       fetch: fetchCredentials,
       apply: (data) => {
         const local = loadCredentials()
-        saveCredentials({
-          admin: data?.admin ?? local.admin,
-          branches: { ...local.branches, ...(data?.branches ?? {}) },
-          employees: { ...local.employees, ...(data?.employees ?? {}) },
-        }, CACHE_ONLY)
+        const merged = mergeCredentialsPreservingPasswords(local, data ?? {})
+        saveCredentials(merged, CACHE_ONLY)
       },
     },
     {

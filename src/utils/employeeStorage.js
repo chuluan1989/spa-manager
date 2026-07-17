@@ -469,6 +469,16 @@ export function isEmployeeProfileComplete(employee) {
   )
 }
 
+/** Trả về danh sách field hồ sơ còn thiếu (không gồm người thân). */
+export function getMissingProfileFields(employee) {
+  if (!employee) return ['Họ và tên', 'Số điện thoại', 'CCCD']
+  const missing = []
+  if (!employee.name?.trim()) missing.push('Họ và tên')
+  if (!employee.phone?.trim()) missing.push('Số điện thoại')
+  if (!employee.cccd?.trim()) missing.push('CCCD')
+  return missing
+}
+
 /**
  * Trạng thái hồ sơ dùng để hiển thị badge cho Admin trong màn quản lý
  * nhân viên. Đầy đủ = Họ tên + SĐT + CCCD (tối thiểu theo nghiệp vụ).

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Layout from './components/layout/Layout'
-import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
 import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
-import Payroll1NoticeModal from './components/payroll1/Payroll1NoticeModal'
-import Payroll1StatusBanner from './components/payroll1/Payroll1StatusBanner'
+import CompletionRemindBanner, {
+  useCompletionRemindDismissed,
+} from './components/common/CompletionRemindBanner'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -42,7 +42,6 @@ import Settings from './pages/Settings'
 import AdminBranches from './pages/AdminBranches'
 import Payroll1Check from './pages/Payroll1Check'
 import Payroll1Admin from './pages/Payroll1Admin'
-import EmployeeAttendanceLanding from './components/attendance/EmployeeAttendanceLanding'
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials, repairEmployeeCredentials } from './utils/credentialsStorage'
@@ -51,12 +50,10 @@ import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { repairBranchIdReferences } from './utils/branchIdIntegrity'
 import { repairCanonicalBranchMapping } from './utils/canonicalBranchRepair'
-import { getEmployeeById } from './utils/employeeStorage'
 import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
 import { loadEmployeePayroll1Status } from './utils/payroll1Service'
-import { shouldShowPayroll1Notice } from './utils/payroll1Policy'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -109,60 +106,10 @@ function App() {
   })
   const [activePage, setActivePage] = useState(() => getDefaultPage(loadCurrentUser()))
   const [authReady, setAuthReady] = useState(false)
-  const [attendanceGatePassed, setAttendanceGatePassed] = useState(() => {
-    const user = loadCurrentUser()
-    if (user?.role !== ROLES.EMPLOYEE) return true
-    return false
-  })
-  const [attendanceCheckReady, setAttendanceCheckReady] = useState(() => {
-    const user = loadCurrentUser()
-    return user?.role !== ROLES.EMPLOYEE
-  })
-  const [payroll1Status, setPayroll1Status] = useState(null)
-  const [showPayroll1Notice, setShowPayroll1Notice] = useState(false)
-  const [payroll1ModalDismissed, setPayroll1ModalDismissed] = useState(false)
+  const [completionStatus, setCompletionStatus] = useState(null)
   const syncVersion = useDataSyncVersion()
-
-  useEffect(() => {
-    if (!authReady || !currentUser) return
-    if (currentUser.role !== ROLES.EMPLOYEE) {
-      setAttendanceGatePassed(true)
-      setAttendanceCheckReady(true)
-      return
-    }
-    setAttendanceCheckReady(true)
-  }, [authReady, currentUser])
-
-  useEffect(() => {
-    if (!authReady || !currentUser || currentUser.role !== ROLES.EMPLOYEE) {
-      setShowPayroll1Notice(false)
-      setPayroll1Status(null)
-      return
-    }
-    if (!attendanceGatePassed) return
-
-    let cancelled = false
-    async function loadNotice() {
-      try {
-        const status = await loadEmployeePayroll1Status(getCurrentUserEmployeeId())
-        if (cancelled) return
-        setPayroll1Status(status)
-        // Không lưu "đã đọc" — chỉ ẩn popup trong phiên hiện tại sau khi user chọn Tiếp tục.
-        const incomplete = shouldShowPayroll1Notice(status)
-        setShowPayroll1Notice(incomplete && !payroll1ModalDismissed)
-        if (status?.dataComplete) setPayroll1ModalDismissed(false)
-      } catch (error) {
-        console.warn('[payroll1] Không tải trạng thái thông báo:', error?.message)
-      }
-    }
-    loadNotice()
-    return () => { cancelled = true }
-  }, [authReady, currentUser, attendanceGatePassed, syncVersion, activePage, payroll1ModalDismissed])
-
-  const completeAttendanceGate = useCallback(() => {
-    setAttendanceGatePassed(true)
-    setActivePage('invoices')
-  }, [])
+  const employeeId = currentUser?.role === ROLES.EMPLOYEE ? getCurrentUserEmployeeId() : ''
+  const [remindDismissed, dismissRemind] = useCompletionRemindDismissed(employeeId)
 
   useEffect(() => {
     let cancelled = false
@@ -207,10 +154,36 @@ function App() {
     }
   }, [])
 
-  const myEmployee = useMemo(() => {
-    if (!isEmployee()) return null
-    return getEmployeeById(getCurrentUserEmployeeId())
-  }, [currentUser, syncVersion, activePage])
+  // Chỉ tải trạng thái để banner nhắc — không khóa Hóa đơn, không popup.
+  useEffect(() => {
+    if (!authReady || !currentUser || currentUser.role !== ROLES.EMPLOYEE) {
+      setCompletionStatus(null)
+      return
+    }
+
+    let cancelled = false
+    async function loadStatus() {
+      try {
+        const status = await loadEmployeePayroll1Status(getCurrentUserEmployeeId())
+        if (!cancelled) setCompletionStatus(status)
+      } catch (error) {
+        console.warn('[completion-remind] Không tải trạng thái nhắc:', error?.message)
+        if (!cancelled) setCompletionStatus(null)
+      }
+    }
+    loadStatus()
+    return () => { cancelled = true }
+  }, [authReady, currentUser, syncVersion, activePage])
+
+  const showRemind = useMemo(
+    () => Boolean(
+      isEmployee()
+      && completionStatus
+      && !completionStatus.dataComplete
+      && !remindDismissed,
+    ),
+    [completionStatus, remindDismissed, currentUser, syncVersion],
+  )
 
   if (!authReady) {
     return (
@@ -226,31 +199,16 @@ function App() {
         onLogin={(user) => {
           saveCurrentUser(user)
           setCurrentUser(user)
-          setPayroll1ModalDismissed(false)
-          if (user.role === ROLES.EMPLOYEE) {
-            setAttendanceGatePassed(false)
-            setAttendanceCheckReady(true)
-            setShowPayroll1Notice(false)
-          } else {
-            setAttendanceGatePassed(true)
-            setAttendanceCheckReady(true)
-            setActivePage(getDefaultPage(user))
-          }
+          setActivePage(getDefaultPage(user))
         }}
       />
     )
   }
 
-  if (isEmployee() && !attendanceCheckReady) {
-    return (
-      <div className="app-loading" style={{ padding: 24, textAlign: 'center', color: '#6b7280', background: '#f4f5f7', minHeight: '100vh' }}>
-        Đang kiểm tra điểm danh...
-      </div>
-    )
-  }
-
-  if (isEmployee() && !attendanceGatePassed) {
-    return <EmployeeAttendanceLanding onComplete={completeAttendanceGate} />
+  const handleLogout = () => {
+    clearCurrentUser()
+    setCurrentUser(null)
+    setCompletionStatus(null)
   }
 
   const handleNavigate = (pageId) => {
@@ -265,14 +223,15 @@ function App() {
     setActivePage(pageId)
   }
 
-  const handleLogout = () => {
-    clearCurrentUser()
-    setCurrentUser(null)
-    setAttendanceGatePassed(true)
-    setAttendanceCheckReady(true)
-    setShowPayroll1Notice(false)
-    setPayroll1Status(null)
-    setPayroll1ModalDismissed(false)
+  const handleCompleteNow = () => {
+    if (!completionStatus?.profileComplete) {
+      handleNavigate('profile')
+      return
+    }
+    if (!completionStatus?.attendanceComplete) {
+      handleNavigate('attendance')
+      return
+    }
   }
 
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)
@@ -282,41 +241,18 @@ function App() {
       activeItem={activePage}
       onNavigate={handleNavigate}
       onLogout={handleLogout}
-      banner={isEmployee() && myEmployee ? (
-        <EmployeeProfileBanner
-          employee={myEmployee}
-          onUpdateProfile={() => handleNavigate('profile')}
-        />
-      ) : null}
     >
+      {showRemind && (
+        <CompletionRemindBanner
+          status={completionStatus}
+          onCompleteNow={handleCompleteNow}
+          onDismiss={dismissRemind}
+        />
+      )}
       <UnsyncedInvoicesBanner
         user={currentUser}
         onSyncComplete={() => notifyDataSynced(['invoices'])}
       />
-      {isEmployee() && payroll1Status && (
-        <Payroll1StatusBanner
-          status={payroll1Status}
-          onNavigate={handleNavigate}
-          onOpenTasks={() => {
-            setPayroll1ModalDismissed(false)
-            setShowPayroll1Notice(shouldShowPayroll1Notice(payroll1Status))
-          }}
-        />
-      )}
-      {showPayroll1Notice && (
-        <Payroll1NoticeModal
-          status={payroll1Status}
-          onNavigate={(pageId) => {
-            setPayroll1ModalDismissed(true)
-            setShowPayroll1Notice(false)
-            handleNavigate(pageId)
-          }}
-          onContinue={() => {
-            setPayroll1ModalDismissed(true)
-            setShowPayroll1Notice(false)
-          }}
-        />
-      )}
       <Page key={activePage} onNavigate={handleNavigate} />
     </Layout>
   )

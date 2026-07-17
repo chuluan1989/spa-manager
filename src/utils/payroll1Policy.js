@@ -1,28 +1,26 @@
-import { isEmployeeProfileComplete } from './employeeStorage'
+import { isEmployeeProfileComplete, getMissingProfileFields } from './employeeStorage'
 import { loadSystemSettings } from './systemSettingsStorage'
 import { formatVnDate, getIctTodayDate, isAfterIctEndOfDay, listDatesInclusive } from './ictTime'
 
 export const PAYROLL1_PERIOD_START = '2026-07-01'
-export const PAYROLL1_DEFAULT_LOCK_DATE = '2026-07-15'
-
-export const PAYROLL1_INVOICE_LOCK_MESSAGE =
-  'Tài khoản đang tạm khóa chức năng nhập hóa đơn do chưa hoàn thành dữ liệu kỳ lương 1. Vui lòng hoàn thành Hồ sơ, Chấm công và kiểm tra Hóa đơn từ ngày 01/07/2026.'
-
-export const PAYROLL1_NOTICE_TITLE = 'THÔNG BÁO HOÀN THIỆN DỮ LIỆU KỲ LƯƠNG 1'
+/** Ngày tham chiếu nội bộ (không dùng để khóa HĐ / không hiện popup). */
+export const PAYROLL1_DEFAULT_LOCK_DATE = '2026-07-18'
 
 export function getPayroll1PeriodStart() {
   return loadSystemSettings().payroll1PeriodStart || PAYROLL1_PERIOD_START
 }
 
 export function getPayroll1LockDate() {
-  return loadSystemSettings().payroll1LockDate || PAYROLL1_DEFAULT_LOCK_DATE
+  const stored = loadSystemSettings().payroll1LockDate || PAYROLL1_DEFAULT_LOCK_DATE
+  if (stored < PAYROLL1_DEFAULT_LOCK_DATE) return PAYROLL1_DEFAULT_LOCK_DATE
+  return stored
 }
 
 export function isPayroll1FeatureEnabled() {
   return loadSystemSettings().payroll1Enabled !== false
 }
 
-/** Khóa tạo HĐ sau 23:59 ngày lockDate (ICT) — tức từ 00:00 ngày kế tiếp. */
+/** Sau ngày lockDate (ICT) — chỉ dùng cho copy thông báo nhắc, không khóa hóa đơn. */
 export function isPayroll1DeadlinePassed(now = new Date()) {
   if (!isPayroll1FeatureEnabled()) return false
   return isAfterIctEndOfDay(getPayroll1LockDate(), now)
@@ -49,64 +47,44 @@ export function summarizeEmployeePayroll1Status({
       .filter((row) => row?.date >= start && row?.date <= end)
       .map((row) => [row.date, row]),
   )
-  const reviewByDate = new Map(
-    (dayReviews ?? [])
-      .filter((row) => row?.dayDate >= start && row?.dayDate <= end)
-      .map((row) => [row.dayDate, row]),
-  )
-  const invoicesByDate = new Map()
-  for (const invoice of invoices ?? []) {
-    if (!invoice?.date || invoice.date < start || invoice.date > end) continue
-    if (!invoicesByDate.has(invoice.date)) invoicesByDate.set(invoice.date, [])
-    invoicesByDate.get(invoice.date).push(invoice)
-  }
+
+  // invoices / dayReviews: tham số giữ tương thích caller; không dùng cho hoàn thành / hạn chế.
+  void invoices
+  void dayReviews
 
   const missingAttendanceDates = dates.filter((date) => !attendanceByDate.has(date))
   const attendanceComplete = missingAttendanceDates.length === 0
 
-  const uncheckedInvoiceDates = dates.filter((date) => {
-    const review = reviewByDate.get(date)
-    return !review || (review.reviewStatus !== 'checked' && review.reviewStatus !== 'no_tour')
-  })
-  const invoiceReviewComplete = uncheckedInvoiceDates.length === 0
-
   const profileComplete = isEmployeeProfileComplete(employee)
   const adminConfirmed = Boolean(override?.adminConfirmed)
-  const manualUnlock = Boolean(override?.manualUnlock)
 
-  const dataComplete = adminConfirmed || (profileComplete && attendanceComplete && invoiceReviewComplete)
+  // Chỉ Hồ sơ + Chấm công cho nhắc nhở. Không khóa tạo/sửa hóa đơn.
+  const dataComplete = adminConfirmed || (profileComplete && attendanceComplete)
   const deadlinePassed = isPayroll1DeadlinePassed(now)
-  const invoiceCreateLocked = deadlinePassed && !dataComplete && !manualUnlock
 
-  const completedCount = [profileComplete, attendanceComplete, invoiceReviewComplete].filter(Boolean).length
-  const progressPercent = Math.round((completedCount / 3) * 100)
+  const completedCount = [profileComplete, attendanceComplete].filter(Boolean).length
+  const progressPercent = Math.round((completedCount / 2) * 100)
 
   const pendingTasks = []
   if (!profileComplete) {
+    const missingFields = getMissingProfileFields(employee)
     pendingTasks.push({
       id: 'profile',
       pageId: 'profile',
       label: 'Hoàn thiện hồ sơ cá nhân',
-      detail: 'Hồ sơ chưa đủ thông tin bắt buộc',
-      buttonLabel: 'Kiểm tra hồ sơ',
+      detail: missingFields.length
+        ? `Còn thiếu: ${missingFields.join(', ')}`
+        : 'Hồ sơ chưa đủ thông tin bắt buộc',
+      buttonLabel: 'Hoàn thiện hồ sơ',
     })
   }
   if (!attendanceComplete) {
     pendingTasks.push({
       id: 'attendance',
       pageId: 'attendance',
-      label: `Kiểm tra chấm công (còn thiếu ${missingAttendanceDates.length} ngày)`,
+      label: `Bổ sung chấm công (còn thiếu ${missingAttendanceDates.length} ngày)`,
       detail: `Còn thiếu ${missingAttendanceDates.length} ngày từ ${formatVnDate(start)} đến nay`,
-      buttonLabel: 'Kiểm tra chấm công',
-    })
-  }
-  if (!invoiceReviewComplete) {
-    pendingTasks.push({
-      id: 'invoices',
-      pageId: 'payroll1-check',
-      label: `Kiểm tra hóa đơn từ ${formatVnDate(start)} đến nay`,
-      detail: `Còn ${uncheckedInvoiceDates.length} ngày chưa xác nhận`,
-      buttonLabel: 'Kiểm tra hóa đơn',
+      buttonLabel: 'Bổ sung chấm công',
     })
   }
 
@@ -115,7 +93,6 @@ export function summarizeEmployeePayroll1Status({
   const lastUpdatedCandidates = [
     employee?.updatedAt,
     ...(attendanceRecords ?? []).map((r) => r.updatedAt || r.submittedAt),
-    ...(dayReviews ?? []).map((r) => r.updatedAt),
     override?.updatedAt,
   ].filter(Boolean)
   lastUpdatedCandidates.sort()
@@ -132,52 +109,31 @@ export function summarizeEmployeePayroll1Status({
     attendanceStatusLabel: attendanceComplete ? 'Đã kiểm tra' : 'Còn thiếu ngày',
     missingAttendanceCount: missingAttendanceDates.length,
     missingAttendanceDates,
-    invoiceReviewComplete,
-    invoiceStatusLabel: invoiceReviewComplete ? 'Đã kiểm tra' : 'Chưa xác nhận đầy đủ',
-    uncheckedInvoiceCount: uncheckedInvoiceDates.length,
-    uncheckedInvoiceDates,
     completedCount,
     progressPercent,
     pendingTasks,
     missingSummary,
     dataComplete,
     adminConfirmed,
-    manualUnlock,
     deadlinePassed,
-    invoiceCreateLocked,
     lockDate: getPayroll1LockDate(),
     lockDateLabel: formatVnDate(getPayroll1LockDate()),
     lastUpdatedAt,
     dayRows: dates.map((date) => {
-      const dayInvoices = invoicesByDate.get(date) ?? []
-      const review = reviewByDate.get(date)
       const attendance = attendanceByDate.get(date)
-      const tourCount = dayInvoices.length
-      const ticketTotal = dayInvoices.reduce((sum, inv) => sum + Number(inv.serviceTotal ?? inv.total ?? 0), 0)
-      const tipsTotal = dayInvoices.reduce((sum, inv) => sum + Number(inv.tips ?? 0), 0)
-      const reviewed = review?.reviewStatus === 'checked' || review?.reviewStatus === 'no_tour'
       return {
         date,
         dateLabel: formatVnDate(date),
-        tourCount,
-        ticketTotal,
-        tipsTotal,
         attendance,
         attendanceStatus: attendance?.status ?? '',
-        reviewStatus: review?.reviewStatus ?? '',
-        reviewed,
-        statusLabel: reviewed
-          ? (review.reviewStatus === 'no_tour' ? 'Không phát sinh tour' : 'Đã kiểm tra')
-          : 'Chưa kiểm tra',
       }
     }),
   }
 }
 
-export function shouldShowPayroll1Notice(status) {
-  if (!isPayroll1FeatureEnabled()) return false
-  if (!status) return true
-  return !status.dataComplete
+/** Popup kỳ lương 1 đã tắt — luôn không hiện. */
+export function shouldShowPayroll1Notice(_status) {
+  return false
 }
 
 export function filterPayroll1AdminRows(rows, filter) {
@@ -185,7 +141,6 @@ export function filterPayroll1AdminRows(rows, filter) {
   return rows.filter((row) => {
     if (filter === 'incomplete_profile') return !row.profileComplete
     if (filter === 'incomplete_attendance') return !row.attendanceComplete
-    if (filter === 'incomplete_invoices') return !row.invoiceReviewComplete
     if (filter === 'complete') return row.dataComplete || row.progressPercent === 100
     if (filter === 'incomplete') return !row.dataComplete
     return true

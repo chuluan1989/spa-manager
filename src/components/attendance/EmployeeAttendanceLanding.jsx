@@ -59,7 +59,7 @@ export default function EmployeeAttendanceLanding({ onComplete }) {
       <div className="employee-attendance-landing__card">
         <KhoeSpaLogo size={96} className="employee-attendance-landing__logo" />
         <h1 className="employee-attendance-landing__title">Xin chào, {displayName}</h1>
-        <p className="employee-attendance-landing__subtitle">Vui lòng điểm danh trước khi vào Hóa đơn</p>
+        <p className="employee-attendance-landing__subtitle">Vui lòng điểm danh khi bắt đầu ca làm</p>
 
         {message && (
           <p className="employee-attendance-landing__message" role="alert">

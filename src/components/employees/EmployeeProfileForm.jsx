@@ -6,7 +6,6 @@ import {
   canViewEmployeeBankInfo,
   canViewEmployeeCccd,
   canViewEmployeeCurrentAddress,
-  canViewEmployeeEmergencyContact,
   canViewEmployeeNote,
   canViewEmployeePersonalInfo,
   canViewEmployeePosition,
@@ -109,7 +108,6 @@ export default function EmployeeProfileForm({
   const showAvatarUpload = (forceAdminFields || canEditEmployeeAvatar()) && showAvatarUploadProp
   const showCurrentAddress = forceAdminFields || canViewEmployeeCurrentAddress()
   const showBankInfo = forceAdminFields || canViewEmployeeBankInfo()
-  const showEmergencyContact = forceAdminFields || canViewEmployeeEmergencyContact()
   const showPosition = forceAdminFields || canViewEmployeePosition()
   const showBranchSelector = canChangeEmployeeBranch() || forceAdminFields
   const canEditCccdImages = (forceAdminFields || canViewEmployeeCccd()) && !readOnly
@@ -337,34 +335,6 @@ export default function EmployeeProfileForm({
               onChange={(e) => onChange({ ...form, currentAddress: e.target.value })}
             />
           </Field>
-        )}
-
-        {showEmergencyContact && (
-          <>
-            <Field label="Người liên hệ khẩn cấp">
-              {readOnly ? (
-                <ReadOnlyValue value={form.emergencyContactName} />
-              ) : (
-                <input
-                  value={form.emergencyContactName}
-                  onChange={(e) => onChange({ ...form, emergencyContactName: e.target.value })}
-                  placeholder="Họ tên người liên hệ"
-                />
-              )}
-            </Field>
-
-            <Field label="SĐT người liên hệ">
-              {readOnly ? (
-                <ReadOnlyValue value={form.emergencyContactPhone} />
-              ) : (
-                <input
-                  value={form.emergencyContactPhone}
-                  onChange={(e) => onChange({ ...form, emergencyContactPhone: e.target.value })}
-                  placeholder="Số điện thoại người liên hệ"
-                />
-              )}
-            </Field>
-          </>
         )}
 
         {showBankInfo && (

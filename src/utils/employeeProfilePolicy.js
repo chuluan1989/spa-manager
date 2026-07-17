@@ -9,8 +9,6 @@ export const PROFILE_TRACKED_FIELDS = [
   'dateOfBirth',
   'gender',
   'currentAddress',
-  'emergencyContactName',
-  'emergencyContactPhone',
   'cccdIssueDate',
   'cccdIssuePlace',
   'cccdAddress',
@@ -75,14 +73,14 @@ export function getEmployeeProfileBannerMessage(employee, today = getTodayDate()
   if (compliance.isComplete) return null
 
   if (compliance.isLocked) {
-    return 'Hồ sơ nhân viên chưa hoàn chỉnh. Một số chức năng đã bị khóa. Vui lòng cập nhật đầy đủ thông tin để tiếp tục sử dụng hệ thống.'
+    return 'Hồ sơ nhân viên chưa hoàn chỉnh. Vui lòng cập nhật đầy đủ thông tin.'
   }
 
   return 'Vui lòng hoàn thiện hồ sơ trước 10/07.'
 }
 
 export function getEmployeeProfileLockMessage() {
-  return 'Hồ sơ nhân viên chưa hoàn chỉnh. Vui lòng cập nhật đầy đủ thông tin để tiếp tục sử dụng hệ thống.'
+  return 'Hồ sơ nhân viên chưa hoàn chỉnh. Vui lòng cập nhật đầy đủ thông tin.'
 }
 
 export function getProfileComplianceFilterStatus(employee, today = getTodayDate()) {

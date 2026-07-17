@@ -111,7 +111,7 @@ export default function SettingsSystemTab({ showToast }) {
               employeeProfileDeadline: event.target.value,
             })}
           />
-          <span className="settings__field-hint">Sau ngày này, nhân viên chưa hoàn thiện hồ sơ sẽ bị khóa tạo hóa đơn và chấm công.</span>
+          <span className="settings__field-hint">Chỉ dùng để nhắc hoàn thiện hồ sơ. Không khóa nhập hóa đơn.</span>
         </label>
         <div className="settings__actions-row">
           <button
@@ -140,20 +140,20 @@ export default function SettingsSystemTab({ showToast }) {
           <span className="settings__field-label">Kỳ lương 1 — hạn chốt (khóa sau 23:59 ICT)</span>
           <input
             type="date"
-            value={settings.payroll1LockDate ?? '2026-07-15'}
+            value={settings.payroll1LockDate ?? '2026-07-18'}
             onChange={(event) => setSettings({
               ...settings,
               payroll1LockDate: event.target.value,
             })}
           />
           <span className="settings__field-hint">
-            Sau 23:59 ngày này (Asia/Ho_Chi_Minh), nhân viên thiếu dữ liệu bị khóa tạo hóa đơn mới cho đến khi hoàn tất.
-            Gia hạn bằng cách chọn ngày mới rồi Lưu.
+            Ngày tham chiếu thông báo hoàn thiện Hồ sơ / Chấm công (không khóa tạo hóa đơn).
+            Mặc định 18/07/2026. Thông báo vẫn hiện nếu dữ liệu thiếu; nhân viên/quản lý vẫn tạo và sửa hóa đơn bình thường.
           </span>
         </label>
         <SettingToggle
-          label="Bật thông báo / khóa kỳ lương 1"
-          checked={settings.payroll1Enabled !== false}
+          label="Bật thông báo kỳ lương 1 (Hồ sơ / Chấm công)"
+          checked={settings.payroll1Enabled === true}
           onChange={(v) => updateSetting('payroll1Enabled', v)}
         />
         <div className="settings__actions-row">
