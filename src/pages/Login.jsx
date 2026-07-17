@@ -15,7 +15,6 @@ import { verifyLogin } from '../constants/loginCredentials'
 import { getActiveBranches } from '../constants/branches'
 import { BRANCH_CONTACTS, SYSTEM_HOTLINE } from '../constants/branchContacts'
 import { getActiveEmployeesByBranch } from '../utils/employeeStorage'
-import { PREVIEW_BUILD_MARKER } from '../constants/buildMarker'
 import './Login.css'
 
 const ROLE_OPTIONS = [
@@ -108,21 +107,6 @@ export default function Login({ onLogin }) {
             <div className="login__card-badge" aria-hidden="true">
               <img src="/assets/logo.png" alt="" />
             </div>
-            <p
-              style={{
-                margin: '0 0 12px',
-                padding: '8px 10px',
-                borderRadius: 8,
-                background: '#0f766e',
-                color: '#ecfdf5',
-                fontSize: 12,
-                fontWeight: 600,
-                textAlign: 'center',
-              }}
-              data-build-marker={PREVIEW_BUILD_MARKER}
-            >
-              {PREVIEW_BUILD_MARKER}
-            </p>
             <h1 className="login__card-title">Đăng nhập hệ thống</h1>
 
             <form className="login__form app-form" onSubmit={handleSubmit}>

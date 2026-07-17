@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import Layout from './components/layout/Layout'
-import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
 import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
+import CompletionRemindBanner, {
+  useCompletionRemindDismissed,
+} from './components/common/CompletionRemindBanner'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -48,11 +50,10 @@ import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { repairBranchIdReferences } from './utils/branchIdIntegrity'
 import { repairCanonicalBranchMapping } from './utils/canonicalBranchRepair'
-import { getEmployeeById } from './utils/employeeStorage'
 import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
-import { PREVIEW_BUILD_MARKER } from './constants/buildMarker'
+import { loadEmployeePayroll1Status } from './utils/payroll1Service'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -105,7 +106,10 @@ function App() {
   })
   const [activePage, setActivePage] = useState(() => getDefaultPage(loadCurrentUser()))
   const [authReady, setAuthReady] = useState(false)
+  const [completionStatus, setCompletionStatus] = useState(null)
   const syncVersion = useDataSyncVersion()
+  const employeeId = currentUser?.role === ROLES.EMPLOYEE ? getCurrentUserEmployeeId() : ''
+  const [remindDismissed, dismissRemind] = useCompletionRemindDismissed(employeeId)
 
   useEffect(() => {
     let cancelled = false
@@ -150,10 +154,36 @@ function App() {
     }
   }, [])
 
-  const myEmployee = useMemo(() => {
-    if (!isEmployee()) return null
-    return getEmployeeById(getCurrentUserEmployeeId())
-  }, [currentUser, syncVersion, activePage])
+  // Chỉ tải trạng thái để banner nhắc — không khóa Hóa đơn, không popup.
+  useEffect(() => {
+    if (!authReady || !currentUser || currentUser.role !== ROLES.EMPLOYEE) {
+      setCompletionStatus(null)
+      return
+    }
+
+    let cancelled = false
+    async function loadStatus() {
+      try {
+        const status = await loadEmployeePayroll1Status(getCurrentUserEmployeeId())
+        if (!cancelled) setCompletionStatus(status)
+      } catch (error) {
+        console.warn('[completion-remind] Không tải trạng thái nhắc:', error?.message)
+        if (!cancelled) setCompletionStatus(null)
+      }
+    }
+    loadStatus()
+    return () => { cancelled = true }
+  }, [authReady, currentUser, syncVersion, activePage])
+
+  const showRemind = useMemo(
+    () => Boolean(
+      isEmployee()
+      && completionStatus
+      && !completionStatus.dataComplete
+      && !remindDismissed,
+    ),
+    [completionStatus, remindDismissed, currentUser, syncVersion],
+  )
 
   if (!authReady) {
     return (
@@ -178,6 +208,7 @@ function App() {
   const handleLogout = () => {
     clearCurrentUser()
     setCurrentUser(null)
+    setCompletionStatus(null)
   }
 
   const handleNavigate = (pageId) => {
@@ -192,6 +223,17 @@ function App() {
     setActivePage(pageId)
   }
 
+  const handleCompleteNow = () => {
+    if (!completionStatus?.profileComplete) {
+      handleNavigate('profile')
+      return
+    }
+    if (!completionStatus?.attendanceComplete) {
+      handleNavigate('attendance')
+      return
+    }
+  }
+
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)
 
   return (
@@ -199,26 +241,14 @@ function App() {
       activeItem={activePage}
       onNavigate={handleNavigate}
       onLogout={handleLogout}
-      banner={isEmployee() && myEmployee ? (
-        <EmployeeProfileBanner
-          employee={myEmployee}
-          onUpdateProfile={() => handleNavigate('profile')}
-        />
-      ) : null}
     >
-      <div
-        style={{
-          background: '#0f766e',
-          color: '#ecfdf5',
-          fontSize: 12,
-          padding: '6px 12px',
-          textAlign: 'center',
-          fontWeight: 600,
-        }}
-        data-build-marker={PREVIEW_BUILD_MARKER}
-      >
-        {PREVIEW_BUILD_MARKER} — Không popup / banner kỳ lương 1 · Hóa đơn mở ngay
-      </div>
+      {showRemind && (
+        <CompletionRemindBanner
+          status={completionStatus}
+          onCompleteNow={handleCompleteNow}
+          onDismiss={dismissRemind}
+        />
+      )}
       <UnsyncedInvoicesBanner
         user={currentUser}
         onSyncComplete={() => notifyDataSynced(['invoices'])}
