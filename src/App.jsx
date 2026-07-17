@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Layout from './components/layout/Layout'
 import EmployeeProfileBanner from './components/employees/EmployeeProfileBanner'
 import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
@@ -42,7 +42,6 @@ import Settings from './pages/Settings'
 import AdminBranches from './pages/AdminBranches'
 import Payroll1Check from './pages/Payroll1Check'
 import Payroll1Admin from './pages/Payroll1Admin'
-import EmployeeAttendanceLanding from './components/attendance/EmployeeAttendanceLanding'
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials, repairEmployeeCredentials } from './utils/credentialsStorage'
@@ -109,29 +108,10 @@ function App() {
   })
   const [activePage, setActivePage] = useState(() => getDefaultPage(loadCurrentUser()))
   const [authReady, setAuthReady] = useState(false)
-  const [attendanceGatePassed, setAttendanceGatePassed] = useState(() => {
-    const user = loadCurrentUser()
-    if (user?.role !== ROLES.EMPLOYEE) return true
-    return false
-  })
-  const [attendanceCheckReady, setAttendanceCheckReady] = useState(() => {
-    const user = loadCurrentUser()
-    return user?.role !== ROLES.EMPLOYEE
-  })
   const [payroll1Status, setPayroll1Status] = useState(null)
   const [showPayroll1Notice, setShowPayroll1Notice] = useState(false)
   const [payroll1ModalDismissed, setPayroll1ModalDismissed] = useState(false)
   const syncVersion = useDataSyncVersion()
-
-  useEffect(() => {
-    if (!authReady || !currentUser) return
-    if (currentUser.role !== ROLES.EMPLOYEE) {
-      setAttendanceGatePassed(true)
-      setAttendanceCheckReady(true)
-      return
-    }
-    setAttendanceCheckReady(true)
-  }, [authReady, currentUser])
 
   useEffect(() => {
     if (!authReady || !currentUser || currentUser.role !== ROLES.EMPLOYEE) {
@@ -139,7 +119,6 @@ function App() {
       setPayroll1Status(null)
       return
     }
-    if (!attendanceGatePassed) return
 
     let cancelled = false
     async function loadNotice() {
@@ -157,12 +136,7 @@ function App() {
     }
     loadNotice()
     return () => { cancelled = true }
-  }, [authReady, currentUser, attendanceGatePassed, syncVersion, activePage, payroll1ModalDismissed])
-
-  const completeAttendanceGate = useCallback(() => {
-    setAttendanceGatePassed(true)
-    setActivePage('invoices')
-  }, [])
+  }, [authReady, currentUser, syncVersion, activePage, payroll1ModalDismissed])
 
   useEffect(() => {
     let cancelled = false
@@ -227,30 +201,19 @@ function App() {
           saveCurrentUser(user)
           setCurrentUser(user)
           setPayroll1ModalDismissed(false)
-          if (user.role === ROLES.EMPLOYEE) {
-            setAttendanceGatePassed(false)
-            setAttendanceCheckReady(true)
-            setShowPayroll1Notice(false)
-          } else {
-            setAttendanceGatePassed(true)
-            setAttendanceCheckReady(true)
-            setActivePage(getDefaultPage(user))
-          }
+          setShowPayroll1Notice(false)
+          setActivePage(getDefaultPage(user))
         }}
       />
     )
   }
 
-  if (isEmployee() && !attendanceCheckReady) {
-    return (
-      <div className="app-loading" style={{ padding: 24, textAlign: 'center', color: '#6b7280', background: '#f4f5f7', minHeight: '100vh' }}>
-        Đang kiểm tra điểm danh...
-      </div>
-    )
-  }
-
-  if (isEmployee() && !attendanceGatePassed) {
-    return <EmployeeAttendanceLanding onComplete={completeAttendanceGate} />
+  const handleLogout = () => {
+    clearCurrentUser()
+    setCurrentUser(null)
+    setShowPayroll1Notice(false)
+    setPayroll1Status(null)
+    setPayroll1ModalDismissed(false)
   }
 
   const handleNavigate = (pageId) => {
@@ -263,16 +226,6 @@ function App() {
       return
     }
     setActivePage(pageId)
-  }
-
-  const handleLogout = () => {
-    clearCurrentUser()
-    setCurrentUser(null)
-    setAttendanceGatePassed(true)
-    setAttendanceCheckReady(true)
-    setShowPayroll1Notice(false)
-    setPayroll1Status(null)
-    setPayroll1ModalDismissed(false)
   }
 
   const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)

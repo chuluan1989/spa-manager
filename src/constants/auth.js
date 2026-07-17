@@ -262,6 +262,10 @@ export function canViewSystemWide(role = getCurrentUserRole(), branchId = getCur
 }
 
 export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  // Nhân viên / Quản lý / Admin luôn được tạo HĐ — không phụ thuộc ma trận quyền hay trạng thái hồ sơ/chấm công.
+  if (role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE) {
+    return true
+  }
   return checkPermission(PERMISSION_KEYS.ADD_INVOICE, role, branchId)
 }
 
