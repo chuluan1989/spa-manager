@@ -89,8 +89,8 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
           showToast(newPassword !== confirmPassword ? 'Mật khẩu xác nhận không khớp' : 'Vui lòng nhập mật khẩu mới')
           return
         }
-        if (newPassword.trim().length < 6) {
-          showToast('Mật khẩu mới tối thiểu 6 ký tự')
+        if (newPassword.trim().length < 8) {
+          showToast('Mật khẩu mới tối thiểu 8 ký tự')
           return
         }
         await updateAdminPassword(newPassword.trim())
@@ -99,8 +99,8 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
           showToast(newPassword !== confirmPassword ? 'Mật khẩu xác nhận không khớp' : 'Vui lòng nhập mật khẩu mới')
           return
         }
-        if (newPassword.trim().length < 6) {
-          showToast('Mật khẩu mới tối thiểu 6 ký tự')
+        if (newPassword.trim().length < 8) {
+          showToast('Mật khẩu mới tối thiểu 8 ký tự')
           return
         }
         await updateBranchPassword(passwordModal.branchId, newPassword.trim())
@@ -275,7 +275,7 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
               Đặt mật khẩu mới — {passwordModal.label}
             </h3>
             <p className="settings__hint">
-              Không hiển thị mật khẩu cũ. Chỉ đặt mật khẩu mới (tối thiểu 6 ký tự).
+              Không hiển thị mật khẩu cũ. Chỉ đặt mật khẩu mới (tối thiểu 8 ký tự, có chữ cái và chữ số).
             </p>
             <div className="settings__form-grid">
               <label className="settings__field settings__field--full">

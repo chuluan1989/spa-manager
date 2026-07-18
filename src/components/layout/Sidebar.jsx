@@ -4,11 +4,13 @@ import KhoeSpaLogo from '../brand/KhoeSpaLogo'
 import {
   getCurrentUser,
   getCurrentUserBranch,
+  getCurrentUserEmployeeId,
   getCurrentUserName,
   getRoleLabel,
   getVisibleNavItems,
   isAdmin,
   isBranchManager,
+  isEmployee,
   ROLES,
 } from '../../constants/auth'
 import { getEmployeeById } from '../../utils/employeeStorage'
@@ -62,6 +64,14 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
     setTimeout(() => setToast(''), 3000)
   }
 
+  const closePasswordModal = () => setPasswordOpen(false)
+
+  const passwordFormProps = isAdmin()
+    ? { mode: 'admin' }
+    : isBranchManager()
+      ? { mode: 'branch', branchId: getCurrentUserBranch() }
+      : { mode: 'employee', employeeId: getCurrentUserEmployeeId() }
+
   return (
     <aside className="sidebar" aria-label="Menu chính">
       <div className="sidebar__brand">
@@ -107,7 +117,7 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
           </div>
         </div>
 
-        {isBranchManager() && (
+        {(isAdmin() || isBranchManager() || isEmployee()) && (
           <button
             type="button"
             className="sidebar__logout"
@@ -132,17 +142,14 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
       {toast && <div className="sidebar__toast">{toast}</div>}
 
       {passwordOpen && (
-        <div className="sidebar__modal-backdrop" onClick={() => setPasswordOpen(false)}>
+        <div className="sidebar__modal-backdrop" onClick={closePasswordModal}>
           <div className="sidebar__modal" onClick={(e) => e.stopPropagation()}>
             <ChangePasswordForm
-              mode="branch"
-              branchId={getCurrentUserBranch()}
+              {...passwordFormProps}
               showToast={showToast}
-              onSuccess={() => setPasswordOpen(false)}
+              onSuccess={closePasswordModal}
+              onCancel={closePasswordModal}
             />
-            <button type="button" className="sidebar__logout" onClick={() => setPasswordOpen(false)}>
-              Đóng
-            </button>
           </div>
         </div>
       )}

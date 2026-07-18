@@ -108,6 +108,7 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [toast, setToast] = useState('')
+  const [passwordOpen, setPasswordOpen] = useState(false)
 
   const showToast = (message) => {
     setToast(message)
@@ -462,12 +463,42 @@ export default function MyProfile({ mandatory = false, onCompleted }) {
       </section>
 
       <section className="myprofile__card">
-        <ChangePasswordForm
-          mode="employee"
-          employeeId={employeeId}
-          showToast={showToast}
-        />
+        <h3 className="myprofile__card-title">Bảo mật tài khoản</h3>
+        <p className="myprofile__hint-block">
+          Bạn chỉ có thể đổi mật khẩu của chính mình. Mật khẩu không được lưu dạng plaintext.
+        </p>
+        <button
+          type="button"
+          className="myprofile__password-btn"
+          onClick={() => setPasswordOpen(true)}
+        >
+          Đổi mật khẩu
+        </button>
       </section>
+
+      {passwordOpen && (
+        <div
+          className="myprofile__modal-backdrop"
+          onClick={() => setPasswordOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="myprofile__modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Đổi mật khẩu"
+          >
+            <ChangePasswordForm
+              mode="employee"
+              employeeId={employeeId}
+              showToast={showToast}
+              onSuccess={() => setPasswordOpen(false)}
+              onCancel={() => setPasswordOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="myprofile__actions">
         <button type="button" className="myprofile__save-btn" onClick={reloadFromServer} disabled={saving || loading}>
