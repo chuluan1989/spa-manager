@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import AttendanceCreateModal from '../components/attendance/AttendanceCreateModal'
 import AttendanceEditModal from '../components/attendance/AttendanceEditModal'
 import AttendanceEmployeeView from '../components/attendance/AttendanceEmployeeView'
+import AttendanceEditRequestsPanel from '../components/attendance/AttendanceEditRequestsPanel'
 import AttendanceMonthMatrix from '../components/attendance/AttendanceMonthMatrix'
 import ErpFilterBar from '../components/erp/ErpFilterBar'
 import ErpKpiGrid from '../components/erp/ErpKpiGrid'
@@ -118,9 +119,9 @@ function AttendanceRecordsTable({
   )
 }
 
-export default function Attendance() {
+export default function Attendance({ onNavigate } = {}) {
   if (isEmployee()) {
-    return <AttendanceEmployeeView />
+    return <AttendanceEmployeeView onNavigate={onNavigate} />
   }
 
   if (!canAccessAttendancePage()) {
@@ -359,8 +360,15 @@ function AttendancePage() {
         <button type="button" className={screen === 'month' ? 'is-active' : ''} onClick={() => { setScreen('month'); applyMonthRange() }}>
           Theo tháng
         </button>
+        <button type="button" className={screen === 'requests' ? 'is-active' : ''} onClick={() => setScreen('requests')}>
+          Yêu cầu chỉnh sửa
+        </button>
       </nav>
 
+      {screen === 'requests' ? (
+        <AttendanceEditRequestsPanel />
+      ) : (
+        <>
       <section className="attendance-page__filters">
         {canSelectBranch() && (
           <label>
@@ -466,6 +474,8 @@ function AttendancePage() {
               <AttendanceMonthMatrix days={monthMatrix.days} rows={monthMatrix.rows} />
             </>
           )}
+        </>
+      )}
         </>
       )}
 

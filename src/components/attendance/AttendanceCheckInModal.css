@@ -166,6 +166,33 @@
   cursor: not-allowed;
 }
 
+.attendance-checkin__footer--row {
+  display: flex;
+  gap: 10px;
+}
+
+.attendance-checkin__footer--row .attendance-checkin__submit {
+  flex: 1;
+}
+
+.attendance-checkin__cancel {
+  flex: 0 0 auto;
+  padding: 14px 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #fff;
+  color: #374151;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.attendance-checkin__cancel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 body.attendance-modal-open {
   overflow: hidden;
 }
