@@ -29,6 +29,8 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   payroll1LockDate: '2026-07-18',
   payroll1DayReviews: {},
   payroll1Overrides: {},
+  /** Yêu cầu chỉnh sửa chấm công (pending/approved/rejected) — không đụng bảng attendance đến khi duyệt. */
+  attendanceEditRequests: {},
   autoAbsentEnabled: false,
   autoAbsentCloseTime: '00:05',
   /** Rỗng = chưa cấu hình → không tự chạy auto-absent. */
@@ -83,6 +85,7 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
     // Giữ trạng thái kỳ lương 1 (Supabase SSOT) khi lưu cài đặt khác.
     payroll1DayReviews: settings.payroll1DayReviews ?? current.payroll1DayReviews ?? {},
     payroll1Overrides: settings.payroll1Overrides ?? current.payroll1Overrides ?? {},
+    attendanceEditRequests: settings.attendanceEditRequests ?? current.attendanceEditRequests ?? {},
     autoAbsentEnabled: settings.autoAbsentEnabled === true,
     autoAbsentCloseTime: settings.autoAbsentCloseTime?.trim?.()
       || DEFAULT_SYSTEM_SETTINGS.autoAbsentCloseTime,

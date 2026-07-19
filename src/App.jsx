@@ -4,6 +4,10 @@ import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
 import CompletionRemindBanner, {
   useCompletionRemindDismissed,
 } from './components/common/CompletionRemindBanner'
+import TodayAttendanceRemindBanner, {
+  dismissTodayAttendanceRemind,
+  isTodayAttendanceRemindDismissed,
+} from './components/common/TodayAttendanceRemindBanner'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -54,6 +58,8 @@ import { ROLES } from './constants/roles'
 import { isSupabaseConfigured } from './lib/supabaseClient'
 import { runInitialSync, startAutoSync, notifyDataSynced } from './utils/supabaseSync'
 import { loadEmployeePayroll1Status } from './utils/payroll1Service'
+import { hasCheckedInToday, getServerAttendanceDate } from './utils/attendanceService'
+import { getTodayDate } from './utils/invoiceStorage'
 
 const PAGES = {
   dashboard: Dashboard,
@@ -107,6 +113,9 @@ function App() {
   const [activePage, setActivePage] = useState(() => getDefaultPage(loadCurrentUser()))
   const [authReady, setAuthReady] = useState(false)
   const [completionStatus, setCompletionStatus] = useState(null)
+  const [todayCheckedIn, setTodayCheckedIn] = useState(null)
+  const [todayServerDate, setTodayServerDate] = useState(() => getTodayDate())
+  const [todayRemindDismissed, setTodayRemindDismissed] = useState(false)
   const syncVersion = useDataSyncVersion()
   const employeeId = currentUser?.role === ROLES.EMPLOYEE ? getCurrentUserEmployeeId() : ''
   const [remindDismissed, dismissRemind] = useCompletionRemindDismissed(employeeId)
@@ -158,17 +167,31 @@ function App() {
   useEffect(() => {
     if (!authReady || !currentUser || currentUser.role !== ROLES.EMPLOYEE) {
       setCompletionStatus(null)
+      setTodayCheckedIn(null)
       return
     }
 
     let cancelled = false
     async function loadStatus() {
       try {
-        const status = await loadEmployeePayroll1Status(getCurrentUserEmployeeId())
-        if (!cancelled) setCompletionStatus(status)
+        const [status, server, checked] = await Promise.all([
+          loadEmployeePayroll1Status(getCurrentUserEmployeeId()),
+          getServerAttendanceDate().catch(() => ({ date: getTodayDate() })),
+          hasCheckedInToday(getCurrentUserEmployeeId()).catch(() => true),
+        ])
+        if (cancelled) return
+        setCompletionStatus(status)
+        setTodayServerDate(server?.date || getTodayDate())
+        setTodayCheckedIn(Boolean(checked))
+        setTodayRemindDismissed(
+          isTodayAttendanceRemindDismissed(getCurrentUserEmployeeId(), server?.date || getTodayDate()),
+        )
       } catch (error) {
         console.warn('[completion-remind] Không tải trạng thái nhắc:', error?.message)
-        if (!cancelled) setCompletionStatus(null)
+        if (!cancelled) {
+          setCompletionStatus(null)
+          setTodayCheckedIn(null)
+        }
       }
     }
     loadStatus()
@@ -183,6 +206,15 @@ function App() {
       && !remindDismissed,
     ),
     [completionStatus, remindDismissed, currentUser, syncVersion],
+  )
+
+  const showTodayAttendanceRemind = useMemo(
+    () => Boolean(
+      isEmployee()
+      && todayCheckedIn === false
+      && !todayRemindDismissed,
+    ),
+    [todayCheckedIn, todayRemindDismissed, currentUser, syncVersion],
   )
 
   if (!authReady) {
@@ -209,6 +241,7 @@ function App() {
     clearCurrentUser()
     setCurrentUser(null)
     setCompletionStatus(null)
+    setTodayCheckedIn(null)
   }
 
   const handleNavigate = (pageId) => {
@@ -242,6 +275,15 @@ function App() {
       onNavigate={handleNavigate}
       onLogout={handleLogout}
     >
+      {showTodayAttendanceRemind && (
+        <TodayAttendanceRemindBanner
+          onCheckInNow={() => handleNavigate('attendance')}
+          onDismiss={() => {
+            dismissTodayAttendanceRemind(employeeId, todayServerDate)
+            setTodayRemindDismissed(true)
+          }}
+        />
+      )}
       {showRemind && (
         <CompletionRemindBanner
           status={completionStatus}
