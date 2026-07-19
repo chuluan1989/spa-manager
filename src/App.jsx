@@ -82,7 +82,7 @@ const PAGES = {
 }
 
 function getDefaultPage(user) {
-  if (user?.role === ROLES.EMPLOYEE) return 'invoices'
+  if (user?.role === ROLES.EMPLOYEE) return 'attendance'
   return 'dashboard'
 }
 
@@ -212,9 +212,10 @@ function App() {
     () => Boolean(
       isEmployee()
       && todayCheckedIn === false
-      && !todayRemindDismissed,
+      && !todayRemindDismissed
+      && activePage !== 'attendance',
     ),
-    [todayCheckedIn, todayRemindDismissed, currentUser, syncVersion],
+    [todayCheckedIn, todayRemindDismissed, currentUser, syncVersion, activePage],
   )
 
   if (!authReady) {
@@ -267,7 +268,7 @@ function App() {
     }
   }
 
-  const Page = PAGES[activePage] ?? (isEmployee() ? Dashboard : Invoice)
+  const Page = PAGES[activePage] ?? (isEmployee() ? Attendance : Invoice)
 
   return (
     <Layout

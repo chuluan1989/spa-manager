@@ -119,9 +119,9 @@ function AttendanceRecordsTable({
   )
 }
 
-export default function Attendance() {
+export default function Attendance({ onNavigate } = {}) {
   if (isEmployee()) {
-    return <AttendanceEmployeeView />
+    return <AttendanceEmployeeView onNavigate={onNavigate} />
   }
 
   if (!canAccessAttendancePage()) {

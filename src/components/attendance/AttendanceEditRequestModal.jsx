@@ -52,7 +52,7 @@ export default function AttendanceEditRequestModal({
         newReason: needsReason ? reason.trim() : '',
         newNote: note.trim(),
       })
-      showToast?.('Đã gửi yêu cầu chỉnh sửa chấm công. Quản lý sẽ xem xét.')
+      showToast?.('Đã gửi yêu cầu chỉnh sửa tới Quản lý.')
       onSubmitted?.()
       onClose?.()
     } catch (err) {
