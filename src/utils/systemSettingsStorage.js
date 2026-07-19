@@ -31,8 +31,6 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   payroll1Overrides: {},
   /** Yêu cầu chỉnh sửa chấm công (pending/approved/rejected) — không đụng bảng attendance đến khi duyệt. */
   attendanceEditRequests: {},
-  /** Giờ vào/ra theo ngày (không đổi schema bảng attendance). */
-  attendanceClockTimes: {},
   autoAbsentEnabled: false,
   autoAbsentCloseTime: '00:05',
   /** Rỗng = chưa cấu hình → không tự chạy auto-absent. */
@@ -88,7 +86,6 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
     payroll1DayReviews: settings.payroll1DayReviews ?? current.payroll1DayReviews ?? {},
     payroll1Overrides: settings.payroll1Overrides ?? current.payroll1Overrides ?? {},
     attendanceEditRequests: settings.attendanceEditRequests ?? current.attendanceEditRequests ?? {},
-    attendanceClockTimes: settings.attendanceClockTimes ?? current.attendanceClockTimes ?? {},
     autoAbsentEnabled: settings.autoAbsentEnabled === true,
     autoAbsentCloseTime: settings.autoAbsentCloseTime?.trim?.()
       || DEFAULT_SYSTEM_SETTINGS.autoAbsentCloseTime,

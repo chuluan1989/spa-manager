@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ATTENDANCE_STATUS, getAttendanceStatusLabel, getAttendancePermitLabel } from '../../constants/attendanceTypes'
+import { getAttendanceStatusLabel, getAttendancePermitLabel } from '../../constants/attendanceTypes'
 import { getCurrentUserEmployeeId } from '../../constants/auth'
 import { formatCurrency } from '../../utils/invoice'
 import { getTodayDate } from '../../utils/invoiceStorage'
@@ -8,23 +8,13 @@ import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import { buildAttendanceStats } from '../../utils/attendancePenalties'
 import { getBranchName } from '../../utils/branchStorage'
 import { getEmployeeById } from '../../utils/employeeStorage'
-import {
-  getServerAttendanceDate,
-  hasCheckedInToday,
-  submitEmployeeAttendance,
-} from '../../utils/attendanceService'
-import {
-  getAttendanceClockTimes,
-  saveAttendanceCheckInTime,
-  saveAttendanceCheckOutTime,
-} from '../../utils/attendanceClockStorage'
+import { hasCheckedInToday } from '../../utils/attendanceService'
 import {
   ATTENDANCE_EDIT_REQUEST_STATUS,
   loadOwnAttendanceEditRequests,
   loadOwnUnseenAttendanceReviews,
   markAttendanceEditRequestNotified,
 } from '../../utils/attendanceEditRequestService'
-import { notifyDataSynced } from '../../utils/dataSyncEvents'
 import AttendanceCheckInForm from './AttendanceCheckInForm'
 import AttendanceEditRequestModal from './AttendanceEditRequestModal'
 import AttendanceMonthMatrix from './AttendanceMonthMatrix'
@@ -34,13 +24,6 @@ function formatDate(value) {
   if (!value) return '—'
   const [y, m, d] = value.split('-')
   return `${d}/${m}/${y}`
-}
-
-function formatTime(value) {
-  if (!value) return '—'
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return '—'
-  return parsed.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
 }
 
 function formatDateTime(value) {
@@ -89,13 +72,9 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
   const employee = getEmployeeById(getCurrentUserEmployeeId())
   const syncVersion = useDataSyncVersion()
   const [screen, setScreen] = useState('today')
-  const [todayDate, setTodayDate] = useState(() => getTodayDate())
-  const [todayRecord, setTodayRecord] = useState(null)
-  const [clock, setClock] = useState(null)
-  const [busy, setBusy] = useState(false)
-  const [actionError, setActionError] = useState('')
-  const [successPanel, setSuccessPanel] = useState(false)
-  const [showOtherStatus, setShowOtherStatus] = useState(false)
+  const todayDate = getTodayDate()
+  const [checkedInToday, setCheckedInToday] = useState(null)
+  const [justSaved, setJustSaved] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [createDate, setCreateDate] = useState('')
   const [toast, setToast] = useState('')
@@ -105,6 +84,10 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
   const showToast = (message) => {
     setToast(message)
     setTimeout(() => setToast(''), 4000)
+  }
+
+  const handleContinueWorking = () => {
+    onNavigate?.('invoices')
   }
 
   const range = useMemo(() => {
@@ -137,41 +120,25 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
     return map
   }, [ownRequests])
 
-  const checkInAt = clock?.checkInAt || todayRecord?.submittedAt || todayRecord?.createdAt || ''
-  const checkOutAt = clock?.checkOutAt || ''
-  const hasCheckedIn = Boolean(todayRecord)
-  const hasCheckedOut = Boolean(checkOutAt)
-
   const refreshMeta = async () => {
     if (!employee?.id) return
     try {
-      const server = await getServerAttendanceDate().catch(() => ({ date: getTodayDate() }))
-      const date = server?.date || getTodayDate()
-      setTodayDate(date)
-      const [checked, requests, unseen, clockTimes] = await Promise.all([
+      const [checked, requests, unseen] = await Promise.all([
         hasCheckedInToday(employee.id).catch(() => false),
         loadOwnAttendanceEditRequests().catch(() => []),
         loadOwnUnseenAttendanceReviews().catch(() => []),
-        getAttendanceClockTimes(employee.id, date).catch(() => null),
       ])
+      setCheckedInToday(Boolean(checked))
       setOwnRequests(requests)
       setReviewNotices(unseen)
-      setClock(clockTimes)
-      if (!checked) setTodayRecord(null)
-      return { date, checked }
     } catch {
-      return null
+      setCheckedInToday(false)
     }
   }
 
   useEffect(() => {
     refreshMeta()
   }, [employee?.id, syncVersion])
-
-  useEffect(() => {
-    const row = records.find((item) => item.date === todayDate) || null
-    setTodayRecord(row)
-  }, [records, todayDate])
 
   const dismissReviewNotices = async () => {
     const ids = reviewNotices.map((item) => item.id)
@@ -180,65 +147,6 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
       await markAttendanceEditRequestNotified(ids)
     } catch {
       /* ignore */
-    }
-  }
-
-  const handleContinueWorking = () => {
-    setSuccessPanel(false)
-    onNavigate?.('invoices')
-  }
-
-  const handleCheckIn = async () => {
-    if (!employee?.id || busy) return
-    setBusy(true)
-    setActionError('')
-    try {
-      const saved = await submitEmployeeAttendance({
-        employeeId: employee.id,
-        status: ATTENDANCE_STATUS.ON_TIME,
-        reason: '',
-      })
-      const server = await getServerAttendanceDate().catch(() => ({ date: todayDate, timestamp: new Date().toISOString() }))
-      const clockSaved = await saveAttendanceCheckInTime(
-        employee.id,
-        server.date || todayDate,
-        server.timestamp || saved?.submittedAt || new Date().toISOString(),
-      )
-      setClock(clockSaved)
-      setTodayRecord(saved)
-      setSuccessPanel(true)
-      setShowOtherStatus(false)
-      notifyDataSynced(['attendance', 'settings'])
-      reload()
-      await refreshMeta()
-    } catch (err) {
-      const message = err?.message ?? 'Không thể chấm công vào.'
-      if (/đã điểm danh/i.test(message)) {
-        setSuccessPanel(true)
-        await refreshMeta()
-        reload()
-      } else {
-        setActionError(message)
-      }
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleCheckOut = async () => {
-    if (!employee?.id || busy) return
-    setBusy(true)
-    setActionError('')
-    try {
-      const clockSaved = await saveAttendanceCheckOutTime(employee.id, todayDate)
-      setClock(clockSaved)
-      setSuccessPanel(true)
-      notifyDataSynced(['settings'])
-      showToast('Chấm công thành công.')
-    } catch (err) {
-      setActionError(err?.message ?? 'Không thể chấm công ra.')
-    } finally {
-      setBusy(false)
     }
   }
 
@@ -255,11 +163,20 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
     setEditTarget(record)
   }
 
+  const openCreate = (date) => {
+    if (pendingByDate[date]) {
+      showToast('Ngày này đang có yêu cầu chờ duyệt.')
+      return
+    }
+    setEditTarget(null)
+    setCreateDate(date)
+  }
+
   return (
     <div className="attendance-page erp-page">
       <header className="attendance-page__self-head">
         <div>
-          <h1>Chấm công</h1>
+          <h1>Chấm công của tôi</h1>
           <p>{employee.name} · {getBranchName(employee.branchId)}</p>
         </div>
         <span className="attendance-page__today-badge">Hôm nay: {formatDate(todayDate)}</span>
@@ -283,132 +200,34 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
 
       {toast && <div className="attendance-page__toast">{toast}</div>}
 
-      <section className="attendance-page__today-hero" aria-live="polite">
-        {successPanel ? (
-          <div className="attendance-page__success-panel">
-            <p className="attendance-page__success-title">Chấm công thành công.</p>
-            <button
-              type="button"
-              className="attendance-page__continue-btn"
-              onClick={handleContinueWorking}
-            >
-              ➡ Tiếp tục làm việc
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="attendance-page__today-summary">
-              <p className="attendance-page__today-status">
-                {hasCheckedIn
-                  ? '✅ Hôm nay bạn đã chấm công.'
-                  : 'Hôm nay bạn chưa chấm công.'}
-              </p>
-              <dl className="attendance-page__clock-grid">
-                <div>
-                  <dt>Giờ vào</dt>
-                  <dd>{formatTime(checkInAt)}</dd>
-                </div>
-                <div>
-                  <dt>Giờ ra</dt>
-                  <dd>{formatTime(checkOutAt)}</dd>
-                </div>
-                <div>
-                  <dt>Trạng thái</dt>
-                  <dd>{todayRecord ? getAttendanceStatusLabel(todayRecord.status) : 'Chưa chấm'}</dd>
-                </div>
-              </dl>
-            </div>
+      {/* Module điểm danh cũ: AttendanceCheckInForm — không viết UI mới */}
+      {checkedInToday === false && !justSaved && (
+        <section className="attendance-page__checkin-block">
+          <AttendanceCheckInForm
+            onSuccess={async () => {
+              setCheckedInToday(true)
+              setJustSaved(true)
+              reload()
+              await refreshMeta()
+            }}
+          />
+        </section>
+      )}
 
-            {actionError && <p className="attendance-page__error" role="alert">{actionError}</p>}
-
-            {!hasCheckedIn && !showOtherStatus && (
-              <div className="attendance-page__today-actions">
-                <button
-                  type="button"
-                  className="attendance-page__big-checkin"
-                  onClick={handleCheckIn}
-                  disabled={busy}
-                >
-                  {busy ? 'Đang chấm...' : '✅ Chấm công vào'}
-                </button>
-                <button
-                  type="button"
-                  className="attendance-page__edit"
-                  onClick={() => setShowOtherStatus(true)}
-                  disabled={busy}
-                >
-                  Chấm công với trạng thái khác
-                </button>
-              </div>
-            )}
-
-            {!hasCheckedIn && showOtherStatus && (
-              <AttendanceCheckInForm
-                onSuccess={async () => {
-                  setSuccessPanel(true)
-                  setShowOtherStatus(false)
-                  const server = await getServerAttendanceDate().catch(() => ({ date: todayDate, timestamp: new Date().toISOString() }))
-                  await saveAttendanceCheckInTime(employee.id, server.date || todayDate, server.timestamp || new Date().toISOString())
-                  reload()
-                  await refreshMeta()
-                }}
-              />
-            )}
-
-            {hasCheckedIn && !hasCheckedOut && (
-              <div className="attendance-page__today-actions">
-                <button
-                  type="button"
-                  className="attendance-page__big-checkin"
-                  onClick={handleCheckOut}
-                  disabled={busy}
-                >
-                  {busy ? 'Đang chấm...' : '✅ Chấm công ra'}
-                </button>
-                <button
-                  type="button"
-                  className="attendance-page__continue-btn attendance-page__continue-btn--secondary"
-                  onClick={handleContinueWorking}
-                >
-                  ➡ Tiếp tục làm việc
-                </button>
-                {todayRecord && (
-                  <button
-                    type="button"
-                    className="attendance-page__edit"
-                    onClick={() => openEdit(todayRecord)}
-                    disabled={Boolean(pendingByDate[todayDate])}
-                  >
-                    Sửa
-                  </button>
-                )}
-              </div>
-            )}
-
-            {hasCheckedIn && hasCheckedOut && (
-              <div className="attendance-page__today-actions">
-                <button
-                  type="button"
-                  className="attendance-page__continue-btn"
-                  onClick={handleContinueWorking}
-                >
-                  ➡ Tiếp tục làm việc
-                </button>
-                {todayRecord && (
-                  <button
-                    type="button"
-                    className="attendance-page__edit"
-                    onClick={() => openEdit(todayRecord)}
-                    disabled={Boolean(pendingByDate[todayDate])}
-                  >
-                    Sửa
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </section>
+      {(justSaved || checkedInToday === true) && (
+        <section className="attendance-page__continue-block" role="status">
+          <p className="attendance-page__continue-message">
+            {justSaved ? 'Chấm công thành công.' : '✅ Hôm nay bạn đã điểm danh.'}
+          </p>
+          <button
+            type="button"
+            className="attendance-page__continue-btn"
+            onClick={handleContinueWorking}
+          >
+            Tiếp tục làm việc
+          </button>
+        </section>
+      )}
 
       <nav className="attendance-page__tabs">
         <button type="button" className={screen === 'today' ? 'is-active' : ''} onClick={() => setScreen('today')}>
@@ -456,6 +275,14 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
                 <tr>
                   <td colSpan={8} className="attendance-page__empty">
                     Chưa có dữ liệu chấm công trong khoảng đã chọn.
+                    {screen !== 'today' && (
+                      <>
+                        {' '}
+                        <button type="button" className="attendance-page__edit" onClick={() => openCreate(todayDate)}>
+                          Yêu cầu bổ sung hôm nay
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ) : records.map((record) => {
@@ -494,15 +321,21 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
         </div>
       )}
 
+      {screen === 'week' && !loading && (
+        <p className="attendance-page__hint">
+          Quên chấm công một ngày?
+          {' '}
+          <button type="button" className="attendance-page__edit" onClick={() => openCreate(todayDate)}>
+            Gửi yêu cầu bổ sung
+          </button>
+        </p>
+      )}
+
       {(editTarget || createDate) && (
         <AttendanceEditRequestModal
           record={editTarget}
           date={createDate}
-          showToast={(message) => showToast(
-            /đã gửi yêu cầu/i.test(message)
-              ? 'Đã gửi yêu cầu chỉnh sửa tới Quản lý.'
-              : message,
-          )}
+          showToast={showToast}
           onClose={() => {
             setEditTarget(null)
             setCreateDate('')
