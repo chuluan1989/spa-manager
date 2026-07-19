@@ -1,4 +1,4 @@
-import { ADMIN_BRANCH } from '../constants/roles'
+import { ADMIN_BRANCH, ROLES } from '../constants/roles'
 import { computeEmployeeDefaultPassword } from '../constants/loginCredentials'
 import { upsertCredentials } from '../repositories/credentialsRepository'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
@@ -6,8 +6,10 @@ import { CANONICAL_BRANCHES } from '../constants/canonicalBranches'
 import { getBranchName, getPasswordBranchName, loadBranches } from './branchStorage'
 import { formatLastLogin, getAccountMeta, loadAccountMetadata } from './accountMetadataStorage'
 import { isEmployeeLoginEligible, loadEmployees } from './employeeStorage'
-import { isSessionAdmin } from './storageAccess'
+import { getSessionUser, isSessionAdmin } from './storageAccess'
 import { hashPassword, isPasswordHash, verifyPassword } from './passwordHash'
+
+export const MIN_PASSWORD_LENGTH = 8
 
 const STORAGE_KEY = 'spa-manager-credentials'
 
@@ -245,22 +247,34 @@ export async function syncEmployeeCredentialForEmployee(employeeId) {
   return saveCredentials(credentials)
 }
 
-function validateNewPassword(newPassword, confirmPassword) {
+/**
+ * Validate mật khẩu mới (self-change + admin reset).
+ * Trả về password đã trim; không log / không lưu plaintext ngoài credentials hash.
+ */
+export function validateNewPassword(newPassword, confirmPassword, { currentPassword } = {}) {
   const next = String(newPassword ?? '')
   const confirm = String(confirmPassword ?? '')
+  const current = String(currentPassword ?? '')
+
   if (!next.trim()) {
     return { ok: false, error: 'Vui lòng nhập mật khẩu mới' }
   }
-  if (next !== next.trim() || /^\s+$/.test(next)) {
-    return { ok: false, error: 'Mật khẩu không được chỉ gồm khoảng trắng' }
+  if (next !== next.trim()) {
+    return { ok: false, error: 'Mật khẩu không được có khoảng trắng ở đầu hoặc cuối' }
   }
-  if (next.trim().length < 6) {
-    return { ok: false, error: 'Mật khẩu mới tối thiểu 6 ký tự' }
+  if (next.length < MIN_PASSWORD_LENGTH) {
+    return { ok: false, error: `Mật khẩu mới tối thiểu ${MIN_PASSWORD_LENGTH} ký tự` }
   }
-  if (next !== confirm) {
+  if (!/[A-Za-zÀ-ỹ]/.test(next) || !/\d/.test(next)) {
+    return { ok: false, error: 'Mật khẩu mới cần có ít nhất 1 chữ cái và 1 chữ số' }
+  }
+  if (confirm !== next) {
     return { ok: false, error: 'Mật khẩu xác nhận không khớp' }
   }
-  return { ok: true, password: next.trim() }
+  if (current && next === current.trim()) {
+    return { ok: false, error: 'Mật khẩu mới không được giống mật khẩu hiện tại' }
+  }
+  return { ok: true, password: next }
 }
 
 export async function updateAdminPassword(password) {
@@ -361,12 +375,14 @@ export async function updateEmployeePassword(employeeId, password, confirmPasswo
     return { success: false, error: 'Không tìm thấy tài khoản nhân viên.' }
   }
 
+  // Hash lowercase để khớp verifyEmployeePassword (login luôn lower-case input).
+  const passwordToStore = validated.password.toLowerCase()
   credentials.employees = {
     ...credentials.employees,
     [employeeId]: {
       branchId: entry?.branchId ?? employee?.branchId ?? '',
       name: entry?.name ?? employee?.name ?? '',
-      password: await hashPassword(validated.password),
+      password: await hashPassword(passwordToStore),
       passwordUpdatedAt: new Date().toISOString(),
       customPassword: true,
     },
@@ -374,24 +390,28 @@ export async function updateEmployeePassword(employeeId, password, confirmPasswo
   try {
     saveCredentials(credentials)
     return { success: true }
-  } catch (error) {
-    return { success: false, error: error?.message ?? 'Không thể lưu mật khẩu' }
+  } catch {
+    return { success: false, error: 'Không thể lưu mật khẩu' }
   }
 }
 
-/** Nhân viên tự đổi mật khẩu (cần mật khẩu hiện tại). */
+/** Nhân viên tự đổi mật khẩu (cần mật khẩu hiện tại). Chỉ đổi tài khoản đang đăng nhập. */
 export async function changeOwnEmployeePassword({
   employeeId,
   currentPassword,
   newPassword,
   confirmPassword,
 }) {
+  const session = getSessionUser()
+  if (!session || session.role !== ROLES.EMPLOYEE || session.employeeId !== employeeId) {
+    return { success: false, error: 'Bạn chỉ được đổi mật khẩu của chính mình.' }
+  }
   if (!employeeId) return { success: false, error: 'Không xác định được nhân viên.' }
-  const validated = validateNewPassword(newPassword, confirmPassword)
-  if (!validated.ok) return { success: false, error: validated.error }
   if (!String(currentPassword ?? '').trim()) {
     return { success: false, error: 'Vui lòng nhập mật khẩu hiện tại' }
   }
+  const validated = validateNewPassword(newPassword, confirmPassword, { currentPassword })
+  if (!validated.ok) return { success: false, error: validated.error }
 
   const credentials = await ensureCredentialsHashed()
   let entry = credentials.employees?.[employeeId]
@@ -412,41 +432,76 @@ export async function changeOwnEmployeePassword({
     return { success: false, error: 'Mật khẩu hiện tại không đúng' }
   }
 
+  const passwordToStore = validated.password.toLowerCase()
+  if (passwordToStore === String(currentPassword).trim().toLowerCase()) {
+    return { success: false, error: 'Mật khẩu mới không được giống mật khẩu hiện tại' }
+  }
+
   credentials.employees[employeeId] = {
     ...entry,
-    password: await hashPassword(validated.password),
+    password: await hashPassword(passwordToStore),
     passwordUpdatedAt: new Date().toISOString(),
     customPassword: true,
   }
   try {
     saveCredentials(credentials)
     return { success: true }
-  } catch (error) {
-    return { success: false, error: error?.message ?? 'Không thể lưu mật khẩu' }
+  } catch {
+    return { success: false, error: 'Không thể lưu mật khẩu' }
   }
 }
 
-/** Quản lý chi nhánh tự đổi mật khẩu chi nhánh. */
+/** Quản lý chi nhánh tự đổi mật khẩu chi nhánh. Chỉ đổi tài khoản đang đăng nhập. */
 export async function changeOwnBranchPassword({
   branchId,
   currentPassword,
   newPassword,
   confirmPassword,
 }) {
+  const session = getSessionUser()
+  if (!session || session.role !== ROLES.BRANCH_MANAGER || session.branch !== branchId) {
+    return { success: false, error: 'Bạn chỉ được đổi mật khẩu của chính mình.' }
+  }
   if (!branchId) return { success: false, error: 'Không xác định được chi nhánh.' }
-  const validated = validateNewPassword(newPassword, confirmPassword)
-  if (!validated.ok) return { success: false, error: validated.error }
   if (!String(currentPassword ?? '').trim()) {
     return { success: false, error: 'Vui lòng nhập mật khẩu hiện tại' }
   }
+  const validated = validateNewPassword(newPassword, confirmPassword, { currentPassword })
+  if (!validated.ok) return { success: false, error: validated.error }
   if (!(await verifyBranchPassword(branchId, currentPassword))) {
     return { success: false, error: 'Mật khẩu hiện tại không đúng' }
   }
   try {
     await updateBranchPassword(branchId, validated.password)
     return { success: true }
-  } catch (error) {
-    return { success: false, error: error?.message ?? 'Không thể lưu mật khẩu' }
+  } catch {
+    return { success: false, error: 'Không thể lưu mật khẩu' }
+  }
+}
+
+/** Admin tự đổi mật khẩu (cần mật khẩu hiện tại). */
+export async function changeOwnAdminPassword({
+  currentPassword,
+  newPassword,
+  confirmPassword,
+}) {
+  const session = getSessionUser()
+  if (!session || session.role !== ROLES.ADMIN) {
+    return { success: false, error: 'Bạn chỉ được đổi mật khẩu của chính mình.' }
+  }
+  if (!String(currentPassword ?? '').trim()) {
+    return { success: false, error: 'Vui lòng nhập mật khẩu hiện tại' }
+  }
+  const validated = validateNewPassword(newPassword, confirmPassword, { currentPassword })
+  if (!validated.ok) return { success: false, error: validated.error }
+  if (!(await verifyAdminPassword(currentPassword))) {
+    return { success: false, error: 'Mật khẩu hiện tại không đúng' }
+  }
+  try {
+    await updateAdminPassword(validated.password)
+    return { success: true }
+  } catch {
+    return { success: false, error: 'Không thể lưu mật khẩu' }
   }
 }
 

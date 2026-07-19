@@ -150,6 +150,36 @@
   color: var(--ks-text-muted);
 }
 
+.myprofile__password-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: #b8860b;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.myprofile__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 16px;
+}
+
+.myprofile__modal {
+  width: min(420px, 100%);
+  background: #fff;
+  color: #111827;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
 @media (max-width: 768px) {
   .myprofile__image-upload {
     flex-direction: column;

@@ -1,17 +1,15 @@
 import { useRef, useState } from 'react'
 import {
-  DEFAULT_ADMIN_PROFILE,
   loadAdminProfile,
   saveAdminProfile,
 } from '../../utils/adminProfileStorage'
 import { IMAGE_CATEGORIES, uploadImageFile } from '../../utils/imageStorage'
-import { verifyAdminPassword, updateAdminPassword } from '../../utils/credentialsStorage'
 import { isValidVietnamesePhone } from '../../utils/validators'
+import ChangePasswordForm from '../account/ChangePasswordForm'
 
 export default function SettingsAdminProfileTab({ showToast }) {
   const avatarInputRef = useRef(null)
   const [profile, setProfile] = useState(() => loadAdminProfile())
-  const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
 
   const handleSaveProfile = () => {
     if (profile.phone && !isValidVietnamesePhone(profile.phone)) {
@@ -20,28 +18,6 @@ export default function SettingsAdminProfileTab({ showToast }) {
     }
     saveAdminProfile(profile)
     showToast('Đã lưu hồ sơ Admin')
-  }
-
-  const handleChangePassword = async () => {
-    if (!passwordForm.current.trim()) {
-      showToast('Vui lòng nhập mật khẩu hiện tại')
-      return
-    }
-    if (!(await verifyAdminPassword(passwordForm.current))) {
-      showToast('Mật khẩu hiện tại không đúng')
-      return
-    }
-    if (!passwordForm.next.trim()) {
-      showToast('Vui lòng nhập mật khẩu mới')
-      return
-    }
-    if (passwordForm.next !== passwordForm.confirm) {
-      showToast('Mật khẩu xác nhận không khớp')
-      return
-    }
-    await updateAdminPassword(passwordForm.next)
-    setPasswordForm({ current: '', next: '', confirm: '' })
-    showToast('Đổi mật khẩu thành công')
   }
 
   const handleImagePick = async (file) => {
@@ -125,36 +101,7 @@ export default function SettingsAdminProfileTab({ showToast }) {
 
         <hr className="settings__divider" />
 
-        <h4 className="settings__subheading">Đổi mật khẩu</h4>
-        <div className="settings__form-grid">
-          <label className="settings__field settings__field--full">
-            <span>Mật khẩu hiện tại</span>
-            <input
-              type="password"
-              value={passwordForm.current}
-              onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
-            />
-          </label>
-          <label className="settings__field">
-            <span>Mật khẩu mới</span>
-            <input
-              type="password"
-              value={passwordForm.next}
-              onChange={(e) => setPasswordForm({ ...passwordForm, next: e.target.value })}
-            />
-          </label>
-          <label className="settings__field">
-            <span>Nhập lại mật khẩu mới</span>
-            <input
-              type="password"
-              value={passwordForm.confirm}
-              onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-            />
-          </label>
-        </div>
-        <button type="button" className="settings__btn settings__btn--primary" onClick={handleChangePassword}>
-          Cập nhật mật khẩu
-        </button>
+        <ChangePasswordForm mode="admin" showToast={showToast} />
       </div>
     </div>
   )
