@@ -56,6 +56,14 @@ import {
 import { consumeInvoiceEditPrefill, consumeInvoiceCreateDatePrefill } from '../utils/navigationPrefill'
 import { exportInvoicesCsv } from '../utils/invoiceExport'
 import { getCatalogGroupsForBranch } from '../utils/branchPricingStorage'
+import {
+  isBranchSupportInvoice,
+  isBranchSupportServiceId,
+} from '../constants/branchSupportService'
+import {
+  calculateBranchSupportTotals,
+  validateBranchSupportForm,
+} from '../utils/branchSupportInvoice'
 import './Invoice.css'
 
 const INITIAL_FILTERS = () => ({
@@ -104,6 +112,9 @@ export default function Invoice({ onNavigate }) {
   const [fallbackServices, setFallbackServices] = useState([])
   const [tipsInput, setTipsInput] = useState('')
   const [discountInput, setDiscountInput] = useState('')
+  const [supportPriceInput, setSupportPriceInput] = useState('')
+  const [supportCommissionInput, setSupportCommissionInput] = useState('')
+  const [supportTipsInput, setSupportTipsInput] = useState('0')
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [editingId, setEditingId] = useState(null)
   const { invoices, loading: invoicesLoading, error: invoicesError, reload: reloadInvoices } = useInvoicesData()
@@ -181,25 +192,41 @@ export default function Invoice({ onNavigate }) {
 
   const currentBranchName = currentBranch?.name ?? ''
 
-  const totals = useMemo(
-    () =>
-      calculateInvoiceTotals(
-        selectedIds,
-        tipsInput,
-        form.branchId,
-        fallbackServices,
-        currentBranchName,
-        discountInput,
-      ),
-    [
+  const isSupportMode = useMemo(
+    () => selectedIds.some((id) => isBranchSupportServiceId(id)),
+    [selectedIds],
+  )
+
+  const totals = useMemo(() => {
+    if (isSupportMode) {
+      return calculateBranchSupportTotals({
+        priceInput: supportPriceInput,
+        commissionRateInput: supportCommissionInput,
+        tipsInput: supportTipsInput,
+        supportNote: form.note,
+      })
+    }
+    return calculateInvoiceTotals(
       selectedIds,
       tipsInput,
-      discountInput,
       form.branchId,
-      currentBranchName,
       fallbackServices,
-    ],
-  )
+      currentBranchName,
+      discountInput,
+    )
+  }, [
+    isSupportMode,
+    supportPriceInput,
+    supportCommissionInput,
+    supportTipsInput,
+    form.note,
+    selectedIds,
+    tipsInput,
+    discountInput,
+    form.branchId,
+    currentBranchName,
+    fallbackServices,
+  ])
 
   const selectedDetails = useMemo(
     () =>
@@ -235,6 +262,9 @@ export default function Invoice({ onNavigate }) {
     }))
     setSelectedIds([])
     setFallbackServices([])
+    setSupportPriceInput('')
+    setSupportCommissionInput('')
+    setSupportTipsInput('0')
     setErrors((prev) => ({ ...prev, branchId: undefined, employeeId: undefined }))
   }
 
@@ -252,8 +282,30 @@ export default function Invoice({ onNavigate }) {
 
   const getServiceCount = (id) => selectedIds.filter((serviceId) => serviceId === id).length
 
+  const handleNumericInput = (setter) => (e) => {
+    const value = e.target.value
+    if (value === '' || /^\d+$/.test(value)) {
+      setter(value)
+    }
+  }
+
   const addService = (id) => {
-    setSelectedIds((prev) => [...prev, id])
+    if (isBranchSupportServiceId(id)) {
+      setSelectedIds([id])
+      setSupportPriceInput('')
+      setSupportCommissionInput('')
+      setSupportTipsInput('0')
+      setTipsInput('')
+      setDiscountInput('')
+      setFallbackServices([])
+      setErrors((prev) => ({ ...prev, services: undefined }))
+      return
+    }
+
+    setSelectedIds((prev) => {
+      const withoutSupport = prev.filter((serviceId) => !isBranchSupportServiceId(serviceId))
+      return [...withoutSupport, id]
+    })
     setErrors((prev) => ({ ...prev, services: undefined }))
   }
 
@@ -263,6 +315,11 @@ export default function Invoice({ onNavigate }) {
       if (index === -1) return prev
       return [...prev.slice(0, index), ...prev.slice(index + 1)]
     })
+    if (isBranchSupportServiceId(id)) {
+      setSupportPriceInput('')
+      setSupportCommissionInput('')
+      setSupportTipsInput('0')
+    }
   }
 
   const validate = () => {
@@ -283,7 +340,17 @@ export default function Invoice({ onNavigate }) {
     } else if (!isEmployeeInBranch(form.employeeId, branchId)) {
       next.employeeId = 'Nhân viên không thuộc chi nhánh đã chọn'
     }
-    if (selectedIds.length === 0) next.services = 'Vui lòng chọn ít nhất 1 dịch vụ'
+    if (isSupportMode) {
+      Object.assign(next, validateBranchSupportForm({
+        branchId,
+        employeeId: form.employeeId,
+        priceInput: supportPriceInput,
+        commissionRateInput: supportCommissionInput,
+        tipsInput: supportTipsInput,
+      }))
+    } else if (selectedIds.length === 0) {
+      next.services = 'Vui lòng chọn ít nhất 1 dịch vụ'
+    }
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -294,6 +361,9 @@ export default function Invoice({ onNavigate }) {
     setFallbackServices([])
     setTipsInput('')
     setDiscountInput('')
+    setSupportPriceInput('')
+    setSupportCommissionInput('')
+    setSupportTipsInput('0')
     setPaymentMethod('cash')
     setEditingId(null)
     setErrors({})
@@ -407,8 +477,20 @@ export default function Invoice({ onNavigate }) {
         : services.map((service) => service.id),
     )
     setFallbackServices(services)
-    setTipsInput(String(invoice.tips ?? 0))
-    setDiscountInput(invoice.discountInput ?? '')
+    if (isBranchSupportInvoice(invoice)) {
+      const line = services[0] ?? {}
+      setSupportPriceInput(String(line.price ?? line.originalPrice ?? ''))
+      setSupportCommissionInput(String(line.commissionPercent ?? ''))
+      setSupportTipsInput(String(invoice.tips ?? 0))
+      setTipsInput('')
+      setDiscountInput('')
+    } else {
+      setSupportPriceInput('')
+      setSupportCommissionInput('')
+      setSupportTipsInput('0')
+      setTipsInput(String(invoice.tips ?? 0))
+      setDiscountInput(invoice.discountInput ?? '')
+    }
     setPaymentMethod(invoice.paymentMethod ?? 'cash')
     setErrors({})
     setActiveTab('create')
@@ -647,9 +729,55 @@ export default function Invoice({ onNavigate }) {
               />
             )}
 
+            {isSupportMode && (
+              <div className="invoice__support-fields">
+                <h4 className="invoice__subsection-title">Dịch vụ hỗ trợ — nhập thông tin</h4>
+                <div className="invoice__fields invoice__fields--grid">
+                  <label className="invoice__field">
+                    <span>Giá dịch vụ *</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="VD: 200000"
+                      value={supportPriceInput}
+                      onChange={handleNumericInput(setSupportPriceInput)}
+                      className={errors.supportPrice ? 'invoice__input--error' : ''}
+                    />
+                    {errors.supportPrice && <span className="invoice__error">{errors.supportPrice}</span>}
+                  </label>
+                  <label className="invoice__field">
+                    <span>% hưởng của nhân viên *</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="VD: 20"
+                      value={supportCommissionInput}
+                      onChange={(e) => setSupportCommissionInput(e.target.value)}
+                      className={errors.supportCommission ? 'invoice__input--error' : ''}
+                    />
+                    {errors.supportCommission && <span className="invoice__error">{errors.supportCommission}</span>}
+                  </label>
+                  <label className="invoice__field">
+                    <span>Tips *</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="0"
+                      value={supportTipsInput}
+                      onChange={handleNumericInput(setSupportTipsInput)}
+                      className={errors.supportTips ? 'invoice__input--error' : ''}
+                    />
+                    {errors.supportTips && <span className="invoice__error">{errors.supportTips}</span>}
+                  </label>
+                </div>
+              </div>
+            )}
+
             <ServiceDetailTable items={totals.services?.length ? totals.services : selectedDetails} totals={totals} />
 
             <div className="invoice__money-grid">
+              {!isSupportMode && (
+              <>
               <label className="invoice__field">
                 <span>Giảm giá / Khuyến mãi</span>
                 <input
@@ -669,6 +797,8 @@ export default function Invoice({ onNavigate }) {
                   onChange={handleTipsChange}
                 />
               </label>
+              </>
+              )}
               <div className="invoice__calc">
                 <div className="invoice__calc-row">
                   <span>Giá vé</span>

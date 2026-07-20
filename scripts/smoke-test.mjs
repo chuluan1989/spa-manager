@@ -3132,10 +3132,33 @@ test('branch support invoice: totals, payroll, reports, branch gate', async () =
   })
   assert.equal(Object.keys(errors).length, 0)
 
+  const validBase = {
+    branchId: 'soc-trang',
+    employeeId: 'emp-1',
+    priceInput: '200000',
+    commissionRateInput: '20',
+    tipsInput: '0',
+  }
+  assert.equal(Object.keys(validateBranchSupportForm(validBase)).length, 0, 'Tips=0 allowed')
+  assert.ok(validateBranchSupportForm({ ...validBase, priceInput: '' }).supportPrice, 'Missing price blocked')
+  assert.ok(validateBranchSupportForm({ ...validBase, priceInput: '0' }).supportPrice, 'Price=0 blocked')
+  assert.ok(validateBranchSupportForm({ ...validBase, commissionRateInput: '' }).supportCommission, 'Missing % blocked')
+  assert.ok(validateBranchSupportForm({ ...validBase, commissionRateInput: '0' }).supportCommission, '%=0 blocked')
+  assert.ok(validateBranchSupportForm({ ...validBase, commissionRateInput: '101' }).supportCommission, '%>100 blocked')
+
+  const test1 = calculateBranchSupportTotals({ priceInput: '200000', commissionRateInput: '20', tipsInput: '30000' })
+  assert.equal(test1.commission, 40000)
+  assert.equal(test1.tips, 30000)
+  assert.equal(test1.commission + test1.tips, 70000)
+
+  const test2 = calculateBranchSupportTotals({ priceInput: '500000', commissionRateInput: '30', tipsInput: '0' })
+  assert.equal(test2.commission, 150000)
+  assert.equal(test2.tips, 0)
+
   assert.equal(isBranchSupportServiceEnabled('soc-trang'), true)
   assert.equal(isBranchSupportServiceEnabled('tram-spa'), true)
   assert.equal(isBranchSupportServiceEnabled('song-khoe-spa'), true)
-  assert.equal(isBranchSupportServiceEnabled('tra-vinh'), false)
+  assert.equal(isBranchSupportServiceEnabled('tra-vinh'), true)
 
   const branchSupportInvoice = {
     id: 'inv-bs-1',

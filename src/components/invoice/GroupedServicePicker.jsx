@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { formatCurrency } from '../../utils/invoice'
 import { formatCatalogServiceName } from '../../utils/serviceCatalog'
+import { isBranchSupportServiceId } from '../../constants/branchSupportService'
 import './GroupedServicePicker.css'
 
 function DurationChip({ minutes, price, serviceId, count, onAdd, onRemove }) {
@@ -25,13 +26,14 @@ function DurationChip({ minutes, price, serviceId, count, onAdd, onRemove }) {
   )
 }
 
-function SingleServiceRow({ id, name, durationMinutes, price, count, onAdd, onRemove }) {
+function SingleServiceRow({ id, name, durationMinutes, price, isSupportService, count, onAdd, onRemove }) {
   const label = formatCatalogServiceName(name, durationMinutes)
+  const priceLabel = isSupportService || isBranchSupportServiceId(id) ? 'Tự nhập' : formatCurrency(price)
   return (
     <div className={`svc-picker__single${count > 0 ? ' svc-picker__single--selected' : ''}`}>
       <button type="button" className="svc-picker__single-btn" onClick={() => onAdd(id)}>
         <span>{label}</span>
-        <strong>{formatCurrency(price)}</strong>
+        <strong>{priceLabel}</strong>
       </button>
       {count > 0 && (
         <div className="svc-picker__qty">
@@ -83,6 +85,7 @@ function ServiceEntry({ entry, getCount, onAdd, onRemove }) {
       name={entry.name}
       durationMinutes={entry.durationMinutes}
       price={entry.price}
+      isSupportService={entry.isSupportService}
       count={getCount(entry.id)}
       onAdd={onAdd}
       onRemove={onRemove}
