@@ -20,7 +20,7 @@ import ChangePasswordForm from '../account/ChangePasswordForm'
 import NavIcon from './NavIcon'
 import './Sidebar.css'
 
-const APP_VERSION = 'v2.0'
+const APP_VERSION = 'v1.4.0'
 
 function getSidebarUserName() {
   const user = getCurrentUser()
