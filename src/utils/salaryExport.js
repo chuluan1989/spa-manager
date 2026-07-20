@@ -1,55 +1,73 @@
 import { formatCurrency } from './invoice'
 import { getBranchName } from './branchStorage'
 import { downloadCsv, openPrintDocument } from './csvExport'
+import { mapPayrollRowForExport } from './payrollExportModel'
+import { getPayCycleLabel } from './salaryReport'
 
-export function exportPayrollCsv(rows, month = '', branchId = '') {
-  const suffix = [month, branchId].filter(Boolean).join('_') || 'all'
+export function exportPayrollCsv(rows, month = '', branchId = '', cycle = '') {
+  const suffix = [month, cycle, branchId].filter(Boolean).join('_') || 'all'
+  const mapped = (rows ?? []).map((row) => mapPayrollRowForExport(row, month))
+
   downloadCsv(`luong-${suffix}`, [
     [
       'Tháng',
+      'Kỳ',
       'Chi nhánh',
       'Nhân viên',
-      'Doanh thu',
-      'Tips',
+      'Doanh số',
       'Hoa hồng',
-      'Phạt chấm công',
-      'Phạt thủ công',
-      'Thưởng/Trừ',
-      'Lương thực nhận',
+      'Tips',
+      'Lương cơ bản',
+      'Thưởng',
+      'Phạt',
+      'Ứng',
+      'Điều chỉnh',
+      'Tổng thu nhập',
+      'Thực nhận',
+      'Đã trả',
+      'Còn lại',
       'Ngày công',
     ],
-    ...rows.map((row) => [
+    ...mapped.map((row) => [
       month,
+      getPayCycleLabel(cycle),
       getBranchName(row.branchId),
       row.employeeName,
-      row.serviceRevenue ?? 0,
-      row.tips ?? 0,
-      row.serviceCommission ?? 0,
-      row.attendancePenalty ?? 0,
-      row.manualPenalty ?? 0,
-      row.adjustmentTotal ?? 0,
-      row.netSalary ?? 0,
-      row.workDays ?? 0,
+      row.ticketRevenue,
+      row.commission,
+      row.tips,
+      row.baseSalary,
+      row.bonus,
+      row.penalty,
+      row.advance,
+      row.otherAdjustment,
+      row.grossIncome,
+      row.netSalary,
+      row.paidAmount,
+      row.remainingAmount,
+      row.workDays,
     ]),
   ])
 }
 
-export function exportPayrollPdf(rows, month = '') {
-  const tableRows = rows.map((row) => `
+export function exportPayrollPdf(rows, month = '', cycle = '') {
+  const mapped = (rows ?? []).map((row) => mapPayrollRowForExport(row, month))
+  const tableRows = mapped.map((row) => `
     <tr>
       <td>${row.employeeName}</td>
       <td>${getBranchName(row.branchId)}</td>
-      <td>${formatCurrency(row.serviceRevenue ?? 0)}</td>
-      <td>${formatCurrency(row.tips ?? 0)}</td>
-      <td>${formatCurrency(row.attendancePenalty ?? 0)}</td>
-      <td>${formatCurrency(row.netSalary ?? 0)}</td>
+      <td>${formatCurrency(row.ticketRevenue)}</td>
+      <td>${formatCurrency(row.commission)}</td>
+      <td>${formatCurrency(row.tips)}</td>
+      <td>${formatCurrency(row.penalty)}</td>
+      <td>${formatCurrency(row.netSalary)}</td>
     </tr>`).join('')
 
   openPrintDocument(
     `Bang-luong-${month}`,
-    `<h1>Bảng lương ${month}</h1>
+    `<h1>Bảng lương ${month} · ${getPayCycleLabel(cycle)}</h1>
     <table>
-      <thead><tr><th>Nhân viên</th><th>Chi nhánh</th><th>Doanh thu</th><th>Tips</th><th>Phạt CC</th><th>Thực nhận</th></tr></thead>
+      <thead><tr><th>Nhân viên</th><th>Chi nhánh</th><th>Doanh số</th><th>Hoa hồng</th><th>Tips</th><th>Phạt</th><th>Thực nhận</th></tr></thead>
       <tbody>${tableRows}</tbody>
     </table>`,
   )

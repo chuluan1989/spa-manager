@@ -36,8 +36,7 @@ import {
   PAY_CYCLES,
   getPayPeriodRange,
 } from '../utils/salaryReport'
-import { exportPayrollCsv, exportPayrollPdf } from '../utils/salaryExport'
-import ExportActions from '../components/common/ExportActions'
+import PayrollReconciliationActions from '../components/salary/PayrollReconciliationActions'
 import './Salary.css'
 
 const LEVEL = {
@@ -366,17 +365,32 @@ function SalaryPage() {
             </select>
           </label>
         )}
-        <ExportActions
-          onExportExcel={() => exportPayrollCsv(
-            level === LEVEL.EMPLOYEES ? employeeRows : report.rows,
+        <PayrollReconciliationActions
+          level={level}
+          month={month}
+          cycle={cycle}
+          branchId={level === LEVEL.EMPLOYEES ? selectedBranchId : fetchBranchId}
+          branchName={getPayrollBranchDisplayTitle(selectedBranchId || fetchBranchId, getBranchName(selectedBranchId || fetchBranchId))}
+          fromDate={report.fromDate}
+          toDate={report.toDate}
+          employeeRows={level === LEVEL.EMPLOYEES ? employeeRows : report.rows}
+          profileContext={level === LEVEL.PROFILE && profileRow ? {
+            employee: employees.find((emp) => emp.id === profileRow.employeeId),
+            payrollRow: profileRow,
+            invoices,
+            attendanceRecords: attendance,
+            adjustments,
             month,
-            fetchBranchId,
-          )}
-          onExportPdf={() => exportPayrollPdf(
-            level === LEVEL.EMPLOYEES ? employeeRows : report.rows,
-            month,
-          )}
-          disabled={(level === LEVEL.EMPLOYEES ? employeeRows : report.rows).length === 0}
+            cycle,
+            fromDate: report.fromDate,
+            toDate: report.toDate,
+          } : null}
+          disabled={
+            loading
+            || (level === LEVEL.PROFILE
+              ? !profileRow
+              : (level === LEVEL.EMPLOYEES ? employeeRows : report.rows).length === 0)
+          }
         />
       </div>
 
