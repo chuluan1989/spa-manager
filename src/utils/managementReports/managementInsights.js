@@ -1,9 +1,11 @@
 /**
- * Rule-based revenue insights + top movers + KPI color tones.
+ * Rule-based revenue insights + MoM top movers + KPI color tones.
  * No AI — only compares already-computed period metrics/trends.
  */
 
-/** |%| ≥ strong → đậm; |%| < mild → vàng (ổn định / nhẹ). */
+import { computeSafeTrend } from './periodCompare'
+
+/** |%| ≥ mild → xanh/đỏ; |%| < mild hoặc flat → vàng. */
 export const KPI_TONE_THRESHOLDS = {
   mild: 5,
   strong: 15,
@@ -30,7 +32,7 @@ export function resolveKpiTone(trend) {
 }
 
 /**
- * Giải thích rule-based vì sao doanh thu tăng/giảm (dựa trên trend đã có).
+ * Giải thích rule-based vì sao doanh thu tăng/giảm.
  */
 export function buildRevenueInsights(row) {
   if (!row?.revenueTrend) return []
@@ -65,23 +67,30 @@ export function buildRevenueInsights(row) {
     }
   }
 
+  const avgCustTrend = row.previous?.averageRevenuePerCustomer != null
+    ? computeSafeTrend(row.averageRevenuePerCustomer, row.previous.averageRevenuePerCustomer)
+    : null
+
   pushFactor('customers', row.customerTrend, 'Khách tăng', 'Khách giảm')
+  pushFactor('revPerDay', row.revenuePerWorkDayTrend, 'Doanh thu/ngày tăng', 'Doanh thu/ngày giảm')
+  pushFactor('avgCust', avgCustTrend, 'Doanh thu/khách tăng', 'Doanh thu/khách giảm')
   pushFactor('ticket', row.averageTicketTrend, 'Invoice TB tăng', 'Invoice TB giảm')
   pushFactor('tips', row.tipsTrend, 'Tips tăng', 'Tips giảm')
   pushFactor('requested', row.requestedRateTrend, 'Tỷ lệ khách yêu cầu tăng', 'Tỷ lệ khách yêu cầu giảm')
+  pushFactor('requestedDay', row.requestedPerWorkDayTrend, 'Khách yêu cầu/ngày tăng', 'Khách yêu cầu/ngày giảm')
+  pushFactor('workDays', row.workDaysTrend, 'Ngày công tăng', 'Ngày công giảm')
 
   if (items.length === 0) {
     items.push({
       id: 'revenue-only',
       text: rising
-        ? `Doanh thu ${rev.label || 'tăng'} — chưa thấy biến động rõ ở khách / invoice TB / tips / tỷ lệ YC.`
-        : `Doanh thu ${rev.label || 'giảm'} — chưa thấy biến động rõ ở khách / invoice TB / tips / tỷ lệ YC.`,
+        ? `Doanh thu ${rev.label || 'tăng'} — chưa thấy biến động rõ ở khách / hiệu suất ngày / tips / tỷ lệ YC.`
+        : `Doanh thu ${rev.label || 'giảm'} — chưa thấy biến động rõ ở khách / hiệu suất ngày / tips / tỷ lệ YC.`,
       tone: resolveKpiTone(rev),
     })
     return items
   }
 
-  // Ưu tiên yếu tố cùng chiều với doanh thu
   items.sort((a, b) => Number(b.alignsWithRevenue) - Number(a.alignsWithRevenue))
 
   const headline = rising
@@ -103,7 +112,7 @@ function trendScore(trend, preferUp) {
 }
 
 /**
- * TOP tăng / TOP giảm theo doanh thu hoặc tỷ lệ khách yêu cầu.
+ * TOP tăng / TOP giảm theo doanh thu hoặc tỷ lệ khách yêu cầu (MoM %).
  */
 export function buildTopMovers(rows, { metric = 'revenue', limit = 5 } = {}) {
   const trendKey = metric === 'requestedRate' ? 'requestedRateTrend' : 'revenueTrend'

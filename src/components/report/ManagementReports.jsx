@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import {
   canExportReport,
   canSelectBranch,
-  isAdmin,
 } from '../../constants/auth'
 import { loadBranches } from '../../constants/branches'
 import { formatCurrency } from '../../utils/invoice'
@@ -21,6 +20,12 @@ import {
   buildTopMovers,
   resolveKpiTone,
 } from '../../utils/managementReports/managementInsights'
+import {
+  BENCHMARK_METRICS,
+  DEFAULT_BENCHMARK_SORT,
+  buildBenchmarkTopBottom,
+  sortBenchmarkRows,
+} from '../../utils/managementReports/benchmarkSort'
 import {
   exportManagementBranchCsv,
   exportManagementEmployeeCsv,
@@ -41,47 +46,30 @@ function TrendCell({ trend, previousValue, formatPrev }) {
   )
 }
 
-function TopMoversPanel({ title, rows, onSelect }) {
-  const byRevenue = buildTopMovers(rows, { metric: 'revenue', limit: 5 })
-  const byRequested = buildTopMovers(rows, { metric: 'requestedRate', limit: 5 })
+function formatMoneyOrDash(value) {
+  if (value == null || Number.isNaN(value)) return '—'
+  return formatCurrency(value)
+}
 
-  const RowList = ({ list, trendKey, empty }) => (
-    <ul className="mgmt-top__list">
-      {list.length === 0 && <li className="mgmt-muted">{empty}</li>}
-      {list.map((row) => (
-        <li key={`${trendKey}-${row.id}`}>
-          <button type="button" onClick={() => onSelect?.(row.id)}>
-            {row.name}
-          </button>
-          <TrendCell trend={row[trendKey]} />
-        </li>
-      ))}
-    </ul>
-  )
+function formatRate(value) {
+  if (value == null || Number.isNaN(value)) return '—'
+  return `${value}%`
+}
 
-  return (
-    <section className="mgmt-top" aria-label={title}>
-      <h3>{title}</h3>
-      <div className="mgmt-top__grid">
-        <div>
-          <h4>TOP tăng · Doanh thu</h4>
-          <RowList list={byRevenue.gainers} trendKey="revenueTrend" empty="Không có" />
-        </div>
-        <div>
-          <h4>TOP giảm · Doanh thu</h4>
-          <RowList list={byRevenue.losers} trendKey="revenueTrend" empty="Không có" />
-        </div>
-        <div>
-          <h4>TOP tăng · Tỷ lệ YC</h4>
-          <RowList list={byRequested.gainers} trendKey="requestedRateTrend" empty="Không có" />
-        </div>
-        <div>
-          <h4>TOP giảm · Tỷ lệ YC</h4>
-          <RowList list={byRequested.losers} trendKey="requestedRateTrend" empty="Không có" />
-        </div>
-      </div>
-    </section>
-  )
+function formatNum(value, digits = 1) {
+  if (value == null || Number.isNaN(value)) return '—'
+  return Number(value).toLocaleString('vi-VN', {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: 0,
+  })
+}
+
+function formatBenchmarkValue(row, metric) {
+  const value = row[metric.key]
+  if (metric.format === 'money') return formatMoneyOrDash(value)
+  if (metric.format === 'rate') return formatRate(value)
+  if (metric.format === 'score') return value == null ? '—' : formatNum(value, 1)
+  return formatNum(value, metric.key.includes('Per') ? 2 : 1)
 }
 
 function InsightBlock({ row }) {
@@ -101,36 +89,190 @@ function InsightBlock({ row }) {
   )
 }
 
-function formatMoneyOrDash(value) {
-  if (value == null || Number.isNaN(value)) return '—'
-  return formatCurrency(value)
+function EvolutionPanel({ evolution }) {
+  if (!evolution?.months?.length) return null
+  return (
+    <div className="mgmt-evolution">
+      <header className="mgmt-evolution__head">
+        <h4>Self Evolution · 3 tháng</h4>
+        <span className={`mgmt-pill is-${evolution.conclusion?.tone || 'neutral'}`}>
+          {evolution.conclusion?.label || '—'}
+        </span>
+      </header>
+      <div className="mgmt-evolution__table-wrap">
+        <table className="mgmt-evolution__table">
+          <thead>
+            <tr>
+              <th>Chỉ số</th>
+              {evolution.months.map((m) => (
+                <th key={m.monthKey}>{m.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {evolution.series.map((series) => (
+              <tr key={series.key}>
+                <td>{series.label}</td>
+                {series.points.map((point) => (
+                  <td key={`${series.key}-${point.monthKey}`}>
+                    <span className="mgmt-evolution__val">
+                      {series.key.includes('Rate')
+                        ? formatRate(point.value)
+                        : series.key.toLowerCase().includes('revenue') || series.key === 'tips' || series.key.includes('Revenue')
+                          ? formatMoneyOrDash(point.value)
+                          : formatNum(point.value, 2)}
+                    </span>
+                    {point.arrow !== '—' && (
+                      <span className={`mgmt-evolution__arrow is-${point.trend?.direction || 'flat'}`}>
+                        {point.arrow}
+                      </span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
 }
 
-function formatRate(value) {
-  if (value == null || Number.isNaN(value)) return '—'
-  return `${value}%`
+function CeoPanel({ row, entityLabel }) {
+  if (!row) {
+    return (
+      <section className="mgmt-ceo" aria-label="CEO Dashboard">
+        <h3>CEO Dashboard</h3>
+        <p className="mgmt-muted">Chọn một {entityLabel} trên bảng để xem hạng, điểm và xu hướng 3 tháng.</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="mgmt-ceo" aria-label="CEO Dashboard">
+      <header className="mgmt-ceo__head">
+        <div>
+          <h3>CEO Dashboard</h3>
+          <p className="mgmt-ceo__name">{row.name}{row.branchName ? ` · ${row.branchName}` : ''}</p>
+        </div>
+        <div className={`mgmt-score is-${row.performanceGradeId || 'none'}`}>
+          <strong>{row.performanceScore != null ? formatNum(row.performanceScore, 1) : '—'}</strong>
+          <span>{row.performanceGrade || '—'}</span>
+        </div>
+      </header>
+      <dl className="mgmt-ceo__grid">
+        <div>
+          <dt>Hạng trong CN</dt>
+          <dd>
+            {row.performanceRankInBranch != null
+              ? `${row.performanceRankInBranch}/${row.performanceRankInBranchTotal}`
+              : row.revenuePerWorkDayRankInBranch != null
+                ? `${row.revenuePerWorkDayRankInBranch}/${row.revenuePerWorkDayRankInBranchTotal}`
+                : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt>Hạng hệ thống</dt>
+          <dd>
+            {row.performanceRankSystem != null
+              ? `${row.performanceRankSystem}/${row.performanceRankSystemTotal}`
+              : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt>Xu hướng 3 tháng</dt>
+          <dd className={`is-${row.performanceTrendTone || 'neutral'}`}>{row.performanceTrendLabel || '—'}</dd>
+        </div>
+        <div>
+          <dt>Hiệu suất/ngày</dt>
+          <dd>{formatMoneyOrDash(row.revenuePerWorkDay)}</dd>
+        </div>
+        <div>
+          <dt>Chỉ số nổi bật</dt>
+          <dd>{row.strongestMetric?.label || '—'}{row.strongestMetric ? ` (${formatNum(row.strongestMetric.value, 0)})` : ''}</dd>
+        </div>
+        <div>
+          <dt>Chỉ số yếu nhất</dt>
+          <dd>{row.weakestMetric?.label || '—'}{row.weakestMetric ? ` (${formatNum(row.weakestMetric.value, 0)})` : ''}</dd>
+        </div>
+      </dl>
+    </section>
+  )
 }
 
-function sortRows(rows, sortKey, sortDir) {
-  const dir = sortDir === 'asc' ? 1 : -1
-  return [...rows].sort((a, b) => {
-    const av = a[sortKey] ?? -Infinity
-    const bv = b[sortKey] ?? -Infinity
-    if (typeof av === 'string' || typeof bv === 'string') {
-      return String(av).localeCompare(String(bv), 'vi') * dir
-    }
-    return (Number(av) - Number(bv)) * dir
-  })
+function BenchmarkPanel({ title, rows, sortKey, onSelect }) {
+  const metric = sortKey || DEFAULT_BENCHMARK_SORT
+  const board = buildBenchmarkTopBottom(rows, { metric, limit: 5 })
+  const metricMeta = BENCHMARK_METRICS.find((m) => m.key === metric)
+  const momRevenue = buildTopMovers(rows, { metric: 'revenue', limit: 5 })
+
+  return (
+    <section className="mgmt-top" aria-label={title}>
+      <h3>{title}</h3>
+      <p className="mgmt-muted">
+        Benchmark theo <strong>{metricMeta?.label || metric}</strong> (ưu tiên hiệu suất/ngày). TOP / BOTTOM cùng kỳ.
+      </p>
+      <div className="mgmt-top__grid">
+        <div>
+          <h4>TOP · {metricMeta?.label || metric}</h4>
+          <ul className="mgmt-top__list">
+            {board.top.length === 0 && <li className="mgmt-muted">Không có</li>}
+            {board.top.map((row) => (
+              <li key={`top-${row.id}`}>
+                <button type="button" onClick={() => onSelect?.(row.id)}>{row.name}</button>
+                <span>{formatBenchmarkValue(row, metricMeta || { key: metric, format: 'number' })}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h4>BOTTOM · {metricMeta?.label || metric}</h4>
+          <ul className="mgmt-top__list">
+            {board.bottom.length === 0 && <li className="mgmt-muted">Không có</li>}
+            {board.bottom.map((row) => (
+              <li key={`bot-${row.id}`}>
+                <button type="button" onClick={() => onSelect?.(row.id)}>{row.name}</button>
+                <span>{formatBenchmarkValue(row, metricMeta || { key: metric, format: 'number' })}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h4>TOP tăng · Doanh thu (MoM)</h4>
+          <ul className="mgmt-top__list">
+            {momRevenue.gainers.length === 0 && <li className="mgmt-muted">Không có</li>}
+            {momRevenue.gainers.map((row) => (
+              <li key={`up-${row.id}`}>
+                <button type="button" onClick={() => onSelect?.(row.id)}>{row.name}</button>
+                <TrendCell trend={row.revenueTrend} />
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h4>TOP giảm · Doanh thu (MoM)</h4>
+          <ul className="mgmt-top__list">
+            {momRevenue.losers.length === 0 && <li className="mgmt-muted">Không có</li>}
+            {momRevenue.losers.map((row) => (
+              <li key={`down-${row.id}`}>
+                <button type="button" onClick={() => onSelect?.(row.id)}>{row.name}</button>
+                <TrendCell trend={row.revenueTrend} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  )
 }
 
 export default function ManagementReports({ onNavigate }) {
-  const [view, setView] = useState('branch')
+  const [view, setView] = useState('employee')
   const [filters, setFilters] = useState(() => buildDefaultManagementFilters())
   const [selectedBranchId, setSelectedBranchId] = useState(null)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null)
 
   const data = useManagementReportsData(filters)
-
   const branches = useMemo(() => loadBranches().filter((b) => b?.id), [])
 
   const filteredEmployees = useMemo(() => {
@@ -144,50 +286,54 @@ export default function ManagementReports({ onNavigate }) {
         `${row.name} ${row.branchName}`.toLowerCase().includes(q),
       )
     }
-    return sortRows(rows, filters.sortKey, filters.sortDir)
+    return sortBenchmarkRows(rows, filters.sortKey, filters.sortDir)
   }, [data.employeeRows, filters.branchId, filters.employeeQuery, filters.sortKey, filters.sortDir])
 
-  const filteredBranches = useMemo(() => {
-    let rows = data.branchRows ?? []
-    if (filters.branchId) {
-      rows = rows.filter((row) => row.branchId === filters.branchId)
-    }
-    return sortRows(rows, filters.sortKey, filters.sortDir)
-  }, [data.branchRows, filters.branchId, filters.sortKey, filters.sortDir])
+  const filteredBranches = useMemo(
+    () => sortBenchmarkRows(data.branchRows ?? [], filters.sortKey, filters.sortDir),
+    [data.branchRows, filters.sortKey, filters.sortDir],
+  )
 
-  const selectedBranch = filteredBranches.find((r) => r.id === selectedBranchId)
-    || data.branchRows?.find((r) => r.id === selectedBranchId)
-  const selectedEmployee = filteredEmployees.find((r) => r.id === selectedEmployeeId)
-    || data.employeeRows?.find((r) => r.id === selectedEmployeeId)
+  const selectedBranch = filteredBranches.find((row) => row.id === selectedBranchId) ?? null
+  const selectedEmployee = filteredEmployees.find((row) => row.id === selectedEmployeeId) ?? null
+  const ceoRow = view === 'branch' ? selectedBranch : selectedEmployee
 
   const branchInsights = useMemo(() => {
     if (!selectedBranch) return null
     return buildBranchEmployeeInsights(
-      selectedBranch.branchId,
-      data.employeeRows ?? [],
+      selectedBranch.id,
+      data.employeeRows,
       data.currentInvoices ?? [],
       filters.fromDate,
       filters.toDate,
     )
   }, [selectedBranch, data.employeeRows, data.currentInvoices, filters.fromDate, filters.toDate])
 
-  const employeeInvoices = useMemo(() => {
-    if (!selectedEmployee) return []
-    return buildEmployeeInvoiceList(data.currentInvoices ?? [], selectedEmployee.employeeId)
-  }, [selectedEmployee, data.currentInvoices])
-
   const employeeTrend = useMemo(() => {
     if (!selectedEmployee) return []
     return buildEmployeeDailyRevenue(
       data.currentInvoices ?? [],
-      selectedEmployee.employeeId,
+      selectedEmployee.id,
       filters.fromDate,
       filters.toDate,
     )
   }, [selectedEmployee, data.currentInvoices, filters.fromDate, filters.toDate])
 
+  const employeeInvoices = useMemo(() => {
+    if (!selectedEmployee) return []
+    return buildEmployeeInvoiceList(data.currentInvoices ?? [], selectedEmployee.id).slice(0, 20)
+  }, [selectedEmployee, data.currentInvoices])
+
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const toggleSort = (key) => {
+    setFilters((prev) => ({
+      ...prev,
+      sortKey: key,
+      sortDir: prev.sortKey === key && prev.sortDir === 'desc' ? 'asc' : 'desc',
+    }))
   }
 
   const setQuickMonth = () => {
@@ -207,28 +353,18 @@ export default function ManagementReports({ onNavigate }) {
     }
   }
 
-  const toggleSort = (key) => {
-    setFilters((prev) => ({
-      ...prev,
-      sortKey: key,
-      sortDir: prev.sortKey === key && prev.sortDir === 'desc' ? 'asc' : 'desc',
-    }))
-  }
+  const compareCaption = data.compare?.fromDate
+    ? `So sánh kỳ hiện tại với ${data.compare.fromDate} → ${data.compare.toDate}`
+      + (data.compare.mode === 'mtd-same-days' ? ' (cùng số ngày tháng trước)' : '')
+      + (data.compare.mode === 'full-month' ? ' (cả tháng trước)' : '')
+    : ''
 
   return (
     <div className="mgmt-reports">
-      <header className="mgmt-reports__header">
+      <div className="mgmt-reports__header">
         <div>
-          <h2>Báo cáo quản trị</h2>
-          <p>
-            So sánh kỳ hiện tại với
-            {' '}
-            {data.compare?.fromDate && data.compare?.toDate
-              ? `${data.compare.fromDate} → ${data.compare.toDate}`
-              : '—'}
-            {data.compare?.mode === 'mtd-same-days' ? ' (cùng số ngày tháng trước)' : ''}
-            {data.compare?.mode === 'full-month' ? ' (cả tháng trước)' : ''}
-          </p>
+          <h2>Báo cáo quản trị V2</h2>
+          <p className="mgmt-reports__compare">{compareCaption}</p>
         </div>
         <div className="mgmt-reports__actions">
           <button type="button" className="mgmt-btn" onClick={data.reload} disabled={data.loading}>
@@ -240,24 +376,24 @@ export default function ManagementReports({ onNavigate }) {
             </button>
           )}
         </div>
-      </header>
+      </div>
 
       <div className="mgmt-tabs" role="tablist">
         <button
           type="button"
           role="tab"
-          className={view === 'branch' ? 'is-active' : ''}
           aria-selected={view === 'branch'}
-          onClick={() => { setView('branch'); setSelectedEmployeeId(null) }}
+          className={view === 'branch' ? 'is-active' : ''}
+          onClick={() => setView('branch')}
         >
           Chi nhánh
         </button>
         <button
           type="button"
           role="tab"
-          className={view === 'employee' ? 'is-active' : ''}
           aria-selected={view === 'employee'}
-          onClick={() => { setView('employee'); setSelectedBranchId(null) }}
+          className={view === 'employee' ? 'is-active' : ''}
+          onClick={() => setView('employee')}
         >
           Nhân viên
         </button>
@@ -306,22 +442,40 @@ export default function ManagementReports({ onNavigate }) {
             />
           </label>
         )}
+        <label className="mgmt-filters__sort">
+          Sắp xếp benchmark
+          <select
+            value={filters.sortKey}
+            onChange={(e) => updateFilter('sortKey', e.target.value)}
+          >
+            {BENCHMARK_METRICS.map((m) => (
+              <option key={m.key} value={m.key}>{m.label}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {data.error ? <p className="mgmt-error">{data.error}</p> : null}
 
+      <CeoPanel
+        row={ceoRow}
+        entityLabel={view === 'branch' ? 'chi nhánh' : 'nhân viên'}
+      />
+
       {view === 'branch' && (
-        <TopMoversPanel
-          title="TOP tăng / giảm — Chi nhánh"
+        <BenchmarkPanel
+          title="Benchmark — Chi nhánh"
           rows={filteredBranches}
+          sortKey={filters.sortKey}
           onSelect={(id) => setSelectedBranchId(id)}
         />
       )}
 
       {view === 'employee' && (
-        <TopMoversPanel
-          title="TOP tăng / giảm — Nhân viên"
+        <BenchmarkPanel
+          title="Benchmark — Nhân viên"
           rows={filteredEmployees}
+          sortKey={filters.sortKey}
           onSelect={(id) => setSelectedEmployeeId(id)}
         />
       )}
@@ -333,13 +487,14 @@ export default function ManagementReports({ onNavigate }) {
               <thead>
                 <tr>
                   <th><button type="button" onClick={() => toggleSort('name')}>Tên</button></th>
+                  <th><button type="button" onClick={() => toggleSort('performanceScore')}>Score</button></th>
+                  <th><button type="button" onClick={() => toggleSort('workDays')}>Ngày công</button></th>
+                  <th><button type="button" onClick={() => toggleSort('revenuePerWorkDay')}>DT/ngày</button></th>
                   <th><button type="button" onClick={() => toggleSort('revenue')}>Doanh thu</button></th>
-                  <th>Tăng/giảm</th>
-                  <th><button type="button" onClick={() => toggleSort('totalCustomerCount')}>Tổng khách</button></th>
-                  <th><button type="button" onClick={() => toggleSort('requestedCustomerCount')}>Khách yêu cầu</button></th>
+                  <th><button type="button" onClick={() => toggleSort('totalCustomerCount')}>Khách</button></th>
+                  <th><button type="button" onClick={() => toggleSort('customersPerWorkDay')}>Khách/ngày</button></th>
                   <th><button type="button" onClick={() => toggleSort('requestedRate')}>Tỷ lệ YC</button></th>
-                  <th><button type="button" onClick={() => toggleSort('tips')}>Tips</button></th>
-                  <th><button type="button" onClick={() => toggleSort('averageRevenuePerCustomer')}>DT/khách</button></th>
+                  <th><button type="button" onClick={() => toggleSort('tipsPerWorkDay')}>Tips/ngày</button></th>
                 </tr>
               </thead>
               <tbody>
@@ -350,23 +505,27 @@ export default function ManagementReports({ onNavigate }) {
                     onClick={() => setSelectedBranchId(row.id)}
                   >
                     <td>{row.name}</td>
-                    <td className="is-num">{formatMoneyOrDash(row.revenue)}</td>
-                    <td>
-                      <TrendCell
-                        trend={row.revenueTrend}
-                        previousValue={row.previous?.revenue}
-                        formatPrev={formatMoneyOrDash}
-                      />
+                    <td className="is-num">
+                      {formatNum(row.performanceScore, 1)}
+                      <div className="mgmt-sub">{row.performanceGrade}</div>
+                    </td>
+                    <td className="is-num">{formatNum(row.workDays, 1)}</td>
+                    <td className="is-num">
+                      {formatMoneyOrDash(row.revenuePerWorkDay)}
+                      <div><TrendCell trend={row.revenuePerWorkDayTrend} /></div>
+                    </td>
+                    <td className="is-num">
+                      {formatMoneyOrDash(row.revenue)}
+                      <div><TrendCell trend={row.revenueTrend} /></div>
                     </td>
                     <td className="is-num">{row.totalCustomerCount}</td>
-                    <td className="is-num">{row.requestedCustomerCount}</td>
+                    <td className="is-num">{formatNum(row.customersPerWorkDay, 2)}</td>
                     <td className="is-num">{formatRate(row.requestedRate)}</td>
-                    <td className="is-num">{formatMoneyOrDash(row.tips)}</td>
-                    <td className="is-num">{formatMoneyOrDash(row.averageRevenuePerCustomer)}</td>
+                    <td className="is-num">{formatMoneyOrDash(row.tipsPerWorkDay)}</td>
                   </tr>
                 ))}
                 {!data.loading && filteredBranches.length === 0 && (
-                  <tr><td colSpan={8} className="mgmt-empty">Không có dữ liệu chi nhánh.</td></tr>
+                  <tr><td colSpan={9} className="mgmt-empty">Không có dữ liệu chi nhánh.</td></tr>
                 )}
               </tbody>
             </table>
@@ -379,64 +538,35 @@ export default function ManagementReports({ onNavigate }) {
                 <button type="button" className="mgmt-btn" onClick={() => setSelectedBranchId(null)}>Đóng</button>
               </header>
               <dl className="mgmt-detail__grid">
-                <div><dt>Doanh thu</dt><dd className={`mgmt-kpi is-${resolveKpiTone(selectedBranch.revenueTrend)}`}>{formatMoneyOrDash(selectedBranch.revenue)}</dd></div>
-                <div><dt>vs kỳ trước</dt><dd><TrendCell trend={selectedBranch.revenueTrend} previousValue={selectedBranch.previous?.revenue} formatPrev={formatMoneyOrDash} /></dd></div>
-                <div><dt>Tổng khách</dt><dd>{selectedBranch.totalCustomerCount}</dd></div>
-                <div><dt>Khách yêu cầu</dt><dd>{selectedBranch.requestedCustomerCount}</dd></div>
-                <div><dt>Tỷ lệ YC</dt><dd>{formatRate(selectedBranch.requestedRate)} <TrendCell trend={selectedBranch.requestedRateTrend} previousValue={selectedBranch.previous?.requestedRate} formatPrev={formatRate} /></dd></div>
-                <div><dt>Tips</dt><dd>{formatMoneyOrDash(selectedBranch.tips)} <TrendCell trend={selectedBranch.tipsTrend} previousValue={selectedBranch.previous?.tips} formatPrev={formatMoneyOrDash} /></dd></div>
+                <div>
+                  <dt>Performance Score</dt>
+                  <dd className={`mgmt-kpi is-${resolveKpiTone(selectedBranch.revenuePerWorkDayTrend)}`}>
+                    {formatNum(selectedBranch.performanceScore, 1)} · {selectedBranch.performanceGrade}
+                  </dd>
+                </div>
+                <div><dt>Ngày công</dt><dd>{formatNum(selectedBranch.workDays, 1)} <TrendCell trend={selectedBranch.workDaysTrend} /></dd></div>
+                <div><dt>DT/ngày làm</dt><dd className={`mgmt-kpi is-${resolveKpiTone(selectedBranch.revenuePerWorkDayTrend)}`}>{formatMoneyOrDash(selectedBranch.revenuePerWorkDay)}</dd></div>
+                <div><dt>Doanh thu</dt><dd>{formatMoneyOrDash(selectedBranch.revenue)}</dd></div>
+                <div><dt>Khách / ngày</dt><dd>{formatNum(selectedBranch.customersPerWorkDay, 2)}</dd></div>
+                <div><dt>YC / ngày</dt><dd>{formatNum(selectedBranch.requestedPerWorkDay, 2)}</dd></div>
+                <div><dt>Tỷ lệ YC</dt><dd>{formatRate(selectedBranch.requestedRate)}</dd></div>
+                <div><dt>Tips / ngày</dt><dd>{formatMoneyOrDash(selectedBranch.tipsPerWorkDay)}</dd></div>
                 <div><dt>DT/khách</dt><dd>{formatMoneyOrDash(selectedBranch.averageRevenuePerCustomer)}</dd></div>
-                <div><dt>Invoice TB</dt><dd>{formatMoneyOrDash(selectedBranch.averageTicket)} <TrendCell trend={selectedBranch.averageTicketTrend} previousValue={selectedBranch.previous?.averageTicket} formatPrev={formatMoneyOrDash} /></dd></div>
-                <div><dt>DT/ngày</dt><dd>{formatMoneyOrDash(selectedBranch.averageRevenuePerDay)}</dd></div>
-                <div><dt>Lợi nhuận</dt><dd>{selectedBranch.profitAvailable ? formatMoneyOrDash(selectedBranch.profit) : '—'}</dd></div>
               </dl>
-
               <InsightBlock row={selectedBranch} />
-
+              <EvolutionPanel evolution={selectedBranch.evolution} />
               {branchInsights && (
                 <>
                   <h4>Nhân viên</h4>
-                  <p className="mgmt-muted">
-                    Tăng mạnh nhất:
-                    {' '}
-                    {branchInsights.topGainer
-                      ? `${branchInsights.topGainer.name} (${branchInsights.topGainer.revenueTrend?.label})`
-                      : '—'}
-                  </p>
-                  <p className="mgmt-muted">
-                    Giảm mạnh nhất:
-                    {' '}
-                    {branchInsights.topLoser
-                      ? `${branchInsights.topLoser.name} (${branchInsights.topLoser.revenueTrend?.label})`
-                      : '—'}
-                  </p>
                   <ul className="mgmt-mini-list">
-                    {branchInsights.employees.slice(0, 12).map((emp) => (
+                    {branchInsights.employees.slice(0, 8).map((emp) => (
                       <li key={emp.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setView('employee')
-                            setSelectedEmployeeId(emp.id)
-                            setSelectedBranchId(null)
-                          }}
-                        >
+                        <button type="button" onClick={() => { setView('employee'); setSelectedEmployeeId(emp.id) }}>
                           {emp.name}
                         </button>
-                        <span>{formatRate(emp.requestedRate)}</span>
-                        <strong>{formatMoneyOrDash(emp.revenue)}</strong>
+                        <span>{formatMoneyOrDash(emp.revenuePerWorkDay)}/ngày</span>
                       </li>
                     ))}
-                  </ul>
-                  <h4>Dịch vụ tạo DT nhiều nhất</h4>
-                  <ul className="mgmt-mini-list">
-                    {branchInsights.topServices.map((svc) => (
-                      <li key={svc.id}>
-                        <span>{svc.name}</span>
-                        <strong>{formatMoneyOrDash(svc.revenue)}</strong>
-                      </li>
-                    ))}
-                    {branchInsights.topServices.length === 0 && <li className="mgmt-muted">Không có dịch vụ.</li>}
                   </ul>
                 </>
               )}
@@ -452,14 +582,14 @@ export default function ManagementReports({ onNavigate }) {
               <thead>
                 <tr>
                   <th><button type="button" onClick={() => toggleSort('name')}>Tên</button></th>
-                  {!filters.branchId && isAdmin() && <th>Chi nhánh</th>}
+                  <th>CN</th>
+                  <th><button type="button" onClick={() => toggleSort('performanceScore')}>Score</button></th>
+                  <th><button type="button" onClick={() => toggleSort('workDays')}>Ngày công</button></th>
+                  <th><button type="button" onClick={() => toggleSort('revenuePerWorkDay')}>DT/ngày</button></th>
                   <th><button type="button" onClick={() => toggleSort('revenue')}>Doanh thu</button></th>
-                  <th>Tăng/giảm</th>
-                  <th><button type="button" onClick={() => toggleSort('totalCustomerCount')}>Tổng khách</button></th>
-                  <th><button type="button" onClick={() => toggleSort('requestedCustomerCount')}>Khách yêu cầu</button></th>
+                  <th><button type="button" onClick={() => toggleSort('customersPerWorkDay')}>Khách/ngày</button></th>
                   <th><button type="button" onClick={() => toggleSort('requestedRate')}>Tỷ lệ YC</button></th>
-                  <th><button type="button" onClick={() => toggleSort('tips')}>Tips</button></th>
-                  <th><button type="button" onClick={() => toggleSort('averageRevenuePerCustomer')}>DT/khách</button></th>
+                  <th><button type="button" onClick={() => toggleSort('tipsPerWorkDay')}>Tips/ngày</button></th>
                 </tr>
               </thead>
               <tbody>
@@ -470,28 +600,27 @@ export default function ManagementReports({ onNavigate }) {
                     onClick={() => setSelectedEmployeeId(row.id)}
                   >
                     <td>{row.name}</td>
-                    {!filters.branchId && isAdmin() && <td>{row.branchName}</td>}
-                    <td className="is-num">{formatMoneyOrDash(row.revenue)}</td>
-                    <td>
-                      <TrendCell
-                        trend={row.revenueTrend}
-                        previousValue={row.previous?.revenue}
-                        formatPrev={formatMoneyOrDash}
-                      />
+                    <td>{row.branchName}</td>
+                    <td className="is-num">
+                      {formatNum(row.performanceScore, 1)}
+                      <div className="mgmt-sub">{row.performanceGrade}</div>
                     </td>
-                    <td className="is-num">{row.totalCustomerCount}</td>
-                    <td className="is-num">{row.requestedCustomerCount}</td>
+                    <td className="is-num">{formatNum(row.workDays, 1)}</td>
+                    <td className="is-num">
+                      {formatMoneyOrDash(row.revenuePerWorkDay)}
+                      <div><TrendCell trend={row.revenuePerWorkDayTrend} /></div>
+                    </td>
+                    <td className="is-num">
+                      {formatMoneyOrDash(row.revenue)}
+                      <div><TrendCell trend={row.revenueTrend} /></div>
+                    </td>
+                    <td className="is-num">{formatNum(row.customersPerWorkDay, 2)}</td>
                     <td className="is-num">{formatRate(row.requestedRate)}</td>
-                    <td className="is-num">{formatMoneyOrDash(row.tips)}</td>
-                    <td className="is-num">{formatMoneyOrDash(row.averageRevenuePerCustomer)}</td>
+                    <td className="is-num">{formatMoneyOrDash(row.tipsPerWorkDay)}</td>
                   </tr>
                 ))}
                 {!data.loading && filteredEmployees.length === 0 && (
-                  <tr>
-                    <td colSpan={filters.branchId || !isAdmin() ? 8 : 9} className="mgmt-empty">
-                      Không có dữ liệu nhân viên.
-                    </td>
-                  </tr>
+                  <tr><td colSpan={9} className="mgmt-empty">Không có dữ liệu nhân viên.</td></tr>
                 )}
               </tbody>
             </table>
@@ -505,59 +634,56 @@ export default function ManagementReports({ onNavigate }) {
               </header>
               <p className="mgmt-muted">{selectedEmployee.branchName}</p>
               <dl className="mgmt-detail__grid">
-                <div><dt>Doanh thu</dt><dd className={`mgmt-kpi is-${resolveKpiTone(selectedEmployee.revenueTrend)}`}>{formatMoneyOrDash(selectedEmployee.revenue)}</dd></div>
-                <div><dt>vs kỳ trước</dt><dd><TrendCell trend={selectedEmployee.revenueTrend} previousValue={selectedEmployee.previous?.revenue} formatPrev={formatMoneyOrDash} /></dd></div>
-                <div><dt>Tổng khách</dt><dd>{selectedEmployee.totalCustomerCount}</dd></div>
-                <div><dt>Khách yêu cầu</dt><dd>{selectedEmployee.requestedCustomerCount}</dd></div>
-                <div><dt>Tỷ lệ YC</dt><dd>{formatRate(selectedEmployee.requestedRate)} <TrendCell trend={selectedEmployee.requestedRateTrend} previousValue={selectedEmployee.previous?.requestedRate} formatPrev={formatRate} /></dd></div>
-                <div><dt>Tips</dt><dd>{formatMoneyOrDash(selectedEmployee.tips)} <TrendCell trend={selectedEmployee.tipsTrend} previousValue={selectedEmployee.previous?.tips} formatPrev={formatMoneyOrDash} /></dd></div>
+                <div>
+                  <dt>Performance Score</dt>
+                  <dd>{formatNum(selectedEmployee.performanceScore, 1)} · {selectedEmployee.performanceGrade}</dd>
+                </div>
+                <div>
+                  <dt>Hạng CN / Hệ thống</dt>
+                  <dd>
+                    {selectedEmployee.performanceRankInBranch}/{selectedEmployee.performanceRankInBranchTotal}
+                    {' · '}
+                    {selectedEmployee.performanceRankSystem}/{selectedEmployee.performanceRankSystemTotal}
+                  </dd>
+                </div>
+                <div><dt>Ngày công</dt><dd>{formatNum(selectedEmployee.workDays, 1)} <TrendCell trend={selectedEmployee.workDaysTrend} /></dd></div>
+                <div><dt>DT/ngày làm</dt><dd className={`mgmt-kpi is-${resolveKpiTone(selectedEmployee.revenuePerWorkDayTrend)}`}>{formatMoneyOrDash(selectedEmployee.revenuePerWorkDay)}</dd></div>
+                <div><dt>Doanh thu</dt><dd>{formatMoneyOrDash(selectedEmployee.revenue)}</dd></div>
+                <div><dt>Khách / ngày</dt><dd>{formatNum(selectedEmployee.customersPerWorkDay, 2)}</dd></div>
+                <div><dt>YC / ngày</dt><dd>{formatNum(selectedEmployee.requestedPerWorkDay, 2)}</dd></div>
+                <div><dt>Tỷ lệ YC</dt><dd>{formatRate(selectedEmployee.requestedRate)}</dd></div>
+                <div><dt>Tips / ngày</dt><dd>{formatMoneyOrDash(selectedEmployee.tipsPerWorkDay)}</dd></div>
                 <div><dt>DT/khách</dt><dd>{formatMoneyOrDash(selectedEmployee.averageRevenuePerCustomer)}</dd></div>
-                <div><dt>Invoice TB</dt><dd>{formatMoneyOrDash(selectedEmployee.averageTicket)} <TrendCell trend={selectedEmployee.averageTicketTrend} previousValue={selectedEmployee.previous?.averageTicket} formatPrev={formatMoneyOrDash} /></dd></div>
-                <div><dt>Ngày làm hợp lệ</dt><dd>{selectedEmployee.workDays}</dd></div>
-                <div><dt>DT/ngày làm</dt><dd>{formatMoneyOrDash(selectedEmployee.averageRevenuePerWorkDay)}</dd></div>
-                <div><dt>Hạng DT trong CN</dt><dd>{selectedEmployee.revenueRankInBranch}/{selectedEmployee.revenueRankTotal}</dd></div>
-                <div><dt>Hạng tỷ lệ YC</dt><dd>{selectedEmployee.requestedRateRankInBranch}/{selectedEmployee.requestedRateRankTotal}</dd></div>
               </dl>
-
               <InsightBlock row={selectedEmployee} />
-
+              <EvolutionPanel evolution={selectedEmployee.evolution} />
               <h4>Xu hướng doanh thu theo ngày</h4>
               <div className="mgmt-bars" aria-label="Biểu đồ doanh thu ngày">
                 {employeeTrend.map((point) => {
                   const max = Math.max(...employeeTrend.map((p) => p.revenue), 1)
-                  const height = Math.round((point.revenue / max) * 100)
+                  const height = Math.max(2, Math.round((point.revenue / max) * 100))
                   return (
                     <div key={point.date} className="mgmt-bars__col" title={`${point.date}: ${formatMoneyOrDash(point.revenue)}`}>
                       <div className="mgmt-bars__fill" style={{ height: `${height}%` }} />
                     </div>
                   )
                 })}
-                {employeeTrend.length === 0 && <p className="mgmt-muted">Không có dữ liệu.</p>}
               </div>
-
-              <h4>Hóa đơn liên quan</h4>
+              <h4>Hóa đơn gần đây</h4>
               <ul className="mgmt-invoice-list">
-                {employeeInvoices.slice(0, 40).map((inv) => (
+                {employeeInvoices.map((inv) => (
                   <li key={inv.id}>
                     <div>
-                      <strong>{inv.date} {inv.time}</strong>
-                      <span>{inv.customerName}{inv.customerRequested ? ' · Yêu cầu' : ''}</span>
+                      <strong>{inv.customerName}</strong>
+                      <span>{inv.date} {inv.time}{inv.customerRequested ? ' · YC' : ''}</span>
                     </div>
-                    <div className="is-num">
-                      <strong>{formatMoneyOrDash(inv.revenue)}</strong>
-                      <span>Tips {formatMoneyOrDash(inv.tips)}</span>
-                    </div>
+                    <span>{formatMoneyOrDash(inv.revenue)}</span>
                   </li>
                 ))}
-                {employeeInvoices.length === 0 && <li className="mgmt-muted">Không có hóa đơn trong kỳ.</li>}
+                {employeeInvoices.length === 0 && <li className="mgmt-muted">Không có hóa đơn.</li>}
               </ul>
-
               {typeof onNavigate === 'function' && (
-                <button
-                  type="button"
-                  className="mgmt-btn mgmt-btn--primary"
-                  onClick={() => onNavigate('invoices')}
-                >
+                <button type="button" className="mgmt-btn" onClick={() => onNavigate('invoices')}>
                   Mở Hóa đơn
                 </button>
               )}

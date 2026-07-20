@@ -11,6 +11,7 @@ import {
   safeDivide,
   safeRatePercent,
 } from './periodCompare'
+import { attachPerDayMetrics } from './perDayMetrics'
 
 function customerKey(invoice) {
   const phone = (invoice.customerPhone ?? '').replace(/\D/g, '')
@@ -69,6 +70,10 @@ function withTrends(current, previous) {
     requestedRateTrend: computeSafeTrend(current.requestedRate, previous?.requestedRate),
     tipsTrend: computeSafeTrend(current.tips, previous?.tips),
     averageTicketTrend: computeSafeTrend(current.averageTicket, previous?.averageTicket),
+    averageRevenuePerCustomerTrend: computeSafeTrend(
+      current.averageRevenuePerCustomer,
+      previous?.averageRevenuePerCustomer,
+    ),
     previous: previous
       ? {
           revenue: previous.revenue,
@@ -77,6 +82,8 @@ function withTrends(current, previous) {
           requestedRate: previous.requestedRate,
           tips: previous.tips,
           averageTicket: previous.averageTicket,
+          averageRevenuePerCustomer: previous.averageRevenuePerCustomer,
+          workDays: previous.workDays,
         }
       : null,
   }
@@ -85,12 +92,43 @@ function withTrends(current, previous) {
 /**
  * Branch management rows for selected period vs compare period.
  */
+function sumBranchWorkDays(attendanceRecords, branchId, invoices = []) {
+  const employeeIds = new Set()
+  for (const inv of invoices) {
+    if (inv.branchId === branchId && inv.employeeId) employeeIds.add(inv.employeeId)
+  }
+  for (const row of attendanceRecords ?? []) {
+    if (row.branchId === branchId && row.employeeId) employeeIds.add(row.employeeId)
+  }
+  // Employees currently assigned to this branch (covers transfers / zero invoice)
+  // — only add when they have attendance in the period
+  for (const row of attendanceRecords ?? []) {
+    if (!row.employeeId) continue
+    const emp = getEmployeeById(row.employeeId)
+    if (emp?.branchId === branchId) employeeIds.add(row.employeeId)
+  }
+
+  let workDays = 0
+  for (const id of employeeIds) {
+    const emp = getEmployeeById(id)
+    const scoped = (attendanceRecords ?? []).filter((r) => {
+      if (r.employeeId !== id) return false
+      if (r.branchId) return r.branchId === branchId
+      return !emp?.branchId || emp.branchId === branchId
+    })
+    workDays += computeAttendanceStats(scoped, id).workDays ?? 0
+  }
+  return workDays
+}
+
 export function buildBranchManagementRows({
   invoices = [],
   previousInvoices = [],
   expenses = [],
   previousExpenses = [],
   fixedCosts = [],
+  attendanceRecords = [],
+  previousAttendanceRecords = [],
   fromDate,
   toDate,
   previousFromDate,
@@ -106,6 +144,9 @@ export function buildBranchManagementRows({
     const prevInv = filterByBranch(previousInvoices, branch.id)
     const current = buildBaseMetrics(curInv, days)
     const previous = buildBaseMetrics(prevInv, prevDays)
+
+    const workDays = sumBranchWorkDays(attendanceRecords, branch.id, curInv)
+    const previousWorkDays = sumBranchWorkDays(previousAttendanceRecords, branch.id, prevInv)
 
     const curExp = expenses.filter((e) => e.branchId === branch.id)
     const prevExp = previousExpenses.filter((e) => e.branchId === branch.id)
@@ -131,6 +172,8 @@ export function buildBranchManagementRows({
         id: branch.id,
         branchId: branch.id,
         name: getBranchById(branch.id)?.name || branch.name || branch.id,
+        workDays,
+        previousWorkDays,
         profit: profitAvailable ? summary.profit : null,
         profitAvailable,
         expenses: summary.expenses ?? 0,
@@ -138,12 +181,14 @@ export function buildBranchManagementRows({
       },
       {
         ...previous,
+        workDays: previousWorkDays,
         profit: Number.isFinite(prevSummary.profit) ? prevSummary.profit : null,
       },
     )
     row.profitTrend = computeSafeTrend(row.profit, previous ? prevSummary.profit : null)
-    return row
-  }).sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0))
+    return attachPerDayMetrics(row, { ...previous, workDays: previousWorkDays })
+  }).sort((a, b) => (b.revenuePerWorkDay ?? -1) - (a.revenuePerWorkDay ?? -1)
+    || (b.revenue ?? 0) - (a.revenue ?? 0))
 }
 
 /**
@@ -215,9 +260,9 @@ export function buildEmployeeManagementRows({
     const att = computeAttendanceStats(attendanceRecords, meta.id)
     const prevAtt = computeAttendanceStats(previousAttendanceRecords, meta.id)
     const workDays = att.workDays ?? 0
-    const averageRevenuePerWorkDay = safeDivide(current.revenue, workDays)
+    const previousWorkDays = prevAtt.workDays ?? 0
 
-    return withTrends(
+    const row = withTrends(
       {
         ...current,
         id: meta.id,
@@ -226,14 +271,18 @@ export function buildEmployeeManagementRows({
         branchId: meta.branchId,
         branchName: meta.branchName,
         workDays,
-        averageRevenuePerWorkDay,
-        previousWorkDays: prevAtt.workDays ?? 0,
+        previousWorkDays,
+        attendanceStats: att,
       },
-      previous,
+      {
+        ...previous,
+        workDays: previousWorkDays,
+      },
     )
+    return attachPerDayMetrics(row, { ...previous, workDays: previousWorkDays })
   })
 
-  // Rank within branch (by current branchId of employee profile / invoice activity)
+  // Rank within branch — primary: revenue/work-day, also keep revenue + requestedRate ranks
   const byBranch = new Map()
   for (const row of rows) {
     const key = row.branchId || 'unknown'
@@ -241,10 +290,18 @@ export function buildEmployeeManagementRows({
     byBranch.get(key).push(row)
   }
   for (const list of byBranch.values()) {
+    const byRevDay = [...list].sort((a, b) => (b.revenuePerWorkDay ?? -1) - (a.revenuePerWorkDay ?? -1)
+      || (b.revenue ?? 0) - (a.revenue ?? 0))
+    byRevDay.forEach((row, index) => {
+      row.revenuePerWorkDayRankInBranch = index + 1
+      row.revenuePerWorkDayRankInBranchTotal = byRevDay.length
+      row.revenueRankInBranch = index + 1
+      row.revenueRankTotal = byRevDay.length
+    })
     const byRevenue = [...list].sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0))
     byRevenue.forEach((row, index) => {
-      row.revenueRankInBranch = index + 1
-      row.revenueRankTotal = byRevenue.length
+      row.totalRevenueRankInBranch = index + 1
+      row.totalRevenueRankTotal = byRevenue.length
     })
     const byRate = [...list].sort((a, b) => {
       const ar = a.requestedRate == null ? -1 : a.requestedRate
@@ -257,7 +314,8 @@ export function buildEmployeeManagementRows({
     })
   }
 
-  return rows.sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0))
+  return rows.sort((a, b) => (b.revenuePerWorkDay ?? -1) - (a.revenuePerWorkDay ?? -1)
+    || (b.revenue ?? 0) - (a.revenue ?? 0))
 }
 
 export function buildBranchEmployeeInsights(branchId, employeeRows, invoices, fromDate, toDate) {

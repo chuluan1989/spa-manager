@@ -17,6 +17,12 @@ import {
   buildBranchManagementRows,
   buildEmployeeManagementRows,
 } from '../utils/managementReports/managementMetrics'
+import {
+  buildSelfEvolution,
+  evolutionSpanFrom,
+} from '../utils/managementReports/selfEvolution'
+import { enrichRowsWithPerformance } from '../utils/managementReports/performanceScore'
+import { DEFAULT_BENCHMARK_SORT } from '../utils/managementReports/benchmarkSort'
 
 export function buildDefaultManagementFilters(overrides = {}) {
   const today = getTodayDate()
@@ -25,7 +31,7 @@ export function buildDefaultManagementFilters(overrides = {}) {
     toDate: today,
     branchId: isAdmin() ? '' : getCurrentUserBranch(),
     employeeQuery: '',
-    sortKey: 'revenue',
+    sortKey: DEFAULT_BENCHMARK_SORT,
     sortDir: 'desc',
     ...overrides,
   }
@@ -49,8 +55,17 @@ function filterExpensesByRange(expenses, fromDate, toDate) {
   })
 }
 
+function filterAttendanceByRange(attendance, fromDate, toDate) {
+  return (attendance ?? []).filter((row) => {
+    const d = row.date ?? ''
+    if (fromDate && d < fromDate) return false
+    if (toDate && d > toDate) return false
+    return true
+  })
+}
+
 /**
- * Management Reports data — Admin / Manager.
+ * Management Reports V2 data — Admin / Manager.
  * Employee personal view is handled separately in Report.jsx (existing salary panel).
  */
 export function useManagementReportsData(filters) {
@@ -87,7 +102,10 @@ export function useManagementReportsData(filters) {
           throw new Error('Supabase chưa cấu hình. Không thể tải báo cáo quản trị.')
         }
 
-        const spanFrom = [filters.fromDate, compare.fromDate].filter(Boolean).sort()[0]
+        const evolutionFrom = evolutionSpanFrom(filters.toDate)
+        const spanFrom = [filters.fromDate, compare.fromDate, evolutionFrom]
+          .filter(Boolean)
+          .sort()[0]
         const spanTo = [filters.toDate, compare.toDate].filter(Boolean).sort().at(-1)
 
         const [finance, attendance] = await Promise.all([
@@ -110,6 +128,8 @@ export function useManagementReportsData(filters) {
           expenses: finance.expenses ?? [],
           fixedCosts: finance.fixedCosts ?? [],
           attendance: attendance ?? [],
+          spanFrom,
+          spanTo,
         })
         setError('')
       } catch (err) {
@@ -169,14 +189,16 @@ export function useManagementReportsData(filters) {
       compare.fromDate,
       compare.toDate,
     )
-    const currentAttendance = (payload.attendance ?? []).filter((row) => {
-      const d = row.date ?? ''
-      return (!filters.fromDate || d >= filters.fromDate) && (!filters.toDate || d <= filters.toDate)
-    })
-    const previousAttendance = (payload.attendance ?? []).filter((row) => {
-      const d = row.date ?? ''
-      return (!compare.fromDate || d >= compare.fromDate) && (!compare.toDate || d <= compare.toDate)
-    })
+    const currentAttendance = filterAttendanceByRange(
+      payload.attendance,
+      filters.fromDate,
+      filters.toDate,
+    )
+    const previousAttendance = filterAttendanceByRange(
+      payload.attendance,
+      compare.fromDate,
+      compare.toDate,
+    )
 
     const employeeIdSet = new Set(
       (scopeBranchId
@@ -185,12 +207,14 @@ export function useManagementReportsData(filters) {
       ).map((e) => e.id).filter(Boolean),
     )
 
-    const branchRows = buildBranchManagementRows({
+    let branchRows = buildBranchManagementRows({
       invoices: currentInvoices,
       previousInvoices,
       expenses: currentExpenses,
       previousExpenses,
       fixedCosts: payload.fixedCosts,
+      attendanceRecords: currentAttendance,
+      previousAttendanceRecords: previousAttendance,
       fromDate: filters.fromDate,
       toDate: filters.toDate,
       previousFromDate: compare.fromDate,
@@ -198,7 +222,7 @@ export function useManagementReportsData(filters) {
       scopeBranchId,
     })
 
-    const employeeRows = buildEmployeeManagementRows({
+    let employeeRows = buildEmployeeManagementRows({
       invoices: currentInvoices,
       previousInvoices,
       attendanceRecords: currentAttendance,
@@ -211,12 +235,39 @@ export function useManagementReportsData(filters) {
       employeeIds: employeeIdSet,
     })
 
+    // Self-evolution + performance score (peer-relative within current rows)
+    employeeRows = enrichRowsWithPerformance(employeeRows, {
+      groupByBranch: true,
+      getEvolution: (row) => buildSelfEvolution({
+        invoices: payload.invoices,
+        attendanceRecords: payload.attendance,
+        toDate: filters.toDate,
+        entityType: 'employee',
+        entityId: row.id,
+      }),
+      getAttendanceStats: (row) => row.attendanceStats,
+    })
+
+    branchRows = enrichRowsWithPerformance(branchRows, {
+      groupByBranch: false,
+      getEvolution: (row) => buildSelfEvolution({
+        invoices: payload.invoices,
+        attendanceRecords: payload.attendance,
+        toDate: filters.toDate,
+        entityType: 'branch',
+        entityId: row.id,
+      }),
+      getAttendanceStats: () => null,
+    })
+
     return {
       branchRows,
       employeeRows,
       compare,
       currentInvoices,
       previousInvoices,
+      allInvoices: payload.invoices,
+      allAttendance: payload.attendance,
     }
   }, [payload, filters.fromDate, filters.toDate, scopeBranchId, compare])
 
