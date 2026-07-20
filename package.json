@@ -11,6 +11,7 @@
     "verify:service-management": "vite-node scripts/verify-service-management-center.mjs",
     "verify:operations-center": "vite-node scripts/verify-operations-center.mjs",
     "verify:business-copilot": "vite-node scripts/verify-business-copilot.mjs",
+    "verify:management-reports": "vite-node scripts/verify-management-reports.mjs",
     "verify:schema": "npx vite-node scripts/verify-schema.mjs",
     "verify:storage": "node --env-file=.env.local scripts/verify-storage.mjs",
     "preview": "vite preview",
