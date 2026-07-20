@@ -221,10 +221,10 @@ export async function writeEmployeePayrollWorkbook(data) {
 
   autoFitColumns(overview, 12, 48)
 
-  // Sheet 2 — Chi tiết hóa đơn
-  const invoices = workbook.addWorksheet('Chi tiết HĐ')
+  // Sheet 2 — Chi tiết dịch vụ
+  const invoices = workbook.addWorksheet('Chi tiết dịch vụ')
   const invHeaders = [
-    'Ngày giờ', 'Tên khách hàng', 'Dịch vụ', 'Giá', '%', 'Tips', 'Tổng được hưởng',
+    'Ngày giờ', 'Tên khách hàng', 'Dịch vụ', 'Giá', '%', 'Tips', 'Tiền hưởng',
   ]
   const invHeaderRow = invoices.getRow(1)
   invHeaders.forEach((label, index) => {
@@ -262,30 +262,7 @@ export async function writeEmployeePayrollWorkbook(data) {
   applySheetChrome(invoices, 1, invHeaders.length)
   autoFitColumns(invoices)
 
-  // Sheet 3 — Ví lương
-  const wallet = workbook.addWorksheet('Ví lương')
-  const walletHeaders = ['Ngày', 'Giờ', 'Loại', 'Mô tả', 'Số tiền', 'Ghi chú', 'Người tạo']
-  const walletHeaderRow = wallet.getRow(1)
-  walletHeaders.forEach((label, index) => {
-    walletHeaderRow.getCell(index + 1).value = label
-  })
-  styleHeaderRow(walletHeaderRow)
-
-  data.walletRows.forEach((entry, index) => {
-    const row = wallet.getRow(index + 2)
-    writeTextCell(row.getCell(1), entry.displayDate)
-    writeTextCell(row.getCell(2), entry.time)
-    writeTextCell(row.getCell(3), entry.typeLabel)
-    writeTextCell(row.getCell(4), entry.label)
-    writeCurrencyCell(row.getCell(5), entry.amount)
-    writeTextCell(row.getCell(6), entry.reason)
-    writeTextCell(row.getCell(7), entry.createdBy)
-  })
-
-  applySheetChrome(wallet, 1, walletHeaders.length)
-  autoFitColumns(wallet)
-
-  // Sheet 4 — Chấm công
+  // Sheet 3 — Chấm công
   const attendance = workbook.addWorksheet('Chấm công')
   const attHeaders = ['Ngày', 'Giờ vào', 'Giờ ra', 'Trạng thái', 'Đi trễ', 'Về sớm', 'Phạt', 'Ghi chú']
   const attHeaderRow = attendance.getRow(1)
