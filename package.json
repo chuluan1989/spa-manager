@@ -11,10 +11,12 @@
     "verify:service-management": "vite-node scripts/verify-service-management-center.mjs",
     "verify:schema": "npx vite-node scripts/verify-schema.mjs",
     "verify:storage": "node --env-file=.env.local scripts/verify-storage.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync:exceljs-vendor": "mkdir -p public/vendor && cp node_modules/exceljs/dist/exceljs.min.js public/vendor/exceljs.min.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.23.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

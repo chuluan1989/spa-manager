@@ -3379,6 +3379,81 @@ test('branch support invoice: totals, payroll, reports, branch gate', async () =
   assert.notEqual(regularTotals.services[0]?.name, BRANCH_SUPPORT_SERVICE_NAME)
 })
 
+test('payroll reconciliation export: mapping, reconcile, gross income', async () => {
+  const {
+    buildEmployeePayrollExportData,
+    computeGrossIncome,
+    mapPayrollRowForExport,
+    reconcilePayrollExport,
+  } = await import('../src/utils/payrollExportModel.js')
+  const { computeEmployeePayrollRow } = await import('../src/utils/payrollEngine.js')
+  const { PAY_CYCLES } = await import('../src/utils/salaryReport.js')
+
+  const employee = {
+    id: 'emp-export-1',
+    name: 'Test Export',
+    branchId: 'soc-trang',
+    salaryRate: '1000000',
+    position: 'KTV',
+  }
+
+  const invoice = {
+    id: 'inv-export-1',
+    date: '2026-07-10',
+    branchId: 'soc-trang',
+    employeeId: 'emp-export-1',
+    customerName: 'Khách A',
+    tips: 50000,
+    invoiceTime: '14:30',
+    services: [{
+      id: 'svc-1',
+      name: 'Body 60',
+      price: 300000,
+      originalPrice: 300000,
+      commissionPercent: 20,
+    }],
+  }
+
+  const payrollRow = computeEmployeePayrollRow(employee, [invoice], [], [])
+  const mapped = mapPayrollRowForExport(payrollRow, '2026-07')
+  assert.equal(mapped.ticketRevenue, payrollRow.ticketRevenue)
+  assert.equal(mapped.commission, payrollRow.commission)
+  assert.notEqual(mapped.ticketRevenue, 0)
+  assert.equal(mapped.grossIncome, computeGrossIncome(payrollRow))
+
+  const data = buildEmployeePayrollExportData({
+    employee,
+    payrollRow,
+    invoices: [invoice],
+    attendanceRecords: [],
+    adjustments: [],
+    month: '2026-07',
+    cycle: PAY_CYCLES.PERIOD_1,
+    fromDate: '2026-07-01',
+    toDate: '2026-07-15',
+  })
+
+  assert.equal(data.reconciliation.ok, true)
+  assert.ok(data.invoiceLines.length >= 1)
+  assert.equal(data.summary.netSalary, payrollRow.netSalary)
+
+  const bad = reconcilePayrollExport({
+    payrollRow: { ...payrollRow, netSalary: payrollRow.netSalary + 1 },
+    invoiceLines: data.invoiceLines,
+  })
+  assert.equal(bad.ok, false)
+})
+
+test('salary export: uses ticketRevenue not serviceRevenue', async () => {
+  const fs = await import('node:fs')
+  const path = await import('node:path')
+  const source = fs.readFileSync(path.join(process.cwd(), 'src/utils/salaryExport.js'), 'utf8')
+  assert.doesNotMatch(source, /serviceRevenue/)
+  assert.doesNotMatch(source, /adjustmentTotal/)
+  assert.match(source, /mapPayrollRowForExport/)
+  assert.match(source, /ticketRevenue/)
+})
+
 test('bootstrap: repairCanonicalBranchMapping chỉ chạy một lần', async () => {
   const { repairCanonicalBranchMapping } = await import('../src/utils/canonicalBranchRepair.js')
   localStorage.removeItem('spa-manager-canonical-repair-version')
