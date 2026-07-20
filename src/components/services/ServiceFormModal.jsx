@@ -39,9 +39,10 @@ export default function ServiceFormModal({
 
   useEffect(() => {
     if (!open) return
+    const activeBranches = getActiveBranches()
     setForm({
       ...EMPTY,
-      branchId: initial?.branchId ?? branches[0]?.id ?? '',
+      branchId: initial?.branchId ?? activeBranches[0]?.id ?? '',
       categoryId: initial?.categoryId ?? '',
       name: initial?.serviceName ?? '',
       description: initial?.description ?? '',
@@ -52,7 +53,7 @@ export default function ServiceFormModal({
       durationId: initial?.durationId ?? '',
       serviceId: initial?.serviceId ?? '',
     })
-  }, [open, initial, branches])
+  }, [open, initial])
 
   if (!open) return null
 
