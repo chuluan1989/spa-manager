@@ -37,6 +37,10 @@ const { isOpsCenterEnabled } = await import('../src/utils/opsCenter/opsCenterFea
 const { canAccessOpsCenter } = await import('../src/utils/opsCenter/opsCenterAccess.js')
 const { ADMIN_NAV_ORDER, BRANCH_MANAGER_NAV_ORDER, EMPLOYEE_NAV_ORDER, NAV_ITEMS } = await import('../src/constants/navigation.js')
 const { buildDrillDownSummary, DRILL_METRICS } = await import('../src/utils/drillDownReport.js')
+const {
+  OPS_CENTER_AUTO_REFRESH_MS,
+  formatOpsLastUpdated,
+} = await import('../src/utils/opsCenter/opsCenterRefresh.js')
 
 assert.equal(DEFAULT_SYSTEM_SETTINGS.opsCenterEnabled, false, 'Default flag must be false')
 assert.equal(isOpsCenterEnabled(loadSystemSettings()), false)
@@ -61,7 +65,6 @@ assert.ok(!EMPLOYEE_NAV_ORDER.includes('ops-center'))
 
 const emptySummary = buildDrillDownSummary([], [], {}, null, [])
 for (const metric of DRILL_METRICS) {
-  assert.ok(metric.id in emptySummary || metric.id === 'actualRevenue' || metric.id === 'profit' || true)
   assert.equal(typeof (emptySummary[metric.id] ?? 0), 'number', `metric ${metric.id} numeric`)
 }
 
@@ -70,9 +73,15 @@ assert.equal(
   'ticketRevenue,tips,actualRevenue,totalSalary,fixedExpenses,variableExpenses,expenses,profit',
 )
 
+assert.equal(OPS_CENTER_AUTO_REFRESH_MS, 60_000)
+const stamped = formatOpsLastUpdated(new Date(2026, 6, 20, 15, 4, 5))
+assert.match(stamped, /\d{2}:\d{2}:\d{2}/)
+assert.equal(formatOpsLastUpdated(null), '—')
+
 console.log('PASS — verify:operations-center')
 console.log('  ✓ flag default false')
 console.log('  ✓ Admin gated by flag')
 console.log('  ✓ Manager/Employee blocked')
 console.log('  ✓ Nav registration Admin-only order')
 console.log('  ✓ DRILL_METRICS reused for finance snapshot')
+console.log('  ✓ auto-refresh 60s + last-updated formatter')

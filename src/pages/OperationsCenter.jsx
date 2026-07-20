@@ -26,11 +26,16 @@ export default function OperationsCenter({ onNavigate }) {
       financeSummary={data.financeSummary}
       filters={data.filters}
       financeLoading={data.financeLoading}
+      financeRefreshing={data.financeRefreshing}
       financeError={data.financeError}
       todayHealth={data.todayHealth}
       alerts={data.alerts}
       opsLoading={data.opsLoading}
+      opsRefreshing={data.opsRefreshing}
       opsError={data.opsError}
+      lastUpdatedAt={data.lastUpdatedAt}
+      refreshing={data.refreshing}
+      onRefresh={data.reload}
       onNavigate={onNavigate}
     />
   )

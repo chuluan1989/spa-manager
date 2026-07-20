@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildDefaultDrillFilters, useDrillDownData } from './useDrillDownData'
 import { buildDrillDownSummary } from '../utils/drillDownReport'
 import { getTodayDate, getMonthStartDate } from '../utils/invoiceStorage'
@@ -11,12 +11,18 @@ import { loadPayroll1AdminRows } from '../utils/payroll1Service'
 import { loadSystemSettings } from '../utils/systemSettingsStorage'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { useDataSyncVersion } from './useDataSyncVersion'
+import {
+  OPS_CENTER_AUTO_REFRESH_MS,
+  formatOpsLastUpdated,
+} from '../utils/opsCenter/opsCenterRefresh'
+
+export { OPS_CENTER_AUTO_REFRESH_MS, formatOpsLastUpdated }
 
 function currentMonthKey(dateStr = getTodayDate()) {
   return String(dateStr ?? '').slice(0, 7)
 }
 
-function buildTodayHealth(activeEmployees, attendanceRows) {
+function buildTodayHealth(activeEmployees, attendanceRows, date) {
   const activeIds = new Set(activeEmployees.map((e) => e.id).filter(Boolean))
   const checkedIds = new Set()
   for (const row of attendanceRows) {
@@ -29,13 +35,14 @@ function buildTodayHealth(activeEmployees, attendanceRows) {
     activeCount,
     checkedInCount,
     notCheckedInCount: Math.max(0, activeCount - checkedInCount),
-    date: attendanceRows[0]?.date || getTodayDate(),
+    date,
   }
 }
 
 /**
  * Ops Center data: finance via useDrillDownData (same as Tổng quan),
  * plus one parallel batch for today health + alerts.
+ * Soft refresh keeps previous values visible (no zero flash).
  */
 export function useOpsCenterData(periodMode = 'month') {
   const today = getTodayDate()
@@ -60,22 +67,42 @@ export function useOpsCenterData(periodMode = 'month') {
     scopedFilters,
   } = useDrillDownData(filters)
 
-  const financeSummary = useMemo(
+  const liveFinanceSummary = useMemo(
     () => buildDrillDownSummary(invoices, expenses, scopedFilters, null, fixedCosts),
     [invoices, expenses, scopedFilters, fixedCosts],
   )
 
-  const [opsLoading, setOpsLoading] = useState(true)
+  const [financeSummary, setFinanceSummary] = useState(null)
+  const [financeReady, setFinanceReady] = useState(false)
+  const periodRef = useRef(periodMode)
+
+  useEffect(() => {
+    if (periodRef.current !== periodMode) {
+      periodRef.current = periodMode
+      setFinanceSummary(null)
+      setFinanceReady(false)
+    }
+  }, [periodMode])
+
+  useEffect(() => {
+    if (financeLoading) return
+    if (financeError) {
+      setFinanceReady(true)
+      return
+    }
+    setFinanceSummary(liveFinanceSummary)
+    setFinanceReady(true)
+  }, [financeLoading, financeError, liveFinanceSummary])
+
+  const [opsInitialLoading, setOpsInitialLoading] = useState(true)
+  const [opsRefreshing, setOpsRefreshing] = useState(false)
   const [opsError, setOpsError] = useState('')
   const [todayHealth, setTodayHealth] = useState(null)
-  const [alerts, setAlerts] = useState({
-    pendingAttendanceEdits: null,
-    lockedPayrollMonths: null,
-    kl1Incomplete: null,
-    kl1UnavailableReason: '',
-  })
+  const [alerts, setAlerts] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null)
   const syncVersion = useDataSyncVersion()
+  const hasOpsDataRef = useRef(false)
 
   const reloadOps = useCallback(() => setRefreshKey((k) => k + 1), [])
 
@@ -83,7 +110,9 @@ export function useOpsCenterData(periodMode = 'month') {
     let cancelled = false
 
     async function loadOps() {
-      setOpsLoading(true)
+      const soft = hasOpsDataRef.current
+      if (soft) setOpsRefreshing(true)
+      else setOpsInitialLoading(true)
       setOpsError('')
 
       try {
@@ -114,7 +143,7 @@ export function useOpsCenterData(periodMode = 'month') {
         const locks = results[2] ?? []
         const kl1Rows = includeKl1 ? (results[3] ?? []) : null
 
-        const health = buildTodayHealth(activeEmployees, attendanceRows)
+        const health = buildTodayHealth(activeEmployees, attendanceRows, today)
 
         let kl1Incomplete = null
         let kl1UnavailableReason = ''
@@ -136,20 +165,22 @@ export function useOpsCenterData(periodMode = 'month') {
           kl1Incomplete,
           kl1UnavailableReason,
         })
+        hasOpsDataRef.current = true
         setOpsError('')
+        setLastUpdatedAt(new Date())
       } catch (err) {
         if (!cancelled) {
           setOpsError(err?.message ?? 'Không thể tải dữ liệu điều hành.')
-          setTodayHealth(null)
-          setAlerts({
-            pendingAttendanceEdits: null,
-            lockedPayrollMonths: null,
-            kl1Incomplete: null,
-            kl1UnavailableReason: 'Chưa đủ dữ liệu',
-          })
+          if (!hasOpsDataRef.current) {
+            setTodayHealth(null)
+            setAlerts(null)
+          }
         }
       } finally {
-        if (!cancelled) setOpsLoading(false)
+        if (!cancelled) {
+          setOpsInitialLoading(false)
+          setOpsRefreshing(false)
+        }
       }
     }
 
@@ -157,22 +188,43 @@ export function useOpsCenterData(periodMode = 'month') {
     return () => { cancelled = true }
   }, [refreshKey, syncVersion, today])
 
+  useEffect(() => {
+    if (!financeLoading && financeReady && !financeError) {
+      setLastUpdatedAt(new Date())
+    }
+  }, [financeLoading, financeReady, financeError, liveFinanceSummary])
+
   const reload = useCallback(() => {
     reloadFinance()
     reloadOps()
   }, [reloadFinance, reloadOps])
 
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      reload()
+    }, OPS_CENTER_AUTO_REFRESH_MS)
+    return () => window.clearInterval(id)
+  }, [reload])
+
+  const financeInitialLoading = financeLoading && !financeReady
+  const opsLoading = opsInitialLoading && !todayHealth
+
   return {
     periodMode,
     filters: scopedFilters,
     financeSummary,
-    financeLoading,
+    financeReady,
+    financeLoading: financeInitialLoading,
+    financeRefreshing: financeLoading && financeReady,
     financeError,
     todayHealth,
     alerts,
     opsLoading,
+    opsRefreshing,
     opsError,
-    loading: financeLoading || opsLoading,
+    loading: financeInitialLoading || opsLoading,
+    refreshing: (financeLoading && financeReady) || opsRefreshing,
+    lastUpdatedAt,
     reload,
   }
 }
