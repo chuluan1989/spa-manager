@@ -11,6 +11,7 @@ import {
 } from '../../utils/payrollReconciliationExport'
 import { exportPayrollPdf } from '../../utils/salaryExport'
 import { canExportReport } from '../../constants/auth'
+import { EXCEL_EXPORT_USER_ERROR } from '../../utils/payrollExportErrors'
 import '../common/ExportActions.css'
 
 export default function PayrollReconciliationActions({
@@ -36,6 +37,13 @@ export default function PayrollReconciliationActions({
     } catch (error) {
       if (error instanceof PayrollReconciliationError) {
         window.alert(error.message)
+      } else if (
+        String(error?.message ?? '').includes('Không thể tạo file Excel')
+        || /Failed to fetch dynamically imported module|dynamically imported module|Loading chunk|Importing a module script failed/i.test(
+          String(error?.message ?? ''),
+        )
+      ) {
+        window.alert(EXCEL_EXPORT_USER_ERROR)
       } else {
         window.alert(error?.message ?? 'Không thể xuất file đối soát lương.')
       }

@@ -1,4 +1,5 @@
-import { formatDisplayDate } from './salaryReport'
+import { EXCEL_EXPORT_USER_ERROR } from './payrollExportErrors'
+import loadExcelJS from './exceljsBridge.js'
 
 const HEADER_FILL = 'FFE8F0FE'
 const CURRENCY_FMT = '#,##0" ₫"'
@@ -9,9 +10,18 @@ const THIN_BORDER = {
   right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
 }
 
-async function loadExcelJS() {
-  const mod = await import('exceljs')
-  return mod.default ?? mod
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return '—'
+  const [y, m, d] = String(dateStr).split('-')
+  return `${d}/${m}/${y}`
+}
+
+function isExcelLoadError(error) {
+  const message = String(error?.message ?? error ?? '')
+  return (
+    message.includes('Không thể tạo file Excel')
+    || /Failed to fetch dynamically imported module|dynamically imported module|ExcelJS|Loading chunk|Importing a module script failed/i.test(message)
+  )
 }
 
 function downloadBlob(filename, blob) {
@@ -293,15 +303,29 @@ export async function writeEmployeePayrollWorkbook(data) {
 }
 
 export async function downloadBranchPayrollWorkbook(data) {
-  const blob = await writeBranchPayrollWorkbook(data)
-  const filename = `chi-luong-${safeFilename(data.meta.branchName)}-${data.meta.month}-${data.meta.cycle}.xlsx`
-  downloadBlob(filename, blob)
+  try {
+    const blob = await writeBranchPayrollWorkbook(data)
+    const filename = `chi-luong-${safeFilename(data.meta.branchName)}-${data.meta.month}-${data.meta.cycle}.xlsx`
+    downloadBlob(filename, blob)
+  } catch (error) {
+    if (isExcelLoadError(error)) {
+      throw new Error(EXCEL_EXPORT_USER_ERROR)
+    }
+    throw error
+  }
 }
 
 export async function downloadEmployeePayrollWorkbook(data) {
-  const blob = await writeEmployeePayrollWorkbook(data)
-  const filename = `doi-soat-${safeFilename(data.meta.employeeName)}-${data.meta.month}-${data.meta.cycle}.xlsx`
-  downloadBlob(filename, blob)
+  try {
+    const blob = await writeEmployeePayrollWorkbook(data)
+    const filename = `doi-soat-${safeFilename(data.meta.employeeName)}-${data.meta.month}-${data.meta.cycle}.xlsx`
+    downloadBlob(filename, blob)
+  } catch (error) {
+    if (isExcelLoadError(error)) {
+      throw new Error(EXCEL_EXPORT_USER_ERROR)
+    }
+    throw error
+  }
 }
 
-export { loadExcelJS }
+export { EXCEL_EXPORT_USER_ERROR } from './payrollExportErrors'

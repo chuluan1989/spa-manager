@@ -11,6 +11,7 @@ import {
   downloadBranchPayrollWorkbook,
   downloadEmployeePayrollWorkbook,
 } from './payrollXlsxExport'
+import { EXCEL_EXPORT_USER_ERROR } from './payrollExportErrors'
 
 export class PayrollReconciliationError extends Error {
   constructor(message, reconciliation = null) {
@@ -27,6 +28,17 @@ function assertReconciliation(data) {
     `Không thể xuất file vì số liệu chưa khớp:\n${detail}`,
     data.reconciliation,
   )
+}
+
+function wrapExcelError(error) {
+  const message = String(error?.message ?? error ?? '')
+  if (
+    message.includes('Không thể tạo file Excel')
+    || /Failed to fetch dynamically imported module|dynamically imported module|ExcelJS|Loading chunk|Importing a module script failed/i.test(message)
+  ) {
+    return new Error(EXCEL_EXPORT_USER_ERROR)
+  }
+  return error instanceof Error ? error : new Error(message)
 }
 
 export function prepareEmployeePayrollExport({
@@ -82,7 +94,11 @@ export function prepareBranchPayrollExport({
 
 export async function exportEmployeePayrollXlsx(context) {
   const data = prepareEmployeePayrollExport(context)
-  await downloadEmployeePayrollWorkbook(data)
+  try {
+    await downloadEmployeePayrollWorkbook(data)
+  } catch (error) {
+    throw wrapExcelError(error)
+  }
   return data
 }
 
@@ -94,7 +110,11 @@ export async function exportEmployeePayrollPdfSafe(context) {
 
 export async function exportBranchPayrollXlsx(context) {
   const data = prepareBranchPayrollExport(context)
-  await downloadBranchPayrollWorkbook(data)
+  try {
+    await downloadBranchPayrollWorkbook(data)
+  } catch (error) {
+    throw wrapExcelError(error)
+  }
   return data
 }
 
