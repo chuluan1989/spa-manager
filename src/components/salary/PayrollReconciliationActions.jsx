@@ -9,7 +9,7 @@ import {
   exportEmployeePayrollXlsx,
   PayrollReconciliationError,
 } from '../../utils/payrollReconciliationExport'
-import { exportPayrollCsv, exportPayrollPdf } from '../../utils/salaryExport'
+import { exportPayrollPdf } from '../../utils/salaryExport'
 import { canExportReport } from '../../constants/auth'
 import '../common/ExportActions.css'
 
@@ -44,14 +44,14 @@ export default function PayrollReconciliationActions({
     }
   }
 
-  const showLegacy = canExportReport()
+  const showLegacyPdf = canExportReport() && level !== 'profile'
   const showBranch = level === 'employees' && branchId && canExportPayrollBranch(branchId)
   const showEmployee = level === 'profile' && profileContext && canExportPayrollEmployee(
     profileContext.payrollRow?.employeeId,
     profileContext.payrollRow?.branchId,
   )
 
-  if (!showLegacy && !showBranch && !showEmployee) return null
+  if (!showLegacyPdf && !showBranch && !showEmployee) return null
 
   return (
     <div className={`export-actions payroll-export-actions ${className}`.trim()}>
@@ -90,30 +90,20 @@ export default function PayrollReconciliationActions({
             disabled={disabled || busy}
             onClick={() => run(async () => { await exportEmployeePayrollPdfSafe(profileContext) })}
           >
-            Gửi Zalo (PDF)
+            Tóm tắt PDF
           </button>
         </>
       )}
 
-      {showLegacy && (
-        <>
-          <button
-            type="button"
-            className="export-actions__btn export-actions__btn--excel"
-            disabled={disabled || busy || employeeRows.length === 0}
-            onClick={() => exportPayrollCsv(employeeRows, month, branchId, cycle)}
-          >
-            Tóm tắt CSV
-          </button>
-          <button
-            type="button"
-            className="export-actions__btn export-actions__btn--pdf"
-            disabled={disabled || busy || employeeRows.length === 0}
-            onClick={() => exportPayrollPdf(employeeRows, month, cycle)}
-          >
-            Tóm tắt PDF
-          </button>
-        </>
+      {showLegacyPdf && (
+        <button
+          type="button"
+          className="export-actions__btn export-actions__btn--pdf"
+          disabled={disabled || busy || employeeRows.length === 0}
+          onClick={() => exportPayrollPdf(employeeRows, month, cycle)}
+        >
+          Tóm tắt PDF
+        </button>
       )}
     </div>
   )

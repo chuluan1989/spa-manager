@@ -83,7 +83,7 @@ export async function writeBranchPayrollWorkbook(data) {
     views: [{ showGridLines: true }],
   })
 
-  sheet.mergeCells('A1:N1')
+  sheet.mergeCells('A1:L1')
   sheet.getCell('A1').value = 'BÁO CÁO CHI LƯƠNG CHI NHÁNH'
   sheet.getCell('A1').font = { bold: true, size: 16 }
 
@@ -100,8 +100,8 @@ export async function writeBranchPayrollWorkbook(data) {
 
   const headerRowIndex = 7
   const headers = [
-    'STT', 'Nhân viên', 'Doanh số', 'Hoa hồng', 'Tips', 'Lương cơ bản',
-    'Thưởng', 'Phạt', 'Ứng', 'Điều chỉnh', 'Tổng thu nhập', 'Thực nhận', 'Đã trả', 'Còn lại',
+    'STT', 'Nhân viên', 'Doanh số', 'Hoa hồng', 'Tips',
+    'Thưởng', 'Phạt', 'Ứng', 'Tổng thu nhập', 'Thực nhận', 'Đã trả', 'Còn lại',
   ]
   const headerRow = sheet.getRow(headerRowIndex)
   headers.forEach((label, index) => {
@@ -117,15 +117,13 @@ export async function writeBranchPayrollWorkbook(data) {
     writeCurrencyCell(r.getCell(3), row.ticketRevenue)
     writeCurrencyCell(r.getCell(4), row.commission)
     writeCurrencyCell(r.getCell(5), row.tips)
-    writeCurrencyCell(r.getCell(6), row.baseSalary)
-    writeCurrencyCell(r.getCell(7), row.bonus)
-    writeCurrencyCell(r.getCell(8), row.penalty)
-    writeCurrencyCell(r.getCell(9), row.advance)
-    writeCurrencyCell(r.getCell(10), row.otherAdjustment)
-    writeCurrencyCell(r.getCell(11), row.grossIncome)
-    writeCurrencyCell(r.getCell(12), row.netSalary)
-    writeCurrencyCell(r.getCell(13), row.paidAmount)
-    writeCurrencyCell(r.getCell(14), row.remainingAmount)
+    writeCurrencyCell(r.getCell(6), row.bonus)
+    writeCurrencyCell(r.getCell(7), row.penalty)
+    writeCurrencyCell(r.getCell(8), row.advance)
+    writeCurrencyCell(r.getCell(9), row.grossIncome)
+    writeCurrencyCell(r.getCell(10), row.netSalary)
+    writeCurrencyCell(r.getCell(11), row.paidAmount)
+    writeCurrencyCell(r.getCell(12), row.remainingAmount)
   })
 
   const totalRowIndex = firstDataRow + data.rows.length
@@ -134,7 +132,7 @@ export async function writeBranchPayrollWorkbook(data) {
   writeTextCell(totalRow.getCell(2), 'TỔNG CHI LƯƠNG CHI NHÁNH')
   totalRow.getCell(2).font = { bold: true }
 
-  for (let col = 3; col <= 14; col += 1) {
+  for (let col = 3; col <= 12; col += 1) {
     const letter = sheet.getColumn(col).letter
     const cell = totalRow.getCell(col)
     cell.value = { formula: `SUM(${letter}${firstDataRow}:${letter}${totalRowIndex - 1})` }
@@ -226,7 +224,7 @@ export async function writeEmployeePayrollWorkbook(data) {
   // Sheet 2 — Chi tiết hóa đơn
   const invoices = workbook.addWorksheet('Chi tiết HĐ')
   const invHeaders = [
-    'Ngày', 'Giờ', 'Mã HĐ', 'Khách', 'Dịch vụ', 'Giá', '%', 'Tiền HH', 'Tips', 'Được hưởng', 'Vai trò',
+    'Ngày giờ', 'Tên khách hàng', 'Dịch vụ', 'Giá', '%', 'Tips', 'Tổng được hưởng',
   ]
   const invHeaderRow = invoices.getRow(1)
   invHeaders.forEach((label, index) => {
@@ -238,30 +236,26 @@ export async function writeEmployeePayrollWorkbook(data) {
   for (const day of data.invoiceDays) {
     for (const line of day.lines) {
       const row = invoices.getRow(invRowIndex)
-      writeTextCell(row.getCell(1), line.displayDate)
-      writeTextCell(row.getCell(2), line.time)
-      writeTextCell(row.getCell(3), line.invoiceId)
-      writeTextCell(row.getCell(4), line.customerName)
-      writeTextCell(row.getCell(5), line.serviceName)
-      writeCurrencyCell(row.getCell(6), line.price)
-      row.getCell(7).value = line.commissionPercent
-      row.getCell(7).numFmt = '0"%"'
-      row.getCell(7).border = THIN_BORDER
-      writeCurrencyCell(row.getCell(8), line.commissionAmount)
-      writeCurrencyCell(row.getCell(9), line.tips)
-      writeCurrencyCell(row.getCell(10), line.earnedAmount)
-      writeTextCell(row.getCell(11), line.roleLabel)
+      const dateTime = [line.displayDate, line.time].filter(Boolean).join(' ')
+      writeTextCell(row.getCell(1), dateTime)
+      writeTextCell(row.getCell(2), line.customerName)
+      writeTextCell(row.getCell(3), line.serviceName)
+      writeCurrencyCell(row.getCell(4), line.price)
+      row.getCell(5).value = line.commissionPercent
+      row.getCell(5).numFmt = '0"%"'
+      row.getCell(5).border = THIN_BORDER
+      writeCurrencyCell(row.getCell(6), line.tips)
+      writeCurrencyCell(row.getCell(7), line.earnedAmount)
       invRowIndex += 1
     }
 
     const totalRow = invoices.getRow(invRowIndex)
     writeTextCell(totalRow.getCell(1), `TỔNG NGÀY ${day.displayDate}`)
     totalRow.getCell(1).font = { bold: true }
-    writeTextCell(totalRow.getCell(4), `${day.totals.invoiceCount} HĐ`)
-    writeCurrencyCell(totalRow.getCell(6), day.totals.price)
-    writeCurrencyCell(totalRow.getCell(8), day.totals.commission)
-    writeCurrencyCell(totalRow.getCell(9), day.totals.tips)
-    writeCurrencyCell(totalRow.getCell(10), day.totals.earned)
+    writeTextCell(totalRow.getCell(2), `${day.totals.invoiceCount} HĐ`)
+    writeCurrencyCell(totalRow.getCell(4), day.totals.price)
+    writeCurrencyCell(totalRow.getCell(6), day.totals.tips)
+    writeCurrencyCell(totalRow.getCell(7), day.totals.earned)
     invRowIndex += 1
   }
 
