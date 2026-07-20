@@ -1,12 +1,14 @@
 import { formatCurrency } from '../../utils/invoice'
+import { isBranchSupportServiceId } from '../../constants/branchSupportService'
 import './GroupedServicePicker.css'
 
-function FlatServiceRow({ id, name, price, count, onAdd, onRemove }) {
+function FlatServiceRow({ id, name, price, isSupportService, count, onAdd, onRemove }) {
+  const priceLabel = isSupportService || isBranchSupportServiceId(id) ? 'Tự nhập' : formatCurrency(price)
   return (
     <div className={`svc-picker__single${count > 0 ? ' svc-picker__single--selected' : ''}`}>
       <button type="button" className="svc-picker__single-btn" onClick={() => onAdd(id)}>
         <span>{name}</span>
-        <strong>{formatCurrency(price)}</strong>
+        <strong>{priceLabel}</strong>
       </button>
       {count > 0 && (
         <div className="svc-picker__qty">
@@ -38,6 +40,7 @@ export default function FlatServicePicker({
             id={service.id}
             name={service.name}
             price={service.price}
+            isSupportService={service.isSupportService}
             count={getCount(service.id)}
             onAdd={onAdd}
             onRemove={onRemove}

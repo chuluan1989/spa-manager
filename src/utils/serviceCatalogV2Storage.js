@@ -13,6 +13,7 @@ import {
   fetchBranchCatalogsRemote,
   upsertBranchCatalogsRemote,
 } from '../repositories/branchCatalogRepository'
+import { appendBranchSupportServiceToGroups } from './branchSupportInvoice'
 
 const BRANCH_CATALOGS_KEY = 'spa-manager-branch-catalogs-v2'
 const PRICES_KEY = 'spa-manager-branch-service-prices-v2'
@@ -189,7 +190,7 @@ export function getCatalogGroupsForBranchV2(branchId) {
   const catalog = loadBranchCatalog(branchId)
   const pricesMap = loadBranchServicePricesV2()
 
-  return catalog.categories
+  const groups = catalog.categories
     .filter((category) => category.status === ITEM_STATUS.ACTIVE)
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((category) => {
@@ -249,6 +250,8 @@ export function getCatalogGroupsForBranchV2(branchId) {
       }
     })
     .filter(Boolean)
+
+  return appendBranchSupportServiceToGroups(groups)
 }
 
 export function getActiveServicesForBranchV2(branchId) {

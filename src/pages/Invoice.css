@@ -587,3 +587,11 @@
     padding: 14px 16px;
   }
 }
+
+.invoice__support-fields {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px dashed var(--ks-border-subtle, #e5e7eb);
+  border-radius: 12px;
+  background: var(--ks-input-bg, #fafafa);
+}

@@ -21,6 +21,10 @@ import {
 import { getServicesForPriceList, loadServices } from './serviceStorage'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { upsertBranchPricingMap } from '../repositories/branchPricingRepository'
+import {
+  appendBranchSupportServiceToFlatList,
+  appendBranchSupportServiceToGroups,
+} from './branchSupportInvoice'
 
 const STORAGE_KEY = 'spa-manager-branch-pricing'
 
@@ -152,7 +156,7 @@ export function getDefaultServicesForBranch(branchId) {
 export function getCatalogGroupsForBranch(branchId) {
   ensureAllBranchCatalogsSeeded()
   if (isBranchCatalogReady(branchId)) {
-    return getCatalogGroupsForBranchV2(branchId)
+    return appendBranchSupportServiceToGroups(getCatalogGroupsForBranchV2(branchId))
   }
 
   if (!isGiaLaiCatalogBranch(branchId)) return []
@@ -160,15 +164,15 @@ export function getCatalogGroupsForBranch(branchId) {
   syncBranchCatalog(branchId)
   const record = getBranchPricingRecord(branchId)
   if (!branchHasGroupedCatalog(branchId, record)) return []
-  return getCatalogGroups(record.catalog, record.overrides)
+  return appendBranchSupportServiceToGroups(getCatalogGroups(record.catalog, record.overrides))
 }
 
 export function getServicesForBranch(branchId, { includeInactive = false } = {}) {
   ensureAllBranchCatalogsSeeded()
   if (isBranchCatalogReady(branchId)) {
     const services = getActiveServicesForBranchV2(branchId)
-    if (includeInactive) return services
-    return services.filter((service) => service.status === 'active')
+    const list = includeInactive ? services : services.filter((service) => service.status === 'active')
+    return appendBranchSupportServiceToFlatList(list)
   }
 
   const branch = getBranchById(branchId)
@@ -183,9 +187,10 @@ export function getServicesForBranch(branchId, { includeInactive = false } = {})
 
   if (branchHasGroupedCatalog(branchId, record)) {
     const resolved = applyCatalogOverrides(record.catalog, record.overrides)
-    return flattenCatalog(resolved)
+    const list = flattenCatalog(resolved)
       .filter((service) => includeInactive || service.status === 'active')
       .sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+    return appendBranchSupportServiceToFlatList(list)
   }
 
   let pricing = record
@@ -199,7 +204,7 @@ export function getServicesForBranch(branchId, { includeInactive = false } = {})
     return Object.prototype.hasOwnProperty.call(service.priceLists, branch.priceGroupId)
   })
 
-  return baseServices
+  const resolved = baseServices
     .filter((service) => service.status !== 'deleted')
     .map((service) => {
       const base = resolveServiceFromGroup(service, branch.priceGroupId)
@@ -218,6 +223,8 @@ export function getServicesForBranch(branchId, { includeInactive = false } = {})
     })
     .filter(Boolean)
     .sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+
+  return appendBranchSupportServiceToFlatList(resolved)
 }
 
 export function syncMissingOverridesForBranch(branchId) {

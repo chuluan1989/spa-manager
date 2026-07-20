@@ -3135,7 +3135,7 @@ test('branch support invoice: totals, payroll, reports, branch gate', async () =
   assert.equal(isBranchSupportServiceEnabled('soc-trang'), true)
   assert.equal(isBranchSupportServiceEnabled('tram-spa'), true)
   assert.equal(isBranchSupportServiceEnabled('song-khoe-spa'), true)
-  assert.equal(isBranchSupportServiceEnabled('tra-vinh'), false)
+  assert.equal(isBranchSupportServiceEnabled('tra-vinh'), true)
 
   const branchSupportInvoice = {
     id: 'inv-bs-1',
