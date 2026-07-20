@@ -42,8 +42,18 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   realtimeEnabled: true,
   warnLegacyLocalStorage: true,
   vipCustomerThreshold: 10000000,
-  /** Operations Center V1 — Admin nav hub. Default off for safe rollback. */
-  opsCenterEnabled: false,
+  /** Operations Center V1 — Admin nav hub. Default on. */
+  opsCenterEnabled: true,
+}
+
+const OPS_CENTER_DEFAULT_ON_ROLLOUT_KEY = 'spa-manager-ops-center-default-on-v1'
+
+function applyOpsCenterDefaultOnRollout(settings) {
+  if (localStorage.getItem(OPS_CENTER_DEFAULT_ON_ROLLOUT_KEY) === 'done') {
+    return { settings, didRollout: false }
+  }
+  localStorage.setItem(OPS_CENTER_DEFAULT_ON_ROLLOUT_KEY, 'done')
+  return { settings: { ...settings, opsCenterEnabled: true }, didRollout: true }
 }
 
 export function loadSystemSettings() {
@@ -54,7 +64,17 @@ export function loadSystemSettings() {
       return { ...DEFAULT_SYSTEM_SETTINGS }
     }
     const data = JSON.parse(raw)
-    return { ...DEFAULT_SYSTEM_SETTINGS, ...data }
+    const merged = { ...DEFAULT_SYSTEM_SETTINGS, ...data }
+
+    // Prior release persisted opsCenterEnabled:false from old default.
+    // One-time rollout so Admin sees "Điều hành" without Console.
+    const { settings: rolled, didRollout } = applyOpsCenterDefaultOnRollout(merged)
+    if (didRollout) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(rolled))
+      pushSettingsToSupabase(rolled)
+    }
+
+    return rolled
   } catch {
     return { ...DEFAULT_SYSTEM_SETTINGS }
   }
@@ -62,7 +82,7 @@ export function loadSystemSettings() {
 
 export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
   const current = loadSystemSettings()
-  const normalized = {
+  let normalized = {
     ...DEFAULT_SYSTEM_SETTINGS,
     ...settings,
     systemName: settings.systemName?.trim() ?? DEFAULT_SYSTEM_SETTINGS.systemName,
@@ -113,8 +133,23 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
       Number.parseInt(String(settings.vipCustomerThreshold ?? DEFAULT_SYSTEM_SETTINGS.vipCustomerThreshold), 10)
         || DEFAULT_SYSTEM_SETTINGS.vipCustomerThreshold,
     ),
-    opsCenterEnabled: settings.opsCenterEnabled === true,
+    opsCenterEnabled: settings.opsCenterEnabled == null
+      ? DEFAULT_SYSTEM_SETTINGS.opsCenterEnabled
+      : settings.opsCenterEnabled === true,
   }
+
+  // Remote pull must not re-apply the old default false after we enable by default.
+  if (
+    skipRemoteSync
+    && DEFAULT_SYSTEM_SETTINGS.opsCenterEnabled === true
+    && normalized.opsCenterEnabled !== true
+  ) {
+    normalized = { ...normalized, opsCenterEnabled: true }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
+    pushSettingsToSupabase(normalized)
+    return normalized
+  }
+
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   if (!skipRemoteSync) pushSettingsToSupabase(normalized)
   return normalized

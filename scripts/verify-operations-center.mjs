@@ -42,14 +42,32 @@ const {
   formatOpsLastUpdated,
 } = await import('../src/utils/opsCenter/opsCenterRefresh.js')
 
-assert.equal(DEFAULT_SYSTEM_SETTINGS.opsCenterEnabled, false, 'Default flag must be false')
-assert.equal(isOpsCenterEnabled(loadSystemSettings()), false)
+assert.equal(DEFAULT_SYSTEM_SETTINGS.opsCenterEnabled, true, 'Default flag must be true')
+assert.equal(isOpsCenterEnabled(loadSystemSettings()), true, 'Fresh settings → enabled')
 
+setUser({ role: 'admin', branch: 'all' })
+assert.equal(canAccessOpsCenter(), true, 'Admin + default on → access')
+
+// Prior persisted false (old default) is upgraded once by loadSystemSettings rollout
+localStorage.clear()
+sessionStorage.clear()
+localStorage.setItem('spa-manager-system-settings', JSON.stringify({
+  ...DEFAULT_SYSTEM_SETTINGS,
+  opsCenterEnabled: false,
+}))
+assert.equal(loadSystemSettings().opsCenterEnabled, true, 'Rollout flips persisted false → true')
+assert.equal(isOpsCenterEnabled(), true)
+
+// Remote CACHE_ONLY apply of old false must not disable the flag
+saveSystemSettings({ ...loadSystemSettings(), opsCenterEnabled: false }, { skipRemoteSync: true })
+assert.equal(isOpsCenterEnabled(), true, 'CACHE_ONLY remote false → stays enabled')
+
+saveSystemSettings({ ...loadSystemSettings(), opsCenterEnabled: false })
+assert.equal(isOpsCenterEnabled(), false, 'Explicit local false still disables')
 setUser({ role: 'admin', branch: 'all' })
 assert.equal(canAccessOpsCenter(), false, 'Admin + flag off → no access')
 
 saveSystemSettings({ ...loadSystemSettings(), opsCenterEnabled: true })
-assert.equal(isOpsCenterEnabled(), true)
 assert.equal(canAccessOpsCenter(), true, 'Admin + flag on → access')
 
 setUser({ role: 'branch_manager', branch: 'soc-trang' })
@@ -79,8 +97,8 @@ assert.match(stamped, /\d{2}:\d{2}:\d{2}/)
 assert.equal(formatOpsLastUpdated(null), '—')
 
 console.log('PASS — verify:operations-center')
-console.log('  ✓ flag default false')
-console.log('  ✓ Admin gated by flag')
+console.log('  ✓ flag default true')
+console.log('  ✓ Admin sees ops center by default')
 console.log('  ✓ Manager/Employee blocked')
 console.log('  ✓ Nav registration Admin-only order')
 console.log('  ✓ DRILL_METRICS reused for finance snapshot')
