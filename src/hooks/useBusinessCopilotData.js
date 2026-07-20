@@ -8,7 +8,7 @@ import {
 import { getTodayDate, getMonthStartDate } from '../utils/invoiceStorage'
 import { fetchReportPeriodData } from '../utils/reportDataFetcher'
 import { fetchMergedInvoices } from '../utils/invoiceDataFetcher'
-import { fetchAttendanceFiltered } from '../repositories/attendanceRepository'
+import { fetchAttendanceFiltered, subscribeAttendanceChanges } from '../repositories/attendanceRepository'
 import { loadPendingEditRequestsForCurrentManager } from '../utils/attendanceEditRequestService'
 import { loadPayrollLocks } from '../utils/payrollService'
 import { isPayrollMonthLocked } from '../utils/payrollEngine'
@@ -44,6 +44,20 @@ export function useBusinessCopilotData() {
   const [payload, setPayload] = useState(null)
 
   const reload = useCallback(() => setRefreshKey((k) => k + 1), [])
+
+  /** Cross-device attendance: postgres_changes on public.attendance — chỉ refetch chấm công hôm nay. */
+  const refreshAttendanceOnly = useCallback(async () => {
+    if (isEmployee()) return
+    try {
+      const attendanceToday = await fetchAttendanceFiltered({
+        date: getTodayDate(),
+        branchId: scopeBranchId || undefined,
+      })
+      setPayload((prev) => (prev ? { ...prev, attendanceToday } : prev))
+    } catch {
+      // Soft fail — giữ payload cũ; lần sync/reload đầy đủ sẽ bù.
+    }
+  }, [scopeBranchId])
 
   useEffect(() => {
     if (isEmployee()) {
@@ -154,6 +168,13 @@ export function useBusinessCopilotData() {
     if (isEmployee()) return undefined
     return subscribeInvoicesChanges(() => reload())
   }, [reload])
+
+  useEffect(() => {
+    if (isEmployee()) return undefined
+    return subscribeAttendanceChanges(() => {
+      refreshAttendanceOnly()
+    })
+  }, [refreshAttendanceOnly])
 
   const derived = useMemo(() => {
     if (!payload) {

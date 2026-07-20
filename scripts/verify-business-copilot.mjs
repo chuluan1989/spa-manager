@@ -30,6 +30,7 @@ function setUser(user) {
 
 const { ADMIN_NAV_ORDER, BRANCH_MANAGER_NAV_ORDER, EMPLOYEE_NAV_ORDER, NAV_ITEMS } = await import('../src/constants/navigation.js')
 const { canAccessOpsCenter } = await import('../src/utils/opsCenter/opsCenterAccess.js')
+const { subscribeAttendanceChanges, getAttendanceTableName } = await import('../src/repositories/attendanceRepository.js')
 const { buildCopilotAlerts } = await import('../src/utils/copilot/buildCopilotAlerts.js')
 const { buildCopilotOpportunities } = await import('../src/utils/copilot/buildCopilotOpportunities.js')
 const { buildCopilotBrief } = await import('../src/utils/copilot/buildCopilotBrief.js')
@@ -38,6 +39,8 @@ const { computeTrend, getPreviousPeriod, shiftDate } = await import('../src/util
 const { COPILOT_DROP_PERCENT, COPILOT_GROW_PERCENT } = await import('../src/utils/copilot/copilotConstants.js')
 
 assert.equal(canAccessOpsCenter(), false, 'ops-center must stay inaccessible')
+assert.equal(typeof subscribeAttendanceChanges, 'function', 'attendance realtime subscriber must exist')
+assert.equal(getAttendanceTableName(), 'attendance')
 assert.ok(!NAV_ITEMS.some((item) => item.id === 'ops-center'), 'NAV_ITEMS must not include ops-center')
 assert.ok(!ADMIN_NAV_ORDER.includes('ops-center'), 'Admin nav must not include Điều hành')
 assert.ok(!BRANCH_MANAGER_NAV_ORDER.includes('ops-center'))
@@ -205,6 +208,7 @@ assert.ok(adminNav.some((i) => i.id === 'dashboard' && i.label === 'Tổng quan'
 
 console.log('PASS — verify:business-copilot')
 console.log('  ✓ ops-center hidden')
+console.log('  ✓ attendance realtime via subscribeAttendanceChanges (postgres_changes)')
 console.log('  ✓ alerts + opportunities rule engine')
 console.log('  ✓ brief + performance builders')
 console.log('  ✓ Admin nav has Tổng quan only (no Điều hành)')
