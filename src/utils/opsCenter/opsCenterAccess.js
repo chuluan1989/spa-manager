@@ -1,10 +1,7 @@
-import { isAdmin } from '../../constants/auth'
-import { isOpsCenterEnabled } from './opsCenterFeatureFlag'
-
 /**
- * V1: Admin only + feature flag.
- * Does not add permission keys; does not change the permission matrix.
+ * Operations Center menu retired — always inaccessible.
+ * Business Copilot lives on Tổng quan.
  */
 export function canAccessOpsCenter() {
-  return isAdmin() && isOpsCenterEnabled()
+  return false
 }
