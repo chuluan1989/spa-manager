@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.4.0-operations-center — 2026-07-20
+
+## Operations Center V1
+- Admin Operations Center
+- Finance Snapshot
+- Today Health
+- Alerts
+- Quick Links
+- Auto Refresh
+- Skeleton Loading
+- Empty State
+- Feature Flag
+
 ## v1.3.0-payroll-export — 2026-07-20
 
 ### Payroll Export
