@@ -46,6 +46,8 @@ import Settings from './pages/Settings'
 import AdminBranches from './pages/AdminBranches'
 import Payroll1Check from './pages/Payroll1Check'
 import Payroll1Admin from './pages/Payroll1Admin'
+import OperationsCenter from './pages/OperationsCenter'
+import { canAccessOpsCenter } from './utils/opsCenter/opsCenterAccess'
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials, repairEmployeeCredentials } from './utils/credentialsStorage'
@@ -63,6 +65,7 @@ import { getTodayDate } from './utils/invoiceStorage'
 
 const PAGES = {
   dashboard: Dashboard,
+  'ops-center': OperationsCenter,
   reports: Report,
   revenue: Revenue,
   invoices: Invoice,
@@ -102,6 +105,7 @@ function canAccessPage(pageId) {
   if (pageId === 'profile') return canAccessMyProfilePage()
   if (pageId === 'payroll1-check') return canAccessPayroll1CheckPage()
   if (pageId === 'payroll1-admin') return canAccessPayroll1AdminPage()
+  if (pageId === 'ops-center') return canAccessOpsCenter()
   return true
 }
 

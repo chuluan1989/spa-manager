@@ -15,6 +15,7 @@ import {
 } from '../../constants/auth'
 import { getEmployeeById } from '../../utils/employeeStorage'
 import { loadAdminProfile } from '../../utils/adminProfileStorage'
+import { canAccessOpsCenter } from '../../utils/opsCenter/opsCenterAccess'
 import ChangePasswordForm from '../account/ChangePasswordForm'
 import NavIcon from './NavIcon'
 import './Sidebar.css'
@@ -51,7 +52,10 @@ function getSidebarAvatar() {
 }
 
 export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout }) {
-  const navItems = getVisibleNavItems()
+  const navItems = getVisibleNavItems().filter((item) => {
+    if (item.id === 'ops-center') return canAccessOpsCenter()
+    return true
+  })
   const userName = getSidebarUserName()
   const roleLabel = getSidebarRoleLabel()
   const avatarUrl = getSidebarAvatar()

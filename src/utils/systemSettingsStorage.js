@@ -42,6 +42,8 @@ export const DEFAULT_SYSTEM_SETTINGS = {
   realtimeEnabled: true,
   warnLegacyLocalStorage: true,
   vipCustomerThreshold: 10000000,
+  /** Operations Center V1 — Admin nav hub. Default off for safe rollback. */
+  opsCenterEnabled: false,
 }
 
 export function loadSystemSettings() {
@@ -111,6 +113,7 @@ export function saveSystemSettings(settings, { skipRemoteSync = false } = {}) {
       Number.parseInt(String(settings.vipCustomerThreshold ?? DEFAULT_SYSTEM_SETTINGS.vipCustomerThreshold), 10)
         || DEFAULT_SYSTEM_SETTINGS.vipCustomerThreshold,
     ),
+    opsCenterEnabled: settings.opsCenterEnabled === true,
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   if (!skipRemoteSync) pushSettingsToSupabase(normalized)
