@@ -23,6 +23,49 @@ export function getCurrentMonthValue() {
   return `${y}-${m}`
 }
 
+function toVietnamParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const get = (type) => parts.find((p) => p.type === type)?.value
+  return {
+    year: Number(get('year')),
+    month: Number(get('month')),
+    day: Number(get('day')),
+  }
+}
+
+export function getVietnamCurrentMonthValue() {
+  const { year, month } = toVietnamParts(new Date())
+  return `${year}-${String(month).padStart(2, '0')}`
+}
+
+export function getDefaultPayCycleForVietnamDate(date = new Date()) {
+  const { day } = toVietnamParts(date)
+  return day <= 15 ? PAY_CYCLES.PERIOD_1 : PAY_CYCLES.PERIOD_2
+}
+
+export function shiftMonthValue(monthValue, deltaMonths) {
+  if (!monthValue) return ''
+  const [yStr, mStr] = monthValue.split('-')
+  const y = Number(yStr)
+  const m = Number(mStr)
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return ''
+  const dt = new Date(y, m - 1 + deltaMonths, 1)
+  const nextY = dt.getFullYear()
+  const nextM = String(dt.getMonth() + 1).padStart(2, '0')
+  return `${nextY}-${nextM}`
+}
+
+export function getPrevPayCycle(monthValue, cycle) {
+  if (cycle === PAY_CYCLES.PERIOD_2) return { month: monthValue, cycle: PAY_CYCLES.PERIOD_1 }
+  // From Kỳ 1 → previous month Kỳ 2
+  return { month: shiftMonthValue(monthValue, -1), cycle: PAY_CYCLES.PERIOD_2 }
+}
+
 export function getLastDayOfMonth(year, month) {
   return new Date(year, month, 0).getDate()
 }

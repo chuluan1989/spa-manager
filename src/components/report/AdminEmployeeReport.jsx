@@ -20,6 +20,7 @@ import { mergeAttendanceIntoEmployeeReports } from '../../utils/attendancePenalt
 import { deleteInvoice } from '../../utils/invoiceStorage'
 import { setInvoiceEditPrefill } from '../../utils/navigationPrefill'
 import { computeEmployeeInvoiceDetailReport } from '../../utils/employeeInvoiceReport'
+import { ATTENDANCE_STATUS, getAttendanceStatusConfig } from '../../constants/attendanceTypes'
 import {
   PAY_CYCLE_OPTIONS,
   PAY_CYCLES,
@@ -28,6 +29,96 @@ import {
   getCurrentMonthValue,
   getPayPeriodRange,
 } from '../../utils/salaryReport'
+
+const PERMITTED_LEAVE_UNIT_BY_STATUS = {
+  [ATTENDANCE_STATUS.FULL_DAY_PERMITTED]: 2,
+  [ATTENDANCE_STATUS.HALF_MORNING_PERMITTED]: 1,
+  [ATTENDANCE_STATUS.HALF_EVENING_PERMITTED]: 1,
+}
+
+const UNPERMITTED_LEAVE_UNIT_BY_STATUS = {
+  [ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED]: 2,
+  [ATTENDANCE_STATUS.HALF_MORNING_UNPERMITTED]: 1,
+  [ATTENDANCE_STATUS.HALF_EVENING_UNPERMITTED]: 1,
+}
+
+function computeAttendanceBreakdown(attendanceRows, cycleTotalSalary = 0) {
+  let permittedUnits = 0
+  let unpermittedUnits = 0
+
+  let permittedPenalty = 0
+  let unpermittedPenalty = 0
+
+  let lateUnpermittedCount = 0
+  let latePenalty = 0
+  let earlyUnpermittedCount = 0
+  let earlyPenalty = 0
+
+  let weekendRecordCount = 0
+  let weekendPenalty = 0
+
+  let otherPenalty = 0
+
+  for (const row of attendanceRows) {
+    const permittedUnit = PERMITTED_LEAVE_UNIT_BY_STATUS[row.status] ?? 0
+    const unpermittedUnit = UNPERMITTED_LEAVE_UNIT_BY_STATUS[row.status] ?? 0
+    const config = getAttendanceStatusConfig(row.status)
+    const penaltyAmount = Number(row.penaltyAmount ?? 0)
+
+    if (permittedUnit) {
+      permittedUnits += permittedUnit
+      permittedPenalty += penaltyAmount
+      continue
+    }
+    if (unpermittedUnit) {
+      unpermittedUnits += unpermittedUnit
+      unpermittedPenalty += penaltyAmount
+      continue
+    }
+
+    if (row.status === ATTENDANCE_STATUS.LATE_2H_UNPERMITTED) {
+      lateUnpermittedCount += 1
+      latePenalty += penaltyAmount
+      continue
+    }
+    if (row.status === ATTENDANCE_STATUS.EARLY_2H_UNPERMITTED) {
+      earlyUnpermittedCount += 1
+      earlyPenalty += penaltyAmount
+      continue
+    }
+
+    if (config?.statGroup === 'weekend') {
+      weekendRecordCount += 1
+      weekendPenalty += penaltyAmount
+      continue
+    }
+
+    otherPenalty += penaltyAmount
+  }
+
+  const permittedFreeUnits = Math.min(6, permittedUnits)
+  const permittedExceedUnits = Math.max(0, permittedUnits - 6)
+  const totalPenalty = permittedPenalty + unpermittedPenalty + latePenalty + earlyPenalty + weekendPenalty + otherPenalty
+  const netSalary = Math.max(0, Number(cycleTotalSalary ?? 0) - totalPenalty)
+
+  return {
+    permittedUnits,
+    permittedFreeUnits,
+    permittedExceedUnits,
+    unpermittedUnits,
+    lateUnpermittedCount,
+    earlyUnpermittedCount,
+    weekendRecordCount,
+    permittedPenalty,
+    unpermittedPenalty,
+    latePenalty,
+    earlyPenalty,
+    weekendPenalty,
+    otherPenalty,
+    totalPenalty,
+    netSalary,
+  }
+}
 
 export default function AdminEmployeeReport({ onNavigate }) {
   const lockedBranch = !canSelectBranch()
@@ -72,6 +163,10 @@ export default function AdminEmployeeReport({ onNavigate }) {
     setLoading(true)
     setFetchError('')
     try {
+      const attendanceRange = effectiveFilters.cycle === PAY_CYCLES.PERIOD_2
+        ? getPayPeriodRange(effectiveFilters.month, PAY_CYCLES.FULL)
+        : null
+
       const [invoiceData, attendanceData] = await Promise.all([
         fetchInvoicesFiltered({
           fromDate: effectiveFilters.fromDate,
@@ -79,11 +174,13 @@ export default function AdminEmployeeReport({ onNavigate }) {
           branchId: effectiveFilters.branchId,
           customerSearch: effectiveFilters.customerSearch,
         }),
-        fetchAttendanceFiltered({
-          fromDate: effectiveFilters.fromDate,
-          toDate: effectiveFilters.toDate,
-          branchId: effectiveFilters.branchId,
-        }),
+        attendanceRange
+          ? fetchAttendanceFiltered({
+              fromDate: attendanceRange.fromDate,
+              toDate: attendanceRange.toDate,
+              branchId: effectiveFilters.branchId,
+            })
+          : Promise.resolve([]),
       ])
       setInvoices(Array.isArray(invoiceData) ? invoiceData : [])
       setAttendanceRecords(Array.isArray(attendanceData) ? attendanceData : [])
@@ -132,6 +229,14 @@ export default function AdminEmployeeReport({ onNavigate }) {
     if (!selectedEmployeeId) return null
     return computeEmployeeInvoiceDetailReport(invoices, selectedEmployeeId, effectiveFilters)
   }, [invoices, selectedEmployeeId, effectiveFilters])
+
+  const selectedAttendanceBreakdown = useMemo(() => {
+    if (!selectedDetail) return null
+    if (effectiveFilters.cycle !== PAY_CYCLES.PERIOD_2) return null
+    if (!selectedEmployeeId) return null
+    const rows = attendanceRecords.filter((row) => row.employeeId === selectedEmployeeId)
+    return computeAttendanceBreakdown(rows, selectedDetail.periodTotals.totalSalary)
+  }, [attendanceRecords, selectedEmployeeId, selectedDetail, effectiveFilters.cycle])
 
   const updateFilter = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }))
@@ -300,6 +405,11 @@ export default function AdminEmployeeReport({ onNavigate }) {
           <p className="report-table-card__empty">Chưa có dữ liệu trong kỳ này</p>
         ) : (
           <div className="report-table-card__wrap">
+            {effectiveFilters.cycle === PAY_CYCLES.PERIOD_1 && (
+              <p className="salary-report__period">
+                Khấu trừ chấm công: {formatCurrency(report.periodTotals.attendancePenalty ?? 0)} đ. Ghi chú: Khấu trừ chấm công được tổng hợp vào Kỳ 2.
+              </p>
+            )}
             <table className="report-table-card__table admin-employee-report__summary-table">
               <thead>
                 <tr>
@@ -379,6 +489,7 @@ export default function AdminEmployeeReport({ onNavigate }) {
 
       <AdminEmployeeDetail
         detail={selectedDetail}
+        attendanceBreakdown={selectedAttendanceBreakdown}
         onClose={() => setSelectedEmployeeId('')}
         onEdit={handleEditInvoice}
         onDelete={handleDeleteInvoice}

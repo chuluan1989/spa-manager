@@ -292,6 +292,205 @@ test('pay period ranges', () => {
   assert.equal(p2.toDate, '2026-07-31')
 })
 
+test('live payroll cycle split (Kỳ 1/Kỳ 2)', async () => {
+  const {
+    computePayrollReport,
+  } = await import('../src/utils/payrollEngine.js')
+
+  const { calculatePenaltyForNewRecord } = await import('../src/utils/attendancePenalties.js')
+  const { ATTENDANCE_STATUS } = await import('../src/constants/attendanceTypes.js')
+
+  const employee = { id: 'e1', name: 'Lan', branchId: 'b1', salaryRate: '200000', status: 'active', position: 'KTV' }
+
+  const mkInvoice = ({ id, date, tips, serviceTotal, commissionAmount }) => ({
+    id,
+    date,
+    branchId: 'b1',
+    employeeId: 'e1',
+    supportEmployeeId: '',
+    tips,
+    serviceTotal,
+    commission: commissionAmount,
+    services: [
+      { id: 'svc-1', name: 'DV', price: serviceTotal, commissionPercent: 0, commissionAmount },
+    ],
+    total: serviceTotal + tips,
+    customerName: 'Khách',
+    invoiceTime: '09:00',
+  })
+
+  const mkAttendance = ({ id, date, status, penaltyAmount }) => ({
+    id,
+    employeeId: 'e1',
+    branchId: 'b1',
+    date,
+    status,
+    penaltyAmount,
+    submittedAt: '2026-07-01T00:00:00.000Z',
+  })
+
+  // Test 1: hóa đơn 15/16 phân kỳ đúng
+  const invoices = [
+    mkInvoice({ id: 'inv-15', date: '2026-07-15', tips: 50000, serviceTotal: 100000, commissionAmount: 10000 }),
+    mkInvoice({ id: 'inv-16', date: '2026-07-16', tips: 60000, serviceTotal: 200000, commissionAmount: 20000 }),
+  ]
+  const emptyAttendance = []
+  const adjustments = []
+
+  const r1 = computePayrollReport({
+    month: '2026-07',
+    cycle: PAY_CYCLES.PERIOD_1,
+    branchId: 'b1',
+    employeeId: 'e1',
+    employees: [employee],
+    invoices,
+    attendanceRecords: emptyAttendance,
+    adjustments,
+  })
+  const row1 = r1.rows[0]
+  assert.equal(row1.ticketRevenue, 100000)
+  assert.equal(row1.tips, 50000)
+
+  const r2 = computePayrollReport({
+    month: '2026-07',
+    cycle: PAY_CYCLES.PERIOD_2,
+    branchId: 'b1',
+    employeeId: 'e1',
+    employees: [employee],
+    invoices,
+    attendanceRecords: emptyAttendance,
+    adjustments,
+  })
+  const row2 = r2.rows[0]
+  assert.equal(row2.ticketRevenue, 200000)
+  assert.equal(row2.tips, 60000)
+
+  // Test 2: nghỉ không phép ngày 10 => Kỳ 1 không trừ, Kỳ 2 trừ
+  const penRecord = mkAttendance({
+    id: 'att-10',
+    date: '2026-07-10',
+    status: ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED,
+    penaltyAmount: 100000,
+  })
+
+  const r1NoPenalty = computePayrollReport({
+    month: '2026-07',
+    cycle: PAY_CYCLES.PERIOD_1,
+    branchId: 'b1',
+    employeeId: 'e1',
+    employees: [employee],
+    invoices: [mkInvoice({ id: 'inv-15', date: '2026-07-15', tips: 0, serviceTotal: 0, commissionAmount: 0 })],
+    attendanceRecords: [mkAttendance({ ...penRecord, penaltyAmount: 0 })],
+    adjustments: [],
+  })
+  assert.equal(r1NoPenalty.rows[0].attendancePenalty, 0)
+
+  const r2WithPenalty = computePayrollReport({
+    month: '2026-07',
+    cycle: PAY_CYCLES.PERIOD_2,
+    branchId: 'b1',
+    employeeId: 'e1',
+    employees: [employee],
+    invoices: [mkInvoice({ id: 'inv-16', date: '2026-07-16', tips: 0, serviceTotal: 0, commissionAmount: 0 })],
+    attendanceRecords: [penRecord],
+    adjustments: [],
+  })
+  assert.equal(r2WithPenalty.rows[0].attendancePenalty, 100000)
+
+  // Test 3: có phép tổng 3 ngày => Kỳ 2 không trừ phần này
+  const monthRecords3 = []
+  const d1 = mkAttendance({
+    id: 'p1',
+    date: '2026-07-01',
+    status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED,
+    penaltyAmount: 0,
+  })
+  const p1Penalty = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.FULL_DAY_PERMITTED, monthRecords3, '2026-07-01')
+  monthRecords3.push({ ...d1, penaltyAmount: p1Penalty })
+  const p2Penalty = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.FULL_DAY_PERMITTED, monthRecords3, '2026-07-02')
+  monthRecords3.push(mkAttendance({ id: 'p2', date: '2026-07-02', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: p2Penalty }))
+  const p3Penalty = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.FULL_DAY_PERMITTED, monthRecords3, '2026-07-03')
+  monthRecords3.push(mkAttendance({ id: 'p3', date: '2026-07-03', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: p3Penalty }))
+
+  const r2Permitted3 = computePayrollReport({
+    month: '2026-07',
+    cycle: PAY_CYCLES.PERIOD_2,
+    branchId: 'b1',
+    employeeId: 'e1',
+    employees: [employee],
+    invoices: [mkInvoice({ id: 'inv-16', date: '2026-07-16', tips: 0, serviceTotal: 0, commissionAmount: 0 })],
+    attendanceRecords: monthRecords3,
+    adjustments: [],
+  })
+  assert.equal(r2Permitted3.rows[0].attendancePenalty, 0)
+
+  // Test 4: 3 ngày có phép + 1/2 ngày có phép => chỉ trừ nửa ngày vượt mức ở Kỳ 2
+  const monthRecords4 = []
+  const full1 = mkAttendance({ id: 'f1', date: '2026-07-01', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: 0 })
+  const full1P = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.FULL_DAY_PERMITTED, monthRecords4, '2026-07-01')
+  monthRecords4.push({ ...full1, penaltyAmount: full1P })
+  const full2P = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.FULL_DAY_PERMITTED, monthRecords4, '2026-07-02')
+  monthRecords4.push(mkAttendance({ id: 'f2', date: '2026-07-02', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: full2P }))
+  const full3P = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.FULL_DAY_PERMITTED, monthRecords4, '2026-07-03')
+  monthRecords4.push(mkAttendance({ id: 'f3', date: '2026-07-03', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: full3P }))
+  const halfP = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, monthRecords4, '2026-07-04')
+  monthRecords4.push(mkAttendance({ id: 'h1', date: '2026-07-04', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: halfP }))
+
+  const r2PermittedExceed = computePayrollReport({
+    month: '2026-07',
+    cycle: PAY_CYCLES.PERIOD_2,
+    branchId: 'b1',
+    employeeId: 'e1',
+    employees: [employee],
+    invoices: [mkInvoice({ id: 'inv-16', date: '2026-07-16', tips: 0, serviceTotal: 0, commissionAmount: 0 })],
+    attendanceRecords: monthRecords4,
+    adjustments: [],
+  })
+  assert.equal(r2PermittedExceed.rows[0].attendancePenalty, 50000)
+
+  // Test 5/6: mặc định Kỳ theo ngày VN
+  const { getDefaultPayCycleForVietnamDate, getPrevPayCycle } = await import('../src/utils/salaryReport.js')
+  const d10 = new Date(Date.UTC(2026, 6, 10, 12, 0, 0))
+  const d20 = new Date(Date.UTC(2026, 6, 20, 12, 0, 0))
+  assert.equal(getDefaultPayCycleForVietnamDate(d10), PAY_CYCLES.PERIOD_1)
+  assert.equal(getDefaultPayCycleForVietnamDate(d20), PAY_CYCLES.PERIOD_2)
+
+  // Test 7/8: Kỳ trước
+  assert.deepEqual(getPrevPayCycle('2026-07', PAY_CYCLES.PERIOD_2), { month: '2026-07', cycle: PAY_CYCLES.PERIOD_1 })
+  assert.deepEqual(getPrevPayCycle('2026-08', PAY_CYCLES.PERIOD_1), { month: '2026-07', cycle: PAY_CYCLES.PERIOD_2 })
+
+  // Test 9: Admin/Employee cùng nhìn một nhân viên/kỳ => số tiền giống nhau
+  const reportAdmin = computePayrollReport({
+    month: '2026-07',
+    cycle: PAY_CYCLES.PERIOD_2,
+    branchId: 'b1',
+    employeeId: '',
+    employees: [employee],
+    invoices: invoices.filter((inv) => inv.date >= '2026-07-16'),
+    attendanceRecords: emptyAttendance,
+    adjustments: [],
+  })
+  const reportEmployee = computePayrollReport({
+    month: '2026-07',
+    cycle: PAY_CYCLES.PERIOD_2,
+    branchId: 'b1',
+    employeeId: 'e1',
+    employees: [employee],
+    invoices: invoices.filter((inv) => inv.date >= '2026-07-16'),
+    attendanceRecords: emptyAttendance,
+    adjustments: [],
+  })
+  assert.equal(reportAdmin.rows[0].netSalary, reportEmployee.rows[0].netSalary)
+
+  // Test 10: tháng 2/30/31 ngày => Kỳ 2 lấy đúng ngày cuối
+  const pFeb = getPayPeriodRange('2026-02', PAY_CYCLES.PERIOD_2)
+  assert.equal(pFeb.toDate, '2026-02-28')
+  const p30 = getPayPeriodRange('2026-04', PAY_CYCLES.PERIOD_2)
+  assert.equal(p30.toDate, '2026-04-30')
+  const p31 = getPayPeriodRange('2026-03', PAY_CYCLES.PERIOD_2)
+  assert.equal(p31.toDate, '2026-03-31')
+})
+
 test('admin employee report: summary and daily breakdown', () => {
   const invoices = [
     {
@@ -2240,6 +2439,9 @@ test('attendance penalties: fixed and monthly free allowance', async () => {
     { id: '1', date: '2026-07-01', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
     { id: '2', date: '2026-07-05', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
     { id: '3', date: '2026-07-10', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '4', date: '2026-07-11', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '5', date: '2026-07-12', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '6', date: '2026-07-13', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
   ]
   assert.equal(
     calculatePenaltyForNewRecord(ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, monthRecords, '2026-07-15'),
@@ -2248,9 +2450,9 @@ test('attendance penalties: fixed and monthly free allowance', async () => {
 
   const recomputed = recomputeMonthlyPenalties([
     ...monthRecords,
-    { id: '4', date: '2026-07-15', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
+    { id: '7', date: '2026-07-15', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
   ], '2026-07')
-  assert.equal(recomputed[3].penaltyAmount, 50000)
+  assert.equal(recomputed[6].penaltyAmount, 50000)
 
   const merged = mergeAttendanceIntoEmployeeReports({
     employees: [{ employeeId: 'e1', totalSalary: 1000000 }],
