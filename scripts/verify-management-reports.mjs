@@ -16,6 +16,11 @@ import {
   buildBranchManagementRows,
   buildEmployeeManagementRows,
 } from '../src/utils/managementReports/managementMetrics.js'
+import {
+  buildRevenueInsights,
+  buildTopMovers,
+  resolveKpiTone,
+} from '../src/utils/managementReports/managementInsights.js'
 import '../src/constants/branches.js'
 
 // 1. Open current month MTD (today=21) → same days previous month
@@ -163,8 +168,34 @@ if (e2) {
   assert.equal(rows[0].revenueTrend.direction, 'new')
 }
 
+{
+  const sample = {
+    revenueTrend: { direction: 'up', percent: 20, label: '+20%' },
+    customerTrend: { direction: 'up', percent: 10, label: '+10%' },
+    averageTicketTrend: { direction: 'flat', percent: 0, label: '0%' },
+    tipsTrend: { direction: 'down', percent: 8, label: '−8%' },
+    requestedRateTrend: { direction: 'up', percent: 5, label: '+5%' },
+  }
+  const insights = buildRevenueInsights(sample)
+  assert.ok(insights.some((i) => i.text.includes('Khách tăng')))
+  assert.ok(insights.some((i) => i.text.includes('Tips giảm')))
+  assert.equal(resolveKpiTone(sample.revenueTrend), 'green')
+  assert.equal(resolveKpiTone({ direction: 'down', percent: 20, label: '−20%' }), 'red')
+  assert.equal(resolveKpiTone({ direction: 'flat', percent: 0, label: '0%' }), 'yellow')
+}
+
+{
+  const movers = buildTopMovers([
+    { id: '1', name: 'A', revenueTrend: { direction: 'up', percent: 40, label: '+40%' }, requestedRateTrend: { direction: 'down', percent: 10, label: '−10%' } },
+    { id: '2', name: 'B', revenueTrend: { direction: 'down', percent: 30, label: '−30%' }, requestedRateTrend: { direction: 'up', percent: 12, label: '+12%' } },
+  ], { metric: 'revenue', limit: 5 })
+  assert.equal(movers.gainers[0].name, 'A')
+  assert.equal(movers.losers[0].name, 'B')
+}
+
 console.log('PASS — verify:management-reports')
 console.log('  ✓ MoM same-days + full-month compare')
 console.log('  ✓ safe divide / trend labels')
 console.log('  ✓ customerRequested metrics')
 console.log('  ✓ support employee not credited ticket revenue')
+console.log('  ✓ rule-based insights + KPI tones + top movers')

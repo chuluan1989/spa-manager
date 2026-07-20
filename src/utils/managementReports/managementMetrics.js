@@ -46,6 +46,7 @@ function buildBaseMetrics(invoices, daysInPeriod) {
   const requestedRate = safeRatePercent(requestedCustomerCount, totalCustomerCount)
   const averageRevenuePerCustomer = safeDivide(revenue, totalCustomerCount)
   const averageRevenuePerDay = safeDivide(revenue, daysInPeriod)
+  const averageTicket = safeDivide(revenue, invoices.length)
 
   return {
     revenue,
@@ -55,6 +56,7 @@ function buildBaseMetrics(invoices, daysInPeriod) {
     requestedRate,
     averageRevenuePerCustomer,
     averageRevenuePerDay,
+    averageTicket,
     invoiceCount: invoices.length,
   }
 }
@@ -66,6 +68,7 @@ function withTrends(current, previous) {
     customerTrend: computeSafeTrend(current.totalCustomerCount, previous?.totalCustomerCount),
     requestedRateTrend: computeSafeTrend(current.requestedRate, previous?.requestedRate),
     tipsTrend: computeSafeTrend(current.tips, previous?.tips),
+    averageTicketTrend: computeSafeTrend(current.averageTicket, previous?.averageTicket),
     previous: previous
       ? {
           revenue: previous.revenue,
@@ -73,6 +76,7 @@ function withTrends(current, previous) {
           requestedCustomerCount: previous.requestedCustomerCount,
           requestedRate: previous.requestedRate,
           tips: previous.tips,
+          averageTicket: previous.averageTicket,
         }
       : null,
   }

@@ -167,11 +167,106 @@
   font-size: 0.82rem;
 }
 
-.mgmt-trend.is-up { color: #047857; }
-.mgmt-trend.is-down { color: #b91c1c; }
+.mgmt-trend.is-green { color: #047857; }
+.mgmt-trend.is-yellow { color: #a16207; }
+.mgmt-trend.is-red { color: #b91c1c; }
+.mgmt-trend.is-neutral,
 .mgmt-trend.is-flat,
 .mgmt-trend.is-none { color: #6b7280; }
-.mgmt-trend.is-new { color: #1d4ed8; }
+
+.mgmt-kpi.is-green { color: #047857; }
+.mgmt-kpi.is-yellow { color: #a16207; }
+.mgmt-kpi.is-red { color: #b91c1c; }
+
+.mgmt-top {
+  border: 1px solid var(--ks-border, #e5e7eb);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.mgmt-top h3 {
+  margin: 0 0 10px;
+  font-size: 0.98rem;
+}
+
+.mgmt-top h4 {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  color: #4b5563;
+}
+
+.mgmt-top__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mgmt-top__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mgmt-top__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.82rem;
+  padding: 4px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.mgmt-top__list button {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  color: #111;
+}
+
+.mgmt-insight {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+
+.mgmt-insight h4 {
+  margin: 0 0 6px;
+}
+
+.mgmt-insight ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+}
+
+.mgmt-insight li.is-headline {
+  list-style: none;
+  margin-left: -18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.mgmt-insight li.is-green { color: #047857; }
+.mgmt-insight li.is-red { color: #b91c1c; }
+.mgmt-insight li.is-yellow { color: #a16207; }
+
+@media (max-width: 960px) {
+  .mgmt-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mgmt-top__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 
 .mgmt-detail {
   border: 1px solid var(--ks-border, #e5e7eb);
@@ -305,10 +400,4 @@
   background: #111;
   color: #d4af37;
   border-color: #111;
-}
-
-@media (max-width: 960px) {
-  .mgmt-layout {
-    grid-template-columns: 1fr;
-  }
 }

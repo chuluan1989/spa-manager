@@ -17,21 +17,87 @@ import {
   buildEmployeeInvoiceList,
 } from '../../utils/managementReports/managementMetrics'
 import {
+  buildRevenueInsights,
+  buildTopMovers,
+  resolveKpiTone,
+} from '../../utils/managementReports/managementInsights'
+import {
   exportManagementBranchCsv,
   exportManagementEmployeeCsv,
 } from '../../utils/managementReports/managementReportsExport'
 import './ManagementReports.css'
 
 function TrendCell({ trend, previousValue, formatPrev }) {
-  if (!trend) return <span className="mgmt-trend is-none">—</span>
+  if (!trend) return <span className="mgmt-trend is-neutral">—</span>
   const title = previousValue != null
     ? `Kỳ trước: ${formatPrev ? formatPrev(previousValue) : previousValue}`
     : trend.label
+  const tone = resolveKpiTone(trend)
   return (
-    <span className={`mgmt-trend is-${trend.direction}`} title={title}>
-      {trend.direction === 'up' ? '↑ ' : trend.direction === 'down' ? '↓ ' : ''}
+    <span className={`mgmt-trend is-${tone}`} title={title}>
+      {trend.direction === 'up' || trend.direction === 'new' ? '↑ ' : trend.direction === 'down' ? '↓ ' : ''}
       {trend.label}
     </span>
+  )
+}
+
+function TopMoversPanel({ title, rows, onSelect }) {
+  const byRevenue = buildTopMovers(rows, { metric: 'revenue', limit: 5 })
+  const byRequested = buildTopMovers(rows, { metric: 'requestedRate', limit: 5 })
+
+  const RowList = ({ list, trendKey, empty }) => (
+    <ul className="mgmt-top__list">
+      {list.length === 0 && <li className="mgmt-muted">{empty}</li>}
+      {list.map((row) => (
+        <li key={`${trendKey}-${row.id}`}>
+          <button type="button" onClick={() => onSelect?.(row.id)}>
+            {row.name}
+          </button>
+          <TrendCell trend={row[trendKey]} />
+        </li>
+      ))}
+    </ul>
+  )
+
+  return (
+    <section className="mgmt-top" aria-label={title}>
+      <h3>{title}</h3>
+      <div className="mgmt-top__grid">
+        <div>
+          <h4>TOP tăng · Doanh thu</h4>
+          <RowList list={byRevenue.gainers} trendKey="revenueTrend" empty="Không có" />
+        </div>
+        <div>
+          <h4>TOP giảm · Doanh thu</h4>
+          <RowList list={byRevenue.losers} trendKey="revenueTrend" empty="Không có" />
+        </div>
+        <div>
+          <h4>TOP tăng · Tỷ lệ YC</h4>
+          <RowList list={byRequested.gainers} trendKey="requestedRateTrend" empty="Không có" />
+        </div>
+        <div>
+          <h4>TOP giảm · Tỷ lệ YC</h4>
+          <RowList list={byRequested.losers} trendKey="requestedRateTrend" empty="Không có" />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function InsightBlock({ row }) {
+  const insights = buildRevenueInsights(row)
+  if (!insights.length) return null
+  return (
+    <div className="mgmt-insight">
+      <h4>Insight</h4>
+      <ul>
+        {insights.map((item) => (
+          <li key={item.id} className={`is-${item.tone || 'neutral'}${item.isHeadline ? ' is-headline' : ''}`}>
+            {item.text}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
@@ -245,6 +311,22 @@ export default function ManagementReports({ onNavigate }) {
       {data.error ? <p className="mgmt-error">{data.error}</p> : null}
 
       {view === 'branch' && (
+        <TopMoversPanel
+          title="TOP tăng / giảm — Chi nhánh"
+          rows={filteredBranches}
+          onSelect={(id) => setSelectedBranchId(id)}
+        />
+      )}
+
+      {view === 'employee' && (
+        <TopMoversPanel
+          title="TOP tăng / giảm — Nhân viên"
+          rows={filteredEmployees}
+          onSelect={(id) => setSelectedEmployeeId(id)}
+        />
+      )}
+
+      {view === 'branch' && (
         <div className="mgmt-layout">
           <div className="mgmt-table-wrap">
             <table className="mgmt-table">
@@ -297,16 +379,19 @@ export default function ManagementReports({ onNavigate }) {
                 <button type="button" className="mgmt-btn" onClick={() => setSelectedBranchId(null)}>Đóng</button>
               </header>
               <dl className="mgmt-detail__grid">
-                <div><dt>Doanh thu</dt><dd>{formatMoneyOrDash(selectedBranch.revenue)}</dd></div>
+                <div><dt>Doanh thu</dt><dd className={`mgmt-kpi is-${resolveKpiTone(selectedBranch.revenueTrend)}`}>{formatMoneyOrDash(selectedBranch.revenue)}</dd></div>
                 <div><dt>vs kỳ trước</dt><dd><TrendCell trend={selectedBranch.revenueTrend} previousValue={selectedBranch.previous?.revenue} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>Tổng khách</dt><dd>{selectedBranch.totalCustomerCount}</dd></div>
                 <div><dt>Khách yêu cầu</dt><dd>{selectedBranch.requestedCustomerCount}</dd></div>
                 <div><dt>Tỷ lệ YC</dt><dd>{formatRate(selectedBranch.requestedRate)} <TrendCell trend={selectedBranch.requestedRateTrend} previousValue={selectedBranch.previous?.requestedRate} formatPrev={formatRate} /></dd></div>
                 <div><dt>Tips</dt><dd>{formatMoneyOrDash(selectedBranch.tips)} <TrendCell trend={selectedBranch.tipsTrend} previousValue={selectedBranch.previous?.tips} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>DT/khách</dt><dd>{formatMoneyOrDash(selectedBranch.averageRevenuePerCustomer)}</dd></div>
+                <div><dt>Invoice TB</dt><dd>{formatMoneyOrDash(selectedBranch.averageTicket)} <TrendCell trend={selectedBranch.averageTicketTrend} previousValue={selectedBranch.previous?.averageTicket} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>DT/ngày</dt><dd>{formatMoneyOrDash(selectedBranch.averageRevenuePerDay)}</dd></div>
                 <div><dt>Lợi nhuận</dt><dd>{selectedBranch.profitAvailable ? formatMoneyOrDash(selectedBranch.profit) : '—'}</dd></div>
               </dl>
+
+              <InsightBlock row={selectedBranch} />
 
               {branchInsights && (
                 <>
@@ -420,18 +505,21 @@ export default function ManagementReports({ onNavigate }) {
               </header>
               <p className="mgmt-muted">{selectedEmployee.branchName}</p>
               <dl className="mgmt-detail__grid">
-                <div><dt>Doanh thu</dt><dd>{formatMoneyOrDash(selectedEmployee.revenue)}</dd></div>
+                <div><dt>Doanh thu</dt><dd className={`mgmt-kpi is-${resolveKpiTone(selectedEmployee.revenueTrend)}`}>{formatMoneyOrDash(selectedEmployee.revenue)}</dd></div>
                 <div><dt>vs kỳ trước</dt><dd><TrendCell trend={selectedEmployee.revenueTrend} previousValue={selectedEmployee.previous?.revenue} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>Tổng khách</dt><dd>{selectedEmployee.totalCustomerCount}</dd></div>
                 <div><dt>Khách yêu cầu</dt><dd>{selectedEmployee.requestedCustomerCount}</dd></div>
                 <div><dt>Tỷ lệ YC</dt><dd>{formatRate(selectedEmployee.requestedRate)} <TrendCell trend={selectedEmployee.requestedRateTrend} previousValue={selectedEmployee.previous?.requestedRate} formatPrev={formatRate} /></dd></div>
                 <div><dt>Tips</dt><dd>{formatMoneyOrDash(selectedEmployee.tips)} <TrendCell trend={selectedEmployee.tipsTrend} previousValue={selectedEmployee.previous?.tips} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>DT/khách</dt><dd>{formatMoneyOrDash(selectedEmployee.averageRevenuePerCustomer)}</dd></div>
+                <div><dt>Invoice TB</dt><dd>{formatMoneyOrDash(selectedEmployee.averageTicket)} <TrendCell trend={selectedEmployee.averageTicketTrend} previousValue={selectedEmployee.previous?.averageTicket} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>Ngày làm hợp lệ</dt><dd>{selectedEmployee.workDays}</dd></div>
                 <div><dt>DT/ngày làm</dt><dd>{formatMoneyOrDash(selectedEmployee.averageRevenuePerWorkDay)}</dd></div>
                 <div><dt>Hạng DT trong CN</dt><dd>{selectedEmployee.revenueRankInBranch}/{selectedEmployee.revenueRankTotal}</dd></div>
                 <div><dt>Hạng tỷ lệ YC</dt><dd>{selectedEmployee.requestedRateRankInBranch}/{selectedEmployee.requestedRateRankTotal}</dd></div>
               </dl>
+
+              <InsightBlock row={selectedEmployee} />
 
               <h4>Xu hướng doanh thu theo ngày</h4>
               <div className="mgmt-bars" aria-label="Biểu đồ doanh thu ngày">
