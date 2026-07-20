@@ -127,8 +127,17 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
   }
 }
 
-export function computePayrollReport({ month, branchId, employeeId, employees, invoices, attendanceRecords, adjustments }) {
-  const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
+export function computePayrollReport({
+  month,
+  cycle = PAY_CYCLES.FULL,
+  branchId,
+  employeeId,
+  employees,
+  invoices,
+  attendanceRecords,
+  adjustments,
+}) {
+  const { fromDate, toDate } = getPayPeriodRange(month, cycle)
   const scopedInvoices = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId })
   const scopedEmployees = employees.filter((employee) => {
     if (employeeId && employee.id !== employeeId) return false
@@ -137,15 +146,18 @@ export function computePayrollReport({ month, branchId, employeeId, employees, i
     return true
   })
 
-  const scopedAttendance = attendanceRecords.filter((row) => {
-    if (row.date < fromDate || row.date > toDate) return false
+  // AttendanceRecords đã được hook lọc theo đúng logic Kỳ 1/Kỳ 2.
+  // Ở đây chỉ cần lọc theo branch/employee (không lọc theo ngày nữa) để tránh bỏ phần chấm công của cả tháng.
+  const scopedAttendance = (attendanceRecords ?? []).filter((row) => {
     if (branchId && !recordBelongsToBranch(row, branchId)) return false
     if (employeeId && row.employeeId !== employeeId) return false
     return true
   })
 
-  const scopedAdjustments = adjustments.filter((row) => {
+  const scopedAdjustments = (adjustments ?? []).filter((row) => {
     if (row.month !== month) return false
+    if (fromDate && row.date < fromDate) return false
+    if (toDate && row.date > toDate) return false
     if (branchId && !recordBelongsToBranch(row, branchId)) return false
     if (employeeId && row.employeeId !== employeeId) return false
     return true

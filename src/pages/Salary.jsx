@@ -29,7 +29,13 @@ import {
   unlockPayrollMonth,
 } from '../utils/payrollService'
 import { aggregateBranchSummaries, mergeEmployeePayrollRows } from '../utils/payrollViewHelpers'
-import { getCurrentMonthValue } from '../utils/salaryReport'
+import {
+  getVietnamCurrentMonthValue,
+  getDefaultPayCycleForVietnamDate,
+  getPrevPayCycle,
+  PAY_CYCLES,
+  getPayPeriodRange,
+} from '../utils/salaryReport'
 import { exportPayrollCsv, exportPayrollPdf } from '../utils/salaryExport'
 import ExportActions from '../components/common/ExportActions'
 import './Salary.css'
@@ -65,7 +71,8 @@ export default function Salary() {
 
 function SalaryPage() {
   const [level, setLevel] = useState(getInitialLevel)
-  const [month, setMonth] = useState(getCurrentMonthValue())
+  const [month, setMonth] = useState(getVietnamCurrentMonthValue())
+  const [cycle, setCycle] = useState(getDefaultPayCycleForVietnamDate(new Date()))
   const [selectedBranchId, setSelectedBranchId] = useState(getInitialBranchId)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(() =>
     (isEmployee() ? getCurrentUserEmployeeId() : ''),
@@ -74,6 +81,26 @@ function SalaryPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [adjustmentOpen, setAdjustmentOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  const currentMonth = getVietnamCurrentMonthValue()
+  const currentCycle = getDefaultPayCycleForVietnamDate(new Date())
+
+  const formatMonthDisplay = (m) => {
+    if (!m) return '—'
+    const [y, mm] = m.split('-')
+    return `${mm}/${y}`
+  }
+
+  const handleCurrentCycle = () => {
+    setMonth(currentMonth)
+    setCycle(currentCycle)
+  }
+
+  const handlePrevCycle = () => {
+    const prev = getPrevPayCycle(month, cycle)
+    if (prev?.month) setMonth(prev.month)
+    if (prev?.cycle) setCycle(prev.cycle)
+  }
 
   const fetchBranchId = useMemo(() => {
     if (isEmployee()) return getScopedBranchId(getCurrentUserBranch())
@@ -101,7 +128,7 @@ function SalaryPage() {
     error,
     liveUpdatedAt,
     reload,
-  } = usePayrollData({ month, branchId: fetchBranchId, employeeId: fetchEmployeeId })
+  } = usePayrollData({ month, branchId: fetchBranchId, employeeId: fetchEmployeeId, cycle })
 
   const visibleBranches = useMemo(() => {
     const all = sortBranchesForPayroll(getCanonicalBranchesForDisplay())
@@ -250,6 +277,7 @@ function SalaryPage() {
       <header className="salary-page__header erp-header">
         <div>
           <h1>Live Payroll</h1>
+          <p>Lương tháng {formatMonthDisplay(month)} — {cycle === PAY_CYCLES.PERIOD_1 ? 'Kỳ 1' : 'Kỳ 2'}</p>
           <p>Lương cập nhật theo thời gian thực — Hóa đơn, Tips, Chấm công, Thưởng/Phạt.</p>
         </div>
         <div className="salary-page__header-actions">
@@ -282,6 +310,21 @@ function SalaryPage() {
           Tháng
           <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
         </label>
+
+        <label>
+          Kỳ lương
+          <select value={cycle} onChange={(e) => setCycle(e.target.value)}>
+            <option value={PAY_CYCLES.PERIOD_1}>Kỳ 1 (01–15)</option>
+            <option value={PAY_CYCLES.PERIOD_2}>Kỳ 2 (16–cuối)</option>
+          </select>
+        </label>
+
+        <button type="button" className="salary-page__btn salary-page__btn--dark" onClick={handleCurrentCycle}>
+          Kỳ hiện tại
+        </button>
+        <button type="button" className="salary-page__btn" onClick={handlePrevCycle}>
+          Kỳ trước
+        </button>
 
         {level === LEVEL.EMPLOYEES && (
           <>
@@ -366,6 +409,7 @@ function SalaryPage() {
           attendance={attendance}
           adjustments={adjustments}
           month={month}
+          cycle={cycle}
           fromDate={report.fromDate}
           toDate={report.toDate}
           auditLogs={auditLogs}

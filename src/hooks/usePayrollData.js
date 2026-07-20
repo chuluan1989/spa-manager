@@ -15,7 +15,7 @@ import { employeeBelongsToBranch } from '../utils/branchEmployeeMatch'
 import { getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 
-export function usePayrollData({ month, branchId = '', employeeId = '' }) {
+export function usePayrollData({ month, branchId = '', employeeId = '', cycle = PAY_CYCLES.PERIOD_1 }) {
   const [invoices, setInvoices] = useState([])
   const [attendance, setAttendance] = useState([])
   const [adjustments, setAdjustments] = useState([])
@@ -39,11 +39,24 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
         throw new Error('Supabase chưa cấu hình. Không thể tải dữ liệu lương.')
       }
 
-      const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
-      const scope = { fromDate, toDate, branchId, employeeId }
+      const invoiceRange = getPayPeriodRange(month, cycle)
+      const scope = { fromDate: invoiceRange.fromDate, toDate: invoiceRange.toDate, branchId, employeeId }
+
+      // Attendance rules:
+      // - Kỳ 1: vẫn lấy attendance theo 01–15 để hiển thị thống kê/ngày công,
+      //         nhưng không trừ tiền chấm công => penaltyAmount = 0.
+      // - Kỳ 2: lấy attendance cả tháng để tổng hợp toàn bộ khoản bị trừ vào Kỳ 2.
+      const attendanceCycle = cycle === PAY_CYCLES.PERIOD_2 ? PAY_CYCLES.FULL : PAY_CYCLES.PERIOD_1
+      const attendanceRange = getPayPeriodRange(month, attendanceCycle)
+      const attendanceScope = {
+        fromDate: attendanceRange.fromDate,
+        toDate: attendanceRange.toDate,
+        branchId,
+        employeeId,
+      }
       const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows, remoteEmployees] = await Promise.all([
         fetchInvoicesFiltered(scope),
-        fetchAttendanceFiltered(scope),
+        fetchAttendanceFiltered(attendanceScope),
         fetchPayrollAdjustments({ month, branchId, employeeId }),
         fetchPayrollLocks({ month }),
         fetchPayrollAuditLogs({ limit: 300 }),
@@ -57,7 +70,13 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
 
       setEmployees(nextEmployees)
       setInvoices(Array.isArray(remoteInvoices) ? remoteInvoices : [])
-      setAttendance(attendanceRows ?? [])
+
+      const normalizedAttendance = Array.isArray(attendanceRows) ? attendanceRows : []
+      if (cycle === PAY_CYCLES.PERIOD_1) {
+        setAttendance(normalizedAttendance.map((row) => ({ ...row, penaltyAmount: 0 })))
+      } else {
+        setAttendance(normalizedAttendance)
+      }
       setAdjustments(adjustmentRows ?? [])
       setLocks(lockRows ?? [])
       setAuditLogs(auditRows ?? [])
@@ -78,7 +97,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
       setLoading(false)
       setIsRefreshing(false)
     }
-  }, [month, branchId, employeeId])
+  }, [month, branchId, employeeId, cycle])
 
   useEffect(() => {
     mountedRef.current = true
@@ -107,6 +126,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
   const report = useMemo(
     () => computePayrollReport({
       month,
+      cycle,
       branchId,
       employeeId,
       employees,
@@ -114,7 +134,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '' }) {
       attendanceRecords: attendance,
       adjustments,
     }),
-    [month, branchId, employeeId, employees, invoices, attendance, adjustments],
+    [month, cycle, branchId, employeeId, employees, invoices, attendance, adjustments],
   )
 
   return {

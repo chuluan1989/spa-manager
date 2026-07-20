@@ -1,5 +1,6 @@
 import { formatCurrency } from '../../utils/invoice'
 import { formatPayrollTime } from '../../utils/payrollLiveHelpers'
+import { PAY_CYCLES } from '../../utils/salaryReport'
 
 function formatDate(value) {
   if (!value) return '—'
@@ -7,18 +8,39 @@ function formatDate(value) {
   return `${d}/${m}/${y}`
 }
 
-export default function PayrollAttendanceStats({ stats }) {
+export default function PayrollAttendanceStats({ stats, cycle, breakdown }) {
   if (!stats) return null
+
+  const period = cycle === PAY_CYCLES.PERIOD_2 ? 'period2' : 'period1'
 
   const rows = [
     { label: 'Đi làm', value: stats.onTime },
     { label: 'Đi trễ', value: stats.late },
     { label: 'Về sớm', value: stats.early },
-    { label: 'Nghỉ có phép', value: stats.permittedLeave },
-    { label: 'Nghỉ không phép', value: stats.unpermittedLeave },
-    { label: 'Nghỉ T7-CN-Lễ', value: stats.weekendHoliday },
-    { label: 'Tiền phạt phát sinh', value: formatCurrency(stats.penaltyAmount ?? 0), isMoney: true },
   ]
+
+  if (period === 'period2' && breakdown) {
+    rows.push(
+      { label: 'Tổng nghỉ có phép (đơn vị nửa ngày)', value: breakdown.permittedUnits },
+      { label: 'Số đơn vị được miễn (tối đa 6)', value: breakdown.permittedFreeUnits },
+      { label: 'Số đơn vị vượt mức', value: breakdown.permittedExceedUnits },
+      { label: 'Nghỉ không phép (đơn vị nửa ngày)', value: breakdown.unpermittedUnits },
+    )
+  } else {
+    rows.push(
+      { label: 'Nghỉ có phép', value: stats.permittedLeave },
+      { label: 'Nghỉ không phép', value: stats.unpermittedLeave },
+    )
+  }
+
+  rows.push(
+    { label: 'Nghỉ T7-CN-Lễ', value: stats.weekendHoliday },
+    {
+      label: period === 'period1' ? 'Khấu trừ chấm công' : 'Tổng tiền bị trừ',
+      value: formatCurrency(stats.penaltyAmount ?? 0),
+      isMoney: true,
+    },
+  )
 
   return (
     <section className="salary-panel">
@@ -34,6 +56,11 @@ export default function PayrollAttendanceStats({ stats }) {
           </div>
         ))}
       </dl>
+      {period === 'period1' && (
+        <p className="salary-attendance-stats__note">
+          Khấu trừ chấm công được tổng hợp vào Kỳ 2.
+        </p>
+      )}
     </section>
   )
 }
