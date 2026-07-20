@@ -1,6 +1,5 @@
 export const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Tổng quan', icon: 'dashboard', description: 'Dashboard toàn hệ thống' },
-  { id: 'ops-center', label: 'Điều hành', icon: 'dashboard', description: 'Trung tâm vận hành Admin' },
+  { id: 'dashboard', label: 'Tổng quan', icon: 'dashboard', description: 'Business Copilot — trợ lý điều hành' },
   { id: 'reports', label: 'Báo cáo', icon: 'report', description: 'Doanh thu • Lương • Thống kê' },
   { id: 'invoices', label: 'Hóa đơn', icon: 'invoice', description: 'Quản lý hóa đơn khách' },
   { id: 'customers', label: 'Khách hàng', icon: 'customer', description: 'CRM quản lý khách hàng' },
@@ -22,7 +21,6 @@ export const NAV_ITEMS = [
 /** Menu Admin — thứ tự ERP chuẩn. */
 export const ADMIN_NAV_ORDER = [
   'dashboard',
-  'ops-center',
   'reports',
   'invoices',
   'customers',
