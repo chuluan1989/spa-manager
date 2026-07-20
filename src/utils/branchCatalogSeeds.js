@@ -19,8 +19,8 @@ function readLegacyBranchPricing(branchId) {
   }
 }
 
-/** Chi nhánh bắt buộc cập nhật catalog từ dữ liệu gốc (ghi đè catalog hiện có). */
-export const FORCE_RESEED_BRANCH_IDS = ['gia-lai-1', 'gia-lai-2', 'tram-spa']
+/** @deprecated Không còn force reseed khi load — giữ export để tương thích import cũ. */
+export const FORCE_RESEED_BRANCH_IDS = []
 
 /** @deprecated Dùng FORCE_RESEED_BRANCH_IDS */
 export const GIA_LAI_FORCE_RESEED_BRANCH_IDS = ['gia-lai-1', 'gia-lai-2']

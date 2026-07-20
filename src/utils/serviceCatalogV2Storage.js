@@ -4,7 +4,6 @@ import { loadBranches } from './branchStorage'
 import {
   buildBranchCatalogPackage,
   buildFlatBranchCatalogPackage,
-  FORCE_RESEED_BRANCH_IDS,
   shouldUseGroupedCatalogUI,
 } from './branchCatalogSeeds'
 import { isGroupedCatalogBranch } from '../constants/giaLaiBranches'
@@ -13,6 +12,9 @@ import {
   fetchBranchCatalogsRemote,
   upsertBranchCatalogsRemote,
 } from '../repositories/branchCatalogRepository'
+import { verifyNoInvoiceReferencesRemote } from '../repositories/serviceInvoiceGuardRepository'
+import { appendServiceChangeLog } from './serviceChangeLogStorage'
+import { getCurrentUserName } from '../constants/auth'
 
 const BRANCH_CATALOGS_KEY = 'spa-manager-branch-catalogs-v2'
 const PRICES_KEY = 'spa-manager-branch-service-prices-v2'
@@ -98,9 +100,8 @@ export function ensureBranchCatalogSeeded(branchId) {
 
   const map = loadBranchCatalogsMap()
   const existing = map[branchId]
-  const forceReseed = FORCE_RESEED_BRANCH_IDS.includes(branchId)
 
-  if (!forceReseed && existing?.categories?.length > 0) {
+  if (existing?.categories?.length > 0) {
     return existing
   }
 
@@ -305,6 +306,7 @@ export function getBranchPricingMatrix(branchId) {
           categoryName: category.name,
           serviceId: service.id,
           serviceName: service.name,
+          description: service.description ?? '',
           serviceStatus: service.status,
           durationId: duration.id,
           durationStatus: duration.status,
@@ -319,14 +321,35 @@ export function getBranchPricingMatrix(branchId) {
   return rows
 }
 
-export function setBranchDurationPrice(branchId, durationId, { price, commissionPercent }) {
+function findServiceIdForDuration(branchId, durationId) {
+  const catalog = loadBranchCatalog(branchId)
+  return catalog.durations.find((item) => item.id === durationId)?.serviceId ?? ''
+}
+
+export function setBranchDurationPrice(branchId, durationId, { price, commissionPercent }, options = {}) {
   const prices = loadBranchServicePricesV2()
   if (!prices[branchId]) prices[branchId] = {}
+  const prev = prices[branchId][durationId] ?? { price: 0, commissionPercent: 0 }
   prices[branchId][durationId] = {
     price: Number(price) || 0,
     commissionPercent: Number(commissionPercent) || 0,
   }
   saveBranchServicePricesV2(prices)
+
+  if (options.log !== false) {
+    appendServiceChangeLog(branchId, durationId, {
+      serviceId: findServiceIdForDuration(branchId, durationId),
+      byName: getCurrentUserName(),
+      oldPrice: prev.price,
+      newPrice: prices[branchId][durationId].price,
+      oldPercent: prev.commissionPercent,
+      newPercent: prices[branchId][durationId].commissionPercent,
+      action: 'update_price',
+    }).catch((error) => {
+      console.warn('[ServiceChangeLog] Không thể ghi nhật ký:', error?.message)
+    })
+  }
+
   return prices[branchId][durationId]
 }
 
@@ -405,6 +428,100 @@ export function updateService(branchId, serviceId, patch) {
 
 export function deleteService(branchId, serviceId) {
   return updateService(branchId, serviceId, { status: ITEM_STATUS.DELETED })
+}
+
+export async function deleteServiceSafe(branchId, serviceId) {
+  const catalog = loadBranchCatalog(branchId)
+  const durations = catalog.durations.filter(
+    (d) => d.serviceId === serviceId && d.status !== ITEM_STATUS.DELETED,
+  )
+  for (const duration of durations) {
+    const check = await verifyNoInvoiceReferencesRemote({
+      branchId,
+      serviceId,
+      durationId: duration.id,
+    })
+    if (!check.ok) return { ok: false, error: check.error }
+    if (check.hasReference) {
+      return {
+        ok: false,
+        error: 'Dịch vụ đã phát sinh hóa đơn — chỉ có thể ngừng sử dụng.',
+      }
+    }
+  }
+  deleteService(branchId, serviceId)
+  for (const duration of durations) {
+    deleteDuration(branchId, duration.id)
+  }
+  return { ok: true }
+}
+
+export async function deleteDurationSafe(branchId, durationId, serviceId = '') {
+  const resolvedServiceId = serviceId || findServiceIdForDuration(branchId, durationId)
+  const check = await verifyNoInvoiceReferencesRemote({
+    branchId,
+    serviceId: resolvedServiceId,
+    durationId,
+  })
+  if (!check.ok) return { ok: false, error: check.error }
+  if (check.hasReference) {
+    return {
+      ok: false,
+      error: 'Dịch vụ đã phát sinh hóa đơn — chỉ có thể ngừng sử dụng.',
+    }
+  }
+  deleteDuration(branchId, durationId)
+  return { ok: true }
+}
+
+export function createServiceWithPricing({
+  branchId,
+  categoryId,
+  name,
+  description = '',
+  durationMinutes,
+  price,
+  commissionPercent,
+  status = ITEM_STATUS.ACTIVE,
+}) {
+  const service = addService({ branchId, categoryId, name })
+  if (description.trim()) {
+    updateService(branchId, service.id, { description: description.trim() })
+  }
+  if (status === ITEM_STATUS.INACTIVE) {
+    setServiceVisibility(branchId, service.id, ITEM_STATUS.INACTIVE)
+  }
+
+  const duration = addDuration({ branchId, serviceId: service.id, durationMinutes })
+  setBranchDurationPrice(branchId, duration.id, { price, commissionPercent }, { log: false })
+  appendServiceChangeLog(branchId, duration.id, {
+    serviceId: service.id,
+    byName: getCurrentUserName(),
+    oldPrice: null,
+    newPrice: Number(price) || 0,
+    oldPercent: null,
+    newPercent: Number(commissionPercent) || 0,
+    action: 'create',
+  }).catch((error) => {
+    console.warn('[ServiceChangeLog] Không thể ghi nhật ký:', error?.message)
+  })
+
+  return { service, duration }
+}
+
+export function copyBranchCatalogConfig(fromBranchId, toBranchIds = []) {
+  const sourceCatalog = structuredClone(loadBranchCatalog(fromBranchId))
+  const sourcePrices = structuredClone(loadBranchServicePricesV2()[fromBranchId] ?? {})
+  const targets = (toBranchIds ?? []).filter((id) => id && id !== fromBranchId)
+
+  for (const targetId of targets) {
+    saveBranchCatalog(targetId, structuredClone(sourceCatalog))
+    const prices = loadBranchServicePricesV2()
+    prices[targetId] = structuredClone(sourcePrices)
+    saveBranchServicePricesV2(prices)
+  }
+
+  return targets.length
 }
 
 export function setServiceVisibility(branchId, serviceId, status) {

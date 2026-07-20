@@ -1,15 +1,10 @@
 import { useState } from 'react'
-import ServiceCatalogTab from '../components/services/ServiceCatalogTab'
-import BranchServicePricingTab from '../components/services/BranchServicePricingTab'
-import {
-  canAccessServiceCatalogPage,
-  canManageServiceCatalog,
-} from '../constants/auth'
+import ServiceManagementCenter from '../components/services/ServiceManagementCenter'
+import { canAccessServiceCatalogPage } from '../constants/auth'
 import './AdminSection.css'
 
 export default function AdminServices() {
   const [toast, setToast] = useState('')
-  const [tab, setTab] = useState(canManageServiceCatalog() ? 'catalog' : 'pricing')
 
   if (!canAccessServiceCatalogPage()) {
     return (
@@ -21,44 +16,20 @@ export default function AdminServices() {
 
   const showToast = (message) => {
     setToast(message)
-    setTimeout(() => setToast(''), 3000)
+    setTimeout(() => setToast(''), 4000)
   }
 
   return (
     <div className="admin-section">
       {toast && <div className="admin-section__toast">{toast}</div>}
       <header className="admin-section__header">
-        <h2 className="admin-section__title">Dịch vụ</h2>
+        <h2 className="admin-section__title">Quản lý dịch vụ</h2>
         <p className="admin-section__subtitle">
-          Mỗi chi nhánh có bảng giá riêng — danh mục, giá và thời lượng không dùng chung.
+          Mỗi chi nhánh có bảng giá riêng — giá và % hoa hồng mới chỉ áp dụng cho hóa đơn phát sinh sau khi lưu.
         </p>
       </header>
 
-      <nav className="app-tabs admin-section__tabs">
-        {canManageServiceCatalog() && (
-          <button
-            type="button"
-            className={`app-tabs__btn ${tab === 'catalog' ? 'app-tabs__btn--active' : ''}`}
-            onClick={() => setTab('catalog')}
-          >
-            Danh mục chi nhánh
-          </button>
-        )}
-        <button
-          type="button"
-          className={`app-tabs__btn ${tab === 'pricing' ? 'app-tabs__btn--active' : ''}`}
-          onClick={() => setTab('pricing')}
-        >
-          Bảng giá chi nhánh
-        </button>
-      </nav>
-
-      {tab === 'catalog' && canManageServiceCatalog() && (
-        <ServiceCatalogTab showToast={showToast} />
-      )}
-      {tab === 'pricing' && (
-        <BranchServicePricingTab showToast={showToast} readOnly={!canManageServiceCatalog()} />
-      )}
+      <ServiceManagementCenter showToast={showToast} />
     </div>
   )
 }

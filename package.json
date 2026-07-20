@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "test": "vite-node scripts/smoke-test.mjs",
+    "verify:service-management": "vite-node scripts/verify-service-management-center.mjs",
     "verify:schema": "npx vite-node scripts/verify-schema.mjs",
     "verify:storage": "node --env-file=.env.local scripts/verify-storage.mjs",
     "preview": "vite preview"
