@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import {
   canEditBranchServicePricing,
@@ -6,7 +6,9 @@ import {
   isAdmin,
 } from '../../constants/auth'
 import { getActiveBranches } from '../../constants/branches'
+import { fetchServiceStatsMap } from '../../repositories/serviceInvoiceStatsRepository'
 import { formatCurrency } from '../../utils/invoice'
+import { fetchServiceChangeLogs } from '../../utils/serviceChangeLogStorage'
 import {
   deleteDurationSafe,
   deleteServiceSafe,
@@ -17,7 +19,8 @@ import {
   setServiceVisibility,
 } from '../../utils/serviceCatalogV2Storage'
 import {
-  attachInvoiceStats,
+  attachInvoiceStatsFromMap,
+  buildChangeMetaByDuration,
   buildServiceManagementRows,
   computeServiceKpis,
   filterServiceRows,
@@ -28,6 +31,7 @@ import {
   parsePriceInput,
   sortServiceRows,
   SORT_OPTIONS,
+  STATS_ERROR_MESSAGE,
   summarizeCategoryStats,
   TIME_FILTER_OPTIONS,
   TIME_FILTERS,
@@ -38,7 +42,9 @@ import ServiceFormModal from './ServiceFormModal'
 
 const COMMISSION_CHIPS = [10, 20, 25, 30, 35, 40]
 
-function StatCell({ value, money = false }) {
+function StatCell({ value, money = false, status = 'ready' }) {
+  if (status === 'loading') return <span className="svc-mgmt__loading">Đang tải…</span>
+  if (status === 'error') return <span className="svc-mgmt__error">{STATS_ERROR_MESSAGE}</span>
   if (value == null) return <span className="svc-mgmt__dash">—</span>
   return money ? formatCurrency(value) : String(value)
 }
@@ -206,22 +212,71 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
   const [formModal, setFormModal] = useState(null)
   const [logModal, setLogModal] = useState(null)
   const [confirmSave, setConfirmSave] = useState(null)
+  const [statsMap, setStatsMap] = useState(null)
+  const [statsStatus, setStatsStatus] = useState('loading')
+  const [changeMetaByDuration, setChangeMetaByDuration] = useState({})
+  const [deletingId, setDeletingId] = useState('')
 
   const canEdit = !readOnly && canEditBranchServicePricing(branchId)
   const dateRange = getDateRangeForTimeFilter(timeFilter, customFrom, customTo)
 
+  useEffect(() => {
+    if (!branchId) return
+
+    let cancelled = false
+    fetchServiceChangeLogs({ branchId, limit: 500 })
+      .then((logs) => {
+        if (!cancelled) setChangeMetaByDuration(buildChangeMetaByDuration(logs))
+      })
+      .catch(() => {
+        if (!cancelled) setChangeMetaByDuration({})
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [branchId, revision])
+
+  useEffect(() => {
+    if (!branchId) return
+
+    let cancelled = false
+    setStatsStatus('loading')
+    setStatsMap(null)
+
+    fetchServiceStatsMap({ branchId, ...dateRange })
+      .then((map) => {
+        if (cancelled) return
+        setStatsMap(map)
+        setStatsStatus('ready')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStatsMap(null)
+        setStatsStatus('error')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [branchId, dateRange.fromDate, dateRange.toDate, revision])
+
+  const baseRows = useMemo(
+    () => buildServiceManagementRows(branchId, changeMetaByDuration),
+    [branchId, changeMetaByDuration, revision],
+  )
+
   const rows = useMemo(() => {
     if (!branchId) return []
-    const base = buildServiceManagementRows(branchId)
-    const withStats = attachInvoiceStats(base, { branchId, ...dateRange })
+    const withStats = attachInvoiceStatsFromMap(baseRows, statsMap, statsStatus)
     const filtered = filterServiceRows(withStats, { search, statusFilter })
     return sortServiceRows(filtered, sortBy)
-  }, [branchId, search, statusFilter, sortBy, revision, dateRange.fromDate, dateRange.toDate])
+  }, [branchId, baseRows, statsMap, statsStatus, search, statusFilter, sortBy])
 
   const groups = useMemo(() => groupRowsByCategory(rows), [rows])
   const kpis = useMemo(
-    () => computeServiceKpis(buildServiceManagementRows(branchId), { branchId, ...dateRange }),
-    [branchId, revision, dateRange.fromDate, dateRange.toDate],
+    () => computeServiceKpis(baseRows, statsMap, statsStatus),
+    [baseRows, statsMap, statsStatus],
   )
 
   const refresh = () => setRevision((v) => v + 1)
@@ -275,26 +330,35 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
     )
   }
 
-  const handleDelete = (row) => {
-    const durationResult = deleteDurationSafe(branchId, row.durationId, row.serviceId)
-    if (!durationResult.ok) {
-      showToast(durationResult.error)
-      return
-    }
+  const handleDelete = async (row) => {
+    if (deletingId) return
+    setDeletingId(row.durationId)
 
-    const catalog = loadBranchCatalog(branchId)
-    const remaining = catalog.durations.filter(
-      (d) => d.serviceId === row.serviceId && d.status !== ITEM_STATUS.DELETED,
-    )
-    if (!remaining.length) {
-      const serviceResult = deleteServiceSafe(branchId, row.serviceId)
-      if (!serviceResult.ok) {
-        showToast(serviceResult.error)
+    try {
+      const durationResult = await deleteDurationSafe(branchId, row.durationId, row.serviceId)
+      if (!durationResult.ok) {
+        showToast(durationResult.error)
+        return
       }
-    }
 
-    refresh()
-    showToast(`✓ Đã xóa ${row.serviceName} ${row.durationLabel}.`)
+      const catalog = loadBranchCatalog(branchId)
+      const remaining = catalog.durations.filter(
+        (d) => d.serviceId === row.serviceId && d.status !== ITEM_STATUS.DELETED,
+      )
+      if (!remaining.length) {
+        const serviceResult = await deleteServiceSafe(branchId, row.serviceId)
+        if (!serviceResult.ok) {
+          showToast(serviceResult.error)
+          refresh()
+          return
+        }
+      }
+
+      refresh()
+      showToast(`✓ Đã xóa ${row.serviceName} ${row.durationLabel}.`)
+    } finally {
+      setDeletingId('')
+    }
   }
 
   const handleFormSaved = ({ mode, message }) => {
@@ -324,7 +388,11 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
         <article><span>Ngừng sử dụng</span><strong>{kpis.inactive}</strong></article>
         <article>
           <span>Doanh thu ({TIME_FILTER_OPTIONS.find((o) => o.value === timeFilter)?.label})</span>
-          <strong>{kpis.totalRevenue == null ? '—' : formatCompactMoney(kpis.totalRevenue)}</strong>
+          <strong>
+            {kpis.statsStatus === 'loading' && 'Đang tải…'}
+            {kpis.statsStatus === 'error' && STATS_ERROR_MESSAGE}
+            {kpis.statsStatus === 'ready' && formatCompactMoney(kpis.totalRevenue)}
+          </strong>
         </article>
       </div>
 
@@ -397,7 +465,7 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
       )}
 
       {groups.map((group) => {
-        const stats = summarizeCategoryStats(group.rows)
+        const stats = summarizeCategoryStats(group.rows, statsStatus)
         const open = isGroupOpen(group.categoryId)
         return (
           <section key={group.categoryId} className="svc-mgmt-accordion">
@@ -410,8 +478,10 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
               <strong>{group.categoryName}</strong>
               <span className="svc-mgmt-accordion__meta">
                 {stats.serviceCount} dịch vụ
-                {stats.soldCount != null && ` · ${stats.soldCount} đã bán`}
-                {stats.revenue != null && ` · ${formatCompactMoney(stats.revenue)}`}
+                {stats.statsStatus === 'loading' && ' · Đang tải…'}
+                {stats.statsStatus === 'error' && ` · ${STATS_ERROR_MESSAGE}`}
+                {stats.statsStatus === 'ready' && stats.soldCount != null && ` · ${stats.soldCount} đã bán`}
+                {stats.statsStatus === 'ready' && stats.revenue != null && ` · ${formatCompactMoney(stats.revenue)}`}
               </span>
             </button>
 
@@ -449,8 +519,12 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
                             onCommit={(next) => handleInlineCommit(row, next)}
                           />
                         </td>
-                        <td data-label="Đã bán"><StatCell value={row.soldCount} /></td>
-                        <td data-label="Doanh thu"><StatCell value={row.revenue} money /></td>
+                        <td data-label="Đã bán">
+                          <StatCell value={row.soldCount} status={row.statsStatus ?? statsStatus} />
+                        </td>
+                        <td data-label="Doanh thu">
+                          <StatCell value={row.revenue} money status={row.statsStatus ?? statsStatus} />
+                        </td>
                         <td data-label="Trạng thái">
                           <span className={`svc-mgmt__status ${row.isActive ? 'is-active' : 'is-inactive'}`}>
                             {row.isActive ? 'Đang dùng' : 'Ngừng'}

@@ -183,8 +183,14 @@
   color: #b45309;
 }
 
-.svc-mgmt__dash {
+.svc-mgmt__loading {
   color: var(--ks-text-muted);
+  font-size: 13px;
+}
+
+.svc-mgmt__error {
+  color: #b45309;
+  font-size: 13px;
 }
 
 .svc-mgmt__empty {

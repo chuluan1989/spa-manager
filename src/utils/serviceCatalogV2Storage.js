@@ -4,7 +4,6 @@ import { loadBranches } from './branchStorage'
 import {
   buildBranchCatalogPackage,
   buildFlatBranchCatalogPackage,
-  FORCE_RESEED_BRANCH_IDS,
   shouldUseGroupedCatalogUI,
 } from './branchCatalogSeeds'
 import { isGroupedCatalogBranch } from '../constants/giaLaiBranches'
@@ -13,7 +12,7 @@ import {
   fetchBranchCatalogsRemote,
   upsertBranchCatalogsRemote,
 } from '../repositories/branchCatalogRepository'
-import { hasServiceInvoiceReferences } from './serviceInvoiceGuard'
+import { verifyNoInvoiceReferencesRemote } from '../repositories/serviceInvoiceGuardRepository'
 import { appendServiceChangeLog } from './serviceChangeLogStorage'
 import { getCurrentUserName } from '../constants/auth'
 
@@ -101,9 +100,8 @@ export function ensureBranchCatalogSeeded(branchId) {
 
   const map = loadBranchCatalogsMap()
   const existing = map[branchId]
-  const forceReseed = FORCE_RESEED_BRANCH_IDS.includes(branchId)
 
-  if (!forceReseed && existing?.categories?.length > 0) {
+  if (existing?.categories?.length > 0) {
     return existing
   }
 
@@ -323,6 +321,11 @@ export function getBranchPricingMatrix(branchId) {
   return rows
 }
 
+function findServiceIdForDuration(branchId, durationId) {
+  const catalog = loadBranchCatalog(branchId)
+  return catalog.durations.find((item) => item.id === durationId)?.serviceId ?? ''
+}
+
 export function setBranchDurationPrice(branchId, durationId, { price, commissionPercent }, options = {}) {
   const prices = loadBranchServicePricesV2()
   if (!prices[branchId]) prices[branchId] = {}
@@ -335,12 +338,15 @@ export function setBranchDurationPrice(branchId, durationId, { price, commission
 
   if (options.log !== false) {
     appendServiceChangeLog(branchId, durationId, {
+      serviceId: findServiceIdForDuration(branchId, durationId),
       byName: getCurrentUserName(),
       oldPrice: prev.price,
       newPrice: prices[branchId][durationId].price,
       oldPercent: prev.commissionPercent,
       newPercent: prices[branchId][durationId].commissionPercent,
       action: 'update_price',
+    }).catch((error) => {
+      console.warn('[ServiceChangeLog] Không thể ghi nhật ký:', error?.message)
     })
   }
 
@@ -424,13 +430,19 @@ export function deleteService(branchId, serviceId) {
   return updateService(branchId, serviceId, { status: ITEM_STATUS.DELETED })
 }
 
-export function deleteServiceSafe(branchId, serviceId) {
+export async function deleteServiceSafe(branchId, serviceId) {
   const catalog = loadBranchCatalog(branchId)
   const durations = catalog.durations.filter(
     (d) => d.serviceId === serviceId && d.status !== ITEM_STATUS.DELETED,
   )
   for (const duration of durations) {
-    if (hasServiceInvoiceReferences({ branchId, serviceId, durationId: duration.id })) {
+    const check = await verifyNoInvoiceReferencesRemote({
+      branchId,
+      serviceId,
+      durationId: duration.id,
+    })
+    if (!check.ok) return { ok: false, error: check.error }
+    if (check.hasReference) {
       return {
         ok: false,
         error: 'Dịch vụ đã phát sinh hóa đơn — chỉ có thể ngừng sử dụng.',
@@ -444,8 +456,15 @@ export function deleteServiceSafe(branchId, serviceId) {
   return { ok: true }
 }
 
-export function deleteDurationSafe(branchId, durationId, serviceId = '') {
-  if (hasServiceInvoiceReferences({ branchId, serviceId, durationId })) {
+export async function deleteDurationSafe(branchId, durationId, serviceId = '') {
+  const resolvedServiceId = serviceId || findServiceIdForDuration(branchId, durationId)
+  const check = await verifyNoInvoiceReferencesRemote({
+    branchId,
+    serviceId: resolvedServiceId,
+    durationId,
+  })
+  if (!check.ok) return { ok: false, error: check.error }
+  if (check.hasReference) {
     return {
       ok: false,
       error: 'Dịch vụ đã phát sinh hóa đơn — chỉ có thể ngừng sử dụng.',
@@ -476,12 +495,15 @@ export function createServiceWithPricing({
   const duration = addDuration({ branchId, serviceId: service.id, durationMinutes })
   setBranchDurationPrice(branchId, duration.id, { price, commissionPercent }, { log: false })
   appendServiceChangeLog(branchId, duration.id, {
+    serviceId: service.id,
     byName: getCurrentUserName(),
     oldPrice: null,
     newPrice: Number(price) || 0,
     oldPercent: null,
     newPercent: Number(commissionPercent) || 0,
     action: 'create',
+  }).catch((error) => {
+    console.warn('[ServiceChangeLog] Không thể ghi nhật ký:', error?.message)
   })
 
   return { service, duration }

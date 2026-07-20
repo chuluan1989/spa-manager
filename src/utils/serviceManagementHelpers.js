@@ -1,7 +1,5 @@
-import { loadInvoices } from './invoiceStorage'
-import { countServiceInvoiceStats } from './serviceInvoiceGuard'
-import { getLastServiceChangeMeta } from './serviceChangeLogStorage'
 import { getBranchPricingMatrix, ITEM_STATUS } from './serviceCatalogV2Storage'
+import { lookupServiceStats } from '../repositories/serviceInvoiceStatsRepository'
 
 export const TIME_FILTERS = {
   TODAY: 'today',
@@ -29,6 +27,8 @@ export const SORT_OPTIONS = [
   { value: 'price', label: 'Giá' },
   { value: 'commission', label: 'Hoa hồng' },
 ]
+
+export const STATS_ERROR_MESSAGE = 'Không thể tải dữ liệu'
 
 function pad(n) {
   return String(n).padStart(2, '0')
@@ -93,11 +93,11 @@ export function formatCompactMoney(amount) {
   return String(value)
 }
 
-export function buildServiceManagementRows(branchId) {
+export function buildServiceManagementRows(branchId, changeMetaByDuration = {}) {
   if (!branchId) return []
 
   return getBranchPricingMatrix(branchId).map((row) => {
-    const lastChange = getLastServiceChangeMeta(branchId, row.durationId)
+    const lastChange = changeMetaByDuration[row.durationId]
     return {
       ...row,
       durationLabel: formatDurationLabel(row.durationMinutes),
@@ -108,25 +108,37 @@ export function buildServiceManagementRows(branchId) {
   })
 }
 
-export function attachInvoiceStats(rows, { branchId, fromDate, toDate }) {
-  const invoices = loadInvoices()
-  const hasInvoices = invoices.length > 0
+export function buildChangeMetaByDuration(logs = []) {
+  const map = {}
+  for (const log of logs) {
+    const key = log.durationId
+    if (!key || map[key]) continue
+    map[key] = {
+      updatedAt: log.createdAt ?? '',
+      updatedBy: log.changedByName || log.changedBy || '—',
+    }
+  }
+  return map
+}
+
+export function attachInvoiceStatsFromMap(rows, statsMap, statsStatus = 'ready') {
+  if (statsStatus === 'loading') {
+    return rows.map((row) => ({ ...row, soldCount: undefined, revenue: undefined, statsStatus: 'loading' }))
+  }
+  if (statsStatus === 'error' || !statsMap) {
+    return rows.map((row) => ({ ...row, soldCount: null, revenue: null, statsStatus: 'error' }))
+  }
 
   return rows.map((row) => {
-    if (!hasInvoices) {
-      return { ...row, soldCount: null, revenue: null }
-    }
-    const stats = countServiceInvoiceStats(invoices, {
-      branchId,
-      fromDate,
-      toDate,
+    const stats = lookupServiceStats(statsMap, {
       durationId: row.durationId,
       serviceId: row.serviceId,
     })
     return {
       ...row,
-      soldCount: stats.count,
+      soldCount: stats.soldCount,
       revenue: stats.revenue,
+      statsStatus: 'ready',
     }
   })
 }
@@ -192,38 +204,45 @@ export function groupRowsByCategory(rows) {
   return [...map.values()]
 }
 
-export function computeServiceKpis(rows, { fromDate, toDate, branchId }) {
+export function computeServiceKpis(rows, statsMap, statsStatus = 'ready') {
   const total = rows.length
   const active = rows.filter((row) => row.isActive).length
   const inactive = total - active
 
-  const invoices = loadInvoices()
-  let totalRevenue = null
-  if (invoices.length > 0) {
-    totalRevenue = 0
-    for (const row of rows) {
-      const stats = countServiceInvoiceStats(invoices, {
-        branchId,
-        fromDate,
-        toDate,
-        durationId: row.durationId,
-        serviceId: row.serviceId,
-      })
-      totalRevenue += stats.revenue
-    }
+  if (statsStatus === 'loading') {
+    return { total, active, inactive, totalRevenue: undefined, statsStatus: 'loading' }
+  }
+  if (statsStatus === 'error' || !statsMap) {
+    return { total, active, inactive, totalRevenue: null, statsStatus: 'error' }
   }
 
-  return { total, active, inactive, totalRevenue }
+  let totalRevenue = 0
+  for (const row of rows) {
+    const stats = lookupServiceStats(statsMap, {
+      durationId: row.durationId,
+      serviceId: row.serviceId,
+    })
+    totalRevenue += stats.revenue
+  }
+
+  return { total, active, inactive, totalRevenue, statsStatus: 'ready' }
 }
 
-export function summarizeCategoryStats(rows) {
+export function summarizeCategoryStats(rows, statsStatus = 'ready') {
+  if (statsStatus === 'loading') {
+    return { serviceCount: rows.length, soldCount: undefined, revenue: undefined, statsStatus: 'loading' }
+  }
+  if (statsStatus === 'error' || rows.some((row) => row.statsStatus === 'error')) {
+    return { serviceCount: rows.length, soldCount: null, revenue: null, statsStatus: 'error' }
+  }
+
   const sold = rows.reduce((sum, row) => sum + (row.soldCount ?? 0), 0)
   const revenue = rows.reduce((sum, row) => sum + (row.revenue ?? 0), 0)
-  const hasStats = rows.some((row) => row.soldCount != null)
   return {
     serviceCount: rows.length,
-    soldCount: hasStats ? sold : null,
-    revenue: hasStats ? revenue : null,
+    soldCount: sold,
+    revenue,
+    statsStatus: 'ready',
   }
 }
 

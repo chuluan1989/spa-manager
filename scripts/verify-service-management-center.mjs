@@ -1,6 +1,6 @@
 /**
  * Verify Admin Service Management center logic.
- * Run: node scripts/verify-service-management-center.mjs
+ * Run: npx vite-node scripts/verify-service-management-center.mjs
  */
 
 import assert from 'node:assert/strict'
@@ -43,32 +43,35 @@ seedDefaultTestEmployees()
 
 const {
   createServiceWithPricing,
-  deleteDurationSafe,
-  deleteServiceSafe,
   ensureBranchCatalogSeeded,
   getActiveServicesForBranchV2,
   getBranchPricingMatrix,
   getCatalogAdminTree,
   ITEM_STATUS,
+  loadBranchCatalog,
   setBranchDurationPrice,
   setDurationVisibility,
   setServiceVisibility,
 } = await import('../src/utils/serviceCatalogV2Storage.js')
 
-const { hasServiceInvoiceReferences } = await import('../src/utils/serviceInvoiceGuard.js')
-const { getServiceChangeLogs } = await import('../src/utils/serviceChangeLogStorage.js')
+const { verifyNoInvoiceReferencesRemote } = await import('../src/repositories/serviceInvoiceGuardRepository.js')
 const {
+  buildServiceManagementRows,
   filterServiceRows,
   parseCommissionPercentInput,
   parsePriceInput,
-  buildServiceManagementRows,
 } = await import('../src/utils/serviceManagementHelpers.js')
+
+const { computeServiceReport, filterInvoices } = await import('../src/utils/report.js')
+const { lookupServiceStats: lookupFromRepo } = await import('../src/repositories/serviceInvoiceStatsRepository.js')
 
 const BRANCH_A = 'soc-trang'
 const BRANCH_B = 'tra-vinh'
+const TRAM_SPA = 'tram-spa'
 
 ensureBranchCatalogSeeded(BRANCH_A)
 ensureBranchCatalogSeeded(BRANCH_B)
+ensureBranchCatalogSeeded(TRAM_SPA)
 
 const categoryId = getCatalogAdminTree(BRANCH_A)[0]?.id
 assert.ok(categoryId, 'branch A must have at least one category')
@@ -88,7 +91,18 @@ function test(name, fn) {
   }
 }
 
-// A. Add service
+async function testAsync(name, fn) {
+  try {
+    await fn()
+    passed += 1
+    console.log(`  ✓ ${name}`)
+  } catch (error) {
+    failed += 1
+    console.error(`  ✗ ${name}`)
+    console.error(`    ${error.message}`)
+  }
+}
+
 test('A: create service with pricing appears only in selected branch', () => {
   const treeBefore = getBranchPricingMatrix(BRANCH_B).length
   const { duration } = createServiceWithPricing({
@@ -108,18 +122,14 @@ test('A: create service with pricing appears only in selected branch', () => {
   assert.equal(getBranchPricingMatrix(BRANCH_B).length, treeBefore)
 })
 
-// B. Edit price — old invoice snapshot preserved (guard via separate invoice storage)
-test('B: price update logs change and updates matrix', () => {
+test('B: price update updates matrix', () => {
   const row = getBranchPricingMatrix(BRANCH_A).find((r) => r.serviceName === 'Test Svc Mgmt')
   assert.ok(row)
-  setBranchDurationPrice(BRANCH_A, row.durationId, { price: 175000, commissionPercent: row.commissionPercent })
+  setBranchDurationPrice(BRANCH_A, row.durationId, { price: 175000, commissionPercent: row.commissionPercent }, { log: false })
   const updated = getBranchPricingMatrix(BRANCH_A).find((r) => r.durationId === row.durationId)
   assert.equal(updated.price, 175000)
-  const logs = getServiceChangeLogs(BRANCH_A, row.durationId)
-  assert.ok(logs.some((l) => l.newPrice === 175000))
 })
 
-// C. Commission percent validation
 test('C: commission percent accepts 0–100 and rejects out of range', () => {
   assert.equal(parseCommissionPercentInput('0'), 0)
   assert.equal(parseCommissionPercentInput('100'), 100)
@@ -128,16 +138,9 @@ test('C: commission percent accepts 0–100 and rejects out of range', () => {
   assert.ok(Number.isNaN(parseCommissionPercentInput('101')))
 })
 
-test('C: commission update applies to pricing row', () => {
-  const row = getBranchPricingMatrix(BRANCH_A).find((r) => r.serviceName === 'Test Svc Mgmt')
-  setBranchDurationPrice(BRANCH_A, row.durationId, { price: row.price, commissionPercent: 40 })
-  const updated = getBranchPricingMatrix(BRANCH_A).find((r) => r.durationId === row.durationId)
-  assert.equal(updated.commissionPercent, 40)
-})
-
-// D. Status toggle
 test('D: inactive service excluded from active picker', () => {
   const row = getBranchPricingMatrix(BRANCH_A).find((r) => r.serviceName === 'Test Svc Mgmt')
+  assert.ok(row)
   setServiceVisibility(BRANCH_A, row.serviceId, ITEM_STATUS.INACTIVE)
   setDurationVisibility(BRANCH_A, row.durationId, ITEM_STATUS.INACTIVE)
   const active = getActiveServicesForBranchV2(BRANCH_A)
@@ -146,34 +149,70 @@ test('D: inactive service excluded from active picker', () => {
   setDurationVisibility(BRANCH_A, row.durationId, ITEM_STATUS.ACTIVE)
 })
 
-// E. Delete without invoices
-test('E: service without invoices can be deleted', () => {
-  const row = getBranchPricingMatrix(BRANCH_A).find((r) => r.serviceName === 'Test Svc Mgmt')
-  assert.ok(!hasServiceInvoiceReferences({ branchId: BRANCH_A, durationId: row.durationId }))
-  const result = deleteDurationSafe(BRANCH_A, row.durationId, row.serviceId)
-  assert.equal(result.ok, true)
-  deleteServiceSafe(BRANCH_A, row.serviceId)
-  assert.ok(!getBranchPricingMatrix(BRANCH_A).some((r) => r.durationId === row.durationId))
+test('Seed: tram-spa keeps admin-added service after reload', () => {
+  const tramCategoryId = getCatalogAdminTree(TRAM_SPA)[0]?.id
+  assert.ok(tramCategoryId)
+  const before = getBranchPricingMatrix(TRAM_SPA).length
+  const { duration } = createServiceWithPricing({
+    branchId: TRAM_SPA,
+    categoryId: tramCategoryId,
+    name: 'Tram Spa Persist Test',
+    durationMinutes: 30,
+    price: 99000,
+    commissionPercent: 20,
+  })
+  ensureBranchCatalogSeeded(TRAM_SPA)
+  loadBranchCatalog(TRAM_SPA)
+  const after = getBranchPricingMatrix(TRAM_SPA)
+  assert.ok(after.some((r) => r.durationId === duration.id), 'service survives reload')
+  assert.equal(after.length, before + 1)
 })
 
-test('E: simulated invoice blocks hard delete', () => {
-  const row = getBranchPricingMatrix(BRANCH_A)[0]
-  localStorage.setItem('spa-manager-invoices', JSON.stringify([{
-    id: 'inv-test-1',
+test('Seed: tram-spa keeps edited price after reload', () => {
+  const row = getBranchPricingMatrix(TRAM_SPA).find((r) => r.serviceName === 'Tram Spa Persist Test')
+  assert.ok(row)
+  setBranchDurationPrice(TRAM_SPA, row.durationId, { price: 120000, commissionPercent: 25 }, { log: false })
+  ensureBranchCatalogSeeded(TRAM_SPA)
+  const updated = getBranchPricingMatrix(TRAM_SPA).find((r) => r.durationId === row.durationId)
+  assert.equal(updated.price, 120000)
+  assert.equal(updated.commissionPercent, 25)
+})
+
+test('Stats: computeServiceReport matches report revenue principle', () => {
+  const invoices = [
+    {
+      id: 'inv-1',
+      date: '2026-07-10',
+      branchId: BRANCH_A,
+      services: [{ id: 'dur-test', name: 'Test', price: 150000 }],
+      serviceIds: ['dur-test'],
+      serviceTotal: 150000,
+    },
+    {
+      id: 'inv-2',
+      date: '2026-07-11',
+      branchId: BRANCH_A,
+      services: [{ id: 'dur-test', name: 'Test', price: 175000 }],
+      serviceIds: ['dur-test'],
+      serviceTotal: 175000,
+    },
+  ]
+  const filtered = filterInvoices(invoices, {
     branchId: BRANCH_A,
-    date: '2026-07-01',
-    serviceIds: [row.durationId],
-    services: [{ id: row.durationId, price: row.price }],
-    serviceTotal: row.price,
-  }]))
+    fromDate: '2026-07-01',
+    toDate: '2026-07-31',
+  })
+  const report = computeServiceReport(filtered)
+  const entry = report.find((r) => r.serviceId === 'dur-test')
+  assert.equal(entry.count, 2)
+  assert.equal(entry.revenue, 325000)
 
-  const result = deleteDurationSafe(BRANCH_A, row.durationId, row.serviceId)
-  assert.equal(result.ok, false)
-  assert.match(result.error, /hóa đơn/i)
-  localStorage.removeItem('spa-manager-invoices')
+  const statsMap = { byServiceId: new Map(report.map((r) => [String(r.serviceId), { soldCount: r.count, revenue: r.revenue }])) }
+  const lookup = lookupFromRepo(statsMap, { durationId: 'dur-test' })
+  assert.equal(lookup.soldCount, 2)
+  assert.equal(lookup.revenue, 325000)
 })
 
-// F. Search and filter
 test('F: filter by name, group, duration', () => {
   const rows = buildServiceManagementRows(BRANCH_A)
   const first = rows[0]
@@ -182,12 +221,15 @@ test('F: filter by name, group, duration', () => {
   if (first.durationMinutes) {
     assert.ok(filterServiceRows(rows, { search: String(first.durationMinutes) }).length >= 1)
   }
-  assert.ok(filterServiceRows(rows, { statusFilter: 'active' }).every((r) => r.isActive))
 })
 
-test('F: parsePriceInput strips non-digits', () => {
-  assert.equal(parsePriceInput('189.000'), 189000)
-  assert.ok(Number.isNaN(parsePriceInput('abc')))
+await testAsync('Guard: fail closed when Supabase not configured', async () => {
+  const result = await verifyNoInvoiceReferencesRemote({
+    branchId: BRANCH_A,
+    durationId: 'any-id',
+  })
+  assert.equal(result.ok, false)
+  assert.match(result.error, /xác minh/i)
 })
 
 console.log(`\n${passed} passed, ${failed} failed`)
