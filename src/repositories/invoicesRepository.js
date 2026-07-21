@@ -156,21 +156,46 @@ export async function deleteInvoiceRow(id) {
   if (error) throw error
 }
 
+/** Multiplex listeners — Dashboard mounts nhiều hook cùng subscribe invoices. */
+let invoicesRealtimeChannel = null
+const invoicesRealtimeListeners = new Set()
+
+function notifyInvoicesRealtimeListeners() {
+  for (const listener of invoicesRealtimeListeners) {
+    try {
+      listener()
+    } catch {
+      // Listener lỗi không được làm gãy channel chung.
+    }
+  }
+}
+
+function ensureInvoicesRealtimeChannel() {
+  if (invoicesRealtimeChannel || !isSupabaseConfigured) return
+
+  invoicesRealtimeChannel = supabase
+    .channel('spa-invoices-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: TABLE },
+      () => notifyInvoicesRealtimeListeners(),
+    )
+    .subscribe()
+}
+
 export function subscribeInvoicesChanges(onChange) {
   if (!isSupabaseConfigured || typeof onChange !== 'function') {
     return () => {}
   }
 
-  const channel = supabase
-    .channel('spa-invoices-realtime')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: TABLE },
-      () => onChange(),
-    )
-    .subscribe()
+  invoicesRealtimeListeners.add(onChange)
+  ensureInvoicesRealtimeChannel()
 
   return () => {
-    supabase.removeChannel(channel)
+    invoicesRealtimeListeners.delete(onChange)
+    if (invoicesRealtimeListeners.size === 0 && invoicesRealtimeChannel) {
+      supabase.removeChannel(invoicesRealtimeChannel)
+      invoicesRealtimeChannel = null
+    }
   }
 }
