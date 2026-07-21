@@ -1,0 +1,34 @@
+---
+description: Đóng băng CEO Dashboard — chỉ điều hành, không tự thêm tính năng UI
+globs: src/pages/Dashboard.{jsx,css}
+alwaysApply: true
+---
+
+# CEO Dashboard — Đóng băng (V4)
+
+Dashboard Admin (`CeoDashboard`) **chỉ phục vụ điều hành hằng ngày**.
+
+## Cấm tự ý thêm
+
+Không thêm vào Dashboard Admin trừ khi **chủ dự án yêu cầu rõ ràng**:
+
+- Card, widget, KPI mới
+- AI, Copilot, CRM, Workflow
+- Biểu đồ, strip, explore, drill-down
+- Menu hoặc nút điều hướng mới
+- Tự gắn module mới lên Dashboard sau khi phát triển
+
+## Phạm vi được phép
+
+- Sửa layout/bảng hiện có trong `Dashboard.jsx` / `Dashboard.css`
+- Sửa copy hiển thị, màu trạng thái, thứ tự section đã duyệt
+- Bugfix load dữ liệu **không đổi phạm vi thông tin** hiển thị
+
+## Vai trò khác
+
+- **Nhân viên**: giữ `DrillDownExplorer` — không đổi sang CEO view
+- **Quản lý chi nhánh**: giữ Manager dashboard riêng — không merge Copilot vào CEO view
+
+## Trước khi thay đổi
+
+Nếu task không nêu rõ "Dashboard" / "CEO Dashboard" → **không sửa** `Dashboard.jsx`.

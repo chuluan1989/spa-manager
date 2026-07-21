@@ -1,5 +1,5 @@
 export const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Tổng quan', icon: 'dashboard', description: 'Business Copilot — trợ lý điều hành' },
+  { id: 'dashboard', label: 'Tổng quan', icon: 'dashboard', description: 'Tổng quan' },
   { id: 'operation-workflow', label: 'Công việc', icon: 'attendance', description: 'Task · KPI ngày · Timeline · Audit' },
   { id: 'reports', label: 'Báo cáo', icon: 'report', description: 'Doanh thu • Lương • Thống kê' },
   { id: 'invoices', label: 'Hóa đơn', icon: 'invoice', description: 'Quản lý hóa đơn khách' },
