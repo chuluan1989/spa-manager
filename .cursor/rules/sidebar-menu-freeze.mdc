@@ -1,0 +1,29 @@
+---
+description: Đóng băng Sidebar — menu mới cần duyệt chủ dự án
+globs: src/components/layout/Sidebar.jsx,src/constants/navigation.js,src/constants/auth.js
+alwaysApply: true
+---
+
+# Sidebar — Đóng băng menu
+
+## Không tự ý thêm menu
+
+Mọi mục menu mới **phải được chủ dự án duyệt trước** mới được hiển thị trên Sidebar.
+
+Không tự động thêm vào Sidebar sau mỗi module mới.
+
+## Module mới trong code
+
+- Được phép thêm route, page, `NAV_ITEMS` entry (để code tồn tại)
+- **Không** thêm vào `ADMIN_NAV_ORDER`, `BRANCH_MANAGER_NAV_ORDER`, `EMPLOYEE_NAV_ORDER` cho đến khi được phê duyệt
+- **Không** bỏ filter ẩn menu (ví dụ `ADMIN_HIDDEN_NAV_IDS`) trừ khi chủ dự án yêu cầu
+
+## Sửa được không cần duyệt riêng
+
+- Bugfix hiển thị menu hiện có
+- Ẩn menu theo yêu cầu đã duyệt (filter trong `Sidebar.jsx`, không xóa code navigation)
+- Đổi label/mô tả menu **đã hiển thị** khi chủ dự án yêu cầu
+
+## Trước khi thay đổi
+
+Task không nói rõ "menu" / "sidebar" / "navigation" → **không thêm** mục nav mới.

@@ -22,6 +22,9 @@ import './Sidebar.css'
 
 const APP_VERSION = 'v1.4.0'
 
+/** Ẩn khỏi sidebar Admin — không xóa khỏi navigation config. */
+const ADMIN_HIDDEN_NAV_IDS = new Set(['payroll1-admin', 'operation-workflow'])
+
 function getSidebarUserName() {
   const user = getCurrentUser()
   if (!user) return '—'
@@ -53,6 +56,7 @@ function getSidebarAvatar() {
 
 export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout }) {
   const navItems = getVisibleNavItems().filter((item) => {
+    if (isAdmin() && ADMIN_HIDDEN_NAV_IDS.has(item.id)) return false
     if (item.id === 'ops-center') return canAccessOpsCenter()
     return true
   })
