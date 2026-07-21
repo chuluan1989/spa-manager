@@ -19,6 +19,10 @@ export const EXPENSE_EXTENDED_DB_COLUMNS = [
   'paid_by',
   'receipt_image',
   'entered_by_id',
+  'employee_id',
+  'payroll_adjustment_id',
+  'payroll_month',
+  'payroll_cycle',
 ]
 
 export function deriveExpenseTimeFromTimestamp(iso) {
@@ -55,6 +59,18 @@ export function expenseToDbRow(expense, { includeExtended = true } = {}) {
     }
     if (expense.enteredById != null && expense.enteredById !== '') {
       row.entered_by_id = expense.enteredById
+    }
+    if (expense.employeeId != null && expense.employeeId !== '') {
+      row.employee_id = expense.employeeId
+    }
+    if (expense.payrollAdjustmentId != null && expense.payrollAdjustmentId !== '') {
+      row.payroll_adjustment_id = expense.payrollAdjustmentId
+    }
+    if (expense.payrollMonth != null && expense.payrollMonth !== '') {
+      row.payroll_month = expense.payrollMonth
+    }
+    if (expense.payrollCycle != null && expense.payrollCycle !== '') {
+      row.payroll_cycle = expense.payrollCycle
     }
   }
 

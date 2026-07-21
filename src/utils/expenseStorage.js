@@ -27,6 +27,12 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteExpenseRow, upsertExpense } from '../repositories/expensesRepository'
 import { insertExpenseChangeLog } from '../repositories/expenseChangeLogsRepository'
 import { notifyDataSynced } from './dataSyncEvents'
+import {
+  createSalaryAdvance,
+  deleteSalaryAdvance,
+  isSalaryAdvanceExpense,
+  updateSalaryAdvance,
+} from './salaryAdvance/salaryAdvanceService'
 
 const STORAGE_KEY = 'spa-manager-expenses'
 
@@ -110,6 +116,13 @@ export function normalizeExpense(expense) {
     enteredById: expense.enteredById ?? '',
     note: expense.note ?? '',
     receiptImage: expense.receiptImage ?? '',
+    employeeId: expense.employeeId ?? '',
+    employeeName: expense.employeeName ?? '',
+    advanceDate: expense.advanceDate ?? expense.date ?? '',
+    payrollAdjustmentId: expense.payrollAdjustmentId ?? '',
+    payrollMonth: expense.payrollMonth ?? '',
+    payrollCycle: expense.payrollCycle ?? '',
+    payrollPeriod: expense.payrollPeriod ?? '',
     updatedAt: expense.updatedAt ?? '',
   }
 }
@@ -239,16 +252,23 @@ function expenseAuditSnapshot(expense) {
     amount: expense.amount,
     note: expense.note,
     enteredBy: expense.enteredBy,
+    employeeId: expense.employeeId,
+    payrollAdjustmentId: expense.payrollAdjustmentId,
+    payrollMonth: expense.payrollMonth,
+    payrollCycle: expense.payrollCycle,
   }
 }
 
-export async function addExpense(data) {
+export async function addExpense(data, options = {}) {
   const sanitized = sanitizeExpenseData(data)
   if (isFixedExpenseType(sanitized.expenseType)) {
     return {
       success: false,
       error: 'Chi phí mặt bằng là chi phí cố định — chỉ Admin sửa trong mục Chi phí cố định.',
     }
+  }
+  if (isSalaryAdvanceExpense({ expenseType: sanitized.expenseType })) {
+    return createSalaryAdvance({ ...data, ...sanitized }, options)
   }
   const access = assertExpenseWriteAccess(sanitized)
   if (!access.success) return access
@@ -280,11 +300,15 @@ export async function addExpense(data) {
   return { success: true, expense }
 }
 
-export async function updateExpense(id, data) {
+export async function updateExpense(id, data, options = {}) {
   const expenses = loadExpenses()
   const index = expenses.findIndex((exp) => exp.id === id)
   if (index === -1) {
     return denyAccess('Không tìm thấy khoản chi.')
+  }
+
+  if (isSalaryAdvanceExpense(expenses[index])) {
+    return updateSalaryAdvance(id, { ...expenses[index], ...data }, options)
   }
 
   const editCheck = canEditExpenseRecord(expenses[index])
@@ -333,6 +357,10 @@ export async function deleteExpense(id) {
   const current = expenses.find((exp) => exp.id === id)
   if (!current) {
     return denyAccess('Không tìm thấy khoản chi.')
+  }
+
+  if (isSalaryAdvanceExpense(current)) {
+    return deleteSalaryAdvance(id)
   }
 
   const deleteCheck = canDeleteExpenseRecord(current)

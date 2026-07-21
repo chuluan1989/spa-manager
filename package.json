@@ -14,6 +14,7 @@
     "verify:management-reports": "vite-node scripts/verify-management-reports.mjs",
     "verify:operation-workflow": "vite-node scripts/verify-operation-workflow.mjs",
     "verify:crm-growth": "vite-node scripts/verify-crm-growth.mjs",
+    "verify:salary-advance": "vite-node scripts/verify-salary-advance.mjs",
     "verify:schema": "npx vite-node scripts/verify-schema.mjs",
     "verify:storage": "node --env-file=.env.local scripts/verify-storage.mjs",
     "preview": "vite preview",

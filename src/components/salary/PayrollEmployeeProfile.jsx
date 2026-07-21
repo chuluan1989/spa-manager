@@ -219,7 +219,7 @@ export default function PayrollEmployeeProfile({
           <PayrollAdjustmentHistory title="Thưởng" rows={bonusRows} />
           <PayrollAdjustmentHistory title="Phạt (nhập tay)" rows={penaltyRows} />
           <PayrollAdjustmentHistory title="Giảm lương" rows={reductionRows} showCreator={false} />
-          <PayrollAdjustmentHistory title="Ứng lương" rows={advanceRows} />
+          <PayrollAdjustmentHistory title="ỨNG LƯƠNG" rows={advanceRows} contentLabel="Nội dung" />
         </div>
       )}
 
