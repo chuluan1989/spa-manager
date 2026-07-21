@@ -180,9 +180,13 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
     return () => { cancelled = true }
   }, [filters, enabled, syncVersion, refreshKey])
 
-  useEffect(() => subscribeToDataSync(() => reload()), [reload])
+  useEffect(() => {
+    return subscribeToDataSync(() => reload())
+  }, [reload])
 
-  useEffect(() => subscribeInvoicesChanges(() => reload()), [reload])
+  useEffect(() => {
+    return subscribeInvoicesChanges(() => reload())
+  }, [reload])
 
   const summary = useMemo(
     () => buildDrillDownSummary(invoices, expenses, filters, payrollByBranch, fixedCosts),

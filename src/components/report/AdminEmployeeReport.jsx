@@ -200,9 +200,11 @@ export default function AdminEmployeeReport({ onNavigate }) {
     setRefreshKey((key) => key + 1)
   }), [])
 
-  useEffect(() => subscribeInvoicesChanges(() => {
-    setRefreshKey((key) => key + 1)
-  }), [])
+  useEffect(() => {
+    return subscribeInvoicesChanges(() => {
+      setRefreshKey((key) => key + 1)
+    })
+  }, [])
 
   const branchEmployees = useMemo(
     () => (

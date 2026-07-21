@@ -159,6 +159,44 @@ export async function deleteInvoiceRow(id) {
 /** Multiplex listeners — Dashboard mounts nhiều hook cùng subscribe invoices. */
 let invoicesRealtimeChannel = null
 const invoicesRealtimeListeners = new Set()
+/** @type {import('@supabase/supabase-js').SupabaseClient | null} */
+let invoicesRealtimeSupabaseOverride = null
+
+function invoicesRealtimeClient() {
+  return invoicesRealtimeSupabaseOverride ?? supabase
+}
+
+function invoicesRealtimeEnabled() {
+  return Boolean(invoicesRealtimeSupabaseOverride || isSupabaseConfigured)
+}
+
+/** Dev / verify: số listener đang đăng ký trên channel invoices. */
+export function getInvoicesRealtimeListenerCount() {
+  return invoicesRealtimeListeners.size
+}
+
+/** Chỉ dùng trong verify tests — inject mock Supabase client. */
+export function setInvoicesRealtimeSupabaseForTests(client) {
+  invoicesRealtimeSupabaseOverride = client
+}
+
+/** Chỉ dùng trong verify tests — reset module state. */
+export function resetInvoicesRealtimeSubscriptionsForTests() {
+  if (invoicesRealtimeChannel) {
+    invoicesRealtimeClient()?.removeChannel(invoicesRealtimeChannel)
+  }
+  invoicesRealtimeChannel = null
+  invoicesRealtimeListeners.clear()
+  invoicesRealtimeSupabaseOverride = null
+}
+
+function traceInvoicesRealtime(action) {
+  if (import.meta.env?.DEV) {
+    console.debug(
+      `[invoices-realtime] ${action} listeners=${invoicesRealtimeListeners.size} channel=${invoicesRealtimeChannel ? 'on' : 'off'}`,
+    )
+  }
+}
 
 function notifyInvoicesRealtimeListeners() {
   for (const listener of invoicesRealtimeListeners) {
@@ -171,9 +209,9 @@ function notifyInvoicesRealtimeListeners() {
 }
 
 function ensureInvoicesRealtimeChannel() {
-  if (invoicesRealtimeChannel || !isSupabaseConfigured) return
+  if (invoicesRealtimeChannel || !invoicesRealtimeEnabled()) return
 
-  invoicesRealtimeChannel = supabase
+  invoicesRealtimeChannel = invoicesRealtimeClient()
     .channel('spa-invoices-realtime')
     .on(
       'postgres_changes',
@@ -181,21 +219,30 @@ function ensureInvoicesRealtimeChannel() {
       () => notifyInvoicesRealtimeListeners(),
     )
     .subscribe()
+  traceInvoicesRealtime('channel:subscribe')
 }
 
 export function subscribeInvoicesChanges(onChange) {
-  if (!isSupabaseConfigured || typeof onChange !== 'function') {
+  if (!invoicesRealtimeEnabled() || typeof onChange !== 'function') {
     return () => {}
   }
 
+  const hadListener = invoicesRealtimeListeners.has(onChange)
   invoicesRealtimeListeners.add(onChange)
   ensureInvoicesRealtimeChannel()
+  traceInvoicesRealtime(hadListener ? 'subscribe:duplicate-ref' : 'subscribe')
 
   return () => {
+    if (!invoicesRealtimeListeners.has(onChange)) {
+      traceInvoicesRealtime('unsubscribe:miss')
+      return
+    }
     invoicesRealtimeListeners.delete(onChange)
+    traceInvoicesRealtime('unsubscribe')
     if (invoicesRealtimeListeners.size === 0 && invoicesRealtimeChannel) {
-      supabase.removeChannel(invoicesRealtimeChannel)
+      invoicesRealtimeClient()?.removeChannel(invoicesRealtimeChannel)
       invoicesRealtimeChannel = null
+      traceInvoicesRealtime('channel:remove')
     }
   }
 }
