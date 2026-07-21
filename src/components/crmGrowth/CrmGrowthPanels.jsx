@@ -4,6 +4,10 @@ import {
   CUSTOMER_SEGMENT_LABELS,
 } from '../../constants/customerTypes'
 import { CARE_TODAY_REASONS } from '../../utils/crmGrowth/crmGrowthConstants'
+import {
+  RETENTION_BUCKET_LABELS,
+  RETENTION_BUCKETS,
+} from '../../utils/crmGrowth/crmGrowthConstants'
 import './CrmGrowth.css'
 
 function reasonChipClass(reason) {
@@ -15,6 +19,21 @@ function reasonChipClass(reason) {
     return 'crmg-chip crmg-chip--warn'
   }
   return 'crmg-chip'
+}
+
+function formatDate(value) {
+  if (!value) return '—'
+  const [year, month, day] = value.split('-')
+  if (!year || !month || !day) return value
+  return `${day}/${month}/${year}`
+}
+
+function HealthBadge({ score, gradeLabel, gradeId }) {
+  return (
+    <span className={`crmg-health crmg-health--${gradeId || 'normal'}`}>
+      {score ?? 0} · {gradeLabel || '—'}
+    </span>
+  )
 }
 
 export function CrmGrowthMetricsStrip({ metrics }) {
@@ -33,6 +52,10 @@ export function CrmGrowthMetricsStrip({ metrics }) {
       <div className="crmg-kpi">
         <span>LTV trung bình</span>
         <strong>{formatCurrency(metrics?.avgLtv ?? 0)}</strong>
+      </div>
+      <div className="crmg-kpi">
+        <span>Health Score TB</span>
+        <strong>{metrics?.avgHealthScore ?? 0}</strong>
       </div>
       <div className="crmg-kpi crmg-kpi--gold">
         <span>VIP</span>
@@ -73,6 +96,7 @@ export function CrmCareTodayPanel({ items, onOpenCustomers, limit = 6 }) {
               </div>
               <p>
                 {row.phone || 'Thiếu SĐT'} · {row.primaryEmployeeName || '—'} · LTV {formatCurrency(row.ltv ?? 0)}
+                {row.healthScore != null ? ` · Health ${row.healthScore}` : ''}
               </p>
               <div className="crmg-reasons">
                 {(row.reasonLabels ?? []).map((label, idx) => (
@@ -89,18 +113,43 @@ export function CrmCareTodayPanel({ items, onOpenCustomers, limit = 6 }) {
   )
 }
 
+function CeoCustomerList({ title, rows, empty, danger = false, renderMeta }) {
+  return (
+    <div>
+      <h4 className="crmg-muted">{title}</h4>
+      <ul className="crmg-list">
+        {rows.length === 0 && <li><p className="crmg-muted">{empty}</p></li>}
+        {rows.map((c) => (
+          <li key={c.key} className={danger ? 'is-danger' : ''}>
+            <div className="crmg-list__title">
+              <span>{c.name}</span>
+              <span>
+                {c.healthScore != null
+                  ? `${c.healthScore}`
+                  : (CUSTOMER_SEGMENT_BADGES[c.segment] || '')}
+              </span>
+            </div>
+            <p>{renderMeta(c)}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function CrmCeoGrowthPanel({ insights, onOpenCustomers }) {
   const atRisk = (insights?.atRisk ?? []).slice(0, 5)
-  const vip = (insights?.vip ?? []).slice(0, 5)
+  const newVip = (insights?.newVip ?? []).slice(0, 5)
+  const topSpenders = (insights?.topSpenders ?? []).slice(0, 5)
+  const topReturners = (insights?.topReturners ?? []).slice(0, 5)
   const branches = insights?.bestBranches ?? []
-  const employees = insights?.bestEmployees ?? []
 
   return (
     <section className="crmg-panel">
       <div className="crmg-panel__head">
         <div>
           <h3>CEO · Tăng trưởng khách hàng</h3>
-          <p className="crmg-muted">Nguy cơ mất · VIP · Chi nhánh / NV giữ chân tốt nhất</p>
+          <p className="crmg-muted">VIP mới · Nguy cơ mất · Top chi tiêu · Top quay lại · Chi nhánh giữ chân</p>
         </div>
         {onOpenCustomers && (
           <button type="button" className="crmg-btn" onClick={onOpenCustomers}>
@@ -109,40 +158,33 @@ export function CrmCeoGrowthPanel({ insights, onOpenCustomers }) {
         )}
       </div>
       <div className="crmg-columns">
+        <CeoCustomerList
+          title="Khách VIP mới"
+          rows={newVip}
+          empty="Không có VIP mới"
+          renderMeta={(c) => `${formatCurrency(c.ltv ?? 0)} · lần đầu ${formatDate(c.firstVisitDate)}`}
+        />
+        <CeoCustomerList
+          title="Khách có nguy cơ mất"
+          rows={atRisk}
+          empty="Không có"
+          danger
+          renderMeta={(c) => `${c.daysSinceLastVisit} ngày · Health ${c.healthScore ?? '—'} · ${formatCurrency(c.ltv ?? 0)}`}
+        />
+        <CeoCustomerList
+          title="Top khách chi tiêu cao"
+          rows={topSpenders}
+          empty="Không có"
+          renderMeta={(c) => `LTV ${formatCurrency(c.ltv ?? 0)} · ${c.visitCount} lần`}
+        />
+        <CeoCustomerList
+          title="Top khách quay lại nhiều"
+          rows={topReturners}
+          empty="Không có"
+          renderMeta={(c) => `${c.visitCount} lần · ${Number(c.avgVisitsPerMonth ?? 0).toFixed(1)}/tháng`}
+        />
         <div>
-          <h4 className="crmg-muted">Khách có nguy cơ mất</h4>
-          <ul className="crmg-list">
-            {atRisk.length === 0 && <li><p className="crmg-muted">Không có</p></li>}
-            {atRisk.map((c) => (
-              <li key={c.key} className="is-danger">
-                <div className="crmg-list__title">
-                  <span>{c.name}</span>
-                  <span>
-                    {CUSTOMER_SEGMENT_BADGES[c.segment]} {CUSTOMER_SEGMENT_LABELS[c.segment]}
-                  </span>
-                </div>
-                <p>{c.daysSinceLastVisit} ngày · LTV {formatCurrency(c.ltv ?? c.totalSpend ?? 0)}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4 className="crmg-muted">Khách VIP</h4>
-          <ul className="crmg-list">
-            {vip.length === 0 && <li><p className="crmg-muted">Không có</p></li>}
-            {vip.map((c) => (
-              <li key={c.key}>
-                <div className="crmg-list__title">
-                  <span>{c.name}</span>
-                  <span>{formatCurrency(c.ltv ?? 0)}</span>
-                </div>
-                <p>{c.primaryEmployeeName || '—'} · {c.visitCount} lần</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4 className="crmg-muted">Chi nhánh giữ chân tốt</h4>
+          <h4 className="crmg-muted">Chi nhánh giữ chân khách tốt nhất</h4>
           <ul className="crmg-list">
             {branches.length === 0 && <li><p className="crmg-muted">Chưa đủ dữ liệu</p></li>}
             {branches.map((b) => (
@@ -152,21 +194,6 @@ export function CrmCeoGrowthPanel({ insights, onOpenCustomers }) {
                   <span>{b.retentionRate}%</span>
                 </div>
                 <p>{b.returning}/{b.total} khách quay lại (&lt;60 ngày)</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <h4 className="crmg-muted">NV giữ chân tốt</h4>
-          <ul className="crmg-list">
-            {employees.length === 0 && <li><p className="crmg-muted">Chưa đủ dữ liệu</p></li>}
-            {employees.map((e) => (
-              <li key={e.id}>
-                <div className="crmg-list__title">
-                  <span>{e.name}</span>
-                  <span>{e.retentionRate}%</span>
-                </div>
-                <p>{e.returning}/{e.total} khách quay lại (&lt;60 ngày)</p>
               </li>
             ))}
           </ul>
@@ -210,3 +237,77 @@ export function CrmRevenueBySegment({ metrics }) {
     </section>
   )
 }
+
+export function CrmRetentionPanel({ retentionLists, onSelectCustomer }) {
+  const buckets = [
+    RETENTION_BUCKETS.DAYS_45,
+    RETENTION_BUCKETS.DAYS_60,
+    RETENTION_BUCKETS.DAYS_90,
+  ]
+
+  return (
+    <section className="crmg-panel">
+      <div className="crmg-panel__head">
+        <div>
+          <h3>Cần giữ chân</h3>
+          <p className="crmg-muted">
+            {(retentionLists?.all ?? []).length} khách · 45 / 60 / 90 ngày chưa quay lại
+          </p>
+        </div>
+      </div>
+
+      {buckets.map((bucket) => {
+        const rows = retentionLists?.[bucket] ?? []
+        return (
+          <div key={bucket} className="crmg-retention-block">
+            <h4>
+              {RETENTION_BUCKET_LABELS[bucket]}
+              <span className="crmg-muted"> ({rows.length})</span>
+            </h4>
+            <div className="crmg-table-wrap">
+              <table className="crmg-table">
+                <thead>
+                  <tr>
+                    <th>Tên</th>
+                    <th>SĐT</th>
+                    <th>Chi nhánh</th>
+                    <th>NV chăm sóc chính</th>
+                    <th>Dịch vụ gần nhất</th>
+                    <th>Lần gần nhất</th>
+                    <th>Health Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.length === 0 && (
+                    <tr>
+                      <td colSpan={7}><p className="crmg-muted">Không có khách trong nhóm này.</p></td>
+                    </tr>
+                  )}
+                  {rows.map((row) => (
+                    <tr key={row.key} onClick={() => onSelectCustomer?.(row.key)}>
+                      <td><strong>{row.name}</strong></td>
+                      <td>{row.phone || 'Thiếu SĐT'}</td>
+                      <td>{row.branchName}</td>
+                      <td>{row.primaryEmployeeName}</td>
+                      <td>{row.lastServiceName}</td>
+                      <td>{formatDate(row.lastVisitDate)} · {row.daysSinceLastVisit} ngày</td>
+                      <td>
+                        <HealthBadge
+                          score={row.healthScore}
+                          gradeLabel={row.healthGradeLabel}
+                          gradeId={row.healthGradeId}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
+export { HealthBadge, formatDate }

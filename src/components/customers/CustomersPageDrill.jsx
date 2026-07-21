@@ -64,6 +64,7 @@ export default function CustomersPageDrill() {
     dashboard,
     remarketingLists,
     careToday,
+    retentionLists,
     metrics,
     ceoInsights,
     reload,
@@ -226,6 +227,7 @@ export default function CustomersPageDrill() {
           <div className="customers__main">
             <CustomerGrowthHub
               careToday={careToday}
+              retentionLists={retentionLists}
               metrics={metrics}
               ceoInsights={ceoInsights}
               onSelectCustomer={setSelectedKey}

@@ -6,12 +6,14 @@ import {
 import {
   CrmCeoGrowthPanel,
   CrmGrowthMetricsStrip,
+  CrmRetentionPanel,
   CrmRevenueBySegment,
 } from './CrmGrowthPanels'
 import './CrmGrowth.css'
 
 export default function CustomerGrowthHub({
   careToday,
+  retentionLists,
   metrics,
   ceoInsights,
   onSelectCustomer,
@@ -32,6 +34,13 @@ export default function CustomerGrowthHub({
       </section>
 
       <section className="crmg-hub__section">
+        <CrmRetentionPanel
+          retentionLists={retentionLists}
+          onSelectCustomer={onSelectCustomer}
+        />
+      </section>
+
+      <section className="crmg-hub__section">
         <h2>Danh sách cần chăm sóc hôm nay</h2>
         <p className="crmg-muted">{careToday?.length ?? 0} khách</p>
         <div className="crmg-table-wrap">
@@ -43,13 +52,14 @@ export default function CustomerGrowthHub({
                 <th>Ngày vắng</th>
                 <th>NV chính</th>
                 <th>LTV</th>
+                <th>Health</th>
                 <th>Phân loại</th>
               </tr>
             </thead>
             <tbody>
               {(careToday ?? []).length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <p className="crmg-muted">Không có khách cần chăm sóc hôm nay.</p>
                   </td>
                 </tr>
@@ -70,6 +80,7 @@ export default function CustomerGrowthHub({
                   <td>{row.daysSinceLastVisit} ngày</td>
                   <td>{row.primaryEmployeeName || '—'}</td>
                   <td>{formatCurrency(row.ltv ?? 0)}</td>
+                  <td>{row.healthScore ?? '—'}</td>
                   <td>
                     {CUSTOMER_SEGMENT_BADGES[row.segment]}{' '}
                     {CUSTOMER_SEGMENT_LABELS[row.segment] ?? row.segment}

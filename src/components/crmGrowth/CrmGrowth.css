@@ -222,6 +222,61 @@
   font-size: 0.95rem;
 }
 
+.crmg-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.crmg-health--vip,
+.crmg-health--excellent {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.crmg-health--normal {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.crmg-health--at_risk {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.crmg-health--critical {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.crmg-health-wrap {
+  margin-top: 6px;
+}
+
+.crmg-retention-block {
+  margin-top: 14px;
+}
+
+.crmg-retention-block h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.crm-timeline__item--care_note .crm-timeline__dot,
+.crm-timeline__item--follow_up .crm-timeline__dot {
+  background: #2563eb;
+}
+
+.crm-timeline__item--first_visit .crm-timeline__dot {
+  background: #d4af37;
+}
+
 @media (max-width: 720px) {
   .crmg-panel__head {
     flex-direction: column;

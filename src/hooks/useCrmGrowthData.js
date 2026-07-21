@@ -6,6 +6,7 @@ import {
   buildCustomerGrowthMetrics,
   enrichCustomersForGrowth,
 } from '../utils/crmGrowth/buildCustomerGrowth'
+import { buildRetentionLists } from '../utils/crmGrowth/buildRetentionLists'
 
 /**
  * CRM & Customer Growth V1 — rule-based aggregates over invoice-derived profiles.
@@ -18,13 +19,18 @@ export function useCrmGrowthData(appliedFilters = buildDefaultCustomerFilters())
     [base.customers],
   )
 
-  const filteredGrowthCustomers = useMemo(
-    () => enrichCustomersForGrowth(base.filteredCustomers),
-    [base.filteredCustomers],
-  )
+  const filteredGrowthCustomers = useMemo(() => {
+    const keys = new Set((base.filteredCustomers ?? []).map((c) => c.key))
+    return growthCustomers.filter((c) => keys.has(c.key))
+  }, [growthCustomers, base.filteredCustomers])
 
   const careToday = useMemo(
     () => buildCareTodayList(growthCustomers),
+    [growthCustomers],
+  )
+
+  const retentionLists = useMemo(
+    () => buildRetentionLists(growthCustomers),
     [growthCustomers],
   )
 
@@ -43,6 +49,7 @@ export function useCrmGrowthData(appliedFilters = buildDefaultCustomerFilters())
     customers: growthCustomers,
     filteredCustomers: filteredGrowthCustomers,
     careToday,
+    retentionLists,
     metrics,
     ceoInsights,
   }
