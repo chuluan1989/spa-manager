@@ -84,9 +84,13 @@ export function useDrillDownData(filters) {
     return () => { cancelled = true }
   }, [scopedFilters, refreshKey, syncVersion])
 
-  useEffect(() => subscribeToDataSync(() => reload()), [reload])
+  useEffect(() => {
+    return subscribeToDataSync(() => reload())
+  }, [reload])
 
-  useEffect(() => subscribeInvoicesChanges(() => reload()), [reload])
+  useEffect(() => {
+    return subscribeInvoicesChanges(() => reload())
+  }, [reload])
 
   return { invoices, expenses, fixedCosts, loading, error, reload, scopedFilters }
 }

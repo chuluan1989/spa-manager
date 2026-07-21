@@ -73,9 +73,13 @@ export function useCustomersData(appliedFilters = buildDefaultCustomerFilters())
     return () => { cancelled = true }
   }, [appliedFilters.fromDate, appliedFilters.toDate, appliedFilters.branchId, appliedFilters.employeeId, refreshKey, syncVersion])
 
-  useEffect(() => subscribeToDataSync(() => reload()), [reload])
+  useEffect(() => {
+    return subscribeToDataSync(() => reload())
+  }, [reload])
 
-  useEffect(() => subscribeInvoicesChanges(() => reload()), [reload])
+  useEffect(() => {
+    return subscribeInvoicesChanges(() => reload())
+  }, [reload])
 
   const scopedInvoices = useMemo(
     () => scopeInvoicesForCrm(invoices, { role, branchId, employeeId }),
