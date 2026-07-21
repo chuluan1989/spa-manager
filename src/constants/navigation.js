@@ -3,7 +3,7 @@ export const NAV_ITEMS = [
   { id: 'operation-workflow', label: 'Công việc', icon: 'attendance', description: 'Task · KPI ngày · Timeline · Audit' },
   { id: 'reports', label: 'Báo cáo', icon: 'report', description: 'Doanh thu • Lương • Thống kê' },
   { id: 'invoices', label: 'Hóa đơn', icon: 'invoice', description: 'Quản lý hóa đơn khách' },
-  { id: 'customers', label: 'Khách hàng', icon: 'customer', description: 'CRM quản lý khách hàng' },
+  { id: 'customers', label: 'Khách hàng', icon: 'customer', description: 'CRM & tăng trưởng khách hàng' },
   { id: 'admin-employees', label: 'Nhân viên', icon: 'employee', description: 'Nhân sự & hồ sơ' },
   { id: 'admin-branches', label: 'Chi nhánh', icon: 'branch', description: 'Quản lý chi nhánh & nhân sự CN' },
   { id: 'salary', label: 'Lương', icon: 'salary', description: 'HRM lương & phiếu lương' },

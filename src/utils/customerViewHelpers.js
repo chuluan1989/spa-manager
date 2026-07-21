@@ -14,9 +14,19 @@ export function aggregateCustomerBranchSummaries(branches, customers) {
         if (customer.segment === CUSTOMER_SEGMENTS.VIP) acc.vipCount += 1
         if (customer.segment === CUSTOMER_SEGMENTS.LOYAL) acc.loyalCount += 1
         if (customer.segment === CUSTOMER_SEGMENTS.AT_RISK) acc.atRiskCount += 1
+        if (customer.segment === CUSTOMER_SEGMENTS.DORMANT) acc.dormantCount += 1
         return acc
       },
-      { totalSpend: 0, totalTips: 0, visitCount: 0, newCount: 0, vipCount: 0, loyalCount: 0, atRiskCount: 0 },
+      {
+        totalSpend: 0,
+        totalTips: 0,
+        visitCount: 0,
+        newCount: 0,
+        vipCount: 0,
+        loyalCount: 0,
+        atRiskCount: 0,
+        dormantCount: 0,
+      },
     )
 
     return {

@@ -34,6 +34,7 @@ export default function CustomerList({ customers, selectedKey, onSelect }) {
             <th>Tips</th>
             <th>Lần gần nhất</th>
             <th>Phân loại</th>
+            <th>Health</th>
             <th>Trạng thái</th>
           </tr>
         </thead>
@@ -73,7 +74,12 @@ export default function CustomerList({ customers, selectedKey, onSelect }) {
                   </span>
                 </td>
                 <td>
-                  {customer.segment === 'at_risk' ? (
+                  {customer.healthScore != null
+                    ? `${customer.healthScore} · ${customer.healthGradeLabel || ''}`
+                    : '—'}
+                </td>
+                <td>
+                  {customer.segment === 'dormant' || customer.segment === 'at_risk' ? (
                     <span className="crm-status crm-status--danger">Cần chăm sóc</span>
                   ) : customer.daysSinceLastVisit >= 30 ? (
                     <span className="crm-status crm-status--warn">Lâu chưa quay lại</span>

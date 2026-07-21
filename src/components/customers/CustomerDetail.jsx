@@ -9,13 +9,9 @@ import {
   CUSTOMER_SEGMENT_BADGES,
   CUSTOMER_SEGMENT_LABELS,
 } from '../../constants/customerTypes'
-
-function formatDate(value) {
-  if (!value) return '—'
-  const [year, month, day] = value.split('-')
-  if (!year || !month || !day) return value
-  return `${day}/${month}/${year}`
-}
+import { TIMELINE_EVENT_TYPES } from '../../utils/crmGrowth/crmGrowthConstants'
+import { HealthBadge, formatDate } from '../crmGrowth/CrmGrowthPanels'
+import '../crmGrowth/CrmGrowth.css'
 
 export default function CustomerDetail({ customer, onUpdated, onClose }) {
   const [activeTab, setActiveTab] = useState('overview')
@@ -36,11 +32,23 @@ export default function CustomerDetail({ customer, onUpdated, onClose }) {
 
   const segmentLabel = CUSTOMER_SEGMENT_LABELS[customer.segment] ?? '—'
   const badge = CUSTOMER_SEGMENT_BADGES[customer.segment] ?? ''
+  const value = customer.valueAnalysis || {}
+  const timeline = customer.fullTimeline?.length
+    ? customer.fullTimeline
+    : (customer.timeline || []).map((entry) => ({
+      ...entry,
+      type: TIMELINE_EVENT_TYPES.INVOICE,
+      typeLabel: 'Hóa đơn',
+      title: entry.employeeName,
+      customerRequested: Boolean(entry.invoice?.customerRequested),
+      note: entry.invoice?.note || '',
+    }))
 
   const tabs = useMemo(() => {
     const list = [
       { id: 'overview', label: 'Tổng quan' },
-      { id: 'timeline', label: 'Lịch sử dịch vụ' },
+      { id: 'timeline', label: 'Timeline' },
+      { id: 'value', label: 'Giá trị khách' },
       { id: 'services', label: 'Thống kê dịch vụ' },
       { id: 'employees', label: 'Nhân viên phục vụ' },
     ]
@@ -67,6 +75,15 @@ export default function CustomerDetail({ customer, onUpdated, onClose }) {
               {badge} {segmentLabel}
               {customer.isVip && <span className="crm-vip-badge">VIP</span>}
             </span>
+            {customer.healthScore != null && (
+              <div className="crmg-health-wrap">
+                <HealthBadge
+                  score={customer.healthScore}
+                  gradeLabel={customer.healthGradeLabel}
+                  gradeId={customer.healthGradeId}
+                />
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -130,6 +147,20 @@ export default function CustomerDetail({ customer, onUpdated, onClose }) {
             </section>
 
             <section className="crm-detail__section">
+              <h3>Hồ sơ 360°</h3>
+              <div className="crmg-360">
+                <article><span>Health Score</span><strong>{customer.healthScore ?? '—'} · {customer.healthGradeLabel || '—'}</strong></article>
+                <article><span>Tổng chi tiêu (LTV)</span><strong>{formatCurrency(customer.ltv ?? customer.totalSpend)}</strong></article>
+                <article><span>Tần suất quay lại</span><strong>{Number(customer.avgVisitsPerMonth ?? 0).toFixed(1)} lần/tháng</strong></article>
+                <article><span>Chu kỳ quay lại TB</span><strong>{customer.avgReturnCycleDays != null ? `${customer.avgReturnCycleDays} ngày` : '—'}</strong></article>
+                <article><span>NV phục vụ chính</span><strong>{customer.primaryEmployeeName || customer.latestEmployeeName || '—'}</strong></article>
+                <article><span>Dịch vụ yêu thích</span><strong>{customer.favoriteServiceName || '—'}</strong></article>
+                <article><span>Khách yêu cầu</span><strong>{customer.requestedCount ?? 0} lần</strong></article>
+                <article><span>Ghi chú chăm sóc</span><strong>{customer.note || '—'}</strong></article>
+              </div>
+            </section>
+
+            <section className="crm-detail__section">
               <h3>Thống kê khách hàng</h3>
               <div className="crm-stats-grid">
                 <article><span>Tổng lần sử dụng</span><strong>{customer.visitCount}</strong></article>
@@ -145,29 +176,56 @@ export default function CustomerDetail({ customer, onUpdated, onClose }) {
           </>
         )}
 
+        {activeTab === 'value' && (
+          <section className="crm-detail__section">
+            <h3>Phân tích giá trị khách hàng</h3>
+            <div className="crmg-360">
+              <article><span>Tổng doanh thu theo khách</span><strong>{formatCurrency(value.totalRevenue ?? customer.totalTicketRevenue)}</strong></article>
+              <article><span>DT trung bình / lần</span><strong>{formatCurrency(value.avgSpendPerVisit ?? customer.avgSpendPerVisit)}</strong></article>
+              <article><span>Chu kỳ quay lại</span><strong>{value.avgReturnCycleDays != null ? `${value.avgReturnCycleDays} ngày` : '—'}</strong></article>
+              <article><span>Dịch vụ mang nhiều DT nhất</span><strong>{value.topRevenueServiceName || '—'} · {formatCurrency(value.topRevenueServiceAmount ?? 0)}</strong></article>
+              <article><span>NV phục vụ nhiều nhất</span><strong>{value.topEmployeeName || '—'} · {value.topEmployeeVisitCount ?? 0} lần</strong></article>
+              <article><span>Tổng chi tiêu (LTV)</span><strong>{formatCurrency(value.totalSpend ?? customer.ltv)}</strong></article>
+            </div>
+          </section>
+        )}
+
         {activeTab === 'timeline' && (
           <section className="crm-detail__section">
-            <h3>Lịch sử dịch vụ</h3>
+            <h3>Timeline khách hàng</h3>
+            <p className="crmg-muted">Lần đầu · Hóa đơn · NV · Dịch vụ · Tips · Yêu cầu · Chăm sóc · Liên hệ lại</p>
             <ol className="crm-timeline">
-              {customer.timeline.map((entry) => (
-                <li key={entry.id} className="crm-timeline__item">
+              {timeline.map((entry) => (
+                <li key={entry.id} className={`crm-timeline__item crm-timeline__item--${entry.type || 'invoice'}`}>
                   <div className="crm-timeline__dot" />
                   <div className="crm-timeline__card">
                     <header>
-                      <strong>{formatDate(entry.date)} · {entry.time || '—'}</strong>
-                      <button type="button" className="crm-link" onClick={() => setViewInvoice(entry.invoice)}>Xem HĐ</button>
+                      <strong>
+                        {formatDate(entry.date)}
+                        {entry.time ? ` · ${entry.time}` : ''}
+                        {' · '}
+                        {entry.typeLabel || 'Sự kiện'}
+                      </strong>
+                      {entry.invoice && (
+                        <button type="button" className="crm-link" onClick={() => setViewInvoice(entry.invoice)}>Xem HĐ</button>
+                      )}
                     </header>
-                    <p>{entry.branchName} · {entry.employeeName}</p>
-                    <p className="crm-timeline__services">{entry.services}</p>
-                    <div className="crm-timeline__amounts">
-                      <span>Vé: {formatCurrency(entry.ticketRevenue)}</span>
-                      {entry.discount > 0 && <span>KM: −{formatCurrency(entry.discount)}</span>}
-                      <span>Tips: {formatCurrency(entry.tips)}</span>
-                      <strong>Tổng: {formatCurrency(entry.total)}</strong>
-                    </div>
+                    <p>{entry.title || entry.employeeName}</p>
+                    <p>{entry.branchName} · NV: {entry.employeeName || '—'}</p>
+                    {entry.services ? <p className="crm-timeline__services">DV: {entry.services}</p> : null}
+                    {(entry.type === TIMELINE_EVENT_TYPES.INVOICE || entry.type === TIMELINE_EVENT_TYPES.FIRST_VISIT) && (
+                      <div className="crm-timeline__amounts">
+                        <span>Vé: {formatCurrency(entry.ticketRevenue)}</span>
+                        <span>Tips: {formatCurrency(entry.tips)}</span>
+                        {entry.customerRequested && <span className="crmg-chip crmg-chip--info">Khách yêu cầu</span>}
+                      </div>
+                    )}
+                    {entry.note ? <p className="crmg-muted">{entry.note}</p> : null}
+                    {entry.followUpDate ? <p className="crmg-muted">Follow-up: {formatDate(entry.followUpDate)}</p> : null}
                   </div>
                 </li>
               ))}
+              {timeline.length === 0 && <li className="crm-ranking__empty">Chưa có sự kiện</li>}
             </ol>
           </section>
         )}
@@ -176,13 +234,13 @@ export default function CustomerDetail({ customer, onUpdated, onClose }) {
           <section className="crm-detail__section">
             <h3>Dịch vụ đã sử dụng</h3>
             <ul className="crm-ranking">
-              {customer.serviceStats.map((row) => (
+              {(customer.serviceStats || []).map((row) => (
                 <li key={row.id}>
                   <span>{row.name}</span>
-                  <strong>{row.count} lần</strong>
+                  <strong>{row.count} lần · {formatCurrency(row.revenue ?? 0)}</strong>
                 </li>
               ))}
-              {customer.serviceStats.length === 0 && <li className="crm-ranking__empty">Chưa có dịch vụ</li>}
+              {(customer.serviceStats || []).length === 0 && <li className="crm-ranking__empty">Chưa có dịch vụ</li>}
             </ul>
           </section>
         )}
@@ -191,7 +249,7 @@ export default function CustomerDetail({ customer, onUpdated, onClose }) {
           <section className="crm-detail__section">
             <h3>Nhân viên đã phục vụ</h3>
             <ul className="crm-ranking">
-              {customer.employeeStats.map((row) => (
+              {(customer.employeeStats || []).map((row) => (
                 <li key={row.id || row.name}>
                   <span>{row.name}</span>
                   <strong>{row.count} lần</strong>

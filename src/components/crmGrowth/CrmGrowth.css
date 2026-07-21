@@ -1,0 +1,284 @@
+.crmg-dash-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.crmg-panel {
+  border: 1px solid var(--ks-border, #e5e7eb);
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px;
+}
+
+.crmg-panel__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.crmg-panel h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.crmg-muted {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.crmg-btn {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.crmg-btn--primary {
+  background: #111;
+  color: #d4af37;
+  border-color: #111;
+}
+
+.crmg-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.crmg-kpi {
+  border: 1px solid #f3f4f6;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+
+.crmg-kpi span {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.crmg-kpi strong {
+  font-size: 1.15rem;
+}
+
+.crmg-kpi--danger {
+  background: #fff7f7;
+  border-color: #fecaca;
+}
+
+.crmg-kpi--gold {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.crmg-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.crmg-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.crmg-list li {
+  border: 1px solid #f3f4f6;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+
+.crmg-list li.is-danger {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.crmg-list__title {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.crmg-list p {
+  margin: 4px 0 0;
+  color: #4b5563;
+  font-size: 0.82rem;
+}
+
+.crmg-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.crmg-chip {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.crmg-chip--danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.crmg-chip--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.crmg-chip--info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.crmg-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.crmg-hub__section h2 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.crmg-table-wrap {
+  overflow-x: auto;
+}
+
+.crmg-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.crmg-table th,
+.crmg-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.crmg-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+}
+
+.crmg-table tr {
+  cursor: pointer;
+}
+
+.crmg-table tr:hover {
+  background: #fafafa;
+}
+
+.crmg-360 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.crmg-360 article {
+  border: 1px solid #f3f4f6;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fafafa;
+}
+
+.crmg-360 span {
+  display: block;
+  font-size: 0.72rem;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.crmg-360 strong {
+  font-size: 0.95rem;
+}
+
+.crmg-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.crmg-health--vip,
+.crmg-health--excellent {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.crmg-health--normal {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.crmg-health--at_risk {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.crmg-health--critical {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.crmg-health-wrap {
+  margin-top: 6px;
+}
+
+.crmg-retention-block {
+  margin-top: 14px;
+}
+
+.crmg-retention-block h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.crm-timeline__item--care_note .crm-timeline__dot,
+.crm-timeline__item--follow_up .crm-timeline__dot {
+  background: #2563eb;
+}
+
+.crm-timeline__item--first_visit .crm-timeline__dot {
+  background: #d4af37;
+}
+
+@media (max-width: 720px) {
+  .crmg-panel__head {
+    flex-direction: column;
+  }
+}

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import DrillDownExplorer from '../components/drilldown/DrillDownExplorer'
 import BusinessCopilot from '../components/copilot/BusinessCopilot'
 import OperationWorkflowDashStrip from '../components/operationWorkflow/OperationWorkflowDashStrip'
+import CrmGrowthDashStrip from '../components/crmGrowth/CrmGrowthDashStrip'
 import { useBusinessCopilotData } from '../hooks/useBusinessCopilotData'
 import { consumeDrillDownPrefill, setDrillDownPrefill } from '../utils/navigationPrefill'
 import { isAdmin, isEmployee } from '../constants/auth'
@@ -50,6 +51,7 @@ export default function Dashboard({ onNavigate }) {
   return (
     <div className="erp-page">
       <OperationWorkflowDashStrip onNavigate={onNavigate} />
+      <CrmGrowthDashStrip onNavigate={onNavigate} />
 
       <BusinessCopilot
         loading={copilot.loading}
