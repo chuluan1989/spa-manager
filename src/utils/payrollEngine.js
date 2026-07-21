@@ -109,6 +109,10 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
   }
 
   const netSalary = computeNetSalary(parts)
+  const grossBeforeDeduction = (
+    parts.baseSalary + parts.commission + parts.tips + parts.bonus
+    - parts.reduction - parts.penalty
+  )
   const paymentSummary = computePayrollPaymentSummary(adjustments, employeeId, netSalary)
   const { workDays } = computeAttendanceStats(attendanceRecords, employeeId)
 
@@ -122,6 +126,7 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     invoiceCount: invoiceTotals.invoiceCount,
     workDays,
     ...parts,
+    grossBeforeDeduction,
     netSalary,
     ...paymentSummary,
   }

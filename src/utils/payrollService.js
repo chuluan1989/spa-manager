@@ -81,6 +81,8 @@ export async function addPayrollAdjustment(payload, locks = null) {
     amount: Math.abs(Number(payload.amount ?? 0)),
     reason: payload.reason?.trim?.() ?? payload.reason ?? '',
     note: payload.note?.trim?.() ?? payload.note ?? '',
+    expenseId: payload.expenseId ?? '',
+    payrollCycle: payload.payrollCycle ?? '',
     createdBy: editorId,
     createdByName: editorName,
   }

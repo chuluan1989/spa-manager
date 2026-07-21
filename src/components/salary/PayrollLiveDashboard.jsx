@@ -2,6 +2,7 @@ import { formatCurrency } from '../../utils/invoice'
 import { PAYROLL_DETAIL_LABELS } from '../../constants/payrollTypes'
 
 const KPI_ROWS = [
+  ['grossBeforeDeduction', 'neutral'],
   ['baseSalary', 'neutral'],
   ['workDays', 'neutral'],
   ['ticketRevenue', 'revenue'],
@@ -27,6 +28,10 @@ export default function PayrollLiveDashboard({ stats, attendanceStats }) {
 
   const displayStats = {
     ...stats,
+    grossBeforeDeduction: stats.grossBeforeDeduction ?? (
+      (stats.baseSalary ?? 0) + (stats.commission ?? 0) + (stats.tips ?? 0) + (stats.bonus ?? 0)
+      - (stats.reduction ?? 0) - (stats.penalty ?? 0)
+    ),
     workDays: attendanceStats?.workDays ?? 0,
     paidAmount: stats.paidAmount ?? 0,
     remainingAmount: stats.remainingAmount ?? stats.netSalary ?? 0,

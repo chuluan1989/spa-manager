@@ -3,14 +3,30 @@ import {
   FIXED_EXPENSE_TYPE_ID,
   normalizeExpenseTypeId,
 } from '../constants/expenseTypes'
+import { SALARY_ADVANCE_EXPENSE_TYPE } from '../constants/salaryAdvanceTypes'
 import { filterExpenses, sumExpenseAmount } from './expenseStorage'
 import { computeFixedCostTotals } from './fixedCostStorage'
 
 /**
- * Chi phí phát sinh = expenses trừ mặt bằng (tránh double-count với fixed costs).
+ * Chi phí phát sinh = expenses trừ mặt bằng và ứng lương (tránh double-count với payroll net).
  */
 export function filterVariableExpenses(expenses = []) {
+  return expenses.filter((exp) => {
+    const typeId = normalizeExpenseTypeId(exp.expenseType)
+    if (typeId === FIXED_EXPENSE_TYPE_ID) return false
+    if (typeId === SALARY_ADVANCE_EXPENSE_TYPE) return false
+    if (exp.payrollAdjustmentId) return false
+    return true
+  })
+}
+
+/** Chi phí phát sinh gồm ứng lương — dùng cho báo cáo chi phí chi nhánh. */
+export function filterVariableExpensesIncludingAdvance(expenses = []) {
   return expenses.filter((exp) => normalizeExpenseTypeId(exp.expenseType) !== FIXED_EXPENSE_TYPE_ID)
+}
+
+export function isSalaryAdvanceExpenseRecord(expense) {
+  return normalizeExpenseTypeId(expense?.expenseType) === SALARY_ADVANCE_EXPENSE_TYPE
 }
 
 export function sumVariableExpenses(expenses = [], filters = {}) {

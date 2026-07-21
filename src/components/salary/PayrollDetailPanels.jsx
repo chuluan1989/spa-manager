@@ -140,7 +140,7 @@ export function PayrollTipsPanel({ rows }) {
   )
 }
 
-export function PayrollAdjustmentHistory({ title, rows, showCreator = true }) {
+export function PayrollAdjustmentHistory({ title, rows, showCreator = true, contentLabel = 'Lý do' }) {
   return (
     <section className="salary-panel">
       <header className="salary-panel__head">
@@ -155,8 +155,8 @@ export function PayrollAdjustmentHistory({ title, rows, showCreator = true }) {
             <thead>
               <tr>
                 <th>Ngày</th>
-                <th>Lý do</th>
-                {showCreator && <th>Người tạo</th>}
+                <th>{contentLabel}</th>
+                {showCreator && <th>Người nhập</th>}
                 <th>Số tiền</th>
               </tr>
             </thead>
@@ -164,7 +164,7 @@ export function PayrollAdjustmentHistory({ title, rows, showCreator = true }) {
               {rows.map((row) => (
                 <tr key={row.id}>
                   <td>{formatDate(row.date)}</td>
-                  <td>{row.reason || '—'}</td>
+                  <td>{row.content || row.reason || '—'}</td>
                   {showCreator && <td>{row.createdBy || '—'}</td>}
                   <td>{formatCurrency(row.amount)}</td>
                 </tr>

@@ -49,6 +49,7 @@ export const PAYROLL_DETAIL_LABELS = {
   paidAmount: 'Đã thanh toán',
   remainingAmount: 'Còn phải trả',
   provisionalNet: 'Tạm tính thực nhận',
+  grossBeforeDeduction: 'Tổng lương trước khấu trừ',
   workDays: 'Ngày công',
 }
 

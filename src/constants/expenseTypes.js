@@ -1,10 +1,13 @@
 /** Nhóm chi phí mặc định — dùng cho form, bộ lọc và báo cáo. */
 
+import { SALARY_ADVANCE_EXPENSE_TYPE, SALARY_ADVANCE_EXPENSE_LABEL } from './salaryAdvanceTypes'
+
 /** Chi phí cố định (mặt bằng) — không nhập lại mỗi tháng. */
 export const FIXED_EXPENSE_TYPE_ID = 'mat-bang'
 
 /** Nhóm chi phí phát sinh mặc định theo yêu cầu nghiệp vụ. */
 export const DEFAULT_VARIABLE_EXPENSE_TYPES = [
+  { id: SALARY_ADVANCE_EXPENSE_TYPE, label: SALARY_ADVANCE_EXPENSE_LABEL },
   { id: 'quang-cao-facebook', label: 'Quảng cáo Facebook' },
   { id: 'quang-cao-tiktok', label: 'Quảng cáo TikTok' },
   { id: 'dien', label: 'Điện' },
@@ -86,6 +89,7 @@ export const EXPENSE_CATEGORY_CARDS = [
     typeIds: ['an-uong', 'taxi', 'van-chuyen', 'thue-phi', 'vat-tu'],
   },
   { id: 'salary', label: 'Chi phí lương', typeIds: ['luong'] },
+  { id: 'salary_advance', label: 'Ứng lương', typeIds: [SALARY_ADVANCE_EXPENSE_TYPE] },
   { id: 'other', label: 'Chi phí khác', typeIds: ['khac'] },
 ]
 

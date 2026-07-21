@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { MANUAL_ADJUSTMENT_OPTIONS, PAYROLL_ADJUSTMENT_LABELS } from '../../constants/payrollTypes'
+import { MANUAL_ADJUSTMENT_OPTIONS, PAYROLL_ADJUSTMENT_LABELS, PAYROLL_ADJUSTMENT_TYPES } from '../../constants/payrollTypes'
+import { isAdmin } from '../../constants/auth'
 
 export default function PayrollAdjustmentModal({
   open,
@@ -21,6 +22,11 @@ export default function PayrollAdjustmentModal({
   })
 
   if (!open) return null
+
+  const adjustmentTypes = MANUAL_ADJUSTMENT_OPTIONS.filter((type) => {
+    if (type === PAYROLL_ADJUSTMENT_TYPES.ADVANCE && !isAdmin()) return false
+    return true
+  })
 
   const selectedEmployee = employees.find((emp) => emp.id === form.employeeId)
 
@@ -67,7 +73,7 @@ export default function PayrollAdjustmentModal({
             value={form.type}
             onChange={(e) => setForm({ ...form, type: e.target.value })}
           >
-            {MANUAL_ADJUSTMENT_OPTIONS.map((type) => (
+            {adjustmentTypes.map((type) => (
               <option key={type} value={type}>{PAYROLL_ADJUSTMENT_LABELS[type]}</option>
             ))}
           </select>

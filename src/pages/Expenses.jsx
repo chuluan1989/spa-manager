@@ -130,10 +130,19 @@ export default function Expenses() {
     setFormOpen(true)
   }
 
-  const handleSaveExpense = async (payload) => {
+  const handleSaveExpense = async (payload, options = {}) => {
     const result = editingExpense
-      ? await updateExpense(editingExpense.id, payload)
-      : await addExpense(payload)
+      ? await updateExpense(editingExpense.id, payload, options)
+      : await addExpense(payload, options)
+
+    if (result.needsConfirmation) {
+      const ok = window.confirm(`${result.error}\n\nBạn có muốn đưa khoản ứng vào kỳ lương kế tiếp?`)
+      if (!ok) {
+        showToast(result.error ?? 'Kỳ lương đã chốt')
+        return
+      }
+      return handleSaveExpense(payload, { forceNextPeriod: true })
+    }
 
     if (!result.success) {
       showToast(result.error ?? 'Không thể lưu chi phí')
@@ -328,9 +337,11 @@ export default function Expenses() {
         expenseTypes={variableExpenseTypes}
         initialData={editingExpense ? {
           date: editingExpense.date,
+          advanceDate: editingExpense.advanceDate || editingExpense.date,
           expenseTime: editingExpense.expenseTime,
           branchId: editingExpense.branchId,
           expenseType: editingExpense.expenseType,
+          employeeId: editingExpense.employeeId || '',
           content: editingExpense.content,
           amount: String(editingExpense.amount),
           paidBy: editingExpense.paidBy,

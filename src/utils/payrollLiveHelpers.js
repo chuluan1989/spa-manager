@@ -137,8 +137,10 @@ export function buildAdjustmentHistory(adjustments, employeeId, type) {
       date: row.date,
       amount: Number(row.amount ?? 0),
       reason: row.reason || row.note || '',
+      content: row.reason || row.note || '',
       createdBy: row.createdByName || row.createdBy || '',
       note: row.note || '',
+      expenseId: row.expenseId || '',
     }))
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
 }

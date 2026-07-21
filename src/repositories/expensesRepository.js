@@ -68,7 +68,11 @@ export async function upsertExpense(expense) {
     if (!isMissingColumnError(error, 'expense_time')
       && !isMissingColumnError(error, 'paid_by')
       && !isMissingColumnError(error, 'receipt_image')
-      && !isMissingColumnError(error, 'entered_by_id')) {
+      && !isMissingColumnError(error, 'entered_by_id')
+      && !isMissingColumnError(error, 'employee_id')
+      && !isMissingColumnError(error, 'payroll_adjustment_id')
+      && !isMissingColumnError(error, 'payroll_month')
+      && !isMissingColumnError(error, 'payroll_cycle')) {
       throw error
     }
   }
