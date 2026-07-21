@@ -3,6 +3,7 @@ import CustomerDetail from './CustomerDetail'
 import CustomerFilters from './CustomerFilters'
 import CustomerList from './CustomerList'
 import CustomerRemarketing from './CustomerRemarketing'
+import CustomerGrowthHub from '../crmGrowth/CustomerGrowthHub'
 import ErpBranchCardGrid from '../erp/ErpBranchCardGrid'
 import ErpBreadcrumb from '../erp/ErpBreadcrumb'
 import ErpKpiGrid from '../erp/ErpKpiGrid'
@@ -16,7 +17,8 @@ import {
   isEmployee,
 } from '../../constants/auth'
 import { CUSTOMER_SEGMENTS } from '../../constants/customerTypes'
-import { buildDefaultCustomerFilters, useCustomersData } from '../../hooks/useCustomersData'
+import { buildDefaultCustomerFilters } from '../../hooks/useCustomersData'
+import { useCrmGrowthData } from '../../hooks/useCrmGrowthData'
 import { getCareLogsForCustomer } from '../../utils/customerProfileStorage'
 import {
   aggregateCustomerBranchSummaries,
@@ -32,6 +34,7 @@ const LEVEL = {
   CUSTOMERS: 'customers',
   REMARKETING: 'remarketing',
   CARE: 'care',
+  GROWTH: 'growth',
 }
 
 function getInitialLevel() {
@@ -55,7 +58,18 @@ export default function CustomersPageDrill() {
     segment: segmentFilter || appliedFilters.segment,
   }), [appliedFilters, selectedBranchId, segmentFilter])
 
-  const { customers, filteredCustomers, dashboard, remarketingLists, reload, loading, error } = useCustomersData(branchScopedFilters)
+  const {
+    customers,
+    filteredCustomers,
+    dashboard,
+    remarketingLists,
+    careToday,
+    metrics,
+    ceoInsights,
+    reload,
+    loading,
+    error,
+  } = useCrmGrowthData(branchScopedFilters)
 
   const visibleBranches = useMemo(() => {
     const all = getActiveBranches()
@@ -109,6 +123,13 @@ export default function CustomersPageDrill() {
       onClick: () => { setSegmentFilter(CUSTOMER_SEGMENTS.AT_RISK); setLevel(LEVEL.CUSTOMERS) },
     },
     {
+      id: 'dormant',
+      label: 'Lâu chưa quay lại',
+      value: dashboard.dormantCustomers,
+      tone: 'red',
+      onClick: () => { setSegmentFilter(CUSTOMER_SEGMENTS.DORMANT); setLevel(LEVEL.CUSTOMERS) },
+    },
+    {
       id: 'return',
       label: 'Quay lại tháng này',
       value: dashboard.returningThisMonth,
@@ -119,6 +140,10 @@ export default function CustomersPageDrill() {
     if (isEmployee()) return []
     const items = [{ id: 'crm', label: 'Khách hàng', onClick: () => { setLevel(LEVEL.BRANCHES); setSelectedBranchId(''); setSelectedKey('') } }]
     if (level === LEVEL.BRANCHES) return items
+    if (level === LEVEL.GROWTH) {
+      items.push({ id: 'growth', label: 'Tăng trưởng & chăm sóc' })
+      return items
+    }
     if (selectedBranchId) {
       items.push({
         id: 'branch',
@@ -138,7 +163,7 @@ export default function CustomersPageDrill() {
     <div className="customers erp-page">
       <ErpPageHeader
         title="Khách hàng"
-        subtitle="CRM quản lý khách — drill-down: Tổng quan → Chi nhánh → Hồ sơ khách → Lịch sử dịch vụ."
+        subtitle="CRM & Customer Growth — hồ sơ 360°, phân loại rule-based, danh sách chăm sóc hôm nay."
         badge={{ value: customers.length, label: 'khách' }}
         actions={(
           <ExportActions
@@ -150,7 +175,7 @@ export default function CustomersPageDrill() {
 
       {!isEmployee() && <ErpBreadcrumb items={breadcrumbItems} />}
 
-      {(level === LEVEL.BRANCHES || isAdmin()) && level !== LEVEL.CUSTOMERS && level !== LEVEL.REMARKETING && (
+      {(level === LEVEL.BRANCHES || isAdmin()) && level !== LEVEL.CUSTOMERS && level !== LEVEL.REMARKETING && level !== LEVEL.GROWTH && (
         <ErpKpiGrid items={kpiItems} />
       )}
 
@@ -181,6 +206,9 @@ export default function CustomersPageDrill() {
             renderStat={formatCustomerBranchStats}
           />
           <div className="customers__quick-links">
+            <button type="button" className="erp-btn erp-btn--primary" onClick={() => setLevel(LEVEL.GROWTH)}>
+              Tăng trưởng & chăm sóc hôm nay ({careToday.length})
+            </button>
             <button type="button" className="erp-btn" onClick={() => setLevel(LEVEL.REMARKETING)}>
               Remarketing
             </button>
@@ -193,7 +221,28 @@ export default function CustomersPageDrill() {
         </>
       )}
 
-      {(level === LEVEL.CUSTOMERS || (!isAdmin() && level !== LEVEL.REMARKETING && level !== LEVEL.CARE)) && (
+      {level === LEVEL.GROWTH && (
+        <div className={`customers__layout ${selectedCustomer ? 'customers__layout--split' : ''}`}>
+          <div className="customers__main">
+            <CustomerGrowthHub
+              careToday={careToday}
+              metrics={metrics}
+              ceoInsights={ceoInsights}
+              onSelectCustomer={setSelectedKey}
+              onBack={() => setLevel(LEVEL.BRANCHES)}
+            />
+          </div>
+          {selectedCustomer && (
+            <CustomerDetail
+              customer={selectedCustomer}
+              onClose={() => setSelectedKey('')}
+              onUpdated={reload}
+            />
+          )}
+        </div>
+      )}
+
+      {(level === LEVEL.CUSTOMERS || (!isAdmin() && level !== LEVEL.REMARKETING && level !== LEVEL.CARE && level !== LEVEL.GROWTH)) && (
         <div className={`customers__layout ${selectedCustomer ? 'customers__layout--split' : ''}`}>
           <div className="customers__main">
             {loading && <p className="customers__result-count">Đang tải dữ liệu khách hàng…</p>}

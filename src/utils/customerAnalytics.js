@@ -12,6 +12,8 @@ import {
 } from './invoice'
 import { loadSystemSettings } from './systemSettingsStorage'
 import { getBranchName } from './branchStorage'
+import { classifyGrowthSegment } from './crmGrowth/classifyGrowthSegment'
+import { buildCareTodayList } from './crmGrowth/buildCustomerGrowth'
 
 export function normalizePhone(value) {
   return String(value ?? '').replace(/\D/g, '')
@@ -135,24 +137,7 @@ function buildEmployeeStats(invoices) {
 }
 
 export function classifyCustomer(profile, vipThreshold) {
-  const visitCount = profile.visitCount
-  const daysSinceLast = profile.daysSinceLastVisit
-  const avgVisitsPerMonth = profile.avgVisitsPerMonth
-  const totalTicketRevenue = profile.totalTicketRevenue
-
-  if (daysSinceLast >= 90) {
-    return CUSTOMER_SEGMENTS.AT_RISK
-  }
-  if (visitCount <= 1) {
-    return CUSTOMER_SEGMENTS.NEW
-  }
-  if (avgVisitsPerMonth >= 2 || totalTicketRevenue >= vipThreshold) {
-    return CUSTOMER_SEGMENTS.VIP
-  }
-  if (visitCount >= 2 && avgVisitsPerMonth >= 1) {
-    return CUSTOMER_SEGMENTS.LOYAL
-  }
-  return CUSTOMER_SEGMENTS.NEW
+  return classifyGrowthSegment(profile, vipThreshold)
 }
 
 function buildTimelineEntry(invoice) {
@@ -308,6 +293,7 @@ export function buildCrmDashboard(customers) {
     loyalCustomers: customers.filter((c) => c.segment === CUSTOMER_SEGMENTS.LOYAL).length,
     vipCustomers: customers.filter((c) => c.segment === CUSTOMER_SEGMENTS.VIP).length,
     atRiskCustomers: customers.filter((c) => c.segment === CUSTOMER_SEGMENTS.AT_RISK).length,
+    dormantCustomers: customers.filter((c) => c.segment === CUSTOMER_SEGMENTS.DORMANT).length,
     returningThisMonth,
     returnRate,
     topSpend,
@@ -321,10 +307,15 @@ export function buildRemarketingLists(customers) {
 
   const pick = (predicate) => customers.filter(predicate)
 
+  const careKeys = new Set(buildCareTodayList(customers).map((row) => row.key))
+
   return {
+    [REMARKETING_LISTS.CARE_TODAY]: pick((c) => careKeys.has(c.key)),
     [REMARKETING_LISTS.NEW]: pick((c) => c.segment === CUSTOMER_SEGMENTS.NEW),
     [REMARKETING_LISTS.LOYAL]: pick((c) => c.segment === CUSTOMER_SEGMENTS.LOYAL),
     [REMARKETING_LISTS.VIP]: pick((c) => c.segment === CUSTOMER_SEGMENTS.VIP),
+    [REMARKETING_LISTS.AT_RISK]: pick((c) => c.segment === CUSTOMER_SEGMENTS.AT_RISK),
+    [REMARKETING_LISTS.DORMANT]: pick((c) => c.segment === CUSTOMER_SEGMENTS.DORMANT),
     [REMARKETING_LISTS.INACTIVE_30]: pick((c) => c.daysSinceLastVisit >= 30 && c.daysSinceLastVisit < 60),
     [REMARKETING_LISTS.INACTIVE_60]: pick((c) => c.daysSinceLastVisit >= 60 && c.daysSinceLastVisit < 90),
     [REMARKETING_LISTS.INACTIVE_90]: pick((c) => c.daysSinceLastVisit >= 90),

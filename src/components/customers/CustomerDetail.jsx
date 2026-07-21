@@ -9,6 +9,7 @@ import {
   CUSTOMER_SEGMENT_BADGES,
   CUSTOMER_SEGMENT_LABELS,
 } from '../../constants/customerTypes'
+import '../crmGrowth/CrmGrowth.css'
 
 function formatDate(value) {
   if (!value) return '—'
@@ -127,6 +128,18 @@ export default function CustomerDetail({ customer, onUpdated, onClose }) {
                   <div className="crm-detail__info-full"><dt>Ghi chú</dt><dd>{customer.note || '—'}</dd></div>
                 </dl>
               )}
+            </section>
+
+            <section className="crm-detail__section">
+              <h3>Hồ sơ 360°</h3>
+              <div className="crmg-360">
+                <article><span>Tổng chi tiêu (LTV)</span><strong>{formatCurrency(customer.ltv ?? customer.totalSpend)}</strong></article>
+                <article><span>Tần suất quay lại</span><strong>{Number(customer.avgVisitsPerMonth ?? 0).toFixed(1)} lần/tháng</strong></article>
+                <article><span>Chu kỳ quay lại TB</span><strong>{customer.avgReturnCycleDays != null ? `${customer.avgReturnCycleDays} ngày` : '—'}</strong></article>
+                <article><span>NV phục vụ chính</span><strong>{customer.primaryEmployeeName || customer.latestEmployeeName || '—'}</strong></article>
+                <article><span>Dịch vụ yêu thích</span><strong>{customer.favoriteServiceName || '—'}</strong></article>
+                <article><span>Ghi chú chăm sóc</span><strong>{customer.note || '—'}</strong></article>
+              </div>
             </section>
 
             <section className="crm-detail__section">
