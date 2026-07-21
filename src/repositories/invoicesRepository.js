@@ -175,6 +175,10 @@ export function getInvoicesRealtimeListenerCount() {
   return invoicesRealtimeListeners.size
 }
 
+if (typeof globalThis !== 'undefined') {
+  globalThis.__spaGetInvoicesRealtimeListenerCount = getInvoicesRealtimeListenerCount
+}
+
 /** Chỉ dùng trong verify tests — inject mock Supabase client. */
 export function setInvoicesRealtimeSupabaseForTests(client) {
   invoicesRealtimeSupabaseOverride = client
