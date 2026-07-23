@@ -7,6 +7,7 @@
  */
 import assert from 'node:assert/strict'
 import { webcrypto } from 'node:crypto'
+import { createClient } from '@supabase/supabase-js'
 import { loadProductionSupabaseEnv } from './lib/loadProductionSupabaseEnv.mjs'
 
 function createStorage() {
@@ -50,9 +51,18 @@ const { url, key, base } = await loadProductionSupabaseEnv()
 process.env.VITE_SUPABASE_URL = url
 process.env.VITE_SUPABASE_ANON_KEY = key
 
+const sb = createClient(url, key, {
+  auth: { persistSession: false, autoRefreshToken: false },
+})
+
 console.log(`\n=== Attendance audit E2E (${base}) ===\n`)
 
-const { supabase } = await import('../src/lib/supabaseClient.js')
+const { isSupabaseConfigured } = await import('../src/lib/supabaseClient.js')
+if (!isSupabaseConfigured) {
+  console.error('✗ Supabase client chưa cấu hình — chạy với env từ Production bundle')
+  process.exit(1)
+}
+
 const { fetchAttendanceEditLogs } = await import('../src/repositories/attendanceRepository.js')
 const {
   adminUpdateAttendance,
@@ -64,11 +74,11 @@ const { pullAllFromSupabase } = await import('../src/utils/supabaseSync.js')
 
 // Bootstrap app data
 try {
-  await pullAllFromSupabase()
-  log('Bootstrap Supabase data', true)
+  const pullResult = await pullAllFromSupabase()
+  log('Bootstrap Supabase data', pullResult?.success !== false, pullResult?.reason ?? '')
 } catch (error) {
-  const { data: branches } = await supabase.from('branches').select('*')
-  const { data: employees } = await supabase.from('employees').select('*')
+  const { data: branches } = await sb.from('branches').select('*')
+  const { data: employees } = await sb.from('employees').select('*')
   localStorage.setItem('spa-manager-branches', JSON.stringify(branches ?? []))
   localStorage.setItem('spa-manager-employees', JSON.stringify(employees ?? []))
   log('Bootstrap branches/employees (fallback)', false, error.message)
@@ -77,7 +87,7 @@ try {
 setBranchManagerSession('soc-trang')
 const editor = getAttendanceEditor()
 
-const tableProbe = await supabase.from('attendance_edit_logs').select('id').limit(1)
+const tableProbe = await sb.from('attendance_edit_logs').select('id').limit(1)
 if (tableProbe.error) {
   console.error('\n✗ Bảng attendance_edit_logs chưa tồn tại — chạy migration 0035 trước.\n')
   process.exit(1)
@@ -87,7 +97,7 @@ log('Bảng attendance_edit_logs sẵn sàng', true)
 const monthPrefix = new Date().toISOString().slice(0, 7)
 const testDate = `${monthPrefix}-28`
 
-const { data: existingEmp } = await supabase
+const { data: existingEmp } = await sb
   .from('employees')
   .select('id,name,branch_id,status')
   .eq('branch_id', 'soc-trang')
@@ -102,8 +112,8 @@ if (!employeeId) {
 }
 
 // Dọn bản ghi test cũ nếu có
-await supabase.from('attendance').delete().eq('employee_id', employeeId).eq('attendance_date', testDate)
-await supabase.from('attendance').delete().eq('employee_id', employeeId).eq('attendance_date', `${monthPrefix}-27`)
+await sb.from('attendance').delete().eq('employee_id', employeeId).eq('attendance_date', testDate)
+await sb.from('attendance').delete().eq('employee_id', employeeId).eq('attendance_date', `${monthPrefix}-27`)
 
 const checkIn = new Date(`${testDate}T08:00:00`).toISOString()
 const checkOut = new Date(`${testDate}T17:00:00`).toISOString()
@@ -203,7 +213,7 @@ try {
 
 // 5. Không hợp lệ — tạo bản ghi mới để void invalid
 const testDate2 = `${monthPrefix}-26`
-await supabase.from('attendance').delete().eq('employee_id', employeeId).eq('attendance_date', testDate2)
+await sb.from('attendance').delete().eq('employee_id', employeeId).eq('attendance_date', testDate2)
 let record2
 try {
   record2 = await adminCreateAttendance({
@@ -274,7 +284,7 @@ try {
 }
 
 // DB row count
-const { count } = await supabase
+const { count } = await sb
   .from('attendance_edit_logs')
   .select('*', { count: 'exact', head: true })
   .eq('attendance_id', attendanceId)
