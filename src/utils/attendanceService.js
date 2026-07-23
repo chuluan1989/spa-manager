@@ -7,6 +7,8 @@ import { notifyDataSynced } from './dataSyncEvents'
 import { getBranchById, getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { ATTENDANCE_STATUS } from '../constants/attendanceTypes'
+import { assertCanEditAttendanceRecord } from './attendanceEditPolicy'
 import { upsertBranchMinimal } from '../repositories/branchesRepository'
 import { fetchEmployeeById } from '../repositories/employeesRepository'
 import {
@@ -22,6 +24,10 @@ import {
 
 const ATTENDANCE_SYNC_TIMEOUT_MS = 8000
 const ATTENDANCE_SAVE_TIMEOUT_MS = 15000
+
+function notifyAttendanceDataChanged() {
+  notifyDataSynced(['attendance', 'payroll', 'reports', 'dashboard'])
+}
 
 function withTimeout(promise, ms, timeoutMessage) {
   return Promise.race([
@@ -176,7 +182,7 @@ export async function submitEmployeeAttendance({
       ATTENDANCE_SAVE_TIMEOUT_MS,
       'Lưu điểm danh quá lâu. Kiểm tra mạng và thử lại.',
     )
-    notifyDataSynced(['attendance'])
+    notifyAttendanceDataChanged()
     return saved
   } catch (err) {
     throw new Error(parseAttendanceError(err))
@@ -252,7 +258,7 @@ export async function submitEmployeeAttendanceBackfill({
       ATTENDANCE_SAVE_TIMEOUT_MS,
       'Lưu điểm danh quá lâu. Kiểm tra mạng và thử lại.',
     )
-    notifyDataSynced(['attendance'])
+    notifyAttendanceDataChanged()
     return saved
   } catch (err) {
     if (err?.existing) throw err
@@ -273,6 +279,25 @@ function buildEditLogs(attendanceId, editor, changes, editNote = '') {
   }))
 }
 
+function assertCanEditAttendanceRecordBranch(record, options = {}) {
+  return assertCanEditAttendanceRecord(record, options)
+}
+
+async function recomputeAndPersistMonthPenalties(employeeId, monthPrefix, draftRecords) {
+  const recomputed = recomputeMonthlyPenalties(draftRecords, monthPrefix)
+  const originalMap = new Map(draftRecords.map((row) => [row.id, row]))
+  for (const row of recomputed) {
+    const original = originalMap.get(row.id)
+    if (!original || original.penaltyAmount !== row.penaltyAmount) {
+      await updateAttendanceRecord({
+        ...original,
+        ...row,
+      })
+    }
+  }
+  return recomputed
+}
+
 export async function adminCreateAttendance({
   employeeId,
   employeeName,
@@ -281,21 +306,32 @@ export async function adminCreateAttendance({
   status,
   reason = '',
   note = '',
+  editNote = '',
+  submittedAt,
+  updatedAt,
   editor,
 }) {
   const resolvedBranchId = branchId || getEmployeeById(employeeId)?.branchId || ''
+  await assertCanEditAttendanceRecordBranch({ branchId: resolvedBranchId }, { date })
+  if (!String(editNote ?? '').trim()) {
+    throw new Error('Vui lòng nhập lý do bổ sung chấm công.')
+  }
   if (resolvedBranchId) {
     await ensureAttendanceForeignKeys(employeeId)
   }
 
   const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
   if (existing) {
-    throw new Error('Nhân viên đã có bản ghi chấm công trong ngày này.')
+    throw new Error('Nhân viên đã có bản ghi chấm công trong ngày này. Không được tạo trùng.')
   }
 
   const monthPrefix = getMonthPrefixFromDate(date)
   const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
   const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+
+  const now = new Date().toISOString()
+  const resolvedSubmittedAt = submittedAt || now
+  const resolvedUpdatedAt = updatedAt || resolvedSubmittedAt
 
   const saved = await insertAttendanceRecord({
     id: createAttendanceId(),
@@ -307,14 +343,15 @@ export async function adminCreateAttendance({
     reason: reason.trim(),
     note: note.trim(),
     penaltyAmount,
-    submittedAt: new Date().toISOString(),
+    submittedAt: resolvedSubmittedAt,
+    updatedAt: resolvedUpdatedAt,
     submittedBy: editor?.editorId ?? editor?.editorName ?? 'admin',
     createdBy: editor?.editorId ?? editor?.editorName ?? 'admin',
   }, {
     onForeignKeyError: () => ensureAttendanceForeignKeys(employeeId),
   })
 
-  notifyDataSynced(['attendance'])
+  notifyAttendanceDataChanged()
 
   await insertAttendanceEditLogs([{
     id: createAttendanceLogId(),
@@ -323,8 +360,8 @@ export async function adminCreateAttendance({
     editorName: editor?.editorName ?? 'Admin',
     fieldName: 'create',
     oldValue: '',
-    newValue: status,
-    note: note.trim(),
+    newValue: `${date}|${status}|${resolvedSubmittedAt}|${resolvedUpdatedAt}`,
+    note: editNote.trim(),
   }])
 
   return saved
@@ -332,70 +369,164 @@ export async function adminCreateAttendance({
 
 export async function adminUpdateAttendance({
   record,
+  nextDate,
   nextStatus,
   nextReason,
   nextNote,
+  nextSubmittedAt,
+  nextUpdatedAt,
   editNote = '',
   editor,
 }) {
+  await assertCanEditAttendanceRecordBranch(record, { date: nextDate ?? record.date })
+  if (!String(editNote ?? '').trim()) {
+    throw new Error('Vui lòng nhập lý do chỉnh sửa.')
+  }
+
+  const resolvedDate = (nextDate ?? record.date ?? '').trim()
+  const resolvedStatus = nextStatus ?? record.status
+  const resolvedReason = (nextReason ?? record.reason ?? '').trim()
+  const resolvedNote = (nextNote ?? record.note ?? '').trim()
+  const resolvedSubmittedAt = nextSubmittedAt ?? record.submittedAt ?? ''
+  const resolvedUpdatedAt = nextUpdatedAt ?? record.updatedAt ?? new Date().toISOString()
+
   const changes = []
-  if (nextStatus !== record.status) {
-    changes.push({ field: 'status', oldValue: record.status, newValue: nextStatus })
+  if (resolvedDate && resolvedDate !== record.date) {
+    changes.push({ field: 'date', oldValue: record.date, newValue: resolvedDate })
   }
-  if ((nextReason ?? '').trim() !== (record.reason ?? '').trim()) {
-    changes.push({ field: 'reason', oldValue: record.reason, newValue: nextReason })
+  if (resolvedStatus !== record.status) {
+    changes.push({ field: 'status', oldValue: record.status, newValue: resolvedStatus })
   }
-  if ((nextNote ?? '').trim() !== (record.note ?? '').trim()) {
-    changes.push({ field: 'note', oldValue: record.note, newValue: nextNote })
+  if (resolvedReason !== (record.reason ?? '').trim()) {
+    changes.push({ field: 'reason', oldValue: record.reason, newValue: resolvedReason })
+  }
+  if (resolvedNote !== (record.note ?? '').trim()) {
+    changes.push({ field: 'note', oldValue: record.note, newValue: resolvedNote })
+  }
+  if (resolvedSubmittedAt && resolvedSubmittedAt !== (record.submittedAt ?? '')) {
+    changes.push({ field: 'check_in', oldValue: record.submittedAt, newValue: resolvedSubmittedAt })
+  }
+  if (resolvedUpdatedAt && resolvedUpdatedAt !== (record.updatedAt ?? '')) {
+    changes.push({ field: 'check_out', oldValue: record.updatedAt, newValue: resolvedUpdatedAt })
   }
 
   if (changes.length === 0) {
     return record
   }
 
-  const monthPrefix = getMonthPrefixFromDate(record.date)
-  const monthRecords = await fetchAttendanceForEmployeeMonth(record.employeeId, monthPrefix)
-  const updatedDraft = monthRecords.map((row) =>
+  if (resolvedDate !== record.date) {
+    const duplicate = await fetchAttendanceByEmployeeAndDate(record.employeeId, resolvedDate)
+    if (duplicate && duplicate.id !== record.id) {
+      throw new Error('Nhân viên đã có bản ghi chấm công trong ngày này. Không được tạo trùng.')
+    }
+  }
+
+  const oldMonthPrefix = getMonthPrefixFromDate(record.date)
+  const newMonthPrefix = getMonthPrefixFromDate(resolvedDate)
+  const oldMonthRecords = await fetchAttendanceForEmployeeMonth(record.employeeId, oldMonthPrefix)
+  const oldDraft = oldMonthRecords.map((row) =>
     row.id === record.id
       ? {
           ...row,
-          status: nextStatus,
-          reason: (nextReason ?? '').trim(),
-          note: (nextNote ?? '').trim(),
+          date: resolvedDate,
+          status: resolvedStatus,
+          reason: resolvedReason,
+          note: resolvedNote,
+          submittedAt: resolvedSubmittedAt,
+          updatedAt: resolvedUpdatedAt,
         }
       : row,
   )
 
-  const recomputed = recomputeMonthlyPenalties(updatedDraft, monthPrefix)
-  const recomputedRecord = recomputed.find((row) => row.id === record.id) ?? {
-    ...record,
-    status: nextStatus,
-    penaltyAmount: 0,
+  let penaltyAmount = record.penaltyAmount ?? 0
+  if (oldMonthPrefix === newMonthPrefix) {
+    const recomputed = recomputeMonthlyPenalties(oldDraft, oldMonthPrefix)
+    penaltyAmount = recomputed.find((row) => row.id === record.id)?.penaltyAmount ?? 0
+  } else {
+    const oldWithoutRecord = oldMonthRecords.filter((row) => row.id !== record.id)
+    await recomputeAndPersistMonthPenalties(record.employeeId, oldMonthPrefix, oldWithoutRecord)
+
+    const newMonthRecords = await fetchAttendanceForEmployeeMonth(record.employeeId, newMonthPrefix)
+    const newDraft = [
+      ...newMonthRecords.filter((row) => row.id !== record.id),
+      {
+        ...record,
+        date: resolvedDate,
+        status: resolvedStatus,
+        reason: resolvedReason,
+        note: resolvedNote,
+        submittedAt: resolvedSubmittedAt,
+        updatedAt: resolvedUpdatedAt,
+      },
+    ]
+    const recomputedNew = recomputeMonthlyPenalties(newDraft, newMonthPrefix)
+    penaltyAmount = recomputedNew.find((row) => row.id === record.id)?.penaltyAmount ?? 0
   }
 
   const saved = await updateAttendanceRecord({
     ...record,
-    status: nextStatus,
-    reason: (nextReason ?? '').trim(),
-    note: (nextNote ?? '').trim(),
-    penaltyAmount: recomputedRecord.penaltyAmount ?? 0,
+    date: resolvedDate,
+    status: resolvedStatus,
+    reason: resolvedReason,
+    note: resolvedNote,
+    submittedAt: resolvedSubmittedAt,
+    updatedAt: resolvedUpdatedAt,
+    penaltyAmount,
   })
 
-  notifyDataSynced(['attendance'])
+  notifyAttendanceDataChanged()
 
   await insertAttendanceEditLogs(
-    buildEditLogs(record.id, editor, changes, editNote || nextNote),
+    buildEditLogs(record.id, editor, changes, editNote || resolvedNote),
   )
 
-  for (const sibling of recomputed.filter((row) => row.id !== record.id)) {
-    const original = monthRecords.find((row) => row.id === sibling.id)
-    if (original && original.penaltyAmount !== sibling.penaltyAmount) {
-      await updateAttendanceRecord({
-        ...original,
-        penaltyAmount: sibling.penaltyAmount,
-      })
+  if (oldMonthPrefix === newMonthPrefix) {
+    const recomputed = recomputeMonthlyPenalties(
+      oldDraft.map((row) => (row.id === record.id ? saved : row)),
+      oldMonthPrefix,
+    )
+    for (const sibling of recomputed.filter((row) => row.id !== record.id)) {
+      const original = oldMonthRecords.find((row) => row.id === sibling.id)
+      if (original && original.penaltyAmount !== sibling.penaltyAmount) {
+        await updateAttendanceRecord({
+          ...original,
+          penaltyAmount: sibling.penaltyAmount,
+        })
+      }
     }
+  } else {
+    const newMonthRecords = await fetchAttendanceForEmployeeMonth(record.employeeId, newMonthPrefix)
+    await recomputeAndPersistMonthPenalties(record.employeeId, newMonthPrefix, newMonthRecords)
   }
 
   return saved
+}
+
+export async function adminVoidAttendance({
+  record,
+  voidType = 'cancelled',
+  editNote = '',
+  editor,
+}) {
+  await assertCanEditAttendanceRecordBranch(record)
+
+  const nextStatus = voidType === 'invalid'
+    ? ATTENDANCE_STATUS.INVALID
+    : ATTENDANCE_STATUS.CANCELLED
+
+  if (record.status === nextStatus) {
+    throw new Error('Bản ghi đã ở trạng thái này.')
+  }
+  if (!String(editNote ?? '').trim()) {
+    throw new Error('Vui lòng nhập lý do hủy / đánh dấu không hợp lệ.')
+  }
+
+  return adminUpdateAttendance({
+    record,
+    nextStatus,
+    nextReason: record.reason,
+    nextNote: editNote.trim(),
+    editNote: editNote.trim(),
+    editor,
+  })
 }

@@ -64,6 +64,16 @@ export function isEmployee() {
   return getCurrentUserRole() === ROLES.EMPLOYEE
 }
 
+export function getAttendanceEditor() {
+  if (isAdmin()) {
+    return { editorId: 'admin', editorName: 'Admin' }
+  }
+  if (isBranchManager()) {
+    return { editorId: getCurrentUserBranch(), editorName: getCurrentUserName() }
+  }
+  return { editorId: getCurrentUserEmployeeId(), editorName: getCurrentUserName() }
+}
+
 export function canSelectBranch() {
   return isAdmin()
 }

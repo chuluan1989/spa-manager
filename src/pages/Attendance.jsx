@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import AttendanceCreateModal from '../components/attendance/AttendanceCreateModal'
 import AttendanceEditModal from '../components/attendance/AttendanceEditModal'
 import AttendanceEmployeeView from '../components/attendance/AttendanceEmployeeView'
@@ -7,8 +7,8 @@ import AttendanceMonthMatrix from '../components/attendance/AttendanceMonthMatri
 import ErpFilterBar from '../components/erp/ErpFilterBar'
 import ErpKpiGrid from '../components/erp/ErpKpiGrid'
 import ErpPageHeader from '../components/erp/ErpPageHeader'
-import { ATTENDANCE_STATUS_OPTIONS, getAttendancePermitLabel, getAttendanceStatusLabel } from '../constants/attendanceTypes'
-import { canAccessAttendancePage, canEditAttendance, canExportReport, canSelectBranch, getCurrentUserBranch, isAdmin, isEmployee } from '../constants/auth'
+import { ATTENDANCE_STATUS_OPTIONS, getAttendancePermitLabel, getAttendanceStatusLabel, isVoidAttendanceStatus } from '../constants/attendanceTypes'
+import { canAccessAttendancePage, canEditAttendance, canExportReport, canSelectBranch, getAttendanceEditor, getCurrentUserBranch, isAdmin, isBranchManager, isEmployee } from '../constants/auth'
 import { getActiveBranches } from '../constants/branches'
 import ExportActions from '../components/common/ExportActions'
 import { exportAttendanceCsv } from '../utils/attendanceExport'
@@ -35,6 +35,9 @@ import {
 } from '../utils/autoAbsentAttendance'
 import { loadSystemSettings } from '../utils/systemSettingsStorage'
 import { runAutoAbsentNightlyJob } from '../utils/autoAbsentAttendanceService'
+import { adminVoidAttendance } from '../utils/attendanceService'
+import { canEditAttendanceRecord } from '../utils/attendanceEditPolicy'
+import { fetchPayrollLocks } from '../repositories/payrollRepository'
 import './Attendance.css'
 
 function formatDate(value) {
@@ -55,6 +58,7 @@ function AttendanceRecordsTable({
   emptyMessage,
   onEdit,
   onCreate,
+  onVoid,
   canEditRow,
 }) {
   return (
@@ -96,19 +100,37 @@ function AttendanceRecordsTable({
               <td>{row.submittedBy || '—'}</td>
               <td>{formatDateTime(row.updatedAt || row.submittedAt)}</td>
               <td>
-                {row.record ? (
+                {row.record && canEditRow(row.branchId, row.date) ? (
+                  <div className="attendance-page__row-actions">
+                    <button type="button" className="attendance-page__edit" onClick={() => onEdit(row.record)}>
+                      Sửa
+                    </button>
+                    {!isVoidAttendanceStatus(row.status) && (
+                      <button
+                        type="button"
+                        className="attendance-page__void"
+                        onClick={() => onVoid(row.record)}
+                      >
+                        Hủy
+                      </button>
+                    )}
+                  </div>
+                ) : row.record && canEditAttendance(row.branchId) ? (
                   <button type="button" className="attendance-page__edit" onClick={() => onEdit(row.record)}>
                     Chi tiết
                   </button>
+                ) : row.record ? (
+                  '—'
                 ) : (
-                  <button
-                    type="button"
-                    className="attendance-page__edit"
-                    onClick={onCreate}
-                    disabled={!canEditRow(row.branchId)}
-                  >
-                    Thêm
-                  </button>
+                  canEditRow(row.branchId, row.date) && (
+                    <button
+                      type="button"
+                      className="attendance-page__edit"
+                      onClick={onCreate}
+                    >
+                      Thêm
+                    </button>
+                  )
                 )}
               </td>
             </tr>
@@ -150,6 +172,17 @@ function AttendancePage() {
   const [creating, setCreating] = useState(false)
   const [autoJobBusy, setAutoJobBusy] = useState(false)
   const [autoJobMessage, setAutoJobMessage] = useState('')
+  const [payrollLocks, setPayrollLocks] = useState([])
+
+  useEffect(() => {
+    fetchPayrollLocks({})
+      .then((rows) => setPayrollLocks(rows ?? []))
+      .catch(() => setPayrollLocks([]))
+  }, [syncVersion])
+
+  const canEditRow = useCallback((recordBranchId, recordDate) => (
+    canEditAttendanceRecord(recordBranchId, recordDate, { locks: payrollLocks })
+  ), [payrollLocks])
 
   useEffect(() => {
     fetchAttendanceServerDate()
@@ -267,6 +300,27 @@ function AttendancePage() {
     exportAttendanceCsv(records, filters)
   }
 
+  const handleVoidRecord = async (record) => {
+    const reason = window.prompt(
+      `Nhập lý do hủy chấm công ngày ${formatDate(record.date)} của ${record.employeeName}:`,
+    )
+    if (!reason?.trim()) {
+      if (reason !== null) window.alert('Vui lòng nhập lý do hủy bản ghi.')
+      return
+    }
+    try {
+      await adminVoidAttendance({
+        record,
+        voidType: 'cancelled',
+        editNote: reason.trim(),
+        editor: getAttendanceEditor(),
+      })
+      reload()
+    } catch (err) {
+      window.alert(err?.message ?? 'Không thể hủy bản ghi chấm công.')
+    }
+  }
+
   const handleRunAutoAbsent = async () => {
     if (!isAdmin()) return
     setAutoJobBusy(true)
@@ -313,7 +367,11 @@ function AttendancePage() {
     <div className="attendance-page erp-page">
       <ErpPageHeader
         title="Chấm công"
-        subtitle="Điểm danh realtime — lọc theo ngày, tháng, chi nhánh và nhân viên."
+        subtitle={
+          isBranchManager()
+            ? 'Quản lý chi nhánh: bổ sung/sửa chấm công khi nhân viên quên chấm, chấm sai giờ/ngày, quên checkout hoặc cần điều chỉnh sau xác minh. Chỉ áp dụng nhân viên chi nhánh của bạn.'
+            : 'Điểm danh realtime — lọc theo ngày, tháng, chi nhánh và nhân viên.'
+        }
         badge={{ value: todayDate ? formatDate(todayDate) : '…', label: 'Hôm nay' }}
         actions={<ExportActions onExportExcel={handleExport} disabled={loading || records.length === 0} />}
       />
@@ -408,7 +466,7 @@ function AttendancePage() {
             <option value="unpermitted">Nghỉ không phép</option>
           </select>
         </label>
-        {canEditAttendance(branchId || getCurrentUserBranch()) && (
+        {canEditRow(getCurrentUserBranch(), todayDate || getTodayDate()) && (
           <button type="button" className="attendance-page__add" onClick={() => setCreating(true)}>
             + Thêm chấm công
           </button>
@@ -455,7 +513,8 @@ function AttendancePage() {
           emptyMessage="Chưa có nhân viên trong phạm vi."
           onEdit={setEditingRecord}
           onCreate={() => setCreating(true)}
-          canEditRow={canEditAttendance}
+          onVoid={handleVoidRecord}
+          canEditRow={canEditRow}
         />
       )}
 
@@ -466,7 +525,7 @@ function AttendancePage() {
             emptyMessage="Chưa có bản ghi chấm công trong phạm vi lọc."
             onEdit={setEditingRecord}
             onCreate={() => setCreating(true)}
-            canEditRow={canEditAttendance}
+            canEditRow={canEditRow}
           />
           {screen === 'month' && (
             <>
@@ -484,6 +543,7 @@ function AttendancePage() {
           employees={employees}
           defaultBranchId={branchId || getCurrentUserBranch()}
           defaultDate={todayDate || getTodayDate()}
+          payrollLocks={payrollLocks}
           onClose={() => setCreating(false)}
           onSaved={reload}
         />
@@ -492,6 +552,7 @@ function AttendancePage() {
       {editingRecord && (
         <AttendanceEditModal
           record={editingRecord}
+          payrollLocks={payrollLocks}
           onClose={() => setEditingRecord(null)}
           onSaved={reload}
         />

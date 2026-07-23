@@ -13,11 +13,14 @@ export const MIN_PASSWORD_LENGTH = 8
 
 const STORAGE_KEY = 'spa-manager-credentials'
 
-function pushCredentialsToSupabase(credentials) {
+async function pushCredentialsToSupabase(credentials) {
   if (!isSupabaseConfigured) return
-  upsertCredentials(credentials).catch((error) => {
+  try {
+    await upsertCredentials(credentials)
+  } catch (error) {
     console.warn('[Supabase] Không thể đồng bộ tài khoản đăng nhập:', error?.message)
-  })
+    throw error
+  }
 }
 
 export const DEFAULT_ADMIN_PASSWORD = 'admin123'
@@ -30,6 +33,7 @@ function buildDefaultCredentials() {
   return {
     admin: DEFAULT_ADMIN_PASSWORD,
     branches: { ...DEFAULT_BRANCH_PASSWORDS },
+    branchPasswordMeta: {},
     employees: {},
   }
 }
@@ -78,6 +82,7 @@ export function loadCredentials() {
     return {
       admin: data.admin ?? DEFAULT_ADMIN_PASSWORD,
       branches: { ...DEFAULT_BRANCH_PASSWORDS, ...(data.branches ?? {}) },
+      branchPasswordMeta: data.branchPasswordMeta ?? {},
       employees: data.employees ?? {},
     }
   } catch {
@@ -94,32 +99,63 @@ export async function ensureCredentialsHashed() {
   if (!needsHash) return current
 
   const normalized = await normalizeCredentials(current)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-  return normalized
+  const stored = {
+    ...normalized,
+    branchPasswordMeta: current.branchPasswordMeta ?? {},
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+  return stored
 }
 
 export function saveCredentials(credentials, { skipRemoteSync = false } = {}) {
   const current = loadCredentials()
   const normalized = {
-    admin: credentials.admin ?? DEFAULT_ADMIN_PASSWORD,
+    admin: credentials.admin ?? current.admin ?? DEFAULT_ADMIN_PASSWORD,
     branches: { ...current.branches, ...(credentials.branches ?? {}) },
+    branchPasswordMeta: {
+      ...(current.branchPasswordMeta ?? {}),
+      ...(credentials.branchPasswordMeta ?? {}),
+    },
     employees: { ...current.employees, ...(credentials.employees ?? {}) },
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-  if (!skipRemoteSync) pushCredentialsToSupabase(normalized)
+  if (!skipRemoteSync) {
+    pushCredentialsToSupabase(normalized).catch((error) => {
+      console.warn('[Supabase] Không thể đồng bộ tài khoản đăng nhập:', error?.message)
+    })
+  }
   return normalized
+}
+
+export async function saveCredentialsAndSync(credentials, { skipRemoteSync = false } = {}) {
+  const saved = saveCredentials(credentials, { skipRemoteSync: true })
+  if (!skipRemoteSync) {
+    await pushCredentialsToSupabase(saved)
+  }
+  return saved
 }
 
 export async function saveCredentialsHashed(credentials, { skipRemoteSync = false } = {}) {
   const current = loadCredentials()
   const normalized = await normalizeCredentials({
-    admin: credentials.admin ?? DEFAULT_ADMIN_PASSWORD,
+    admin: credentials.admin ?? current.admin ?? DEFAULT_ADMIN_PASSWORD,
     branches: { ...current.branches, ...(credentials.branches ?? {}) },
     employees: { ...current.employees, ...(credentials.employees ?? {}) },
   })
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
-  if (!skipRemoteSync) pushCredentialsToSupabase(normalized)
-  return normalized
+  const stored = {
+    ...normalized,
+    branchPasswordMeta: {
+      ...(current.branchPasswordMeta ?? {}),
+      ...(credentials.branchPasswordMeta ?? {}),
+    },
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+  if (!skipRemoteSync) {
+    pushCredentialsToSupabase(stored).catch((error) => {
+      console.warn('[Supabase] Không thể đồng bộ tài khoản đăng nhập:', error?.message)
+    })
+  }
+  return stored
 }
 
 export function getAdminPassword() {
@@ -289,7 +325,14 @@ export async function updateBranchPassword(branchId, password) {
     ...credentials.branches,
     [branchId]: await hashPassword(password),
   }
-  return saveCredentials(credentials)
+  credentials.branchPasswordMeta = {
+    ...(credentials.branchPasswordMeta ?? {}),
+    [branchId]: {
+      passwordUpdatedAt: new Date().toISOString(),
+      customPassword: true,
+    },
+  }
+  return saveCredentialsAndSync(credentials)
 }
 
 export async function syncMissingBranchCredentials() {
@@ -388,7 +431,7 @@ export async function updateEmployeePassword(employeeId, password, confirmPasswo
     },
   }
   try {
-    saveCredentials(credentials)
+    await saveCredentialsAndSync(credentials)
     return { success: true }
   } catch {
     return { success: false, error: 'Không thể lưu mật khẩu' }
@@ -444,7 +487,7 @@ export async function changeOwnEmployeePassword({
     customPassword: true,
   }
   try {
-    saveCredentials(credentials)
+    await saveCredentialsAndSync(credentials)
     return { success: true }
   } catch {
     return { success: false, error: 'Không thể lưu mật khẩu' }
@@ -559,11 +602,56 @@ export function getAccountList() {
   ]
 }
 
+function mergeBranchCredentials(local, remote) {
+  const branches = { ...(local.branches ?? {}) }
+  const branchPasswordMeta = { ...(local.branchPasswordMeta ?? {}) }
+
+  for (const [branchId, remotePassword] of Object.entries(remote.branches ?? {})) {
+    if (!remotePassword) continue
+    const localPassword = branches[branchId]
+    const localMeta = branchPasswordMeta[branchId] ?? {}
+    const remoteMeta = remote.branchPasswordMeta?.[branchId] ?? {}
+
+    if (!localPassword) {
+      branches[branchId] = remotePassword
+      if (remoteMeta.passwordUpdatedAt || remoteMeta.customPassword) {
+        branchPasswordMeta[branchId] = {
+          passwordUpdatedAt: remoteMeta.passwordUpdatedAt ?? null,
+          customPassword: Boolean(remoteMeta.customPassword),
+        }
+      }
+      continue
+    }
+
+    const localAt = Date.parse(localMeta.passwordUpdatedAt ?? 0) || 0
+    const remoteAt = Date.parse(remoteMeta.passwordUpdatedAt ?? 0) || 0
+    const preferRemotePassword = remoteAt > localAt
+      || (remoteAt === localAt && remoteMeta.customPassword && !localMeta.customPassword)
+
+    if (preferRemotePassword) {
+      branches[branchId] = remotePassword
+      branchPasswordMeta[branchId] = {
+        passwordUpdatedAt: remoteMeta.passwordUpdatedAt ?? localMeta.passwordUpdatedAt ?? null,
+        customPassword: Boolean(remoteMeta.customPassword || localMeta.customPassword),
+      }
+    } else {
+      branches[branchId] = localPassword
+      branchPasswordMeta[branchId] = {
+        passwordUpdatedAt: localMeta.passwordUpdatedAt ?? remoteMeta.passwordUpdatedAt ?? null,
+        customPassword: Boolean(localMeta.customPassword || remoteMeta.customPassword),
+      }
+    }
+  }
+
+  return { branches, branchPasswordMeta }
+}
+
 /** pullAll credentials: gộp name/branch; password chỉ lấy từ payload đã lưu (Change/Reset), không regenerate. */
 export function mergeCredentialsPreservingPasswords(localCredentials, remoteCredentials) {
   const local = localCredentials ?? buildDefaultCredentials()
   const remote = remoteCredentials ?? {}
   const employees = { ...(local.employees ?? {}) }
+  const { branches, branchPasswordMeta } = mergeBranchCredentials(local, remote)
 
   for (const [employeeId, remoteEntry] of Object.entries(remote.employees ?? {})) {
     if (!remoteEntry?.password) continue
@@ -599,7 +687,8 @@ export function mergeCredentialsPreservingPasswords(localCredentials, remoteCred
 
   return {
     admin: remote.admin ?? local.admin,
-    branches: { ...(local.branches ?? {}), ...(remote.branches ?? {}) },
+    branches,
+    branchPasswordMeta,
     employees,
   }
 }
