@@ -50,6 +50,20 @@ export default function ChangePasswordForm({
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (saving) return
+
+    if (!form.current.trim()) {
+      setError('Vui lòng nhập mật khẩu cũ')
+      return
+    }
+    if (!form.next.trim()) {
+      setError('Vui lòng nhập mật khẩu mới')
+      return
+    }
+    if (!form.confirm.trim()) {
+      setError('Vui lòng nhập lại mật khẩu mới')
+      return
+    }
+
     setSaving(true)
     setError('')
     try {
@@ -129,9 +143,9 @@ export default function ChangePasswordForm({
         Phiên hiện tại vẫn giữ; lần đăng nhập sau dùng mật khẩu mới.
       </p>
 
-      {renderField('current', 'Mật khẩu hiện tại', 'current-password')}
+      {renderField('current', 'Mật khẩu cũ', 'current-password')}
       {renderField('next', 'Mật khẩu mới', 'new-password')}
-      {renderField('confirm', 'Xác nhận mật khẩu mới', 'new-password')}
+      {renderField('confirm', 'Nhập lại mật khẩu mới', 'new-password')}
 
       {error && (
         <p className="change-password__error" role="alert">
@@ -143,7 +157,7 @@ export default function ChangePasswordForm({
         <button
           type="submit"
           className="change-password__submit"
-          disabled={saving}
+          disabled={saving || !form.current.trim() || !form.next.trim() || !form.confirm.trim()}
         >
           {saving ? 'Đang lưu...' : 'Lưu mật khẩu mới'}
         </button>

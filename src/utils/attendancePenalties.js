@@ -1,4 +1,4 @@
-import { ATTENDANCE_STATUS, getAttendanceStatusConfig } from '../constants/attendanceTypes'
+import { ATTENDANCE_STATUS, getAttendanceStatusConfig, isVoidAttendanceStatus } from '../constants/attendanceTypes'
 
 export function getMonthPrefixFromDate(dateStr) {
   if (!dateStr || dateStr.length < 7) return ''
@@ -60,10 +60,13 @@ function penaltyForPermittedLeaveWithHalfDayCap(statusId, priorPermittedHalfDayU
 
 /** Tính tiền phạt cho một bản ghi mới, dựa trên các bản ghi cùng tháng trước đó. */
 export function calculatePenaltyForNewRecord(statusId, monthRecords, recordDate) {
+  if (isVoidAttendanceStatus(statusId)) return 0
+
   const monthPrefix = getMonthPrefixFromDate(recordDate)
   const prior = monthRecords.filter(
     (record) =>
-      record.status === statusId
+      !isVoidAttendanceStatus(record.status)
+      && record.status === statusId
       && getMonthPrefixFromDate(record.date) === monthPrefix
       && record.date < recordDate,
   )
@@ -73,7 +76,8 @@ export function calculatePenaltyForNewRecord(statusId, monthRecords, recordDate)
     const permittedPriorUnits = monthRecords
       .filter(
         (record) =>
-          getMonthPrefixFromDate(record.date) === monthPrefix
+          !isVoidAttendanceStatus(record.status)
+          && getMonthPrefixFromDate(record.date) === monthPrefix
           && record.date < recordDate
           && isPermittedLeaveStatus(record.status),
       )
@@ -98,6 +102,10 @@ export function recomputeMonthlyPenalties(records, monthPrefix) {
   const counters = new Map()
 
   return sorted.map((record) => {
+    if (isVoidAttendanceStatus(record.status)) {
+      return { ...record, penaltyAmount: 0 }
+    }
+
     if (isPermittedLeaveStatus(record.status)) {
       const unit = getPermittedLeaveUnit(record.status)
       const config = getAttendanceStatusConfig(record.status)
@@ -124,18 +132,19 @@ export function sumAttendancePenalties(records) {
 }
 
 export function buildAttendanceStats(records) {
+  const activeRecords = records.filter((record) => !isVoidAttendanceStatus(record.status))
   const stats = {
-    total: records.length,
+    total: activeRecords.length,
     onTime: 0,
     late: 0,
     early: 0,
     offPermitted: 0,
     offUnpermitted: 0,
     weekend: 0,
-    totalPenalty: sumAttendancePenalties(records),
+    totalPenalty: sumAttendancePenalties(activeRecords),
   }
 
-  for (const record of records) {
+  for (const record of activeRecords) {
     const config = getAttendanceStatusConfig(record.status)
     const group = config?.statGroup ?? ''
     if (group === 'on_time') stats.onTime += 1

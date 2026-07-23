@@ -1,4 +1,4 @@
-import { getAttendanceStatusConfig } from '../constants/attendanceTypes'
+import { getAttendanceStatusConfig, isVoidAttendanceStatus } from '../constants/attendanceTypes'
 import { PAYROLL_ADJUSTMENT_TYPES } from '../constants/payrollTypes'
 import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
 import { getInvoiceServiceDetails, getInvoiceServiceCommission, getInvoiceServiceTotal, getServiceLineCommissionAmount } from './invoice'
@@ -33,6 +33,7 @@ export function computeAttendanceStats(attendanceRecords, employeeId) {
   }
 
   for (const record of attendanceRecords.filter((row) => row.employeeId === employeeId)) {
+    if (isVoidAttendanceStatus(record.status)) continue
     stats.totalRecords += 1
     stats.penaltyAmount += Number(record.penaltyAmount ?? 0)
     const config = getAttendanceStatusConfig(record.status)

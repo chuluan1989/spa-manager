@@ -4,6 +4,7 @@ import {
   verifyBranchPassword,
   verifyEmployeePassword,
   syncEmployeeCredentialForEmployee,
+  loadCredentials,
 } from '../utils/credentialsStorage'
 import { getPasswordBranchName, isBranchActive } from '../utils/branchStorage'
 import { getEmployeeById, isEmployeeActive } from '../utils/employeeStorage'
@@ -104,19 +105,23 @@ export async function verifyLogin({ role, branch, employeeId, password }) {
       getPasswordBranchName(employee.branchId),
     )
     const inputPassword = password.trim().toLowerCase()
+    const credEntry = loadCredentials().employees?.[employeeId]
+    const allowDefaultPassword = !credEntry?.customPassword
     let storedOk = false
     try {
       storedOk = await verifyEmployeePassword(employeeId, password)
     } catch {
       storedOk = false
     }
-    const computedOk = Boolean(expectedPassword) && inputPassword === expectedPassword
+    const computedOk = allowDefaultPassword
+      && Boolean(expectedPassword)
+      && inputPassword === expectedPassword
 
     if (!storedOk && !computedOk) {
       return { ok: false, field: 'password', message: EMPLOYEE_LOGIN_FAIL_MESSAGE }
     }
 
-    if (computedOk && !storedOk) {
+    if (computedOk && !storedOk && allowDefaultPassword) {
       try {
         await syncEmployeeCredentialForEmployee(employeeId)
       } catch {

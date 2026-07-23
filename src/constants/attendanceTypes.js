@@ -13,6 +13,8 @@ export const ATTENDANCE_STATUS = {
   FULL_DAY_WEEKEND: 'full_day_weekend',
   HALF_MORNING_WEEKEND: 'half_morning_weekend',
   HALF_EVENING_WEEKEND: 'half_evening_weekend',
+  CANCELLED: 'cancelled',
+  INVALID: 'invalid',
 }
 
 /** Cấu hình trừ tiền: none | fixed | monthly_free */
@@ -31,7 +33,18 @@ export const ATTENDANCE_STATUS_OPTIONS = [
   { id: ATTENDANCE_STATUS.FULL_DAY_WEEKEND, label: 'Nghỉ nguyên ngày (Thứ 7 - Chủ nhật - Lễ)', statGroup: 'weekend', penaltyType: 'fixed', penaltyAmount: 200000 },
   { id: ATTENDANCE_STATUS.HALF_MORNING_WEEKEND, label: 'Nghỉ 1/2 buổi sáng (Thứ 7 - Chủ nhật - Lễ)', statGroup: 'weekend', penaltyType: 'fixed', penaltyAmount: 100000 },
   { id: ATTENDANCE_STATUS.HALF_EVENING_WEEKEND, label: 'Nghỉ 1/2 buổi tối (Thứ 7 - Chủ nhật - Lễ)', statGroup: 'weekend', penaltyType: 'fixed', penaltyAmount: 100000 },
+  { id: ATTENDANCE_STATUS.CANCELLED, label: 'Đã hủy', statGroup: 'void', penaltyType: 'none' },
+  { id: ATTENDANCE_STATUS.INVALID, label: 'Không hợp lệ', statGroup: 'void', penaltyType: 'none' },
 ]
+
+export function isVoidAttendanceStatus(statusId) {
+  return statusId === ATTENDANCE_STATUS.CANCELLED || statusId === ATTENDANCE_STATUS.INVALID
+}
+
+/** Trạng thái chấm công thực tế — không gồm hủy / không hợp lệ. */
+export function getEditableAttendanceStatusOptions() {
+  return ATTENDANCE_STATUS_OPTIONS.filter((item) => !isVoidAttendanceStatus(item.id))
+}
 
 export function getAttendanceStatusLabel(statusId) {
   return ATTENDANCE_STATUS_OPTIONS.find((item) => item.id === statusId)?.label ?? statusId ?? '—'

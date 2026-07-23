@@ -79,6 +79,7 @@ function normalizeAttendanceRows(rows) {
 
 function buildInsertRow(record) {
   const now = new Date().toISOString()
+  const submittedAt = record.submittedAt ?? now
   return {
     id: record.id,
     employee_id: record.employeeId,
@@ -87,20 +88,23 @@ function buildInsertRow(record) {
     status: record.status ?? '',
     reason: record.reason ?? '',
     penalty_amount: Number(record.penaltyAmount ?? 0),
-    created_at: record.submittedAt ?? now,
-    updated_at: now,
+    created_at: submittedAt,
+    updated_at: record.updatedAt ?? submittedAt ?? now,
     created_by: record.createdBy ?? record.employeeId ?? '',
   }
 }
 
 function buildUpdateRow(record) {
-  return {
+  const row = {
     branch_id: record.branchId ?? null,
     status: record.status ?? '',
     reason: record.reason ?? '',
     penalty_amount: Number(record.penaltyAmount ?? 0),
-    updated_at: new Date().toISOString(),
+    updated_at: record.updatedAt ?? new Date().toISOString(),
   }
+  if (record.date) row.attendance_date = record.date
+  if (record.submittedAt) row.created_at = record.submittedAt
+  return row
 }
 
 export async function fetchAttendanceServerDate() {
@@ -229,6 +233,17 @@ export async function updateAttendanceRecord(record) {
 
   if (error) throwAttendanceError('update', queryDesc, error)
   return normalizeAttendanceRow(data)
+}
+
+export async function deleteAttendanceRecord(recordId) {
+  if (!isSupabaseConfigured || !recordId) {
+    throw new Error('Supabase chưa cấu hình.')
+  }
+
+  const queryDesc = describeQuery('delete().eq(id)', { id: recordId })
+  const { error } = await supabase.from(ATTENDANCE_TABLE).delete().eq('id', recordId)
+  if (error) throwAttendanceError('delete', queryDesc, error)
+  return true
 }
 
 export async function insertAttendanceEditLogs(logs) {
