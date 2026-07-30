@@ -31,7 +31,7 @@ import {
 function buildAccountSummary(employee) {
   const branchId = employee.branchId ?? ''
   const username = getEmployeeLoginUsername(employee)
-  const defaultPassword = computeEmployeeDefaultPasswordFromUsername(username, branchId)
+  const defaultPassword = computeEmployeeDefaultPasswordFromUsername(employee.name, branchId)
   const entry = loadCredentials().employees?.[employee.id]
   return {
     username,

@@ -2,13 +2,8 @@ import {
   assignEmployeeUsernames,
   branchManagerDefaultPassword,
   branchManagerUsername,
-  normalizeLoginText,
+  employeeDefaultPassword,
 } from './loginRules'
-
-/** NV — mật khẩu khởi tạo: username + 123456 */
-function employeeInitDefaultPassword(loginUsername) {
-  return `${normalizeLoginText(loginUsername)}123456`
-}
 import { isEmployeeLoginEligible, loadEmployees } from '../utils/employeeStorage'
 import { loadBranches } from '../constants/branches'
 import { hashPassword } from '../utils/passwordHash'
@@ -59,7 +54,7 @@ export async function buildRegeneratedCredentials(currentAdminPassword) {
       continue
     }
 
-    const plain = employeeInitDefaultPassword(username)
+    const plain = employeeDefaultPassword(employee.name, employee.branchId)
     employeesCred[employee.id] = {
       branchId: employee.branchId ?? '',
       name: employee.name ?? '',

@@ -2,6 +2,7 @@ import { PRICE_GROUP_IDS } from '../constants/priceGroupIds'
 import {
   CANONICAL_BRANCHES,
   CANONICAL_BRANCH_IDS,
+  DEPRECATED_BRANCH_IDS,
   getCanonicalBranchName,
   getPasswordBranchName,
   getDefaultBranchId,
@@ -142,7 +143,9 @@ export function getBranchName(branchId) {
 }
 
 export function getActiveBranches() {
-  return loadBranches().filter((branch) => branch.status === BRANCH_STATUS.ACTIVE)
+  return loadBranches().filter(
+    (branch) => branch.status === BRANCH_STATUS.ACTIVE && !DEPRECATED_BRANCH_IDS.includes(branch.id),
+  )
 }
 
 /** 8 chi nhánh chuẩn CN1–CN8, đảm bảo đủ trước khi hiển thị Admin/Lương. */

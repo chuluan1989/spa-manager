@@ -1,4 +1,8 @@
-import { getPasswordBranchName, resolveCanonicalBranchId } from '../constants/canonicalBranches'
+import {
+  CANONICAL_BRANCH_BY_ID,
+  getPasswordBranchName,
+  resolveCanonicalBranchId,
+} from '../constants/canonicalBranches'
 import { loadBranches } from '../constants/branches'
 
 /** Chuẩn hóa chuỗi đăng nhập / mật khẩu: bỏ dấu, lowercase, chỉ a-z0-9. */
@@ -17,9 +21,12 @@ export function branchManagerUsername(branchId) {
   return normalizeLoginText(String(branchId ?? '').replace(/-/g, ''))
 }
 
-/** QL chi nhánh: tramspa123 */
+/** QL chi nhánh: mật khẩu chuẩn từ cấu hình (vd: tramspa, khoespasoctrang). */
 export function branchManagerDefaultPassword(branchId) {
-  return `${branchManagerUsername(branchId)}123`
+  const canonicalId = resolveCanonicalBranchId(branchId)
+  const canonical = CANONICAL_BRANCH_BY_ID[canonicalId]
+  if (canonical?.managerPassword) return canonical.managerPassword
+  return branchManagerUsername(branchId)
 }
 
 /** NV: Hồng Thương → hongthuong */
@@ -27,12 +34,15 @@ export function employeeUsernameFromName(fullName) {
   return normalizeLoginText(fullName)
 }
 
-/** NV: username + tên chi nhánh (vd: hongthuongvinhlong, thanhtramspa) */
-export function employeeDefaultPassword(loginUsername, branchId) {
+/**
+ * NV: tên hồ sơ hiện tại + tên chi nhánh (passwordName).
+ * Ví dụ: "Thuý An" + "Sóc Trăng" → thuyansoctrang
+ */
+export function employeeDefaultPassword(employeeName, branchId) {
   const branchPart = normalizeLoginText(
     getPasswordBranchName(resolveCanonicalBranchId(branchId)),
   )
-  return normalizeLoginText(loginUsername) + branchPart
+  return normalizeLoginText(employeeName) + branchPart
 }
 
 /**

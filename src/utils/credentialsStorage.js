@@ -1,9 +1,7 @@
 import { ADMIN_BRANCH, ROLES } from '../constants/roles'
 import {
   allocateEmployeeLoginUsername,
-  computeBranchManagerDefaultPassword,
   computeBranchManagerLoginUsername,
-  computeEmployeeDefaultPasswordFromUsername,
   getEmployeeLoginUsername,
   getStoredEmployeeLoginUsername,
   isEmployeeLoginUsernameAvailable,
@@ -12,7 +10,11 @@ import { assignEmployeeUsernames, branchManagerUsername } from '../login/loginRu
 import { buildRegeneratedCredentials } from '../login/regenerateAllAccounts'
 import { persistCredentialsPayload, upsertCredentials } from '../repositories/credentialsRepository'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { CANONICAL_BRANCHES } from '../constants/canonicalBranches'
+import {
+  CANONICAL_BRANCH_BY_ID,
+  CANONICAL_BRANCHES,
+  resolveCanonicalBranchId,
+} from '../constants/canonicalBranches'
 import { getBranchName, getPasswordBranchName, loadBranches } from './branchStorage'
 import { formatLastLogin, getAccountMeta, loadAccountMetadata } from './accountMetadataStorage'
 import { isEmployeeLoginEligible, loadEmployees } from './employeeStorage'
@@ -43,8 +45,33 @@ async function pushCredentialsToSupabase(credentials) {
 
 export const DEFAULT_ADMIN_PASSWORD = 'admin123'
 
+/** MK quản lý chuẩn từ cấu hình chi nhánh (vd: tramspa, khoespasoctrang). */
+export function getBranchManagerCanonicalPassword(branchId) {
+  const canonicalId = resolveCanonicalBranchId(branchId)
+  const canonical = CANONICAL_BRANCH_BY_ID[canonicalId]
+  if (canonical?.managerPassword) return canonical.managerPassword
+  return `spa-${canonicalId || branchId}`
+}
+
+/** MK mặc định NV = tên hồ sơ hiện tại + tên chi nhánh (không dấu, không khoảng trắng). */
+export function computeEmployeeProfileDefaultPassword(employeeName, branchId) {
+  const namePart = String(employeeName ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]/g, '')
+  const branchPart = String(getPasswordBranchName(branchId) ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]/g, '')
+  return namePart + branchPart
+}
+
 export const DEFAULT_BRANCH_PASSWORDS = Object.fromEntries(
-  CANONICAL_BRANCHES.map((branch) => [branch.id, computeBranchManagerDefaultPassword(branch.id)]),
+  CANONICAL_BRANCHES.map((branch) => [branch.id, branch.managerPassword]),
 )
 
 function buildDefaultCredentials() {
@@ -234,7 +261,7 @@ async function resetEmployeeCredentialToDefault(credentials, employee) {
     || usernames.get(employee.id)
     || allocateEmployeeLoginUsername(employee.name, employee.id)
 
-  const plain = computeEmployeeDefaultPasswordFromUsername(loginUsername, employee.branchId)
+  const plain = computeEmployeeProfileDefaultPassword(employee.name, employee.branchId)
   credentials.employees = {
     ...credentials.employees,
     [employee.id]: {
@@ -251,35 +278,46 @@ async function resetEmployeeCredentialToDefault(credentials, employee) {
 
 async function provisionEmployeeCredentialIfMissing(credentials, employee) {
   const current = credentials.employees?.[employee.id]
-  if (current?.password && current?.loginUsername) {
-    if (current.branchId !== employee.branchId || current.name !== employee.name) {
-      credentials.employees[employee.id] = {
-        ...current,
-        branchId: employee.branchId ?? current.branchId,
-        name: employee.name ?? current.name,
-      }
-      return true
-    }
-    return false
-  }
-
+  const plainPassword = computeEmployeeProfileDefaultPassword(employee.name, employee.branchId)
+  const nextHash = await hashPassword(plainPassword.toLowerCase())
   const { usernames } = assignEmployeeUsernames(
     loadEmployees().filter(isEmployeeLoginEligible),
   )
   const loginUsername = current?.loginUsername
     || usernames.get(employee.id)
     || allocateEmployeeLoginUsername(employee.name, employee.id)
-  const plainPassword = computeEmployeeDefaultPasswordFromUsername(
-    loginUsername,
-    employee.branchId,
-  )
-  credentials.employees[employee.id] = {
+
+  // Hồ sơ hiện tại là SSOT: MK mặc định luôn theo tên + chi nhánh hiện tại.
+  if (current?.password && current.customPassword) {
+    if (current.branchId !== employee.branchId || current.name !== employee.name) {
+      credentials.employees[employee.id] = {
+        ...current,
+        branchId: employee.branchId ?? current.branchId,
+        name: employee.name ?? current.name,
+        loginUsername: current.loginUsername || loginUsername,
+      }
+      return true
+    }
+    return false
+  }
+
+  const next = {
     branchId: employee.branchId ?? '',
     name: employee.name ?? '',
     loginUsername,
-    password: await hashPassword(plainPassword.toLowerCase()),
+    password: nextHash,
     passwordUpdatedAt: null,
     customPassword: false,
+  }
+  const unchanged = current?.password === next.password
+    && current?.branchId === next.branchId
+    && current?.name === next.name
+    && current?.customPassword === false
+  if (unchanged) return false
+
+  credentials.employees[employee.id] = {
+    ...current,
+    ...next,
   }
   return true
 }
@@ -400,7 +438,7 @@ export async function syncMissingBranchCredentials() {
   for (const branch of branches) {
     if (!credentials.branches[branch.id]) {
       credentials.branches[branch.id] = await hashPassword(
-        computeBranchManagerDefaultPassword(branch.id),
+        getBranchManagerCanonicalPassword(branch.id),
       )
       changed = true
     }
@@ -613,7 +651,7 @@ export async function resetEmployeePasswordsByBranch(branchId) {
     employeeResults.push(await resetEmployeeCredentialToDefault(credentials, employee))
   }
 
-  const branchPlain = computeBranchManagerDefaultPassword(branchId)
+  const branchPlain = getBranchManagerCanonicalPassword(branchId)
   credentials.branches = {
     ...credentials.branches,
     [branchId]: await hashPassword(branchPlain),
@@ -660,7 +698,7 @@ export async function resetAllLoginPasswordsToDefault() {
 
   const branchResults = []
   for (const branch of loadBranches()) {
-    const plain = computeBranchManagerDefaultPassword(branch.id)
+    const plain = getBranchManagerCanonicalPassword(branch.id)
     credentials.branches = {
       ...credentials.branches,
       [branch.id]: await hashPassword(plain),
@@ -742,7 +780,7 @@ export async function resetBranchPasswordToDefault(branchId) {
     return { success: false, error: 'Chỉ Admin mới được reset mật khẩu chi nhánh.' }
   }
   const credentials = await ensureCredentialsHashed()
-  const plain = computeBranchManagerDefaultPassword(branchId)
+  const plain = getBranchManagerCanonicalPassword(branchId)
   credentials.branches = {
     ...credentials.branches,
     [branchId]: await hashPassword(plain),
@@ -951,20 +989,20 @@ function mergeBranchCredentials(local, remote) {
 
     const localAt = Date.parse(localMeta.passwordUpdatedAt ?? 0) || 0
     const remoteAt = Date.parse(remoteMeta.passwordUpdatedAt ?? 0) || 0
-    const preferRemotePassword = remoteAt > localAt
-      || (remoteAt === localAt && remoteMeta.customPassword && !localMeta.customPassword)
+    // Hòa timestamp → ưu tiên remote (SSOT sau sync/reset admin).
+    const preferRemotePassword = remoteAt >= localAt
 
     if (preferRemotePassword) {
       branches[branchId] = remotePassword
       branchPasswordMeta[branchId] = {
         passwordUpdatedAt: remoteMeta.passwordUpdatedAt ?? localMeta.passwordUpdatedAt ?? null,
-        customPassword: Boolean(remoteMeta.customPassword || localMeta.customPassword),
+        customPassword: Boolean(remoteMeta.customPassword),
       }
     } else {
       branches[branchId] = localPassword
       branchPasswordMeta[branchId] = {
         passwordUpdatedAt: localMeta.passwordUpdatedAt ?? remoteMeta.passwordUpdatedAt ?? null,
-        customPassword: Boolean(localMeta.customPassword || remoteMeta.customPassword),
+        customPassword: Boolean(localMeta.customPassword),
       }
     }
   }
@@ -1049,8 +1087,8 @@ export function mergeCredentialsPreservingPasswords(localCredentials, remoteCred
 
     const localAt = Date.parse(localEntry.passwordUpdatedAt ?? 0) || 0
     const remoteAt = Date.parse(remoteEntry.passwordUpdatedAt ?? 0) || 0
-    const preferRemotePassword = remoteAt > localAt
-      || (remoteAt === localAt && remoteEntry.customPassword && !localEntry.customPassword)
+    // Hòa timestamp → ưu tiên remote (SSOT sau sync/reset theo hồ sơ).
+    const preferRemotePassword = remoteAt >= localAt
 
     employees[employeeId] = {
       branchId: remoteEntry.branchId || localEntry.branchId || '',
@@ -1062,7 +1100,7 @@ export function mergeCredentialsPreservingPasswords(localCredentials, remoteCred
         : (localEntry.passwordUpdatedAt ?? remoteEntry.passwordUpdatedAt ?? null),
       customPassword: Boolean(
         preferRemotePassword ? remoteEntry.customPassword : localEntry.customPassword,
-      ) || Boolean(remoteEntry.customPassword) || Boolean(localEntry.customPassword),
+      ),
     }
   }
 
