@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings, X } from 'lucide-react'
+import { Eye, EyeOff, Settings, X } from 'lucide-react'
 import EmployeeProfileForm from './EmployeeProfileForm'
 import { getActiveBranches, getBranchById } from '../../constants/branches'
 import {
@@ -20,6 +20,11 @@ import {
   transferEmployeeLifecycle,
 } from '../../services/employeeLifecycleService'
 import {
+  resetEmployeePasswordToDefault,
+  updateEmployeeLoginUsername,
+  updateEmployeePassword,
+} from '../../utils/credentialsStorage'
+import {
   archiveEmployee,
   deleteEmployee,
   EMPLOYEE_STATUS,
@@ -31,8 +36,16 @@ import {
   updateEmployee,
 } from '../../utils/employeeStorage'
 import { PERMANENT_DELETE_BLOCKED_MESSAGE } from '../../utils/employeeDeleteGuard'
+import { getEmployeeLoginUsername } from '../../utils/loginUsername'
 import { redactEmployeeForViewer } from '../../utils/employeeVisibility'
 import './EmployeeHubSettings.css'
+
+const EMPTY_LOGIN_FORM = {
+  username: '',
+  password: '',
+  showPassword: false,
+  saving: false,
+}
 
 function employeeToForm(employee) {
   const { id: _id, ...form } = normalizeEmployee(employee)
@@ -58,6 +71,7 @@ export default function EmployeeHubSettings({
     approver: '',
   })
   const [statusValue, setStatusValue] = useState(EMPLOYEE_STATUS.ACTIVE)
+  const [loginForm, setLoginForm] = useState(EMPTY_LOGIN_FORM)
 
   if (!open) return null
 
@@ -65,6 +79,7 @@ export default function EmployeeHubSettings({
   const allowAdd = canAddEmployee()
   const allowTransfer = canChangeEmployeeBranch()
   const allowAdminActions = canDeleteEmployee() && isAdmin()
+  const allowLoginManage = isAdmin()
 
   const reset = () => {
     setMode('menu')
@@ -72,6 +87,7 @@ export default function EmployeeHubSettings({
     setErrors({})
     setTransfer({ branchId: '', effectiveDate: '', reason: '', note: '', approver: getCurrentUserName() })
     setStatusValue(EMPLOYEE_STATUS.ACTIVE)
+    setLoginForm(EMPTY_LOGIN_FORM)
   }
 
   const closeAll = () => {
@@ -157,6 +173,106 @@ export default function EmployeeHubSettings({
     }
     setStatusValue(selectedEmployee.status || EMPLOYEE_STATUS.ACTIVE)
     setMode('status')
+  }
+
+  const openLogin = () => {
+    if (!selectedEmployee) {
+      showToast('Chọn nhân viên trước')
+      return
+    }
+    if (!allowLoginManage) {
+      showToast('Chỉ Admin mới quản lý đăng nhập nhân viên')
+      return
+    }
+    setLoginForm({
+      username: getEmployeeLoginUsername(selectedEmployee),
+      password: '',
+      showPassword: false,
+      saving: false,
+    })
+    setMode('login')
+  }
+
+  const handleSaveLogin = async (e) => {
+    e.preventDefault()
+    if (!selectedEmployeeId || loginForm.saving) return
+
+    const nextUsername = String(loginForm.username ?? '').trim().toLowerCase()
+    const nextPassword = String(loginForm.password ?? '')
+    const currentUsername = getEmployeeLoginUsername(selectedEmployee)
+    const usernameChanged = nextUsername !== currentUsername
+    const passwordProvided = Boolean(nextPassword.trim())
+
+    if (!usernameChanged && !passwordProvided) {
+      showToast('Không có thay đổi cần lưu')
+      return
+    }
+
+    setLoginForm((prev) => ({ ...prev, saving: true }))
+    try {
+      if (usernameChanged) {
+        const usernameResult = await updateEmployeeLoginUsername(selectedEmployeeId, nextUsername)
+        if (!usernameResult.success) {
+          showToast(usernameResult.error ?? 'Không thể đổi tên đăng nhập')
+          return
+        }
+      }
+
+      if (passwordProvided) {
+        const passwordResult = await updateEmployeePassword(
+          selectedEmployeeId,
+          nextPassword,
+          nextPassword,
+        )
+        if (!passwordResult.success) {
+          showToast(passwordResult.error ?? 'Không thể đổi mật khẩu')
+          return
+        }
+      }
+
+      const parts = []
+      if (usernameChanged) parts.push(`username: ${nextUsername}`)
+      if (passwordProvided) parts.push('đã đặt mật khẩu mới')
+      showToast(`Đã lưu đăng nhập — ${parts.join(', ')}`)
+      onSaved()
+      closeAll()
+    } catch (error) {
+      showToast(error?.message ?? 'Không thể lưu thay đổi đăng nhập')
+    } finally {
+      setLoginForm((prev) => ({ ...prev, saving: false }))
+    }
+  }
+
+  const handleResetLoginPassword = async () => {
+    if (!selectedEmployeeId || loginForm.saving) return
+    const confirmed = window.confirm(
+      `Đặt lại mật khẩu mặc định cho "${selectedEmployee?.name}"?\n`
+      + 'Lần đăng nhập tiếp theo sẽ bắt buộc đổi mật khẩu.',
+    )
+    if (!confirmed) return
+
+    setLoginForm((prev) => ({ ...prev, saving: true }))
+    try {
+      const result = await resetEmployeePasswordToDefault(selectedEmployeeId)
+      if (!result.success) {
+        showToast(result.error ?? 'Không thể đặt lại mật khẩu mặc định')
+        return
+      }
+      setLoginForm((prev) => ({
+        ...prev,
+        username: result.username || prev.username,
+        password: '',
+        showPassword: false,
+      }))
+      showToast(
+        `Đã đặt lại MK mặc định — Username: ${result.username}, MK: ${result.defaultPassword}`,
+      )
+      onSaved()
+    } catch (error) {
+      showToast(error?.message ?? 'Không thể đặt lại mật khẩu mặc định')
+    } finally {
+      setLoginForm((prev) => ({ ...prev, saving: false }))
+    }
   }
 
   const validateForm = (data) => {
@@ -295,6 +411,11 @@ export default function EmployeeHubSettings({
             <button type="button" className="employee-hub-settings__menu-btn" onClick={openEdit} disabled={!selectedEmployee}>
               Sửa hồ sơ nhân viên
             </button>
+            {allowLoginManage && (
+              <button type="button" className="employee-hub-settings__menu-btn" onClick={openLogin} disabled={!selectedEmployee}>
+                Đăng nhập
+              </button>
+            )}
             {allowTransfer && (
               <button type="button" className="employee-hub-settings__menu-btn" onClick={openTransfer} disabled={!selectedEmployee}>
                 Chuyển công tác
@@ -338,6 +459,63 @@ export default function EmployeeHubSettings({
               <button type="button" onClick={() => setMode('menu')}>Quay lại</button>
             </div>
           </div>
+        )}
+
+        {mode === 'login' && (
+          <form className="employee-hub-settings__body" onSubmit={handleSaveLogin} autoComplete="off">
+            <h4 className="employee-hub-settings__section-title">Đăng nhập</h4>
+            <label className="employee-hub-settings__field">
+              <span>Tên đăng nhập</span>
+              <input
+                value={loginForm.username}
+                onChange={(e) => setLoginForm((prev) => ({ ...prev, username: e.target.value }))}
+                placeholder="Tên đăng nhập"
+                autoComplete="off"
+                spellCheck={false}
+                disabled={loginForm.saving}
+              />
+            </label>
+            <label className="employee-hub-settings__field">
+              <span>Mật khẩu</span>
+              <div className="employee-hub-settings__password-wrap">
+                <input
+                  type={loginForm.showPassword ? 'text' : 'password'}
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm((prev) => ({ ...prev, password: e.target.value }))}
+                  placeholder="Để trống nếu không đổi"
+                  autoComplete="new-password"
+                  disabled={loginForm.saving}
+                />
+                <button
+                  type="button"
+                  className="employee-hub-settings__password-toggle"
+                  onClick={() => setLoginForm((prev) => ({ ...prev, showPassword: !prev.showPassword }))}
+                  disabled={loginForm.saving}
+                  aria-label={loginForm.showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                >
+                  {loginForm.showPassword ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+                  <span>{loginForm.showPassword ? 'Ẩn' : 'Hiện'}</span>
+                </button>
+              </div>
+            </label>
+            <div className="employee-hub-settings__divider" />
+            <div className="employee-hub-settings__actions employee-hub-settings__actions--stack">
+              <button
+                type="button"
+                className="employee-hub-settings__secondary"
+                onClick={handleResetLoginPassword}
+                disabled={loginForm.saving}
+              >
+                Đặt lại mật khẩu mặc định
+              </button>
+              <button type="submit" className="employee-hub-settings__primary" disabled={loginForm.saving}>
+                {loginForm.saving ? 'Đang lưu…' : 'Lưu thay đổi'}
+              </button>
+              <button type="button" onClick={() => setMode('menu')} disabled={loginForm.saving}>
+                Quay lại
+              </button>
+            </div>
+          </form>
         )}
 
         {mode === 'transfer' && (

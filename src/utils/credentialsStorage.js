@@ -581,7 +581,7 @@ export async function resetEmployeePasswordsBulk(employeeIds = []) {
       continue
     }
     if (!canMutateEmployeeAccountOnLive(employeeId)) {
-      skipped.push({ employeeId, reason: 'Không phải tài khoản UAT — bỏ qua trên Production' })
+      skipped.push({ employeeId, reason: 'Không đủ quyền thao tác tài khoản này trên môi trường live' })
       continue
     }
     const employee = loadEmployees().find((item) => item.id === employeeId)

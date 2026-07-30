@@ -1,6 +1,7 @@
 import { isSupabaseConfigured } from '../lib/supabaseClient'
+import { isSessionAdmin } from './storageAccess'
 
-/** Prefix ID nhân viên UAT — chỉ các tài khoản này được thao tác trên Preview/Production. */
+/** Prefix ID nhân viên UAT — dùng cho tài khoản thử nghiệm / evidence. */
 export const UAT_LOGIN_V2_PREFIX = 'uat-login-v2-'
 
 export const UAT_LOGIN_V2_EMPLOYEE_IDS = {
@@ -28,20 +29,26 @@ export function isUatEmployeeAccount(account) {
   return Boolean(account?.isEmployee && isUatEmployeeId(account.id))
 }
 
-/** Reset / khóa trên live — chỉ tài khoản UAT. */
-export function canMutateEmployeeAccountOnLive(employeeId) {
+/**
+ * Admin được phép quản lý mọi tài khoản NV thật trên Preview/Production.
+ * Non-admin trên live vẫn chỉ thao tác UAT (nếu có đường gọi khác).
+ */
+export function canMutateEmployeeAccountOnLive(_employeeId) {
+  if (isSessionAdmin()) return true
   if (!isLiveSupabaseEnvironment()) return true
-  return isUatEmployeeId(employeeId)
+  return isUatEmployeeId(_employeeId)
 }
 
 export function canUseBranchWideBulkReset() {
+  if (isSessionAdmin()) return true
   return !isLiveSupabaseEnvironment()
 }
 
 export function canUseSystemWideBulkReset() {
+  if (isSessionAdmin()) return true
   return !isLiveSupabaseEnvironment()
 }
 
 export function liveMutationBlockedMessage(action = 'thao tác này') {
-  return `${action} chỉ được phép với tài khoản UAT (${UAT_LOGIN_V2_PREFIX}*) trên Preview/Production.`
+  return `${action} chỉ được phép với Admin hoặc tài khoản UAT (${UAT_LOGIN_V2_PREFIX}*).`
 }

@@ -32,10 +32,7 @@ import {
 import {
   canUseBranchWideBulkReset,
   canUseSystemWideBulkReset,
-  isLiveSupabaseEnvironment,
   isUatEmployeeAccount,
-  isUatEmployeeId,
-  UAT_LOGIN_V2_PREFIX,
 } from '../../utils/uatAccountGuard'
 
 function Toggle({ checked, disabled, onChange, label }) {
@@ -157,10 +154,6 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
   }
 
   const handleToggleLock = (account) => {
-    if (account.isEmployee && isLiveSupabaseEnvironment() && !isUatEmployeeId(account.id)) {
-      showToast(`Chỉ khóa tài khoản UAT (${UAT_LOGIN_V2_PREFIX}*) trên Preview/Production`)
-      return
-    }
     const nextLocked = account.status !== 'locked'
     if (account.isEmployee) {
       setEmployeeAccountLocked(account.id, nextLocked)
@@ -174,10 +167,6 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
 
   const handleResetToDefault = async (account) => {
     if (account.id === 'admin') return
-    if (account.isEmployee && isLiveSupabaseEnvironment() && !isUatEmployeeId(account.id)) {
-      showToast(`Chỉ reset tài khoản UAT (${UAT_LOGIN_V2_PREFIX}*) trên Preview/Production`)
-      return
-    }
     const confirmed = window.confirm(
       `Reset mật khẩu về mặc định cho "${account.label}"?\n`
       + 'Lần đăng nhập tiếp theo sẽ bắt buộc đổi mật khẩu.',
@@ -394,9 +383,8 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
       <section className="settings__card">
         <h3 className="settings__card-title">Reset mật khẩu hàng loạt</h3>
         <p className="settings__hint">
-          {isLiveSupabaseEnvironment()
-            ? `Preview/Production: chỉ reset tài khoản UAT (${UAT_LOGIN_V2_PREFIX}*). Không dùng reset theo chi nhánh hoặc toàn hệ thống.`
-            : 'Reset về mật khẩu mặc định theo username đã cấp. Lần đăng nhập tiếp theo bắt buộc đổi mật khẩu.'}
+          Reset về mật khẩu mặc định (username hiện tại + mật khẩu theo tên và chi nhánh hiện tại).
+          Lần đăng nhập tiếp theo bắt buộc đổi mật khẩu.
         </p>
         <div className="settings__filters settings__filters--inline">
           <label className="settings__filter-field">
@@ -512,10 +500,6 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
                           type="button"
                           className="settings__btn settings__btn--small settings__btn--secondary"
                           onClick={() => openUsernameModal(account)}
-                          disabled={isLiveSupabaseEnvironment() && !isUatEmployeeId(account.id)}
-                          title={isLiveSupabaseEnvironment() && !isUatEmployeeId(account.id)
-                            ? `Chỉ đổi username tài khoản UAT (${UAT_LOGIN_V2_PREFIX}*)`
-                            : undefined}
                         >
                           Đổi username
                         </button>
