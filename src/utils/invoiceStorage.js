@@ -17,6 +17,7 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteInvoiceRow, upsertInvoice, fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import { notifyDataSynced } from './dataSyncEvents'
 import { ensureBranchAndEmployeeOnServer } from './syncForeignKeys'
+import { canEmployeeServeAtBranch } from './crossBranchSupport'
 import {
   assertCanModifyInvoice,
   recordInvoiceAdminAuditIfNeeded,
@@ -359,21 +360,34 @@ export async function saveInvoice(invoice, options = {}) {
 
     if (isEmployee()) {
       const employeeId = getCurrentUserEmployeeId()
-      const branchId = getCurrentUserBranch()
+      const homeBranchId = getCurrentUserBranch()
+      const servingBranchId = invoice.branchId || homeBranchId
+      if (!canEmployeeServeAtBranch(employeeId, servingBranchId)) {
+        return { success: false, error: 'Bạn không có quyền tạo hóa đơn tại chi nhánh này.' }
+      }
       payload = {
         ...invoice,
-        branchId,
-        branchName: getBranchName(branchId),
+        branchId: servingBranchId,
+        branchName: getBranchName(servingBranchId),
+        homeBranchId,
+        homeBranchName: getBranchName(homeBranchId),
         employeeId,
         employeeName: getEmployeeById(employeeId)?.name ?? invoice.employeeName ?? '',
         supportEmployeeId: '',
         supportEmployeeName: '',
+        enteredBy: getCurrentUserName(),
       }
     }
 
     const branchId = payload.branchId ?? ''
-    if (!isAdmin() && branchId !== getCurrentUserBranch()) {
-      return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
+    if (!isAdmin()) {
+      if (isEmployee()) {
+        if (!canEmployeeServeAtBranch(payload.employeeId, branchId)) {
+          return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
+        }
+      } else if (branchId !== getCurrentUserBranch()) {
+        return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
+      }
     }
 
     const snapshot = normalizeInvoiceCustomerFields(ensureInvoiceSnapshot({
@@ -463,7 +477,8 @@ export function updateInvoice(id, data, currentFromCaller = null, options = {}) 
   }
 
   const scoped = filterByUserBranch([current])
-  if (!isAdmin() && scoped.length === 0) {
+  const employeeOwnsInvoice = isEmployee() && current.employeeId === getCurrentUserEmployeeId()
+  if (!isAdmin() && scoped.length === 0 && !employeeOwnsInvoice) {
     return { success: false, error: 'Bạn không có quyền sửa hóa đơn này.' }
   }
 
@@ -493,8 +508,11 @@ export function updateInvoice(id, data, currentFromCaller = null, options = {}) 
     ...current,
     ...safeData,
     id: current.id,
+    homeBranchId: current.homeBranchId ?? '',
+    homeBranchName: current.homeBranchName ?? '',
     createdAt: current.createdAt,
     updatedAt: new Date().toISOString(),
+    updatedBy: getCurrentUserName(),
   }))
 
   const runUpdate = async () => {

@@ -6,6 +6,9 @@ import { fetchEmployeeById } from '../repositories/employeesRepository'
 /**
  * Kiểm tra chi nhánh + nhân viên đã tồn tại trên Supabase trước khi ghi hóa đơn/hồ sơ.
  * Tuyệt đối không tự tạo nhân viên mới.
+ *
+ * branchId trên hóa đơn = Record Branch (chi nhánh phục vụ khách) — không so với
+ * employees.branch_id hiện tại (cho phép hỗ trợ liên chi nhánh + HĐ lịch sử sau chuyển công tác).
  */
 export async function ensureBranchAndEmployeeOnServer({
   branchId,
@@ -31,8 +34,5 @@ export async function ensureBranchAndEmployeeOnServer({
   const remoteEmployee = await fetchEmployeeById(employeeId)
   if (!remoteEmployee) {
     throw new Error('Nhân viên không tồn tại.')
-  }
-  if (remoteEmployee.branchId && remoteEmployee.branchId !== branchId) {
-    throw new Error('Nhân viên không thuộc chi nhánh này.')
   }
 }

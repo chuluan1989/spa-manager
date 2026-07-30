@@ -159,6 +159,8 @@ export default function AdminEmployeeDetail({
             <div className="salary-report__period-total-grid">
               <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(detail.periodTotals.serviceRevenue)}</strong></div>
               <div><span>Khách yêu cầu</span><strong>{detail.periodTotals.customerRequestedCount ?? 0}</strong></div>
+              <div><span>Tour hỗ trợ liên CN</span><strong>{detail.periodTotals.crossBranchSupportTourCount ?? 0}</strong></div>
+              <div><span>DT hỗ trợ liên CN</span><strong>{formatCurrency(detail.periodTotals.crossBranchSupportRevenue ?? 0)}</strong></div>
               <div><span>Tổng Tips</span><strong className="employee-invoice-row__tips">{formatCurrency(detail.periodTotals.tips)}</strong></div>
               <div><span>Tổng hoa hồng</span><strong className="salary-report__commission">{formatCurrency(detail.periodTotals.serviceCommission)}</strong></div>
               <div><span>Tổng lương</span><strong className="salary-report__salary">{formatCurrency(detail.periodTotals.totalSalary)}</strong></div>

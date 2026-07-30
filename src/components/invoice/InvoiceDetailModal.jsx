@@ -85,7 +85,12 @@ export default function InvoiceDetailModal({ invoice, onClose, onEdit, canEdit }
           <section className="invoice-detail-modal__section">
             <h4>Hệ thống</h4>
             <dl className="invoice-detail-modal__grid">
+              <div><dt>Chi nhánh phục vụ</dt><dd>{invoice.branchName || '—'}</dd></div>
+              {invoice.homeBranchId && invoice.homeBranchId !== invoice.branchId ? (
+                <div><dt>Chi nhánh gốc NV</dt><dd>{invoice.homeBranchName || invoice.homeBranchId}</dd></div>
+              ) : null}
               <div><dt>Người nhập</dt><dd>{invoice.enteredBy || '—'}</dd></div>
+              <div><dt>Người sửa</dt><dd>{invoice.updatedBy || '—'}</dd></div>
               <div><dt>Thời gian tạo</dt><dd>{formatInvoiceDateTime(invoice.createdAt)}</dd></div>
               <div><dt>Thời gian cập nhật</dt><dd>{formatInvoiceDateTime(invoice.updatedAt)}</dd></div>
             </dl>

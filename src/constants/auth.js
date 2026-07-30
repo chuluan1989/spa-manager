@@ -14,6 +14,7 @@ import { loadSystemSettings } from '../utils/systemSettingsStorage'
 import { checkPermission, hasPermission, PERMISSION_KEYS } from '../utils/permissionsStorage'
 import { getInvoiceModifyBlockReason } from '../utils/invoiceEditPolicy'
 import { isPayCycleClosedForRecordDate } from '../utils/payrollPeriodLock'
+import { canEmployeeServeAtBranch } from '../utils/crossBranchSupport'
 import {
   applyRecordFetchScope,
   buildRepositoryFilters,
@@ -340,7 +341,10 @@ export function canEditInvoice(invoice = null, role = getCurrentUserRole(), bran
     if (!settings.allowEmployeeEditOwnInvoice) return false
     if (!invoice) return false
     if (invoice.employeeId !== getCurrentUserEmployeeId()) return false
-    if (invoice.branchId !== getCurrentUserBranch()) return false
+    // HĐ tại CN phục vụ khác (hỗ trợ liên CN) vẫn sửa được nếu là HĐ của chính mình.
+    if (invoice.branchId !== getCurrentUserBranch()) {
+      if (!canEmployeeServeAtBranch(invoice.employeeId, invoice.branchId)) return false
+    }
     return !getInvoiceModifyBlockReason(invoice, { role })
   }
 

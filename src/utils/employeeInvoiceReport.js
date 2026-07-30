@@ -14,6 +14,7 @@ import {
   getPayCycleLabel,
 } from './salaryReport'
 import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
+import { isCrossBranchSupportInvoice } from './crossBranchSupport'
 
 function getSalaryRole(invoice, employeeId) {
   if (employeeId && invoice.supportEmployeeId === employeeId) {
@@ -73,6 +74,8 @@ export function buildEmployeeInvoiceDetailItem(invoice, employeeId) {
   const payment = getInvoicePayment(invoice)
   const commission = getEmployeeCommission(invoice, employeeId, role)
 
+  const isCrossBranchSupport = role === SALARY_ROLES.PRIMARY && isCrossBranchSupportInvoice(invoice)
+
   return {
     invoiceId: invoice.id,
     invoice,
@@ -81,6 +84,9 @@ export function buildEmployeeInvoiceDetailItem(invoice, employeeId) {
     invoiceTime: readInvoiceTime(invoice),
     branchId: invoice.branchId ?? '',
     branchName: invoice.branchName || '—',
+    homeBranchId: invoice.homeBranchId ?? '',
+    homeBranchName: invoice.homeBranchName || '',
+    isCrossBranchSupport,
     customerName: invoice.customerName || '—',
     customerPhone: invoice.customerPhone || '',
     customerRequested: Boolean(invoice.customerRequested),
@@ -150,6 +156,7 @@ export function computeEmployeeInvoiceDetailReport(invoices, employeeId, filters
 
   const days = buildDayGroups(invoiceItems)
 
+  const crossBranchItems = invoiceItems.filter((item) => item.isCrossBranchSupport)
   const periodTotals = days.reduce(
     (acc, day) => {
       acc.invoiceCount += day.invoiceCount
@@ -160,8 +167,19 @@ export function computeEmployeeInvoiceDetailReport(invoices, employeeId, filters
       acc.totalSalary += day.totalSalary
       return acc
     },
-    { invoiceCount: 0, customerRequestedCount: 0, serviceRevenue: 0, tips: 0, serviceCommission: 0, totalSalary: 0 },
+    {
+      invoiceCount: 0,
+      customerRequestedCount: 0,
+      serviceRevenue: 0,
+      tips: 0,
+      serviceCommission: 0,
+      totalSalary: 0,
+      crossBranchSupportTourCount: 0,
+      crossBranchSupportRevenue: 0,
+    },
   )
+  periodTotals.crossBranchSupportTourCount = crossBranchItems.length
+  periodTotals.crossBranchSupportRevenue = crossBranchItems.reduce((sum, row) => sum + row.payment, 0)
 
   const first = employeeInvoices[0]
   const employeeName = first?.employeeName ?? '—'

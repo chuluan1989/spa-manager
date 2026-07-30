@@ -22,6 +22,11 @@ import {
   getEmployeeById,
   isEmployeeInBranch,
 } from '../utils/employeeStorage'
+import {
+  canEmployeeServeAtBranch,
+  canSelectServingBranch,
+  getServingBranchOptions,
+} from '../utils/crossBranchSupport'
 import { getActiveServicesForBranch } from '../utils/serviceStorage'
 import InvoiceDetailModal from '../components/invoice/InvoiceDetailModal'
 import GroupedServicePicker from '../components/invoice/GroupedServicePicker'
@@ -99,10 +104,17 @@ function readInvoiceTimeForForm(invoice) {
 export default function Invoice({ onNavigate }) {
   const lockedBranch = !canSelectBranch()
   const lockedEmployee = isEmployee()
+  const currentEmployeeId = getCurrentUserEmployeeId()
+  const canPickServingBranch = lockedEmployee && canSelectServingBranch(currentEmployeeId)
+  const servingBranchOptions = useMemo(
+    () => (canPickServingBranch ? getServingBranchOptions(currentEmployeeId) : []),
+    [canPickServingBranch, currentEmployeeId],
+  )
   // Quyền tạo HĐ chỉ theo role đăng nhập — không phụ thuộc hồ sơ/chấm công/payroll1.
   const canCreateInvoice = canAddInvoice()
   void onNavigate
   const activeBranchName = getCurrentUserBranchName()
+  const homeBranchName = getBranchById(getCurrentUserBranch())?.name || activeBranchName
   const [form, setForm] = useState(INITIAL_FORM())
   const [selectedIds, setSelectedIds] = useState([])
   const [fallbackServices, setFallbackServices] = useState([])
@@ -273,7 +285,9 @@ export default function Invoice({ onNavigate }) {
 
   const validate = () => {
     const next = {}
-    const branchId = lockedBranch ? getCurrentUserBranch() : form.branchId
+    const branchId = canSelectBranch() || canPickServingBranch
+      ? form.branchId
+      : getCurrentUserBranch()
     const customerName = form.customerName.trim()
     const customerPhone = form.customerPhone.trim()
 
@@ -286,6 +300,10 @@ export default function Invoice({ onNavigate }) {
     if (!branchId) next.branchId = 'Vui lòng chọn chi nhánh'
     if (!form.employeeId) {
       next.employeeId = 'Vui lòng chọn nhân viên'
+    } else if (canPickServingBranch) {
+      if (!canEmployeeServeAtBranch(form.employeeId, branchId)) {
+        next.branchId = 'Chi nhánh phục vụ không hợp lệ cho hỗ trợ liên chi nhánh'
+      }
     } else if (!isEmployeeInBranch(form.employeeId, branchId)) {
       next.employeeId = 'Nhân viên không thuộc chi nhánh đã chọn'
     }
@@ -311,45 +329,64 @@ export default function Invoice({ onNavigate }) {
     setTimeout(() => setToast(''), 3000)
   }
 
-  const buildInvoicePayload = (branchId, branch, employee, existingInvoice = null) => ({
-    date: form.date,
-    invoiceTime: form.invoiceTime,
-    branchId,
-    branchName: branch.name,
-    employeeId: form.employeeId,
-    employeeName: employee.name,
-    supportEmployeeId: existingInvoice?.supportEmployeeId ?? '',
-    supportEmployeeName: existingInvoice?.supportEmployeeName ?? '',
-    customerName: form.customerName.trim(),
-    customerPhone: normalizeCustomerPhone(form.customerPhone),
-    customerRequested: Boolean(form.customerRequested),
-    serviceIds: selectedIds,
-    services: totals.services ?? getSelectedServiceDetails(selectedIds, branchId, fallbackServices, branch.name),
-    tips: totals.tips,
-    paymentMethod,
-    note: form.note.trim(),
-    originalServiceTotal: totals.originalServiceTotal,
-    discountInput: totals.discountInput,
-    discountType: totals.discountType,
-    discountValue: totals.discountValue,
-    discountAmount: totals.discountAmount,
-    serviceTotal: totals.serviceTotal,
-    total: totals.total,
-    commission: totals.serviceCommission,
-    serviceCommission: totals.serviceCommission,
-  })
+  const buildInvoicePayload = (branchId, branch, employee, existingInvoice = null) => {
+    const homeBranchId = existingInvoice?.homeBranchId
+      || employee.branchId
+      || getCurrentUserBranch()
+      || ''
+    const homeBranch = getBranchById(homeBranchId)
+    return {
+      date: form.date,
+      invoiceTime: form.invoiceTime,
+      branchId,
+      branchName: branch.name,
+      homeBranchId,
+      homeBranchName: homeBranch?.name || existingInvoice?.homeBranchName || '',
+      employeeId: form.employeeId,
+      employeeName: employee.name,
+      supportEmployeeId: existingInvoice?.supportEmployeeId ?? '',
+      supportEmployeeName: existingInvoice?.supportEmployeeName ?? '',
+      customerName: form.customerName.trim(),
+      customerPhone: normalizeCustomerPhone(form.customerPhone),
+      customerRequested: Boolean(form.customerRequested),
+      serviceIds: selectedIds,
+      services: totals.services ?? getSelectedServiceDetails(selectedIds, branchId, fallbackServices, branch.name),
+      tips: totals.tips,
+      paymentMethod,
+      note: form.note.trim(),
+      originalServiceTotal: totals.originalServiceTotal,
+      discountInput: totals.discountInput,
+      discountType: totals.discountType,
+      discountValue: totals.discountValue,
+      discountAmount: totals.discountAmount,
+      serviceTotal: totals.serviceTotal,
+      total: totals.total,
+      commission: totals.serviceCommission,
+      serviceCommission: totals.serviceCommission,
+      enteredBy: existingInvoice?.enteredBy || getCurrentUserName(),
+    }
+  }
 
   const handleSave = async () => {
     if (saving) return
     if (!validate()) return
 
-    const branchId = lockedBranch ? getCurrentUserBranch() : form.branchId
+    const branchId = canSelectBranch() || canPickServingBranch
+      ? form.branchId
+      : getCurrentUserBranch()
     const branch = getBranchById(branchId)
     const employee = getEmployeeById(form.employeeId)
     const existingInvoice = editingId ? getInvoiceByIdFromList(editingId) : null
 
-    if (!branch || !employee || !isEmployeeInBranch(form.employeeId, branchId)) {
-      setErrors({ employeeId: 'Nhân viên không thuộc chi nhánh đã chọn' })
+    const employeeOk = canPickServingBranch
+      ? canEmployeeServeAtBranch(form.employeeId, branchId)
+      : isEmployeeInBranch(form.employeeId, branchId)
+    if (!branch || !employee || !employeeOk) {
+      setErrors({
+        employeeId: canPickServingBranch
+          ? 'Chi nhánh phục vụ không hợp lệ'
+          : 'Nhân viên không thuộc chi nhánh đã chọn',
+      })
       return
     }
 
@@ -594,7 +631,14 @@ export default function Invoice({ onNavigate }) {
           <section className="invoice__card invoice__form-section">
             <h3 className="invoice__section-title">B. Thông tin dịch vụ</h3>
             <div className="invoice__fields invoice__fields--grid">
-              {lockedBranch && <BranchBanner branchName={activeBranchName} />}
+              {lockedBranch && !canPickServingBranch && (
+                <BranchBanner branchName={activeBranchName} />
+              )}
+              {canPickServingBranch && (
+                <p className="invoice__hint invoice__field--full">
+                  Chi nhánh gốc: <strong>{homeBranchName}</strong>
+                </p>
+              )}
               <label className="invoice__field">
                 <span>Ngày</span>
                 <input
@@ -623,6 +667,21 @@ export default function Invoice({ onNavigate }) {
                   >
                     <option value="" disabled>Chọn chi nhánh</option>
                     {getActiveBranches().map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                  {errors.branchId && <span className="invoice__error">{errors.branchId}</span>}
+                </label>
+              ) : null}
+              {canPickServingBranch ? (
+                <label className="invoice__field">
+                  <span>Chi nhánh phục vụ khách</span>
+                  <select
+                    value={form.branchId}
+                    onChange={(e) => handleBranchChange(e.target.value)}
+                    className={errors.branchId ? 'invoice__input--error' : ''}
+                  >
+                    {servingBranchOptions.map((b) => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>

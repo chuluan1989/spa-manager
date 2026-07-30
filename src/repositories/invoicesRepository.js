@@ -11,6 +11,7 @@ const SUPABASE_INVOICE_FIELDS = [
   'serviceTotal', 'total', 'commission',
   'originalServiceTotal', 'discountInput', 'discountType', 'discountValue', 'discountAmount',
   'enteredBy', 'invoiceTime', 'createdAt', 'updatedAt',
+  'homeBranchId', 'homeBranchName', 'updatedBy',
 ]
 
 /** Cột có thể thiếu trên production — chỉ strip khi UPSERT, KHÔNG dùng trong ORDER BY. */
@@ -24,6 +25,9 @@ const OPTIONAL_INVOICE_COLUMNS = [
   'discount_value',
   'discount_amount',
   'original_service_total',
+  'home_branch_id',
+  'home_branch_name',
+  'updated_by',
 ]
 
 function toSupabaseInvoicePayload(invoice) {
@@ -80,6 +84,9 @@ async function upsertInvoiceRows(rows) {
       delete next.discount_amount
       delete next.original_service_total
       delete next.customer_phone
+      delete next.home_branch_id
+      delete next.home_branch_name
+      delete next.updated_by
       return next
     })
     ;({ data, error } = await supabase.from(TABLE).upsert(payload, { onConflict: 'id' }).select('id'))
