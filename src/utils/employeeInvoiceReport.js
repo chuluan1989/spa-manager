@@ -79,6 +79,8 @@ export function buildEmployeeInvoiceDetailItem(invoice, employeeId) {
     date: invoice.date,
     displayDate: formatDisplayDate(invoice.date),
     invoiceTime: readInvoiceTime(invoice),
+    branchId: invoice.branchId ?? '',
+    branchName: invoice.branchName || '—',
     customerName: invoice.customerName || '—',
     customerPhone: invoice.customerPhone || '',
     customerRequested: Boolean(invoice.customerRequested),
@@ -163,7 +165,10 @@ export function computeEmployeeInvoiceDetailReport(invoices, employeeId, filters
 
   const first = employeeInvoices[0]
   const employeeName = first?.employeeName ?? '—'
-  const branchName = first?.branchName ?? '—'
+  const branchLabels = [...new Set(
+    employeeInvoices.map((inv) => inv.branchName).filter(Boolean),
+  )]
+  const branchName = branchLabels.length > 0 ? branchLabels.join(' · ') : (first?.branchName ?? '—')
 
   return {
     employeeId,
@@ -174,5 +179,49 @@ export function computeEmployeeInvoiceDetailReport(invoices, employeeId, filters
     toDate: filters.toDate,
     days,
     periodTotals,
+  }
+}
+
+/** Thống kê khách yêu cầu — chỉ tour chính (employeeId), không gộp khách quay lại. */
+export function computeEmployeeCustomerRequestedStats(invoices, employeeId, filters) {
+  const scoped = filterEmployeeReportInvoices(invoices, { ...filters, employeeId })
+  const primaryInvoices = scoped.filter((invoice) => invoice.employeeId === employeeId)
+  const requestedInvoices = primaryInvoices.filter((invoice) => invoice.customerRequested)
+
+  const dailyMap = new Map()
+  const monthlyMap = new Map()
+
+  for (const invoice of primaryInvoices) {
+    const monthKey = invoice.date?.slice(0, 7) ?? ''
+    if (!dailyMap.has(invoice.date)) {
+      dailyMap.set(invoice.date, { date: invoice.date, displayDate: formatDisplayDate(invoice.date), totalTours: 0, requestedCount: 0 })
+    }
+    const day = dailyMap.get(invoice.date)
+    day.totalTours += 1
+    if (invoice.customerRequested) day.requestedCount += 1
+
+    if (monthKey) {
+      if (!monthlyMap.has(monthKey)) {
+        monthlyMap.set(monthKey, { month: monthKey, totalTours: 0, requestedCount: 0 })
+      }
+      const month = monthlyMap.get(monthKey)
+      month.totalTours += 1
+      if (invoice.customerRequested) month.requestedCount += 1
+    }
+  }
+
+  const totalTours = primaryInvoices.length
+  const requestedCount = requestedInvoices.length
+  const requestedRate = totalTours > 0 ? Math.round((requestedCount / totalTours) * 1000) / 10 : null
+
+  return {
+    totalTours,
+    requestedCount,
+    requestedRate,
+    daily: [...dailyMap.values()].sort((a, b) => a.date.localeCompare(b.date)),
+    monthly: [...monthlyMap.values()].sort((a, b) => a.month.localeCompare(b.month)),
+    invoices: requestedInvoices
+      .map((invoice) => buildEmployeeInvoiceDetailItem(invoice, employeeId))
+      .sort((a, b) => b.sortKey.localeCompare(a.sortKey)),
   }
 }

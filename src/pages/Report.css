@@ -84,6 +84,12 @@
   color: var(--ks-text);
 }
 
+.report-table-card__note {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--ks-text-muted);
+}
+
 .report-table-card__empty {
   margin: 0;
   padding: 24px;

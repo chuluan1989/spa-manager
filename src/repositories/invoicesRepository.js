@@ -67,6 +67,7 @@ async function upsertInvoiceRows(rows) {
 
   // Production có thể thiếu updated_at hoặc cột mới — strip và thử lại.
   if (error && /column|schema cache|does not exist/i.test(String(error.message))) {
+    const hadCustomerRequested = rows.some((row) => row.customer_requested != null)
     payload = payload.map((row) => {
       const next = { ...row }
       delete next.updated_at
@@ -82,6 +83,11 @@ async function upsertInvoiceRows(rows) {
       return next
     })
     ;({ data, error } = await supabase.from(TABLE).upsert(payload, { onConflict: 'id' }).select('id'))
+    if (!error && hadCustomerRequested) {
+      console.warn(
+        '[Invoices] customer_requested bị bỏ khi sync — cần chạy migration 0012_invoice_customer_requested.sql trên Supabase.',
+      )
+    }
   }
 
   if (error) throw error

@@ -1,5 +1,6 @@
-import { computeEmployeePayrollRow } from './payrollEngine'
-import { employeeBelongsToBranch, isPayrollListEmployee, recordBelongsToBranch } from './branchEmployeeMatch'
+import { computeEmployeePayrollRow, computeEmployeePayrollBranchSections } from './payrollEngine'
+import { collectEmployeeIdsWithRecordBranchActivity } from './employeeBranchTimeline'
+import { isPayrollListEmployee, recordBelongsToBranch } from './branchEmployeeMatch'
 
 /** Tổng doanh thu thực thu = giá vé sau KM + Tips. */
 export function computeActualRevenue(ticketRevenue, tips) {
@@ -70,8 +71,17 @@ export function computePayrollCostByBranch({
   const scopedInvoices = filterInvoicesForRange(invoices, { fromDate, toDate, branchId })
   const scopedAttendance = filterAttendanceForRange(attendanceRecords, { fromDate, toDate, branchId })
   const scopedAdjustments = filterAdjustmentsForRange(adjustments, { fromDate, toDate, branchId })
+
+  const activityIds = branchId
+    ? collectEmployeeIdsWithRecordBranchActivity(branchId, [
+        ...scopedInvoices,
+        ...scopedAttendance,
+        ...scopedAdjustments,
+      ])
+    : null
+
   const scopedEmployees = employees.filter((employee) => {
-    if (branchId && !employeeBelongsToBranch(employee, branchId)) return false
+    if (activityIds && !activityIds.has(employee.id)) return false
     return isPayrollListEmployee(employee, '')
   })
 
@@ -79,14 +89,45 @@ export function computePayrollCostByBranch({
   let total = 0
 
   for (const employee of scopedEmployees) {
+    if (branchId) {
+      const row = computeEmployeePayrollRow(
+        employee,
+        scopedInvoices,
+        scopedAttendance,
+        scopedAdjustments,
+      )
+      total += row.netSalary
+      byBranch.set(branchId, (byBranch.get(branchId) ?? 0) + row.netSalary)
+      continue
+    }
+
+    const empInvoices = filterInvoicesForRange(invoices, { fromDate, toDate, employeeId: employee.id })
+    const empAttendance = filterAttendanceForRange(attendanceRecords, { fromDate, toDate, employeeId: employee.id })
+    const empAdjustments = filterAdjustmentsForRange(adjustments, { fromDate, toDate, employeeId: employee.id })
+    const sections = computeEmployeePayrollBranchSections(
+      employee,
+      empInvoices,
+      empAttendance,
+      empAdjustments,
+    )
+
+    if (sections?.length) {
+      for (const section of sections) {
+        total += section.netSalary ?? 0
+        const key = section.branchId || 'unknown'
+        byBranch.set(key, (byBranch.get(key) ?? 0) + (section.netSalary ?? 0))
+      }
+      continue
+    }
+
     const row = computeEmployeePayrollRow(
       employee,
-      scopedInvoices,
-      scopedAttendance,
-      scopedAdjustments,
+      empInvoices,
+      empAttendance,
+      empAdjustments,
     )
     total += row.netSalary
-    const key = employee.branchId || 'unknown'
+    const key = row.branchId || employee.branchId || 'unknown'
     byBranch.set(key, (byBranch.get(key) ?? 0) + row.netSalary)
   }
 

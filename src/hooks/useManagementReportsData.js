@@ -11,7 +11,8 @@ import { fetchAttendanceFiltered } from '../repositories/attendanceRepository'
 import { subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 import { useDataSyncVersion } from './useDataSyncVersion'
-import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../utils/employeeStorage'
+import { getActiveEmployeesByBranch } from '../utils/employeeStorage'
+import { collectEmployeeIdsWithRecordBranchActivity } from '../utils/employeeBranchTimeline'
 import { getManagementComparePeriod } from '../utils/managementReports/periodCompare'
 import {
   buildBranchManagementRows,
@@ -178,12 +179,22 @@ export function useManagementReportsData(filters) {
       return (!compare.fromDate || d >= compare.fromDate) && (!compare.toDate || d <= compare.toDate)
     })
 
-    const employeeIdSet = new Set(
-      (scopeBranchId
-        ? getActiveEmployeesByBranch(scopeBranchId)
-        : getAllActiveEmployees()
-      ).map((e) => e.id).filter(Boolean),
-    )
+    const activityRecords = [
+      ...currentInvoices,
+      ...previousInvoices,
+      ...currentAttendance,
+      ...previousAttendance,
+    ]
+    const employeeIdSet = scopeBranchId
+      ? collectEmployeeIdsWithRecordBranchActivity(scopeBranchId, activityRecords)
+      : null
+
+    // Roster: nhân viên có phát sinh tại chi nhánh + nhân viên hiện tại tại chi nhánh
+    if (scopeBranchId && employeeIdSet) {
+      for (const emp of getActiveEmployeesByBranch(scopeBranchId)) {
+        if (emp?.id) employeeIdSet.add(emp.id)
+      }
+    }
 
     const branchRows = buildBranchManagementRows({
       invoices: currentInvoices,

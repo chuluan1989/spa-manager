@@ -26,7 +26,8 @@ import {
 } from '../../constants/auth'
 import { getBranchById, loadBranches } from '../../constants/branches'
 import { buildDefaultDrillFilters, useDrillDownData } from '../../hooks/useDrillDownData'
-import { getActiveEmployeesByBranch, getEmployeeById } from '../../utils/employeeStorage'
+import { getAllActiveEmployees, getEmployeeById } from '../../utils/employeeStorage'
+import { collectEmployeeIdsWithRecordBranchActivity } from '../../utils/employeeBranchTimeline'
 import { computeEmployeeInvoiceDetailReport } from '../../utils/employeeInvoiceReport'
 import {
   buildBranchDrillRows,
@@ -122,10 +123,11 @@ export default function DrillDownExplorer({
     return computeEmployeeInvoiceDetailReport(invoices, scopedFilters.employeeId, scopedFilters)
   }, [invoices, scopedFilters])
 
-  const branchEmployees = useMemo(
-    () => (scopedFilters.branchId ? getActiveEmployeesByBranch(scopedFilters.branchId) : []),
-    [scopedFilters.branchId],
-  )
+  const branchEmployees = useMemo(() => {
+    if (!scopedFilters.branchId) return []
+    const activityIds = collectEmployeeIdsWithRecordBranchActivity(scopedFilters.branchId, invoices)
+    return getAllActiveEmployees().filter((emp) => activityIds.has(emp.id))
+  }, [scopedFilters.branchId, invoices])
 
   const serviceOptions = useMemo(() => {
     if (scopedFilters.branchId) {

@@ -1,6 +1,7 @@
 import { getBranchName } from './branchStorage'
 import { formatCurrency, getInvoiceServiceTotal } from './invoice'
-import { loadEmployees } from './employeeStorage'
+import { getEmployeeById, loadEmployees } from './employeeStorage'
+import { collectEmployeeIdsWithRecordBranchActivity } from './employeeBranchTimeline'
 
 export function aggregateInvoiceBranchSummaries(branches, invoices) {
   return branches.map((branch) => {
@@ -23,32 +24,27 @@ export function aggregateInvoiceBranchSummaries(branches, invoices) {
 }
 
 export function aggregateInvoiceEmployeeSummaries(invoices, branchId) {
-  const employees = loadEmployees().filter((emp) => {
-    if (branchId && emp.branchId !== branchId) return false
-    if (emp.status === 'inactive' || emp.status === 'archived') return false
-    return true
-  })
+  const scopedInvoices = branchId
+    ? invoices.filter((inv) => inv.branchId === branchId)
+    : invoices
 
   const employeeMap = new Map()
 
-  for (const emp of employees) {
-    employeeMap.set(emp.id, {
-      employeeId: emp.id,
-      employeeName: emp.name,
-      branchId: emp.branchId,
-      position: emp.position ?? '',
-      avatar: emp.avatar ?? '',
-      invoiceCount: 0,
-      ticketRevenue: 0,
-      tips: 0,
-    })
-  }
-
-  for (const invoice of invoices) {
-    if (branchId && invoice.branchId !== branchId) continue
-    const ids = [invoice.employeeId, invoice.supportEmployeeId].filter(Boolean)
-    for (const id of ids) {
-      if (!employeeMap.has(id)) continue
+  for (const invoice of scopedInvoices) {
+    for (const id of [invoice.employeeId, invoice.supportEmployeeId].filter(Boolean)) {
+      if (!employeeMap.has(id)) {
+        const emp = getEmployeeById(id)
+        employeeMap.set(id, {
+          employeeId: id,
+          employeeName: emp?.name ?? invoice.employeeName ?? id,
+          branchId: branchId || invoice.branchId || emp?.branchId || '',
+          position: emp?.position ?? '',
+          avatar: emp?.avatar ?? '',
+          invoiceCount: 0,
+          ticketRevenue: 0,
+          tips: 0,
+        })
+      }
       const row = employeeMap.get(id)
       row.invoiceCount += 1
       if (invoice.employeeId === id) {
@@ -58,8 +54,26 @@ export function aggregateInvoiceEmployeeSummaries(invoices, branchId) {
     }
   }
 
+  if (branchId) {
+    const activityIds = collectEmployeeIdsWithRecordBranchActivity(branchId, scopedInvoices)
+    for (const emp of loadEmployees()) {
+      if (emp.status === 'inactive' || emp.status === 'archived') continue
+      if (!activityIds.has(emp.id) || employeeMap.has(emp.id)) continue
+      employeeMap.set(emp.id, {
+        employeeId: emp.id,
+        employeeName: emp.name,
+        branchId,
+        position: emp.position ?? '',
+        avatar: emp.avatar ?? '',
+        invoiceCount: 0,
+        ticketRevenue: 0,
+        tips: 0,
+      })
+    }
+  }
+
   return [...employeeMap.values()]
-    .filter((row) => row.invoiceCount > 0 || employees.some((e) => e.id === row.employeeId))
+    .filter((row) => row.invoiceCount > 0)
     .sort((a, b) => b.ticketRevenue - a.ticketRevenue || a.employeeName.localeCompare(b.employeeName, 'vi'))
 }
 

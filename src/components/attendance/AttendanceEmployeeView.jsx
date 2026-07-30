@@ -7,6 +7,7 @@ import { useAttendanceData } from '../../hooks/useAttendanceData'
 import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import { buildAttendanceStats } from '../../utils/attendancePenalties'
 import { getBranchName } from '../../utils/branchStorage'
+import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import { getEmployeeById } from '../../utils/employeeStorage'
 import { hasCheckedInToday } from '../../utils/attendanceService'
 import {
@@ -261,6 +262,7 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
             <thead>
               <tr>
                 <th>Ngày</th>
+                <th>Chi nhánh</th>
                 <th>Trạng thái</th>
                 <th>Có phép</th>
                 <th>Ghi chú</th>
@@ -273,7 +275,7 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
             <tbody>
               {records.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="attendance-page__empty">
+                  <td colSpan={9} className="attendance-page__empty">
                     Chưa có dữ liệu chấm công trong khoảng đã chọn.
                     {screen !== 'today' && (
                       <>
@@ -294,6 +296,7 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
                 return (
                   <tr key={record.id}>
                     <td>{formatDate(record.date)}</td>
+                    <td>{getPayrollBranchDisplayTitle(record.branchId, getBranchName(record.branchId))}</td>
                     <td>{getAttendanceStatusLabel(record.status)}</td>
                     <td>{getAttendancePermitLabel(record.status)}</td>
                     <td>{record.note || record.reason || '—'}</td>

@@ -23,7 +23,8 @@ import {
   isEmployee,
 } from '../../constants/auth'
 import { getBranchById, loadBranches } from '../../constants/branches'
-import { getActiveEmployeesByBranch } from '../../utils/employeeStorage'
+import { getEmployeeById, getAllActiveEmployees } from '../../utils/employeeStorage'
+import { collectEmployeeIdsWithRecordBranchActivity } from '../../utils/employeeBranchTimeline'
 import { computeEmployeeInvoiceDetailReport } from '../../utils/employeeInvoiceReport'
 import { formatCurrency } from '../../utils/invoice'
 import { setInvoiceEditPrefill } from '../../utils/navigationPrefill'
@@ -160,15 +161,13 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
     error,
   } = useReportExplorerData(appliedFilters)
 
-  const branchEmployees = useMemo(
-    () => (selectedBranchId ? getActiveEmployeesByBranch(selectedBranchId) : []),
-    [selectedBranchId],
-  )
+  const branchEmployees = useMemo(() => {
+    if (!selectedBranchId) return []
+    const activityIds = collectEmployeeIdsWithRecordBranchActivity(selectedBranchId, invoices)
+    return getAllActiveEmployees().filter((emp) => activityIds.has(emp.id))
+  }, [selectedBranchId, invoices])
 
-  const scopedEmployeeRows = useMemo(() => {
-    if (!selectedBranchId) return employeeRows
-    return employeeRows.filter((row) => row.branchId === selectedBranchId)
-  }, [employeeRows, selectedBranchId])
+  const scopedEmployeeRows = useMemo(() => employeeRows, [employeeRows])
 
   const selectedBranchRow = useMemo(
     () => branchRows.find((row) => row.branchId === selectedBranchId) ?? null,

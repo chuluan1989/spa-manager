@@ -12,7 +12,7 @@ import {
   canSelectBranch,
   getCurrentUserBranch,
   getCurrentUserEmployeeId,
-  getScopedBranchId,
+  getRecordFetchBranchFilter,
   isAdmin,
   isEmployee,
   isBranchManager,
@@ -21,7 +21,8 @@ import { usePayrollData } from '../hooks/usePayrollData'
 import { sortBranchesForPayroll, getPayrollBranchDisplayTitle } from '../constants/branchPayrollDisplay'
 import { getCanonicalBranchesForDisplay, getBranchName } from '../utils/branchStorage'
 import { getEmployeeById, EMPLOYEE_STATUS } from '../utils/employeeStorage'
-import { employeeBelongsToBranch, isPayrollListEmployee } from '../utils/branchEmployeeMatch'
+import { isPayrollListEmployee } from '../utils/branchEmployeeMatch'
+import { collectEmployeeIdsWithRecordBranchActivity, employeeCurrentlyAtBranch } from '../utils/employeeBranchTimeline'
 import { buildWalletTimeline, isPayrollMonthLocked } from '../utils/payrollEngine'
 import {
   addPayrollAdjustment,
@@ -101,18 +102,19 @@ function SalaryPage() {
     if (prev?.cycle) setCycle(prev.cycle)
   }
 
-  const fetchBranchId = useMemo(() => {
-    if (isEmployee()) return getScopedBranchId(getCurrentUserBranch())
-    if (level === LEVEL.BRANCHES) return getScopedBranchId('')
-    return getScopedBranchId(selectedBranchId)
-  }, [level, selectedBranchId])
-
   const fetchEmployeeId = useMemo(() => {
     if (level === LEVEL.PROFILE) {
       return isEmployee() ? getCurrentUserEmployeeId() : selectedEmployeeId
     }
     return ''
   }, [level, selectedEmployeeId])
+
+  const fetchBranchId = useMemo(() => {
+    if (fetchEmployeeId) return ''
+    if (isEmployee()) return ''
+    if (level === LEVEL.BRANCHES) return getRecordFetchBranchFilter('')
+    return getRecordFetchBranchFilter(selectedBranchId)
+  }, [level, selectedBranchId, fetchEmployeeId])
 
   const {
     employees,
@@ -264,11 +266,18 @@ function SalaryPage() {
   const scopedEmployeesForModal = useMemo(
     () => employees.filter((emp) => {
       if (!isPayrollListEmployee(emp, '')) return false
-      if (fetchBranchId && !employeeBelongsToBranch(emp, fetchBranchId)) return false
+      if (fetchBranchId) {
+        const activityIds = collectEmployeeIdsWithRecordBranchActivity(fetchBranchId, [
+          ...invoices,
+          ...attendance,
+          ...adjustments,
+        ])
+        if (!employeeCurrentlyAtBranch(emp, fetchBranchId) && !activityIds.has(emp.id)) return false
+      }
       if (isEmployee()) return emp.id === getCurrentUserEmployeeId()
       return true
     }),
-    [employees, fetchBranchId],
+    [employees, fetchBranchId, invoices, attendance, adjustments],
   )
 
   return (

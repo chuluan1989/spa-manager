@@ -253,14 +253,15 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
     if (!employeeId) continue
 
     const employee = getEmployeeById(employeeId)
+    const rowBranchId = filters.branchId || inv.branchId || employee?.branchId || ''
     const ticketRevenue = getInvoicePayment(inv)
     const current = map.get(employeeId) ?? {
       employeeId,
       employeeName: employee?.name ?? inv.employeeName ?? '—',
-      branchId: employee?.branchId ?? inv.branchId,
-      branchName: employee?.branchId
-        ? getBranchName(employee.branchId)
-        : inv.branchName || '—',
+      branchId: rowBranchId,
+      branchName: rowBranchId
+        ? getBranchName(rowBranchId)
+        : (inv.branchName || '—'),
       ticketRevenue: 0,
       customerTotal: 0,
       tips: 0,

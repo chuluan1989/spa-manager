@@ -13,6 +13,7 @@ import { getActiveBranches } from '../constants/branches'
 import ExportActions from '../components/common/ExportActions'
 import { exportAttendanceCsv } from '../utils/attendanceExport'
 import { isEmployeeLoginEligible, loadEmployees } from '../utils/employeeStorage'
+import { collectEmployeeIdsWithRecordBranchActivity, employeeCurrentlyAtBranch } from '../utils/employeeBranchTimeline'
 import { formatCurrency } from '../utils/invoice'
 import { getTodayDate } from '../utils/invoiceStorage'
 import { useAttendanceData } from '../hooks/useAttendanceData'
@@ -235,11 +236,14 @@ function AttendancePage() {
 
   const employees = useMemo(() => {
     const scopedBranch = canSelectBranch() ? branchId : getCurrentUserBranch()
-    return loadEmployees().filter((employee) => {
-      if (!isEmployeeLoginEligible(employee)) return false
-      return !scopedBranch || employee.branchId === scopedBranch
-    })
-  }, [branchId, syncVersion])
+    const eligible = loadEmployees().filter((employee) => isEmployeeLoginEligible(employee))
+    if (!scopedBranch) return eligible
+
+    const idsFromRecords = collectEmployeeIdsWithRecordBranchActivity(scopedBranch, records)
+    return eligible.filter((employee) => (
+      employeeCurrentlyAtBranch(employee, scopedBranch) || idsFromRecords.has(employee.id)
+    ))
+  }, [branchId, records, syncVersion])
 
   const dayRoster = useMemo(() => {
     if (screen !== 'today') return []

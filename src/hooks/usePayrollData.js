@@ -10,8 +10,9 @@ import {
   subscribePayrollChanges,
 } from '../repositories/payrollRepository'
 import { normalizeEmployee } from '../utils/employeeStorage'
+import { collectEmployeeIdsWithRecordBranchActivity, employeeCurrentlyAtBranch } from '../utils/employeeBranchTimeline'
 import { computePayrollReport } from '../utils/payrollEngine'
-import { employeeBelongsToBranch } from '../utils/branchEmployeeMatch'
+import { isPayrollListEmployee } from '../utils/branchEmployeeMatch'
 import { getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 
@@ -39,8 +40,14 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
         throw new Error('Supabase chưa cấu hình. Không thể tải dữ liệu lương.')
       }
 
+      const recordBranchFilter = employeeId ? '' : branchId
       const invoiceRange = getPayPeriodRange(month, cycle)
-      const scope = { fromDate: invoiceRange.fromDate, toDate: invoiceRange.toDate, branchId, employeeId }
+      const scope = {
+        fromDate: invoiceRange.fromDate,
+        toDate: invoiceRange.toDate,
+        branchId: recordBranchFilter,
+        employeeId,
+      }
 
       // Attendance rules:
       // - Kỳ 1: vẫn lấy attendance theo 01–15 để hiển thị thống kê/ngày công,
@@ -51,13 +58,13 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
       const attendanceScope = {
         fromDate: attendanceRange.fromDate,
         toDate: attendanceRange.toDate,
-        branchId,
+        branchId: recordBranchFilter,
         employeeId,
       }
       const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows, remoteEmployees] = await Promise.all([
         fetchInvoicesFiltered(scope),
         fetchAttendanceFiltered(attendanceScope),
-        fetchPayrollAdjustments({ month, branchId, employeeId }),
+        fetchPayrollAdjustments({ month, branchId: recordBranchFilter, employeeId }),
         fetchPayrollLocks({ month }),
         fetchPayrollAuditLogs({ limit: 300 }),
         fetchEmployeesFiltered({}),
@@ -66,7 +73,17 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
 
       const nextEmployees = (remoteEmployees ?? [])
         .map((row) => normalizeEmployee(row))
-        .filter((row) => !branchId || employeeBelongsToBranch(row, branchId))
+        .filter((row) => {
+          if (employeeId) return row.id === employeeId
+          if (!branchId) return true
+          if (employeeCurrentlyAtBranch(row, branchId)) return true
+          const activityIds = collectEmployeeIdsWithRecordBranchActivity(branchId, [
+            ...(Array.isArray(remoteInvoices) ? remoteInvoices : []),
+            ...(Array.isArray(attendanceRows) ? attendanceRows : []),
+            ...(adjustmentRows ?? []),
+          ])
+          return activityIds.has(row.id)
+        })
 
       setEmployees(nextEmployees)
       setInvoices(Array.isArray(remoteInvoices) ? remoteInvoices : [])
@@ -123,18 +140,20 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
     }
   }, [reload])
 
+  const reportBranchFilter = employeeId ? '' : branchId
+
   const report = useMemo(
     () => computePayrollReport({
       month,
       cycle,
-      branchId,
+      branchId: reportBranchFilter,
       employeeId,
       employees,
       invoices,
       attendanceRecords: attendance,
       adjustments,
     }),
-    [month, cycle, branchId, employeeId, employees, invoices, attendance, adjustments],
+    [month, cycle, reportBranchFilter, employeeId, employees, invoices, attendance, adjustments],
   )
 
   return {

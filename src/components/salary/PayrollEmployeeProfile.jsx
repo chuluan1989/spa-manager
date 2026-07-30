@@ -9,6 +9,7 @@ import {
 import { PAY_CYCLES } from '../../utils/salaryReport'
 import { filterWalletByCategory } from '../../utils/payrollEngine'
 import PayrollAuditHistory from './PayrollAuditHistory'
+import PayrollBranchBreakdown from './PayrollBranchBreakdown'
 import PayrollAttendanceStats, {
   PayrollAdjustmentHistory,
   PayrollRevenuePanel,
@@ -199,6 +200,7 @@ export default function PayrollEmployeeProfile({
 
       {view === 'overview' && (
         <div className="salary-profile__overview">
+          <PayrollBranchBreakdown sections={stats?.branchSections} totalStats={stats} />
           <PayrollLiveDashboard stats={stats} attendanceStats={attendanceStats} />
           <PayrollAttendanceStats stats={attendanceStats} cycle={cycle} breakdown={attendanceUnitBreakdown} />
           <div className="salary-profile__history">

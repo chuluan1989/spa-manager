@@ -157,6 +157,8 @@ function buildInvoiceSalaryRow(invoice, employeeId, role = getSalaryRole(invoice
     invoiceId: invoice.id,
     date: invoice.date,
     displayDate: formatDisplayDate(invoice.date),
+    branchId: invoice.branchId ?? '',
+    branchName: invoice.branchName || getBranchName(invoice.branchId) || '—',
     customerName: invoice.customerName || '—',
     salaryRole: role,
     roleLabel: role === SALARY_ROLES.SUPPORT ? 'Hỗ trợ' : 'Chính',
@@ -183,9 +185,12 @@ function buildEmployeeSalaryReport(invoices, employeeId, cycle) {
 
   const first = invoices[0]
   const employee = getEmployeeById(employeeId)
-  const branchName = employee?.branchId
-    ? getBranchName(employee.branchId)
-    : first?.branchName ?? '—'
+  const branchLabels = [...new Set(
+    invoices.map((inv) => inv.branchName || getBranchName(inv.branchId)).filter(Boolean),
+  )]
+  const branchName = branchLabels.length > 0
+    ? branchLabels.join(' · ')
+    : (employee?.branchId ? getBranchName(employee.branchId) : first?.branchName ?? '—')
 
   return {
     employeeId: employeeId || first?.employeeId || '',

@@ -80,6 +80,7 @@ export function PayrollRevenuePanel({ rows, onSelectInvoice }) {
             <thead>
               <tr>
                 <th>Ngày</th>
+                <th>Chi nhánh</th>
                 <th>Khách</th>
                 <th>Dịch vụ</th>
                 <th>Giá vé</th>
@@ -97,6 +98,7 @@ export function PayrollRevenuePanel({ rows, onSelectInvoice }) {
                     {formatDate(row.date)}
                     {row.time && <small>{formatPayrollTime(row.time)}</small>}
                   </td>
+                  <td>{row.branchName || '—'}</td>
                   <td>{row.customerName}</td>
                   <td>{row.services}</td>
                   <td>{formatCurrency(row.ticketRevenue)}</td>

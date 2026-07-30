@@ -12,6 +12,8 @@ import { isEmployeeProfileLocked } from '../utils/employeeProfilePolicy'
 import { loadCurrentUser } from '../utils/authStorage'
 import { loadSystemSettings } from '../utils/systemSettingsStorage'
 import { checkPermission, hasPermission, PERMISSION_KEYS } from '../utils/permissionsStorage'
+import { getInvoiceModifyBlockReason } from '../utils/invoiceEditPolicy'
+import { isPayCycleClosedForRecordDate } from '../utils/payrollPeriodLock'
 
 export { ADMIN_BRANCH, ROLES }
 
@@ -83,6 +85,17 @@ export function getScopedBranchId(selectedBranchId = '') {
   return selectedBranchId
 }
 
+/**
+ * Branch filter khi fetch dữ liệu lịch sử (Design Freeze).
+ * Employee: '' — query theo employee_id; chi nhánh hiển thị từ record.branch_id.
+ * Manager: current branch — query theo record.branch_id.
+ */
+export function getRecordFetchBranchFilter(selectedBranchId = '') {
+  if (isEmployee()) return ''
+  if (isBranchManager()) return getCurrentUserBranch()
+  return selectedBranchId
+}
+
 export function getScopedEmployeeId(selectedEmployeeId = '') {
   if (isEmployee()) return getCurrentUserEmployeeId()
   return selectedEmployeeId
@@ -103,17 +116,17 @@ export function filterByUserScope(
 ) {
   if (isAdmin()) return items
 
-  const branchId = getCurrentUserBranch()
-  if (!branchId) return []
-
-  let scoped = items.filter((item) => getBranchId(item) === branchId)
   if (isEmployee()) {
     const employeeId = getCurrentUserEmployeeId()
-    scoped = scoped.filter((item) =>
+    if (!employeeId) return []
+    return items.filter((item) =>
       getEmployeeId(item) === employeeId || getSupportEmployeeId(item) === employeeId,
     )
   }
-  return scoped
+
+  const branchId = getCurrentUserBranch()
+  if (!branchId) return []
+  return items.filter((item) => getBranchId(item) === branchId)
 }
 
 export function isEmployeeInUserBranch(employee) {
@@ -271,6 +284,12 @@ export function canViewSystemWide(role = getCurrentUserRole(), branchId = getCur
   return checkPermission(PERMISSION_KEYS.VIEW_SYSTEM_WIDE, role, branchId)
 }
 
+export function canAddInvoiceForDate(date, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (!canAddInvoice(role, branchId)) return false
+  if (role === ROLES.ADMIN) return true
+  return !isPayCycleClosedForRecordDate(date)
+}
+
 export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
   // Nhân viên / Quản lý / Admin luôn được tạo HĐ — không phụ thuộc ma trận quyền hay trạng thái hồ sơ/chấm công.
   if (role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE) {
@@ -287,23 +306,30 @@ export function canEditInvoice(invoice = null, role = getCurrentUserRole(), bran
   if (role === ROLES.BRANCH_MANAGER) {
     if (!settings.allowManagerEditBranchInvoice) return false
     if (!invoice) return true
-    return invoice.branchId === getCurrentUserBranch()
+    if (invoice.branchId !== getCurrentUserBranch()) return false
+    return !getInvoiceModifyBlockReason(invoice, { role })
   }
 
   if (role === ROLES.EMPLOYEE) {
     if (!settings.allowEmployeeEditOwnInvoice) return false
     if (!invoice) return false
-    return invoice.employeeId === getCurrentUserEmployeeId()
-      && invoice.branchId === getCurrentUserBranch()
+    if (invoice.employeeId !== getCurrentUserEmployeeId()) return false
+    if (invoice.branchId !== getCurrentUserBranch()) return false
+    return !getInvoiceModifyBlockReason(invoice, { role })
   }
 
   return false
 }
 
-export function canDeleteInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+export function canDeleteInvoice(invoice = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
   const settings = loadSystemSettings()
-  if (settings.onlyAdminDeleteInvoice) return role === ROLES.ADMIN
-  return checkPermission(PERMISSION_KEYS.DELETE_INVOICE, role, branchId)
+  if (settings.onlyAdminDeleteInvoice) {
+    if (role !== ROLES.ADMIN) return false
+    return true
+  }
+  if (!checkPermission(PERMISSION_KEYS.DELETE_INVOICE, role, branchId)) return false
+  if (!invoice || role === ROLES.ADMIN) return true
+  return !getInvoiceModifyBlockReason(invoice, { role })
 }
 
 export function canViewExpense(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {

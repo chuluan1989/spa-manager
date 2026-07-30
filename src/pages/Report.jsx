@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import EmployeeSalaryPanel from '../components/report/EmployeeSalaryPanel'
+import EmployeeCustomerRequestedPanel from '../components/report/EmployeeCustomerRequestedPanel'
 import ReportExplorer from '../components/report/ReportExplorer'
 import ManagementReports from '../components/report/ManagementReports'
 import {
@@ -13,6 +14,7 @@ import '../components/report/ManagementReports.css'
 export default function Report({ onNavigate }) {
   const prefill = consumeDrillDownPrefill()
   const [mode, setMode] = useState('management')
+  const [employeeTab, setEmployeeTab] = useState('salary')
 
   if (!canViewReport()) {
     return (
@@ -27,10 +29,28 @@ export default function Report({ onNavigate }) {
     return (
       <div className="report report--salary">
         <header className="report__hero">
-          <h1 className="report__hero-title">Lương của tôi</h1>
-          <p className="report__hero-desc">Theo dõi doanh số, tips và hoa hồng theo chu kỳ.</p>
+          <h1 className="report__hero-title">Báo cáo của tôi</h1>
+          <p className="report__hero-desc">Theo dõi lương và lượt khách yêu cầu theo chu kỳ.</p>
         </header>
-        <EmployeeSalaryPanel />
+
+        <div className="report-mode-tabs" role="tablist" aria-label="Chế độ báo cáo nhân viên">
+          <button
+            type="button"
+            className={employeeTab === 'salary' ? 'is-active' : ''}
+            onClick={() => setEmployeeTab('salary')}
+          >
+            Lương
+          </button>
+          <button
+            type="button"
+            className={employeeTab === 'requested' ? 'is-active' : ''}
+            onClick={() => setEmployeeTab('requested')}
+          >
+            Khách yêu cầu
+          </button>
+        </div>
+
+        {employeeTab === 'salary' ? <EmployeeSalaryPanel /> : <EmployeeCustomerRequestedPanel />}
       </div>
     )
   }

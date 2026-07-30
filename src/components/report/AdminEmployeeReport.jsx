@@ -10,7 +10,8 @@ import {
   isAdmin,
 } from '../../constants/auth'
 import { loadBranches } from '../../constants/branches'
-import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../../utils/employeeStorage'
+import { getAllActiveEmployees } from '../../utils/employeeStorage'
+import { collectEmployeeIdsWithRecordBranchActivity } from '../../utils/employeeBranchTimeline'
 import { getActiveServicesForBranch, loadServices } from '../../utils/serviceStorage'
 import { formatCurrency } from '../../utils/invoice'
 import { isSupabaseConfigured } from '../../lib/supabaseClient'
@@ -147,7 +148,9 @@ export default function AdminEmployeeReport({ onNavigate }) {
   const effectiveFilters = useMemo(
     () => ({
       ...filters,
-      branchId: lockedBranch ? getCurrentUserBranch() : filters.branchId,
+      branchId: filters.employeeId
+        ? ''
+        : (lockedBranch ? getCurrentUserBranch() : filters.branchId),
     }),
     [filters, lockedBranch],
   )
@@ -206,14 +209,19 @@ export default function AdminEmployeeReport({ onNavigate }) {
     })
   }, [])
 
-  const branchEmployees = useMemo(
-    () => (
-      effectiveFilters.branchId
-        ? getActiveEmployeesByBranch(effectiveFilters.branchId)
-        : getAllActiveEmployees()
-    ),
-    [effectiveFilters.branchId],
-  )
+  const branchEmployees = useMemo(() => {
+    if (effectiveFilters.employeeId) {
+      return getAllActiveEmployees()
+    }
+    if (effectiveFilters.branchId) {
+      const activityIds = collectEmployeeIdsWithRecordBranchActivity(
+        effectiveFilters.branchId,
+        invoices,
+      )
+      return getAllActiveEmployees().filter((emp) => activityIds.has(emp.id))
+    }
+    return getAllActiveEmployees()
+  }, [effectiveFilters.branchId, effectiveFilters.employeeId, invoices])
 
   const serviceOptions = useMemo(() => {
     if (effectiveFilters.branchId) {

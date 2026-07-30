@@ -5,6 +5,7 @@ import {
   canSelectBranch,
   getCurrentUserBranch,
   getCurrentUserBranchName,
+  getRecordFetchBranchFilter,
   getScopedEmployeeId,
   isEmployee,
 } from '../../constants/auth'
@@ -35,10 +36,12 @@ export default function EmployeeSalaryPanel() {
   const effectiveFilters = useMemo(
     () => ({
       ...filters,
-      branchId: lockedBranch ? getCurrentUserBranch() : filters.branchId,
+      branchId: lockedEmployee
+        ? ''
+        : (lockedBranch ? getRecordFetchBranchFilter(filters.branchId) : filters.branchId),
       employeeId: getScopedEmployeeId(filters.employeeId),
     }),
-    [filters, lockedBranch],
+    [filters, lockedBranch, lockedEmployee],
   )
 
   const branchEmployees = useMemo(
@@ -176,6 +179,7 @@ export default function EmployeeSalaryPanel() {
               <div key={invoice.invoiceId} className="salary-report__day">
                 <h4 className="salary-report__day-title">
                   Hóa đơn — {invoice.displayDate}
+                  {invoice.branchName && invoice.branchName !== '—' ? ` · ${invoice.branchName}` : ''}
                   {invoice.salaryRole === 'support' ? ' (hỗ trợ)' : ''}
                   {invoice.customerName !== '—' ? ` (${invoice.customerName})` : ''}
                 </h4>

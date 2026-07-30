@@ -6,8 +6,9 @@ import {
   PAYROLL_WALLET_SOURCE,
 } from '../constants/payrollTypes'
 import { getAttendanceStatusLabel } from '../constants/attendanceTypes'
+import { getPayrollBranchDisplayTitle, getPayrollBranchSortOrder } from '../constants/branchPayrollDisplay'
 import { getBranchName } from './branchStorage'
-import { employeeBelongsToBranch, isPayrollListEmployee, recordBelongsToBranch } from './branchEmployeeMatch'
+import { isPayrollListEmployee, recordBelongsToBranch } from './branchEmployeeMatch'
 import { getInvoiceServiceDetails, getInvoiceServiceCommission, getInvoiceServiceTotal, getServiceLineCommissionAmount } from './invoice'
 import {
   computeAttendanceStats,
@@ -80,6 +81,103 @@ export function computeNetSalary(parts) {
   )
 }
 
+function collectEmployeeRecordBranchIds(invoices, attendanceRecords, adjustments, employeeId) {
+  const ids = new Set()
+  for (const invoice of invoices) {
+    if (invoice.employeeId !== employeeId && invoice.supportEmployeeId !== employeeId) continue
+    const branchId = invoice.branchId ?? ''
+    if (branchId) ids.add(branchId)
+  }
+  for (const row of attendanceRecords) {
+    if (row.employeeId !== employeeId) continue
+    const branchId = row.branchId ?? ''
+    if (branchId) ids.add(branchId)
+  }
+  for (const row of adjustments) {
+    if (row.employeeId !== employeeId) continue
+    const branchId = row.branchId ?? ''
+    if (branchId) ids.add(branchId)
+  }
+  return ids
+}
+
+function filterEmployeeRecordsByBranch(invoices, attendanceRecords, adjustments, employeeId, branchId) {
+  const scopedInvoices = invoices.filter((invoice) => {
+    if (invoice.employeeId !== employeeId && invoice.supportEmployeeId !== employeeId) return false
+    return recordBelongsToBranch(invoice, branchId)
+  })
+  const scopedAttendance = attendanceRecords.filter(
+    (row) => row.employeeId === employeeId && recordBelongsToBranch(row, branchId),
+  )
+  const scopedAdjustments = adjustments.filter(
+    (row) => row.employeeId === employeeId && recordBelongsToBranch(row, branchId),
+  )
+  return { scopedInvoices, scopedAttendance, scopedAdjustments }
+}
+
+function computeEmployeePayrollBranchSection(employee, invoices, attendanceRecords, adjustments, branchId) {
+  const employeeId = employee.id
+  const invoiceTotals = sumEmployeeInvoices(invoices, employeeId)
+  const attendancePenalty = sumAttendancePenalty(attendanceRecords, employeeId)
+  const manualPenalty = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.PENALTY)
+  const bonus = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.BONUS)
+  const reduction = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.REDUCTION)
+  const advance = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.ADVANCE)
+  const otherAdjustment = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT)
+  const parts = {
+    baseSalary: 0,
+    ticketRevenue: invoiceTotals.ticketRevenue,
+    commission: invoiceTotals.commission,
+    tips: invoiceTotals.tips,
+    bonus,
+    reduction,
+    penalty: attendancePenalty + manualPenalty,
+    attendancePenalty,
+    manualPenalty,
+    advance,
+    otherAdjustment,
+  }
+  const { workDays } = computeAttendanceStats(attendanceRecords, employeeId)
+
+  return {
+    branchId,
+    branchName: getPayrollBranchDisplayTitle(branchId, getBranchName(branchId)),
+    invoiceCount: invoiceTotals.invoiceCount,
+    workDays,
+    ...parts,
+    netSalary: computeNetSalary(parts),
+  }
+}
+
+export function computeEmployeePayrollBranchSections(employee, invoices, attendanceRecords, adjustments) {
+  const employeeId = employee.id
+  const branchIds = collectEmployeeRecordBranchIds(invoices, attendanceRecords, adjustments, employeeId)
+  if (branchIds.size <= 1) return null
+
+  return [...branchIds]
+    .sort((a, b) => {
+      const orderDiff = getPayrollBranchSortOrder(a) - getPayrollBranchSortOrder(b)
+      if (orderDiff !== 0) return orderDiff
+      return getBranchName(a).localeCompare(getBranchName(b), 'vi')
+    })
+    .map((branchId) => {
+      const { scopedInvoices, scopedAttendance, scopedAdjustments } = filterEmployeeRecordsByBranch(
+        invoices,
+        attendanceRecords,
+        adjustments,
+        employeeId,
+        branchId,
+      )
+      return computeEmployeePayrollBranchSection(
+        employee,
+        scopedInvoices,
+        scopedAttendance,
+        scopedAdjustments,
+        branchId,
+      )
+    })
+}
+
 export function computeEmployeePayrollRow(employee, invoices, attendanceRecords, adjustments) {
   const employeeId = employee.id
   const scopedInvoices = invoices.filter(
@@ -115,16 +213,23 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
   )
   const paymentSummary = computePayrollPaymentSummary(adjustments, employeeId, netSalary)
   const { workDays } = computeAttendanceStats(attendanceRecords, employeeId)
+  const branchSections = computeEmployeePayrollBranchSections(
+    employee,
+    scopedInvoices,
+    attendanceRecords,
+    adjustments,
+  )
 
   return {
     employeeId,
     employeeName: employee.name ?? '—',
     branchId: employee.branchId ?? '',
-    branchName: getBranchName(employee.branchId) || '—',
+    branchName: getPayrollBranchDisplayTitle(employee.branchId, getBranchName(employee.branchId)) || '—',
     position: employee.position ?? '',
     avatar: employee.avatar ?? '',
     invoiceCount: invoiceTotals.invoiceCount,
     workDays,
+    branchSections,
     ...parts,
     grossBeforeDeduction,
     netSalary,
@@ -144,21 +249,11 @@ export function computePayrollReport({
 }) {
   const { fromDate, toDate } = getPayPeriodRange(month, cycle)
   const scopedInvoices = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId })
-  const scopedEmployees = employees.filter((employee) => {
-    if (employeeId && employee.id !== employeeId) return false
-    if (branchId && !employeeBelongsToBranch(employee, branchId)) return false
-    if (!isPayrollListEmployee(employee, '')) return false
-    return true
-  })
-
-  // AttendanceRecords đã được hook lọc theo đúng logic Kỳ 1/Kỳ 2.
-  // Ở đây chỉ cần lọc theo branch/employee (không lọc theo ngày nữa) để tránh bỏ phần chấm công của cả tháng.
   const scopedAttendance = (attendanceRecords ?? []).filter((row) => {
     if (branchId && !recordBelongsToBranch(row, branchId)) return false
     if (employeeId && row.employeeId !== employeeId) return false
     return true
   })
-
   const scopedAdjustments = (adjustments ?? []).filter((row) => {
     if (row.month !== month) return false
     if (fromDate && row.date < fromDate) return false
@@ -167,6 +262,23 @@ export function computePayrollReport({
     if (employeeId && row.employeeId !== employeeId) return false
     return true
   })
+
+  const branchActivityIds = branchId && !employeeId
+    ? collectEmployeeIdsWithRecordBranchActivity(branchId, [
+        ...scopedInvoices,
+        ...scopedAttendance,
+        ...scopedAdjustments,
+      ])
+    : null
+
+  const scopedEmployees = employees.filter((employee) => {
+    if (employeeId && employee.id !== employeeId) return false
+    if (branchActivityIds && !branchActivityIds.has(employee.id)) return false
+    if (!isPayrollListEmployee(employee, '')) return false
+    return true
+  })
+
+  // AttendanceRecords đã được hook lọc theo đúng logic Kỳ 1/Kỳ 2.
 
   const rows = scopedEmployees
     .map((employee) => computeEmployeePayrollRow(employee, scopedInvoices, scopedAttendance, scopedAdjustments))

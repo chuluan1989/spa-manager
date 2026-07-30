@@ -31,6 +31,12 @@ import { resolveCanonicalBranchId } from '../constants/canonicalBranches'
 import { ROLES } from '../constants/roles'
 import { IMAGE_CATEGORIES, uploadImageFile } from './imageStorage'
 import { notifyDataSynced } from './dataSyncEvents'
+import {
+  getEmployeeBranchAtDate,
+  getCurrentEmployeeBranch,
+} from './employeeBranchTimeline'
+
+export { getEmployeeBranchAtDate, getCurrentEmployeeBranch }
 
 export { IMAGE_CATEGORIES }
 
@@ -936,26 +942,6 @@ export async function archiveEmployee(id) {
 /** @deprecated Dùng archiveEmployee hoặc setEmployeeStatus(RESIGNED). */
 export async function softDeleteEmployee(id) {
   return setEmployeeStatus(id, EMPLOYEE_STATUS.RESIGNED)
-}
-
-/**
- * Xác định chi nhánh của nhân viên tại một ngày (phục vụ đối soát sau chuyển CN).
- * Doanh thu trên hóa đ đơn vẫn gắn branch_id lúc tạo — hàm này dùng cho hiển thị/lịch sử.
- */
-export function getEmployeeBranchAtDate(employee, date) {
-  if (!employee) return ''
-  const history = [...(employee.branchHistory ?? [])]
-    .filter((entry) => entry.effectiveDate || entry.transferDate)
-    .sort((a, b) => String(a.effectiveDate || a.transferDate).localeCompare(String(b.effectiveDate || b.transferDate)))
-
-  let branchId = employee.branchId
-  for (const entry of history) {
-    const effective = entry.effectiveDate || entry.transferDate
-    if (date >= effective && entry.toBranchId) {
-      branchId = entry.toBranchId
-    }
-  }
-  return branchId
 }
 
 export function toSupabaseEmployeePayload(employee) {

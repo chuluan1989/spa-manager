@@ -335,6 +335,12 @@
   color: #6b7280;
 }
 
+.login__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--login-text-muted);
+}
+
 .login__remember {
   display: flex;
   align-items: center;

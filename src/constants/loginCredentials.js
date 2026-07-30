@@ -9,6 +9,7 @@ import {
 import { getPasswordBranchName, isBranchActive } from '../utils/branchStorage'
 import { getEmployeeById, isEmployeeActive } from '../utils/employeeStorage'
 import { isAccountLocked, isEmployeeAccountLocked, recordAccountLogin } from '../utils/accountMetadataStorage'
+import { resolveLoginAccount } from '../utils/loginAccountResolver'
 
 export { ADMIN_BRANCH }
 
@@ -147,4 +148,45 @@ export async function verifyLogin({ role, branch, employeeId, password }) {
 
 export function getEmployeeCredentialKey(employeeId) {
   return `employee:${employeeId}`
+}
+
+/**
+ * Đăng nhập QL chi nhánh / Nhân viên bằng tên đăng nhập + mật khẩu.
+ * Hệ thống tự xác định branch_id từ tài khoản — không cho chọn chi nhánh.
+ */
+export async function verifyLoginWithUsername({ role, username, password }) {
+  if (!role) {
+    return { ok: false, field: 'role', message: 'Vui lòng chọn vai trò' }
+  }
+  if (role === ROLES.ADMIN) {
+    return verifyLogin({ role: ROLES.ADMIN, password })
+  }
+  if (role !== ROLES.BRANCH_MANAGER && role !== ROLES.EMPLOYEE) {
+    return { ok: false, field: 'role', message: 'Vai trò không hợp lệ' }
+  }
+
+  const resolved = resolveLoginAccount(username)
+  if (!resolved.ok) {
+    return resolved
+  }
+  if (resolved.role !== role) {
+    return {
+      ok: false,
+      field: 'username',
+      message: role === ROLES.BRANCH_MANAGER
+        ? 'Tài khoản không phải quản lý chi nhánh'
+        : 'Tài khoản không phải nhân viên',
+    }
+  }
+
+  if (role === ROLES.BRANCH_MANAGER) {
+    return verifyLogin({ role, branch: resolved.branch, password })
+  }
+
+  return verifyLogin({
+    role,
+    branch: resolved.branch,
+    employeeId: resolved.employeeId,
+    password,
+  })
 }

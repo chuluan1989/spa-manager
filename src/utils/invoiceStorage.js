@@ -17,6 +17,10 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteInvoiceRow, upsertInvoice, fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import { notifyDataSynced } from './dataSyncEvents'
 import { ensureBranchAndEmployeeOnServer } from './syncForeignKeys'
+import {
+  assertCanModifyInvoice,
+  recordInvoiceAdminAuditIfNeeded,
+} from './invoiceEditPolicy'
 
 const DUPLICATE_INVOICE_MESSAGE =
   'Hóa đơn này có dấu hiệu bị nhập trùng nhiều lần. Vui lòng kiểm tra lại.'
@@ -340,7 +344,7 @@ export function replaceAllInvoices(invoices) {
   return list
 }
 
-export async function saveInvoice(invoice) {
+export async function saveInvoice(invoice, options = {}) {
   if (!canAddInvoice()) {
     return { success: false, error: 'Bạn không có quyền thêm hóa đơn.' }
   }
@@ -378,6 +382,12 @@ export async function saveInvoice(invoice) {
       createdAt: payload.createdAt ?? new Date().toISOString(),
     }))
 
+    try {
+      await assertCanModifyInvoice(snapshot, { editReason: options.editReason })
+    } catch (error) {
+      return { success: false, error: error?.message ?? 'Không thể lưu hóa đơn.' }
+    }
+
     if (!isSupabaseConfigured) {
       const duplicateCount = await countDuplicateInvoices(snapshot)
       if (duplicateCount >= 2) {
@@ -392,13 +402,13 @@ export async function saveInvoice(invoice) {
       return { success: true, invoice: snapshot, invoices }
     }
 
-    return await saveInvoiceRemote(snapshot)
+    return await saveInvoiceRemote(snapshot, options)
   } finally {
     saveInvoiceInFlight = false
   }
 }
 
-async function saveInvoiceRemote(snapshot) {
+async function saveInvoiceRemote(snapshot, options = {}) {
   const duplicateKey = buildInvoiceDuplicateKey(snapshot)
   let guardStarted = false
   try {
@@ -414,6 +424,13 @@ async function saveInvoiceRemote(snapshot) {
       employeeId: snapshot.employeeId ?? '',
     })
     await pushInvoiceToSupabase(snapshot)
+    await recordInvoiceAdminAuditIfNeeded({
+      invoice: snapshot,
+      action: 'create',
+      oldValue: {},
+      newValue: snapshot,
+      editReason: options.editReason,
+    })
     logInvoiceSave('save OK', snapshot)
   } catch (error) {
     logInvoiceSaveError('save', snapshot, error)
@@ -428,7 +445,7 @@ async function saveInvoiceRemote(snapshot) {
   return { success: true, invoice: snapshot, invoices: loadInvoices() }
 }
 
-export function updateInvoice(id, data, currentFromCaller = null) {
+export function updateInvoice(id, data, currentFromCaller = null, options = {}) {
   const current = currentFromCaller ?? getInvoiceById(id)
   if (!current) {
     return { success: false, error: 'Không tìm thấy hóa đơn.' }
@@ -480,32 +497,52 @@ export function updateInvoice(id, data, currentFromCaller = null) {
     updatedAt: new Date().toISOString(),
   }))
 
-  if (!isSupabaseConfigured) {
-    if (index === -1) {
-      invoices.unshift(updated)
-    } else {
-      invoices[index] = updated
+  const runUpdate = async () => {
+    try {
+      await assertCanModifyInvoice(current, { editReason: options.editReason })
+      if (updated.date !== current.date) {
+        await assertCanModifyInvoice(updated, { editReason: options.editReason })
+      }
+    } catch (error) {
+      return { success: false, error: error?.message ?? 'Không thể cập nhật hóa đơn.' }
     }
-    if (!writeInvoiceCache(invoices, { action: 'updateLocal', id })) {
-      return { success: false, error: 'Không thể cập nhật hóa đơn trên bộ nhớ máy (LocalStorage đầy).' }
+
+    if (!isSupabaseConfigured) {
+      if (index === -1) {
+        invoices.unshift(updated)
+      } else {
+        invoices[index] = updated
+      }
+      if (!writeInvoiceCache(invoices, { action: 'updateLocal', id })) {
+        return { success: false, error: 'Không thể cập nhật hóa đơn trên bộ nhớ máy (LocalStorage đầy).' }
+      }
+      notifyDataSynced(['invoices'])
+      return { success: true, invoice: updated, invoices }
     }
-    notifyDataSynced(['invoices'])
-    return { success: true, invoice: updated, invoices }
+
+    return updateInvoiceRemote(updated, current, options)
   }
 
   updateInvoiceInFlightId = updated.id
-  return updateInvoiceRemote(updated).finally(() => {
+  return runUpdate().finally(() => {
     updateInvoiceInFlightId = null
   })
 }
 
-async function updateInvoiceRemote(updated) {
+async function updateInvoiceRemote(updated, previous, options = {}) {
   try {
     await ensureBranchAndEmployeeOnServer({
       branchId: updated.branchId ?? '',
       employeeId: updated.employeeId ?? '',
     })
     await pushInvoiceToSupabase(updated)
+    await recordInvoiceAdminAuditIfNeeded({
+      invoice: updated,
+      action: 'update',
+      oldValue: previous ?? {},
+      newValue: updated,
+      editReason: options.editReason,
+    })
     logInvoiceSave('update OK', updated)
   } catch (error) {
     logInvoiceSaveError('update', updated, error)
@@ -517,7 +554,7 @@ async function updateInvoiceRemote(updated) {
   return { success: true, invoice: updated, invoices: loadInvoices() }
 }
 
-export function deleteInvoice(id, currentFromCaller = null) {
+export function deleteInvoice(id, currentFromCaller = null, options = {}) {
   if (!canDeleteInvoice()) {
     return { success: false, error: 'Bạn không có quyền xóa hóa đơn.' }
   }
@@ -532,20 +569,37 @@ export function deleteInvoice(id, currentFromCaller = null) {
     return { success: false, error: 'Bạn không có quyền xóa hóa đơn này.' }
   }
 
-  if (!isSupabaseConfigured) {
-    const invoices = loadInvoices().filter((inv) => inv.id !== id)
-    if (!writeInvoiceCache(invoices, { action: 'deleteLocal', id })) {
-      return { success: false, error: 'Không thể xoá hóa đơn trên bộ nhớ máy (LocalStorage đầy).' }
+  const runDelete = async () => {
+    try {
+      await assertCanModifyInvoice(current, { editReason: options.editReason })
+    } catch (error) {
+      return { success: false, error: error?.message ?? 'Không thể xoá hóa đơn.' }
     }
-    notifyDataSynced(['invoices'])
-    return { success: true, invoices }
+
+    if (!isSupabaseConfigured) {
+      const invoices = loadInvoices().filter((inv) => inv.id !== id)
+      if (!writeInvoiceCache(invoices, { action: 'deleteLocal', id })) {
+        return { success: false, error: 'Không thể xoá hóa đơn trên bộ nhớ máy (LocalStorage đầy).' }
+      }
+      notifyDataSynced(['invoices'])
+      return { success: true, invoices }
+    }
+
+    return deleteInvoiceRemote(id, current, options)
   }
 
-  return deleteInvoiceRemote(id)
+  return runDelete()
 }
 
-async function deleteInvoiceRemote(id) {
+async function deleteInvoiceRemote(id, previous, options = {}) {
   try {
+    await recordInvoiceAdminAuditIfNeeded({
+      invoice: previous,
+      action: 'delete',
+      oldValue: previous ?? {},
+      newValue: {},
+      editReason: options.editReason,
+    })
     await pushInvoiceDeletionToSupabase(id)
   } catch (error) {
     return { success: false, error: error?.message ?? 'Không thể xoá hóa đơn trên máy chủ.' }

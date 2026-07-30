@@ -68,7 +68,7 @@ export function buildRevenueInsights(row) {
   pushFactor('customers', row.customerTrend, 'Khách tăng', 'Khách giảm')
   pushFactor('ticket', row.averageTicketTrend, 'Invoice TB tăng', 'Invoice TB giảm')
   pushFactor('tips', row.tipsTrend, 'Tips tăng', 'Tips giảm')
-  pushFactor('requested', row.requestedRateTrend, 'Tỷ lệ khách yêu cầu tăng', 'Tỷ lệ khách yêu cầu giảm')
+  pushFactor('requested', row.customerRequestedTourRateTrend, 'Tỷ lệ khách yêu cầu/tour tăng', 'Tỷ lệ khách yêu cầu/tour giảm')
 
   if (items.length === 0) {
     items.push({
@@ -106,7 +106,11 @@ function trendScore(trend, preferUp) {
  * TOP tăng / TOP giảm theo doanh thu hoặc tỷ lệ khách yêu cầu.
  */
 export function buildTopMovers(rows, { metric = 'revenue', limit = 5 } = {}) {
-  const trendKey = metric === 'requestedRate' ? 'requestedRateTrend' : 'revenueTrend'
+  const trendKey = metric === 'requestedRate'
+    ? 'requestedRateTrend'
+    : metric === 'customerRequestedTourRate'
+      ? 'customerRequestedTourRateTrend'
+      : 'revenueTrend'
   const list = Array.isArray(rows) ? rows : []
 
   const gainers = [...list]

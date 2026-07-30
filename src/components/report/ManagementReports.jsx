@@ -43,7 +43,7 @@ function TrendCell({ trend, previousValue, formatPrev }) {
 
 function TopMoversPanel({ title, rows, onSelect }) {
   const byRevenue = buildTopMovers(rows, { metric: 'revenue', limit: 5 })
-  const byRequested = buildTopMovers(rows, { metric: 'requestedRate', limit: 5 })
+  const byRequested = buildTopMovers(rows, { metric: 'customerRequestedTourRate', limit: 5 })
 
   const RowList = ({ list, trendKey, empty }) => (
     <ul className="mgmt-top__list">
@@ -73,11 +73,11 @@ function TopMoversPanel({ title, rows, onSelect }) {
         </div>
         <div>
           <h4>TOP tăng · Tỷ lệ YC</h4>
-          <RowList list={byRequested.gainers} trendKey="requestedRateTrend" empty="Không có" />
+          <RowList list={byRequested.gainers} trendKey="customerRequestedTourRateTrend" empty="Không có" />
         </div>
         <div>
           <h4>TOP giảm · Tỷ lệ YC</h4>
-          <RowList list={byRequested.losers} trendKey="requestedRateTrend" empty="Không có" />
+          <RowList list={byRequested.losers} trendKey="customerRequestedTourRateTrend" empty="Không có" />
         </div>
       </div>
     </section>
@@ -136,16 +136,13 @@ export default function ManagementReports({ onNavigate }) {
   const filteredEmployees = useMemo(() => {
     const q = filters.employeeQuery.trim().toLowerCase()
     let rows = data.employeeRows ?? []
-    if (filters.branchId) {
-      rows = rows.filter((row) => row.branchId === filters.branchId)
-    }
     if (q) {
       rows = rows.filter((row) =>
         `${row.name} ${row.branchName}`.toLowerCase().includes(q),
       )
     }
     return sortRows(rows, filters.sortKey, filters.sortDir)
-  }, [data.employeeRows, filters.branchId, filters.employeeQuery, filters.sortKey, filters.sortDir])
+  }, [data.employeeRows, filters.employeeQuery, filters.sortKey, filters.sortDir])
 
   const filteredBranches = useMemo(() => {
     let rows = data.branchRows ?? []
@@ -336,8 +333,9 @@ export default function ManagementReports({ onNavigate }) {
                   <th><button type="button" onClick={() => toggleSort('revenue')}>Doanh thu</button></th>
                   <th>Tăng/giảm</th>
                   <th><button type="button" onClick={() => toggleSort('totalCustomerCount')}>Tổng khách</button></th>
-                  <th><button type="button" onClick={() => toggleSort('requestedCustomerCount')}>Khách yêu cầu</button></th>
-                  <th><button type="button" onClick={() => toggleSort('requestedRate')}>Tỷ lệ YC</button></th>
+                  <th><button type="button" onClick={() => toggleSort('invoiceCount')}>Tổng tour</button></th>
+                  <th><button type="button" onClick={() => toggleSort('customerRequestedTourCount')}>Khách yêu cầu</button></th>
+                  <th><button type="button" onClick={() => toggleSort('customerRequestedTourRate')}>Tỷ lệ YC/tour</button></th>
                   <th><button type="button" onClick={() => toggleSort('tips')}>Tips</button></th>
                   <th><button type="button" onClick={() => toggleSort('averageRevenuePerCustomer')}>DT/khách</button></th>
                 </tr>
@@ -359,14 +357,15 @@ export default function ManagementReports({ onNavigate }) {
                       />
                     </td>
                     <td className="is-num">{row.totalCustomerCount}</td>
-                    <td className="is-num">{row.requestedCustomerCount}</td>
-                    <td className="is-num">{formatRate(row.requestedRate)}</td>
+                    <td className="is-num">{row.invoiceCount}</td>
+                    <td className="is-num">{row.customerRequestedTourCount}</td>
+                    <td className="is-num">{formatRate(row.customerRequestedTourRate)}</td>
                     <td className="is-num">{formatMoneyOrDash(row.tips)}</td>
                     <td className="is-num">{formatMoneyOrDash(row.averageRevenuePerCustomer)}</td>
                   </tr>
                 ))}
                 {!data.loading && filteredBranches.length === 0 && (
-                  <tr><td colSpan={8} className="mgmt-empty">Không có dữ liệu chi nhánh.</td></tr>
+                  <tr><td colSpan={9} className="mgmt-empty">Không có dữ liệu chi nhánh.</td></tr>
                 )}
               </tbody>
             </table>
@@ -382,8 +381,9 @@ export default function ManagementReports({ onNavigate }) {
                 <div><dt>Doanh thu</dt><dd className={`mgmt-kpi is-${resolveKpiTone(selectedBranch.revenueTrend)}`}>{formatMoneyOrDash(selectedBranch.revenue)}</dd></div>
                 <div><dt>vs kỳ trước</dt><dd><TrendCell trend={selectedBranch.revenueTrend} previousValue={selectedBranch.previous?.revenue} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>Tổng khách</dt><dd>{selectedBranch.totalCustomerCount}</dd></div>
-                <div><dt>Khách yêu cầu</dt><dd>{selectedBranch.requestedCustomerCount}</dd></div>
-                <div><dt>Tỷ lệ YC</dt><dd>{formatRate(selectedBranch.requestedRate)} <TrendCell trend={selectedBranch.requestedRateTrend} previousValue={selectedBranch.previous?.requestedRate} formatPrev={formatRate} /></dd></div>
+                <div><dt>Khách yêu cầu (lượt tour)</dt><dd>{selectedBranch.customerRequestedTourCount}</dd></div>
+                <div><dt>Tổng tour</dt><dd>{selectedBranch.invoiceCount}</dd></div>
+                <div><dt>Tỷ lệ YC/tour</dt><dd>{formatRate(selectedBranch.customerRequestedTourRate)} <TrendCell trend={selectedBranch.customerRequestedTourRateTrend} previousValue={selectedBranch.previous?.customerRequestedTourRate} formatPrev={formatRate} /></dd></div>
                 <div><dt>Tips</dt><dd>{formatMoneyOrDash(selectedBranch.tips)} <TrendCell trend={selectedBranch.tipsTrend} previousValue={selectedBranch.previous?.tips} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>DT/khách</dt><dd>{formatMoneyOrDash(selectedBranch.averageRevenuePerCustomer)}</dd></div>
                 <div><dt>Invoice TB</dt><dd>{formatMoneyOrDash(selectedBranch.averageTicket)} <TrendCell trend={selectedBranch.averageTicketTrend} previousValue={selectedBranch.previous?.averageTicket} formatPrev={formatMoneyOrDash} /></dd></div>
@@ -423,7 +423,7 @@ export default function ManagementReports({ onNavigate }) {
                         >
                           {emp.name}
                         </button>
-                        <span>{formatRate(emp.requestedRate)}</span>
+                        <span>{formatRate(emp.customerRequestedTourRate)}</span>
                         <strong>{formatMoneyOrDash(emp.revenue)}</strong>
                       </li>
                     ))}
@@ -456,8 +456,9 @@ export default function ManagementReports({ onNavigate }) {
                   <th><button type="button" onClick={() => toggleSort('revenue')}>Doanh thu</button></th>
                   <th>Tăng/giảm</th>
                   <th><button type="button" onClick={() => toggleSort('totalCustomerCount')}>Tổng khách</button></th>
-                  <th><button type="button" onClick={() => toggleSort('requestedCustomerCount')}>Khách yêu cầu</button></th>
-                  <th><button type="button" onClick={() => toggleSort('requestedRate')}>Tỷ lệ YC</button></th>
+                  <th><button type="button" onClick={() => toggleSort('invoiceCount')}>Tổng tour</button></th>
+                  <th><button type="button" onClick={() => toggleSort('customerRequestedTourCount')}>Khách yêu cầu</button></th>
+                  <th><button type="button" onClick={() => toggleSort('customerRequestedTourRate')}>Tỷ lệ YC/tour</button></th>
                   <th><button type="button" onClick={() => toggleSort('tips')}>Tips</button></th>
                   <th><button type="button" onClick={() => toggleSort('averageRevenuePerCustomer')}>DT/khách</button></th>
                 </tr>
@@ -480,15 +481,16 @@ export default function ManagementReports({ onNavigate }) {
                       />
                     </td>
                     <td className="is-num">{row.totalCustomerCount}</td>
-                    <td className="is-num">{row.requestedCustomerCount}</td>
-                    <td className="is-num">{formatRate(row.requestedRate)}</td>
+                    <td className="is-num">{row.invoiceCount}</td>
+                    <td className="is-num">{row.customerRequestedTourCount}</td>
+                    <td className="is-num">{formatRate(row.customerRequestedTourRate)}</td>
                     <td className="is-num">{formatMoneyOrDash(row.tips)}</td>
                     <td className="is-num">{formatMoneyOrDash(row.averageRevenuePerCustomer)}</td>
                   </tr>
                 ))}
                 {!data.loading && filteredEmployees.length === 0 && (
                   <tr>
-                    <td colSpan={filters.branchId || !isAdmin() ? 8 : 9} className="mgmt-empty">
+                    <td colSpan={filters.branchId || !isAdmin() ? 9 : 10} className="mgmt-empty">
                       Không có dữ liệu nhân viên.
                     </td>
                   </tr>
@@ -508,15 +510,17 @@ export default function ManagementReports({ onNavigate }) {
                 <div><dt>Doanh thu</dt><dd className={`mgmt-kpi is-${resolveKpiTone(selectedEmployee.revenueTrend)}`}>{formatMoneyOrDash(selectedEmployee.revenue)}</dd></div>
                 <div><dt>vs kỳ trước</dt><dd><TrendCell trend={selectedEmployee.revenueTrend} previousValue={selectedEmployee.previous?.revenue} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>Tổng khách</dt><dd>{selectedEmployee.totalCustomerCount}</dd></div>
-                <div><dt>Khách yêu cầu</dt><dd>{selectedEmployee.requestedCustomerCount}</dd></div>
-                <div><dt>Tỷ lệ YC</dt><dd>{formatRate(selectedEmployee.requestedRate)} <TrendCell trend={selectedEmployee.requestedRateTrend} previousValue={selectedEmployee.previous?.requestedRate} formatPrev={formatRate} /></dd></div>
+                <div><dt>Khách yêu cầu (lượt tour)</dt><dd>{selectedEmployee.customerRequestedTourCount}</dd></div>
+                <div><dt>Tổng tour</dt><dd>{selectedEmployee.invoiceCount}</dd></div>
+                <div><dt>Tỷ lệ YC/tour</dt><dd>{formatRate(selectedEmployee.customerRequestedTourRate)} <TrendCell trend={selectedEmployee.customerRequestedTourRateTrend} previousValue={selectedEmployee.previous?.customerRequestedTourRate} formatPrev={formatRate} /></dd></div>
                 <div><dt>Tips</dt><dd>{formatMoneyOrDash(selectedEmployee.tips)} <TrendCell trend={selectedEmployee.tipsTrend} previousValue={selectedEmployee.previous?.tips} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>DT/khách</dt><dd>{formatMoneyOrDash(selectedEmployee.averageRevenuePerCustomer)}</dd></div>
                 <div><dt>Invoice TB</dt><dd>{formatMoneyOrDash(selectedEmployee.averageTicket)} <TrendCell trend={selectedEmployee.averageTicketTrend} previousValue={selectedEmployee.previous?.averageTicket} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>Ngày làm hợp lệ</dt><dd>{selectedEmployee.workDays}</dd></div>
                 <div><dt>DT/ngày làm</dt><dd>{formatMoneyOrDash(selectedEmployee.averageRevenuePerWorkDay)}</dd></div>
                 <div><dt>Hạng DT trong CN</dt><dd>{selectedEmployee.revenueRankInBranch}/{selectedEmployee.revenueRankTotal}</dd></div>
-                <div><dt>Hạng tỷ lệ YC</dt><dd>{selectedEmployee.requestedRateRankInBranch}/{selectedEmployee.requestedRateRankTotal}</dd></div>
+                <div><dt>Hạng tỷ lệ YC/tour</dt><dd>{selectedEmployee.requestedTourRateRankInBranch}/{selectedEmployee.requestedTourRateRankTotal}</dd></div>
+                <div><dt>Hạng lượt YC</dt><dd>{selectedEmployee.requestedTourCountRankInBranch}/{selectedEmployee.requestedTourCountRankTotal}</dd></div>
               </dl>
 
               <InsightBlock row={selectedEmployee} />

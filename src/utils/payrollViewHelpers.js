@@ -1,7 +1,8 @@
 import { getPayrollBranchDisplayTitle, getPayrollBranchSortOrder } from '../constants/branchPayrollDisplay'
 import { EMPLOYEE_STATUS } from './employeeStorage'
 import { getBranchName } from './branchStorage'
-import { employeeBelongsToBranch, isPayrollListEmployee } from './branchEmployeeMatch'
+import { isPayrollListEmployee } from './branchEmployeeMatch'
+import { employeeCurrentlyAtBranch } from './employeeBranchTimeline'
 
 function sumPayrollRows(rows) {
   return rows.reduce(
@@ -52,10 +53,28 @@ export function aggregateBranchSummaries(branches, employees, payrollRows) {
 
 export function mergeEmployeePayrollRows(employees, payrollRows, { branchId = '', search = '', status = '' } = {}) {
   const query = search.trim().toLowerCase()
+  const employeeById = new Map(employees.map((emp) => [emp.id, emp]))
+  const activityIds = new Set(payrollRows.map((row) => row.employeeId))
 
-  return employees
+  const roster = branchId
+    ? [
+        ...employees.filter((emp) => employeeCurrentlyAtBranch(emp, branchId) || activityIds.has(emp.id)),
+        ...payrollRows
+          .filter((row) => !employeeById.has(row.employeeId))
+          .map((row) => ({
+            id: row.employeeId,
+            name: row.employeeName,
+            branchId: row.branchId,
+            position: row.position ?? '',
+            avatar: row.avatar ?? '',
+            phone: '',
+            status: EMPLOYEE_STATUS.ACTIVE,
+          })),
+      ]
+    : employees
+
+  return roster
     .filter((emp) => {
-      if (branchId && !employeeBelongsToBranch(emp, branchId)) return false
       if (!isPayrollListEmployee(emp, status)) return false
       if (query) {
         const name = (emp.name ?? '').toLowerCase()
@@ -70,8 +89,10 @@ export function mergeEmployeePayrollRows(employees, payrollRows, { branchId = ''
       return {
         employeeId: emp.id,
         employeeName: emp.name ?? '—',
-        branchId: emp.branchId,
-        branchName: getPayrollBranchDisplayTitle(emp.branchId, getBranchName(emp.branchId)),
+        branchId: branchId || emp.branchId,
+        branchName: branchId
+          ? getPayrollBranchDisplayTitle(branchId, getBranchName(branchId))
+          : getPayrollBranchDisplayTitle(emp.branchId, getBranchName(emp.branchId)),
         position: emp.position ?? '',
         avatar: emp.avatar ?? '',
         phone: emp.phone ?? '',

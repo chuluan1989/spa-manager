@@ -8,7 +8,9 @@ import { getBranchById, getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { ATTENDANCE_STATUS } from '../constants/attendanceTypes'
+import { isAdmin } from '../constants/auth'
 import { assertCanEditAttendanceRecord } from './attendanceEditPolicy'
+import { getPayCycleLockBlockMessage, isPayCycleClosedForRecordDate } from './payrollPeriodLock'
 import { upsertBranchMinimal } from '../repositories/branchesRepository'
 import { fetchEmployeeById } from '../repositories/employeesRepository'
 import {
@@ -153,6 +155,9 @@ export async function submitEmployeeAttendance({
     const saved = await withTimeout(
       (async () => {
         const { date, timestamp } = await getServerAttendanceDate()
+        if (!isAdmin() && isPayCycleClosedForRecordDate(date)) {
+          throw new Error(getPayCycleLockBlockMessage(date))
+        }
         const existing = await fetchAttendanceByEmployeeAndDate(employee.id, date)
         if (existing) {
           throw new Error('Bạn đã điểm danh hôm nay. Không thể điểm danh lại.')
@@ -214,6 +219,9 @@ export async function submitEmployeeAttendanceBackfill({
   }
   if (date < minDate) {
     throw new Error(`Chỉ được bổ sung từ ngày ${minDate}.`)
+  }
+  if (!isAdmin() && isPayCycleClosedForRecordDate(date)) {
+    throw new Error(getPayCycleLockBlockMessage(date))
   }
 
   let employee
@@ -312,7 +320,7 @@ export async function adminCreateAttendance({
   editor,
 }) {
   const resolvedBranchId = branchId || getEmployeeById(employeeId)?.branchId || ''
-  await assertCanEditAttendanceRecordBranch({ branchId: resolvedBranchId }, { date })
+  await assertCanEditAttendanceRecordBranch({ branchId: resolvedBranchId }, { date, editNote })
   if (!String(editNote ?? '').trim()) {
     throw new Error('Vui lòng nhập lý do bổ sung chấm công.')
   }
@@ -378,7 +386,7 @@ export async function adminUpdateAttendance({
   editNote = '',
   editor,
 }) {
-  await assertCanEditAttendanceRecordBranch(record, { date: nextDate ?? record.date })
+  await assertCanEditAttendanceRecordBranch(record, { date: nextDate ?? record.date, editNote })
   if (!String(editNote ?? '').trim()) {
     throw new Error('Vui lòng nhập lý do chỉnh sửa.')
   }
@@ -508,7 +516,7 @@ export async function adminVoidAttendance({
   editNote = '',
   editor,
 }) {
-  await assertCanEditAttendanceRecordBranch(record)
+  await assertCanEditAttendanceRecordBranch(record, { editNote })
 
   const nextStatus = voidType === 'invalid'
     ? ATTENDANCE_STATUS.INVALID

@@ -5,6 +5,7 @@ import { computeAttendanceStats } from '../payrollLiveHelpers'
 import { computeTopServices } from '../report'
 import { getBranchById, loadBranches } from '../../constants/branches'
 import { getEmployeeById } from '../employeeStorage'
+import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import {
   computeSafeTrend,
   countInclusiveDays,
@@ -38,12 +39,18 @@ function countRequestedCustomers(invoices) {
   return keys.size
 }
 
+function countRequestedTours(invoices) {
+  return invoices.filter((inv) => inv.customerRequested).length
+}
+
 function buildBaseMetrics(invoices, daysInPeriod) {
   const revenue = invoices.reduce((sum, inv) => sum + getInvoicePayment(inv), 0)
   const tips = invoices.reduce((sum, inv) => sum + getInvoiceTips(inv), 0)
   const totalCustomerCount = countUniqueCustomers(invoices)
   const requestedCustomerCount = countRequestedCustomers(invoices)
   const requestedRate = safeRatePercent(requestedCustomerCount, totalCustomerCount)
+  const customerRequestedTourCount = countRequestedTours(invoices)
+  const customerRequestedTourRate = safeRatePercent(customerRequestedTourCount, invoices.length)
   const averageRevenuePerCustomer = safeDivide(revenue, totalCustomerCount)
   const averageRevenuePerDay = safeDivide(revenue, daysInPeriod)
   const averageTicket = safeDivide(revenue, invoices.length)
@@ -54,6 +61,8 @@ function buildBaseMetrics(invoices, daysInPeriod) {
     totalCustomerCount,
     requestedCustomerCount,
     requestedRate,
+    customerRequestedTourCount,
+    customerRequestedTourRate,
     averageRevenuePerCustomer,
     averageRevenuePerDay,
     averageTicket,
@@ -67,6 +76,10 @@ function withTrends(current, previous) {
     revenueTrend: computeSafeTrend(current.revenue, previous?.revenue),
     customerTrend: computeSafeTrend(current.totalCustomerCount, previous?.totalCustomerCount),
     requestedRateTrend: computeSafeTrend(current.requestedRate, previous?.requestedRate),
+    customerRequestedTourRateTrend: computeSafeTrend(
+      current.customerRequestedTourRate,
+      previous?.customerRequestedTourRate,
+    ),
     tipsTrend: computeSafeTrend(current.tips, previous?.tips),
     averageTicketTrend: computeSafeTrend(current.averageTicket, previous?.averageTicket),
     previous: previous
@@ -75,6 +88,8 @@ function withTrends(current, previous) {
           totalCustomerCount: previous.totalCustomerCount,
           requestedCustomerCount: previous.requestedCustomerCount,
           requestedRate: previous.requestedRate,
+          customerRequestedTourCount: previous.customerRequestedTourCount,
+          customerRequestedTourRate: previous.customerRequestedTourRate,
           tips: previous.tips,
           averageTicket: previous.averageTicket,
         }
@@ -173,11 +188,14 @@ export function buildEmployeeManagementRows({
     if (employeeIds && !employeeIds.has(id)) return
     if (!employeeMap.has(id)) {
       const emp = getEmployeeById(id)
+      const displayBranchId = scopeBranchId || emp?.branchId || inv.branchId || ''
       employeeMap.set(id, {
         id,
         name: emp?.name || inv.employeeName || id,
-        branchId: emp?.branchId || inv.branchId || '',
-        branchName: getBranchById(emp?.branchId || inv.branchId)?.name || inv.branchName || '—',
+        branchId: displayBranchId,
+        branchName: scopeBranchId
+          ? getPayrollBranchDisplayTitle(scopeBranchId, getBranchById(scopeBranchId)?.name)
+          : (getBranchById(emp?.branchId || inv.branchId)?.name || inv.branchName || '—'),
       })
     }
   }
@@ -190,12 +208,14 @@ export function buildEmployeeManagementRows({
       if (employeeMap.has(id)) continue
       const emp = getEmployeeById(id)
       if (!emp) continue
-      if (scopeBranchId && emp.branchId !== scopeBranchId) continue
+      const displayBranchId = scopeBranchId || emp.branchId || ''
       employeeMap.set(id, {
         id,
         name: emp.name || id,
-        branchId: emp.branchId || '',
-        branchName: getBranchById(emp.branchId)?.name || '—',
+        branchId: displayBranchId,
+        branchName: scopeBranchId
+          ? getPayrollBranchDisplayTitle(scopeBranchId, getBranchById(scopeBranchId)?.name)
+          : (getBranchById(emp.branchId)?.name || '—'),
       })
     }
   }
@@ -233,27 +253,31 @@ export function buildEmployeeManagementRows({
     )
   })
 
-  // Rank within branch (by current branchId of employee profile / invoice activity)
-  const byBranch = new Map()
-  for (const row of rows) {
-    const key = row.branchId || 'unknown'
-    if (!byBranch.has(key)) byBranch.set(key, [])
-    byBranch.get(key).push(row)
-  }
+  // Rank within scoped branch (record.branch_id), not employee.current_branch
+  const rankGroupKey = scopeBranchId || 'all'
+  const rankList = scopeBranchId ? rows : rows
+  const byBranch = new Map([[rankGroupKey, rankList]])
   for (const list of byBranch.values()) {
     const byRevenue = [...list].sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0))
     byRevenue.forEach((row, index) => {
       row.revenueRankInBranch = index + 1
       row.revenueRankTotal = byRevenue.length
     })
-    const byRate = [...list].sort((a, b) => {
-      const ar = a.requestedRate == null ? -1 : a.requestedRate
-      const br = b.requestedRate == null ? -1 : b.requestedRate
+    const byTourRate = [...list].sort((a, b) => {
+      const ar = a.customerRequestedTourRate == null ? -1 : a.customerRequestedTourRate
+      const br = b.customerRequestedTourRate == null ? -1 : b.customerRequestedTourRate
       return br - ar
     })
-    byRate.forEach((row, index) => {
-      row.requestedRateRankInBranch = index + 1
-      row.requestedRateRankTotal = byRate.length
+    byTourRate.forEach((row, index) => {
+      row.requestedTourRateRankInBranch = index + 1
+      row.requestedTourRateRankTotal = byTourRate.length
+    })
+    const byTourCount = [...list].sort(
+      (a, b) => (b.customerRequestedTourCount ?? 0) - (a.customerRequestedTourCount ?? 0),
+    )
+    byTourCount.forEach((row, index) => {
+      row.requestedTourCountRankInBranch = index + 1
+      row.requestedTourCountRankTotal = byTourCount.length
     })
   }
 
@@ -261,7 +285,11 @@ export function buildEmployeeManagementRows({
 }
 
 export function buildBranchEmployeeInsights(branchId, employeeRows, invoices, fromDate, toDate) {
-  const inBranch = employeeRows.filter((row) => row.branchId === branchId)
+  const branchInvoices = filterByBranch(invoices, branchId)
+  const activeIds = new Set(
+    branchInvoices.map((inv) => inv.employeeId).filter(Boolean),
+  )
+  const inBranch = employeeRows.filter((row) => activeIds.has(row.id ?? row.employeeId))
   const withRevenue = inBranch.filter((row) => (row.revenue ?? 0) > 0 || row.revenueTrend?.direction === 'down')
   const gainers = [...inBranch]
     .filter((row) => row.revenueTrend?.direction === 'up' || row.revenueTrend?.direction === 'new')
@@ -270,7 +298,6 @@ export function buildBranchEmployeeInsights(branchId, employeeRows, invoices, fr
     .filter((row) => row.revenueTrend?.direction === 'down')
     .sort((a, b) => (b.revenueTrend?.percent ?? 0) - (a.revenueTrend?.percent ?? 0))
 
-  const branchInvoices = filterByBranch(invoices, branchId)
   const topServices = computeTopServices(branchInvoices).slice(0, 8).map((s) => ({
     id: s.serviceId || s.serviceName,
     name: s.serviceName,

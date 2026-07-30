@@ -5,6 +5,10 @@ import {
   isAdmin,
 } from '../constants/auth'
 import { getMonthPrefixFromDate } from './attendancePenalties'
+import {
+  getPayCycleLockBlockMessage,
+  isPayCycleClosedForRecordDate,
+} from './payrollPeriodLock'
 import { getTodayDate } from './invoiceStorage'
 import { isPayrollMonthLocked } from './payrollEngine'
 import { checkPermission, PERMISSION_KEYS } from './permissionsStorage'
@@ -40,6 +44,10 @@ export function getAttendanceEditBlockReason(
     return 'Không có quyền sửa chấm công nhân viên chi nhánh khác.'
   }
 
+  if (recordDate && isPayCycleClosedForRecordDate(recordDate)) {
+    return getPayCycleLockBlockMessage(recordDate)
+  }
+
   const recordMonth = getMonthPrefixFromDate(recordDate)
   if (!recordMonth || recordMonth !== getCurrentAttendanceMonth()) {
     return 'Quản lý chi nhánh chỉ được chỉnh chấm công trong tháng hiện tại.'
@@ -60,7 +68,7 @@ export function canEditAttendanceRecord(
   return !getAttendanceEditBlockReason(recordBranchId, recordDate, options)
 }
 
-export async function assertCanEditAttendanceRecord(record, { date, locks } = {}) {
+export async function assertCanEditAttendanceRecord(record, { date, locks, editNote } = {}) {
   const targetDate = date ?? record?.date ?? ''
   const recordBranchId = record?.branchId ?? ''
   const role = getCurrentUserRole()
@@ -68,6 +76,16 @@ export async function assertCanEditAttendanceRecord(record, { date, locks } = {}
   if (isAdmin()) {
     if (!checkPermission(PERMISSION_KEYS.EDIT_ATTENDANCE, role, getCurrentUserBranch())) {
       throw new Error('Không có quyền sửa chấm công.')
+    }
+    const closed = isPayCycleClosedForRecordDate(targetDate)
+    const lockRows = locks ?? await fetchPayrollLocks({ month: getMonthPrefixFromDate(targetDate) })
+    const monthLocked = isPayrollMonthLocked(
+      getMonthPrefixFromDate(targetDate),
+      recordBranchId,
+      lockRows,
+    )
+    if ((closed || monthLocked) && !String(editNote ?? '').trim()) {
+      throw new Error('Vui lòng nhập lý do khi Admin sửa dữ liệu kỳ lương đã chốt.')
     }
     return
   }
