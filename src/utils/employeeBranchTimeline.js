@@ -16,6 +16,23 @@ function normalizeDate(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : ''
 }
 
+/** Ngày liền trước (YYYY-MM-DD), dùng làm Đến ngày inclusive khi đóng giai đoạn. */
+export function dayBefore(dateValue) {
+  const date = normalizeDate(dateValue)
+  if (!date) return ''
+  const parsed = new Date(`${date}T12:00:00`)
+  if (Number.isNaN(parsed.getTime())) return ''
+  parsed.setDate(parsed.getDate() - 1)
+  const year = parsed.getFullYear()
+  const month = String(parsed.getMonth() + 1).padStart(2, '0')
+  const day = String(parsed.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10)
+}
+
 /**
  * @param {object|null|undefined} entry
  * @returns {object|null}
@@ -82,27 +99,29 @@ export function getEmployeeBranchAtDate(employee, date) {
 }
 
 /**
- * Các giai đoạn làm việc theo chi nhánh (phục vụ UI timeline / payroll breakdown).
+ * Các giai đoạn làm việc theo chi nhánh (phục vụ UI lịch sử công tác).
+ * toDate là inclusive (ngày cuối tại CN); null = hiện tại.
  * @param {object|null|undefined} employee
  * @returns {Array<{ branchId: string, fromDate: string|null, toDate: string|null }>}
  */
 export function getEmployeeBranchSegments(employee) {
   const history = getSortedBranchHistory(employee)
+  const startDate = normalizeDate(employee?.startDate || employee?.start_date || '')
   if (history.length === 0) {
     const branchId = getCurrentEmployeeBranch(employee)
-    return branchId ? [{ branchId, fromDate: null, toDate: null }] : []
+    return branchId ? [{ branchId, fromDate: startDate || null, toDate: null }] : []
   }
 
   const segments = []
   let activeBranch = history[0].fromBranchId || getCurrentEmployeeBranch(employee)
-  let segmentFrom = null
+  let segmentFrom = startDate || null
 
   for (const entry of history) {
     if (!entry.effectiveDate || !entry.toBranchId) continue
     segments.push({
       branchId: activeBranch,
       fromDate: segmentFrom,
-      toDate: entry.effectiveDate,
+      toDate: dayBefore(entry.effectiveDate) || null,
     })
     activeBranch = entry.toBranchId
     segmentFrom = entry.effectiveDate
@@ -115,6 +134,85 @@ export function getEmployeeBranchSegments(employee) {
   })
 
   return segments.filter((segment) => Boolean(segment.branchId))
+}
+
+/**
+ * Bảng lịch sử công tác (mới nhất trước) — không dạng event A→B.
+ * @param {object|null|undefined} employee
+ * @param {{ getBranchName?: (id: string) => string }} [options]
+ */
+export function buildWorkAssignmentHistoryRows(employee, options = {}) {
+  const resolveName = typeof options.getBranchName === 'function'
+    ? options.getBranchName
+    : (id) => id || '—'
+  const history = getSortedBranchHistory(employee)
+  const historyByStart = new Map(
+    history
+      .filter((entry) => entry.effectiveDate && entry.toBranchId)
+      .map((entry) => [entry.effectiveDate, entry]),
+  )
+
+  return getEmployeeBranchSegments(employee)
+    .map((segment) => {
+      const openedBy = segment.fromDate ? historyByStart.get(segment.fromDate) : null
+      const isCurrent = !segment.toDate
+      return {
+        fromDate: segment.fromDate,
+        toDate: segment.toDate,
+        branchId: segment.branchId,
+        branchName: resolveName(segment.branchId),
+        roleTitle: openedBy?.roleTitle || openedBy?.position || employee?.position || '',
+        reason: openedBy?.reason || '',
+        note: openedBy?.note || '',
+        createdBy: openedBy?.createdBy || openedBy?.approver || '',
+        createdAt: openedBy?.createdAt || openedBy?.changedAt || '',
+        status: isCurrent ? 'current' : 'ended',
+        statusLabel: isCurrent ? 'Hiện tại' : 'Đã kết thúc',
+      }
+    })
+    .reverse()
+}
+
+/**
+ * Validate đề xuất chuyển công tác (không ghi DB).
+ * @param {object|null|undefined} employee
+ * @param {string} newBranchId
+ * @param {string} effectiveDate
+ */
+export function validateProposedTransfer(employee, newBranchId, effectiveDate) {
+  const issues = []
+  const warnings = []
+  const toBranch = resolveCanonicalBranchId(newBranchId)
+  const current = getCurrentEmployeeBranch(employee)
+  const date = normalizeDate(effectiveDate)
+
+  if (!employee?.id) issues.push('Không tìm thấy nhân viên.')
+  if (!toBranch) issues.push('Vui lòng chọn chi nhánh mới.')
+  if (!date) issues.push('Vui lòng chọn ngày hiệu lực.')
+  if (toBranch && current && toBranch === current) {
+    issues.push('Chi nhánh mới không được trùng chi nhánh hiện tại.')
+  }
+
+  const history = getSortedBranchHistory(employee)
+  const last = history[history.length - 1]
+  if (last?.effectiveDate && date && date <= last.effectiveDate) {
+    issues.push(
+      `Ngày hiệu lực phải sau lần chuyển gần nhất (${last.effectiveDate}) — không chồng lấn lịch sử công tác.`,
+    )
+  }
+
+  const openSegments = getEmployeeBranchSegments(employee).filter((segment) => !segment.toDate)
+  if (openSegments.length > 1) {
+    issues.push('Lịch sử công tác hiện có hơn một giai đoạn đang mở — cần sửa dữ liệu trước khi chuyển.')
+  }
+
+  if (date && date < todayIsoDate()) {
+    warnings.push(
+      'Ngày hiệu lực nằm trong quá khứ. Hệ thống sẽ không tự sửa hóa đơn/chấm công/lương đã phát sinh.',
+    )
+  }
+
+  return { ok: issues.length === 0, issues, warnings }
 }
 
 /**

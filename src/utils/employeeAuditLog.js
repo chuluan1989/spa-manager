@@ -83,7 +83,7 @@ export function getAuditActionLabel(action) {
     case EMPLOYEE_AUDIT_ACTIONS.STATUS_CHANGE:
       return 'Đổi trạng thái'
     case EMPLOYEE_AUDIT_ACTIONS.TRANSFER:
-      return 'Chuyển chi nhánh'
+      return 'Chuyển công tác'
     case EMPLOYEE_AUDIT_ACTIONS.ARCHIVE:
       return 'Lưu trữ'
     case EMPLOYEE_AUDIT_ACTIONS.PROFILE_UPDATE:

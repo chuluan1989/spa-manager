@@ -34,6 +34,7 @@ import { notifyDataSynced } from './dataSyncEvents'
 import {
   getEmployeeBranchAtDate,
   getCurrentEmployeeBranch,
+  validateProposedTransfer,
 } from './employeeBranchTimeline'
 
 export { getEmployeeBranchAtDate, getCurrentEmployeeBranch }
@@ -854,49 +855,79 @@ export async function deleteEmployee(id) {
 
 export async function transferEmployee(id, newBranchId, options = {}) {
   if (!hasSessionPermission(PERMISSION_KEYS.TRANSFER_EMPLOYEE)) {
-    return denyAccess('Chỉ Admin mới được chuyển chi nhánh nhân viên.')
+    return denyAccess('Chỉ Admin mới được chuyển công tác nhân viên.')
   }
 
   const user = getSessionUser()
   if (user?.role !== ROLES.ADMIN) {
-    return denyAccess('Chỉ Admin mới được chuyển chi nhánh nhân viên.')
+    return denyAccess('Chỉ Admin mới được chuyển công tác nhân viên.')
   }
 
-  const { transferDate, note = '', approver = '', reason = '' } = options
+  const {
+    transferDate,
+    note = '',
+    approver = '',
+    reason = '',
+    createdBy = '',
+    confirmPastEffectiveDate = false,
+  } = options
   const current = getEmployeeById(id)
-  if (current && current.branchId && current.branchId !== newBranchId) {
-    const effectiveDate = transferDate || new Date().toISOString().slice(0, 10)
-    const historyEntry = {
-      fromBranchId: current.branchId,
-      fromBranchName: resolveBranchName(current.branchId),
-      toBranchId: newBranchId,
-      toBranchName: resolveBranchName(newBranchId),
-      branchId: current.branchId,
-      branchName: resolveBranchName(current.branchId),
-      transferDate: effectiveDate,
-      effectiveDate,
-      note: note.trim(),
-      reason: reason.trim() || note.trim(),
-      approver: approver.trim(),
-      changedAt: new Date().toISOString(),
-    }
-    const result = await updateEmployee(id, {
-      branchId: newBranchId,
-      branchHistory: [...(current.branchHistory ?? []), historyEntry],
-    })
-    if (result.success) {
-      appendEmployeeAuditLog({
-        employeeId: id,
-        employeeName: current.name,
-        action: EMPLOYEE_AUDIT_ACTIONS.TRANSFER,
-        details: `${resolveBranchName(current.branchId)} → ${resolveBranchName(newBranchId)} (hiệu lực ${effectiveDate})`,
-        meta: { approver: approver.trim(), reason: reason.trim() || note.trim() },
-      })
-    }
-    return result
+  if (!current) {
+    return denyAccess('Không tìm thấy nhân viên.')
   }
 
-  return updateEmployee(id, { branchId: newBranchId })
+  const effectiveDate = transferDate || new Date().toISOString().slice(0, 10)
+  const validation = validateProposedTransfer(current, newBranchId, effectiveDate)
+  if (!validation.ok) {
+    return denyAccess(validation.issues[0] || 'Không thể chuyển công tác.')
+  }
+  if (validation.warnings.length > 0 && !confirmPastEffectiveDate) {
+    return {
+      success: false,
+      error: validation.warnings[0],
+      needsPastDateConfirm: true,
+      warnings: validation.warnings,
+    }
+  }
+
+  const actor = String(createdBy || approver || user?.name || user?.username || 'Admin').trim()
+  const historyEntry = {
+    fromBranchId: current.branchId,
+    fromBranchName: resolveBranchName(current.branchId),
+    toBranchId: newBranchId,
+    toBranchName: resolveBranchName(newBranchId),
+    branchId: current.branchId,
+    branchName: resolveBranchName(current.branchId),
+    transferDate: effectiveDate,
+    effectiveDate,
+    note: String(note ?? '').trim(),
+    reason: String(reason ?? '').trim(),
+    approver: String(approver || actor).trim(),
+    createdBy: actor,
+    createdAt: new Date().toISOString(),
+    changedAt: new Date().toISOString(),
+  }
+
+  // Chỉ cập nhật Current Branch + Branch History — không đụng record.branch_id cũ.
+  const result = await updateEmployee(id, {
+    branchId: newBranchId,
+    branchHistory: [...(current.branchHistory ?? []), historyEntry],
+  })
+  if (result.success) {
+    appendEmployeeAuditLog({
+      employeeId: id,
+      employeeName: current.name,
+      action: EMPLOYEE_AUDIT_ACTIONS.TRANSFER,
+      details: `${resolveBranchName(current.branchId)} → ${resolveBranchName(newBranchId)} (hiệu lực ${effectiveDate})`,
+      meta: {
+        approver: historyEntry.approver,
+        reason: historyEntry.reason,
+        note: historyEntry.note,
+        createdBy: historyEntry.createdBy,
+      },
+    })
+  }
+  return result
 }
 
 /** Đặt trạng thái làm việc — nghỉ việc tự ghi ngày nghỉ. */

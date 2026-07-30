@@ -22,6 +22,7 @@ import {
 import { getEmployeeLifetimeStats } from '../../utils/employeeStats'
 import { formatCurrency } from '../../utils/invoice'
 import EmployeeAvatar from './EmployeeAvatar'
+import EmployeeWorkHistoryTable from './EmployeeWorkHistoryTable'
 import './EmployeeProfileDetail.css'
 
 function Value({ value, placeholder = 'Chưa cập nhật' }) {
@@ -152,6 +153,7 @@ export default function EmployeeProfileDetail({
     if (showBankInfo) list.push({ id: 'bank', label: 'Ngân hàng' })
     if (hasImagesTab) list.push({ id: 'images', label: 'Hình ảnh' })
     if (showStats) list.push({ id: 'stats', label: 'Vận hành' })
+    if (forceAdminFields) list.push({ id: 'work-history', label: 'Lịch sử công tác' })
     if (forceAdminFields) list.push({ id: 'audit', label: 'Nhật ký' })
     return list
   }, [hasContactTab, showCccd, showBankInfo, hasImagesTab, showStats, forceAdminFields])
@@ -162,7 +164,6 @@ export default function EmployeeProfileDetail({
   const branch = getBranchById(employee?.branchId)
   const profileStatus = forceAdminFields ? getEmployeeProfileStatus(employee) : null
   const stats = showStats ? getEmployeeLifetimeStats(employee?.id) : null
-  const branchHistory = Array.isArray(employee?.branchHistory) ? employee.branchHistory : []
   const auditLogs = forceAdminFields && employee?.id
     ? loadEmployeeAuditLogs({ employeeId: employee.id, limit: 50 })
     : []
@@ -294,26 +295,14 @@ export default function EmployeeProfileDetail({
               </div>
             </div>
             <div className="employee-detail__history">
-              <h4 className="employee-detail__history-title">Lịch sử chi nhánh</h4>
-              {branchHistory.length === 0 ? (
-                <p className="employee-detail__hint">Chỉ làm việc tại chi nhánh hiện tại.</p>
-              ) : (
-                <ul className="employee-detail__history-list">
-                  {branchHistory.map((entry, index) => (
-                    <li key={`${entry.branchId}-${index}`}>
-                      <strong>{entry.effectiveDate || entry.transferDate || formatDateTime(entry.changedAt).slice(0, 10)}</strong>
-                      {' — '}
-                      {entry.fromBranchName || entry.branchName || entry.branchId}
-                      {' → '}
-                      {entry.toBranchName || '—'}
-                      {entry.approver && <> · Duyệt: {entry.approver}</>}
-                      {entry.reason && <> · {entry.reason}</>}
-                    </li>
-                  ))}
-                  <li>{branch?.name} — hiện tại</li>
-                </ul>
-              )}
+              <EmployeeWorkHistoryTable employee={employee} />
             </div>
+          </div>
+        )}
+
+        {currentTab === 'work-history' && (
+          <div className="employee-detail__section">
+            <EmployeeWorkHistoryTable employee={employee} />
           </div>
         )}
 

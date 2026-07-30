@@ -18,6 +18,7 @@ import { getStatusLabel } from '../../utils/employeeStorage'
 import { isAdmin } from '../../constants/auth'
 import { getAttendanceStatusLabel } from '../../constants/attendanceTypes'
 import { computeAttendanceStats } from '../../utils/payrollLiveHelpers'
+import EmployeeWorkHistoryTable from './EmployeeWorkHistoryTable'
 import './EmployeeHubDetail.css'
 
 const DEFAULT_TABS = [
@@ -112,8 +113,6 @@ export default function EmployeeHubDetail({
       </div>
     )
   }
-
-  const branchHistory = Array.isArray(employee.branchHistory) ? employee.branchHistory : []
 
   return (
     <div className="employee-hub-detail">
@@ -279,25 +278,7 @@ export default function EmployeeHubDetail({
             <p>{getStatusLabel(employee.status)}</p>
           </div>
           <div className="employee-hub-history-block">
-            <h4>Lịch sử chuyển chi nhánh</h4>
-            {branchHistory.length === 0 ? (
-              <p className="employee-hub-detail__empty">Chưa có lịch sử chuyển</p>
-            ) : (
-              <ul className="employee-hub-history-list">
-                {[...branchHistory].reverse().map((entry, index) => (
-                  <li key={`${entry.changedAt}-${index}`}>
-                    <strong>{entry.effectiveDate || entry.transferDate || formatDisplayDate((entry.changedAt || '').slice(0, 10))}</strong>
-                    <span>
-                      {entry.fromBranchName || entry.branchName || '—'}
-                      {' → '}
-                      {entry.toBranchName || '—'}
-                    </span>
-                    {entry.approver && <span>Người duyệt: {entry.approver}</span>}
-                    {(entry.reason || entry.note) && <em>{entry.reason || entry.note}</em>}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <EmployeeWorkHistoryTable employee={employee} />
           </div>
         </div>
       )}

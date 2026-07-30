@@ -54,6 +54,7 @@ export default function EmployeeHubSettings({
     branchId: '',
     effectiveDate: '',
     reason: '',
+    note: '',
     approver: '',
   })
   const [statusValue, setStatusValue] = useState(EMPLOYEE_STATUS.ACTIVE)
@@ -69,7 +70,7 @@ export default function EmployeeHubSettings({
     setMode('menu')
     setForm(EMPTY_EMPLOYEE_FORM)
     setErrors({})
-    setTransfer({ branchId: '', effectiveDate: '', reason: '', approver: getCurrentUserName() })
+    setTransfer({ branchId: '', effectiveDate: '', reason: '', note: '', approver: getCurrentUserName() })
     setStatusValue(EMPLOYEE_STATUS.ACTIVE)
   }
 
@@ -143,6 +144,7 @@ export default function EmployeeHubSettings({
       branchId: '',
       effectiveDate: new Date().toISOString().slice(0, 10),
       reason: '',
+      note: '',
       approver: getCurrentUserName(),
     })
     setMode('transfer')
@@ -166,21 +168,51 @@ export default function EmployeeHubSettings({
 
   const handleTransfer = async (e) => {
     e.preventDefault()
-    if (!transfer.branchId || !transfer.effectiveDate || !transfer.reason.trim() || !transfer.approver.trim()) {
-      showToast('Vui lòng nhập đủ ngày hiệu lực, lý do và người duyệt')
+    if (!transfer.branchId || !transfer.effectiveDate) {
+      showToast('Vui lòng chọn chi nhánh mới và ngày hiệu lực')
       return
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    let confirmPastEffectiveDate = false
+    if (transfer.effectiveDate < today) {
+      const ok = window.confirm(
+        `Ngày hiệu lực ${transfer.effectiveDate} nằm trong quá khứ.\n`
+        + 'Hệ thống sẽ không tự sửa hóa đơn/chấm công/lương đã phát sinh.\n'
+        + 'Bạn có chắc muốn tiếp tục?',
+      )
+      if (!ok) return
+      confirmPastEffectiveDate = true
     }
     const result = await transferEmployeeLifecycle(selectedEmployeeId, transfer.branchId, {
       transferDate: transfer.effectiveDate,
       reason: transfer.reason,
-      approver: transfer.approver,
-      note: transfer.reason,
+      note: transfer.note,
+      approver: transfer.approver || getCurrentUserName(),
+      createdBy: getCurrentUserName(),
+      confirmPastEffectiveDate,
     })
     if (!result.success) {
-      showToast(result.error ?? 'Không thể chuyển chi nhánh')
-      return
+      if (result.needsPastDateConfirm) {
+        const ok = window.confirm(`${result.error}\n\nXác nhận chuyển công tác?`)
+        if (!ok) return
+        const retry = await transferEmployeeLifecycle(selectedEmployeeId, transfer.branchId, {
+          transferDate: transfer.effectiveDate,
+          reason: transfer.reason,
+          note: transfer.note,
+          approver: transfer.approver || getCurrentUserName(),
+          createdBy: getCurrentUserName(),
+          confirmPastEffectiveDate: true,
+        })
+        if (!retry.success) {
+          showToast(retry.error ?? 'Không thể chuyển công tác')
+          return
+        }
+      } else {
+        showToast(result.error ?? 'Không thể chuyển công tác')
+        return
+      }
     }
-    showToast('Chuyển chi nhánh thành công — doanh thu cũ vẫn thuộc chi nhánh trước ngày hiệu lực')
+    showToast('Chuyển công tác thành công — dữ liệu cũ giữ nguyên chi nhánh phát sinh')
     onSaved()
     closeAll()
   }
@@ -265,7 +297,7 @@ export default function EmployeeHubSettings({
             </button>
             {allowTransfer && (
               <button type="button" className="employee-hub-settings__menu-btn" onClick={openTransfer} disabled={!selectedEmployee}>
-                Chuyển chi nhánh
+                Chuyển công tác
               </button>
             )}
             <button type="button" className="employee-hub-settings__menu-btn" onClick={openStatus} disabled={!selectedEmployee}>
@@ -310,10 +342,18 @@ export default function EmployeeHubSettings({
 
         {mode === 'transfer' && (
           <form className="employee-hub-settings__body" onSubmit={handleTransfer}>
-            <h4>Chuyển chi nhánh</h4>
+            <h4>Chuyển công tác</h4>
             <p className="employee-hub-settings__hint">
-              Doanh thu trước ngày hiệu lực vẫn thuộc chi nhánh cũ (theo hóa đơn đã lưu).
+              Giữ nguyên employeeId. Dữ liệu đã phát sinh không đổi chi nhánh. Dữ liệu mới từ ngày hiệu lực thuộc chi nhánh mới.
             </p>
+            <label className="employee-hub-settings__field">
+              <span>Nhân viên hiện tại</span>
+              <input value={selectedEmployee?.name || ''} readOnly />
+            </label>
+            <label className="employee-hub-settings__field">
+              <span>Chi nhánh hiện tại</span>
+              <input value={getBranchById(selectedEmployee?.branchId)?.name || selectedEmployee?.branchId || ''} readOnly />
+            </label>
             <label className="employee-hub-settings__field">
               <span>Chi nhánh mới</span>
               <select value={transfer.branchId} onChange={(e) => setTransfer({ ...transfer, branchId: e.target.value })} required>
@@ -328,15 +368,22 @@ export default function EmployeeHubSettings({
               <input type="date" value={transfer.effectiveDate} onChange={(e) => setTransfer({ ...transfer, effectiveDate: e.target.value })} required />
             </label>
             <label className="employee-hub-settings__field">
-              <span>Lý do chuyển</span>
-              <textarea rows={3} value={transfer.reason} onChange={(e) => setTransfer({ ...transfer, reason: e.target.value })} placeholder="Lý do chuyển chi nhánh..." required />
+              <span>Lý do chuyển (không bắt buộc)</span>
+              <textarea rows={2} value={transfer.reason} onChange={(e) => setTransfer({ ...transfer, reason: e.target.value })} placeholder="Lý do chuyển công tác..." />
             </label>
             <label className="employee-hub-settings__field">
-              <span>Người duyệt</span>
-              <input value={transfer.approver} onChange={(e) => setTransfer({ ...transfer, approver: e.target.value })} required />
+              <span>Ghi chú (không bắt buộc)</span>
+              <textarea rows={2} value={transfer.note} onChange={(e) => setTransfer({ ...transfer, note: e.target.value })} placeholder="Ghi chú nội bộ..." />
             </label>
+            <label className="employee-hub-settings__field">
+              <span>Người thực hiện</span>
+              <input value={transfer.approver || getCurrentUserName()} readOnly />
+            </label>
+            <p className="employee-hub-settings__hint">
+              Thời gian tạo lệnh: tự động khi xác nhận.
+            </p>
             <div className="employee-hub-settings__actions">
-              <button type="submit" className="employee-hub-settings__primary" disabled={!transfer.branchId}>Xác nhận chuyển</button>
+              <button type="submit" className="employee-hub-settings__primary" disabled={!transfer.branchId}>Xác nhận chuyển công tác</button>
               <button type="button" onClick={() => setMode('menu')}>Quay lại</button>
             </div>
           </form>

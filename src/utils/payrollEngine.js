@@ -116,6 +116,21 @@ function filterEmployeeRecordsByBranch(invoices, attendanceRecords, adjustments,
   return { scopedInvoices, scopedAttendance, scopedAdjustments }
 }
 
+function collectRecordDateRange(invoices, attendanceRecords, adjustments) {
+  let fromDate = ''
+  let toDate = ''
+  const consider = (value) => {
+    const date = String(value ?? '').slice(0, 10)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return
+    if (!fromDate || date < fromDate) fromDate = date
+    if (!toDate || date > toDate) toDate = date
+  }
+  for (const invoice of invoices ?? []) consider(invoice.date)
+  for (const row of attendanceRecords ?? []) consider(row.date || row.attendanceDate)
+  for (const row of adjustments ?? []) consider(row.date || row.effectiveDate)
+  return { fromDate: fromDate || null, toDate: toDate || null }
+}
+
 function computeEmployeePayrollBranchSection(employee, invoices, attendanceRecords, adjustments, branchId) {
   const employeeId = employee.id
   const invoiceTotals = sumEmployeeInvoices(invoices, employeeId)
@@ -139,10 +154,13 @@ function computeEmployeePayrollBranchSection(employee, invoices, attendanceRecor
     otherAdjustment,
   }
   const { workDays } = computeAttendanceStats(attendanceRecords, employeeId)
+  const { fromDate, toDate } = collectRecordDateRange(invoices, attendanceRecords, adjustments)
 
   return {
     branchId,
     branchName: getPayrollBranchDisplayTitle(branchId, getBranchName(branchId)),
+    fromDate,
+    toDate,
     invoiceCount: invoiceTotals.invoiceCount,
     workDays,
     ...parts,

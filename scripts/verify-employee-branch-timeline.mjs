@@ -77,10 +77,11 @@ function employee(overrides = {}) {
   assert.equal(getEmployeeBranchAtDate(emp, '2026-10-01'), 'tram-spa')
 }
 
-// 5. Segments
+// 5. Segments — toDate inclusive = ngày trước hiệu lực
 {
   const emp = employee({
     branchId: 'soc-trang',
+    startDate: '2025-01-01',
     branchHistory: [
       { fromBranchId: 'tram-spa', toBranchId: 'bac-lieu', effectiveDate: '2026-01-01' },
       { fromBranchId: 'bac-lieu', toBranchId: 'soc-trang', effectiveDate: '2026-06-01' },
@@ -89,10 +90,14 @@ function employee(overrides = {}) {
   const segments = getEmployeeBranchSegments(emp)
   assert.equal(segments.length, 3)
   assert.equal(segments[0].branchId, 'tram-spa')
+  assert.equal(segments[0].fromDate, '2025-01-01')
+  assert.equal(segments[0].toDate, '2025-12-31')
   assert.equal(segments[1].branchId, 'bac-lieu')
   assert.equal(segments[1].fromDate, '2026-01-01')
+  assert.equal(segments[1].toDate, '2026-05-31')
   assert.equal(segments[2].branchId, 'soc-trang')
   assert.equal(segments[2].fromDate, '2026-06-01')
+  assert.equal(segments[2].toDate, null)
 }
 
 // 6. validateBranchHistory — OK

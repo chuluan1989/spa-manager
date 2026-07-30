@@ -178,14 +178,16 @@ export default function SettingsEmployeesTab({ showToast }) {
     }
     const result = await transferEmployeeLifecycle(transfer.employeeId, transfer.branchId, {
       transferDate: new Date().toISOString().slice(0, 10),
-      reason: 'Chuyển chi nhánh từ Cài đặt',
+      reason: 'Chuyển công tác từ Cài đặt',
       approver: 'Admin',
+      createdBy: 'Admin',
+      confirmPastEffectiveDate: true,
     })
     if (!result.success) {
-      showToast(result.error ?? 'Không thể chuyển chi nhánh')
+      showToast(result.error ?? 'Không thể chuyển công tác')
       return
     }
-    showToast('Chuyển chi nhánh thành công')
+    showToast('Chuyển công tác thành công')
     setTransfer({ employeeId: '', branchId: '' })
     refresh()
   }
@@ -196,7 +198,7 @@ export default function SettingsEmployeesTab({ showToast }) {
         <div>
           <h3 className="settings__card-title">Quản lý nhân viên</h3>
           <p className="settings__hint settings__hint--inline">
-            Thêm, sửa hồ sơ, chuyển chi nhánh và cập nhật trạng thái làm việc.
+            Thêm, sửa hồ sơ, chuyển công tác và cập nhật trạng thái làm việc.
           </p>
         </div>
         <button type="button" className="settings__btn settings__btn--primary" onClick={openAdd}>
@@ -205,7 +207,7 @@ export default function SettingsEmployeesTab({ showToast }) {
       </div>
 
       <div className="settings__transfer-box">
-        <h4 className="settings__subheading">Chuyển chi nhánh nhanh</h4>
+        <h4 className="settings__subheading">Chuyển công tác nhanh</h4>
         <div className="settings__transfer-row">
           <select
             value={transfer.employeeId}

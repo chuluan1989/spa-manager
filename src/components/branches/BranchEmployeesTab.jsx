@@ -166,14 +166,16 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
     }
     const result = await transferEmployeeLifecycle(modal.id, modal.targetBranchId, {
       transferDate: new Date().toISOString().slice(0, 10),
-      reason: 'Chuyển chi nhánh từ tab Quản lý chi nhánh',
+      reason: 'Chuyển công tác từ tab Quản lý chi nhánh',
       approver: 'Admin',
+      createdBy: 'Admin',
+      confirmPastEffectiveDate: true,
     })
     if (!result.success) {
-      showToast(result.error ?? 'Không thể chuyển chi nhánh')
+      showToast(result.error ?? 'Không thể chuyển công tác')
       return
     }
-    showToast('Chuyển chi nhánh thành công')
+    showToast('Chuyển công tác thành công')
     closeModal()
     refresh()
   }
@@ -402,7 +404,7 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       {modal?.mode === 'transfer' && (
         <div className="admin-branches__modal-backdrop" onClick={closeModal}>
           <div className="admin-branches__modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="admin-branches__modal-title">Chuyển chi nhánh — {hubEmployees.find((e) => e.id === modal.id)?.name}</h3>
+            <h3 className="admin-branches__modal-title">Chuyển công tác — {hubEmployees.find((e) => e.id === modal.id)?.name}</h3>
             <label className="admin-branches__field">
               <span>Chi nhánh đích</span>
               <select value={modal.targetBranchId} onChange={(e) => setModal({ ...modal, targetBranchId: e.target.value })}>

@@ -1,0 +1,57 @@
+.employee-work-history {
+  margin-top: 8px;
+}
+
+.employee-work-history__title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--ks-gold, #b8860b);
+}
+
+.employee-work-history__empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ks-text-muted, #6b7280);
+}
+
+.employee-work-history__scroll {
+  overflow-x: auto;
+}
+
+.employee-work-history__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.employee-work-history__table th,
+.employee-work-history__table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ks-border-subtle, #e5e7eb);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.employee-work-history__table th {
+  font-weight: 600;
+  color: var(--ks-text-muted, #6b7280);
+  background: var(--ks-input-bg, #f9fafb);
+}
+
+.employee-work-history__status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.employee-work-history__status--current {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.employee-work-history__status--ended {
+  background: rgba(107, 114, 128, 0.12);
+  color: #4b5563;
+}

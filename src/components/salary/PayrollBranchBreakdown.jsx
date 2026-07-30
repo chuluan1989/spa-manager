@@ -18,12 +18,23 @@ function formatWorkDays(value) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
+function formatPeriod(fromDate, toDate) {
+  if (!fromDate && !toDate) return ''
+  if (fromDate && toDate && fromDate === toDate) return fromDate
+  if (fromDate && toDate) return `${fromDate} → ${toDate}`
+  return fromDate || toDate || ''
+}
+
 function BranchSection({ section }) {
+  const period = formatPeriod(section.fromDate, section.toDate)
   return (
     <article className="salary-branch-breakdown__section">
       <header className="salary-branch-breakdown__section-head">
         <h4>{section.branchName}</h4>
-        <span>{section.invoiceCount ?? 0} hóa đơn · {formatWorkDays(section.workDays)} ngày công</span>
+        <span>
+          {period ? `${period} · ` : ''}
+          {section.invoiceCount ?? 0} hóa đơn · {formatWorkDays(section.workDays)} ngày công
+        </span>
       </header>
       <dl className="salary-branch-breakdown__grid">
         {SECTION_ROWS.map(([key, tone]) => (

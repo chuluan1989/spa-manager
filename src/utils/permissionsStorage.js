@@ -70,7 +70,7 @@ export const PERMISSION_LABELS = {
   [PERMISSION_KEYS.VIEW_SENSITIVE]: 'Xem thông tin nhạy cảm',
   [PERMISSION_KEYS.ADD_EMPLOYEE]: 'Thêm nhân viên',
   [PERMISSION_KEYS.EDIT_EMPLOYEE]: 'Sửa nhân viên',
-  [PERMISSION_KEYS.TRANSFER_EMPLOYEE]: 'Chuyển chi nhánh',
+  [PERMISSION_KEYS.TRANSFER_EMPLOYEE]: 'Chuyển công tác',
   [PERMISSION_KEYS.LOCK_EMPLOYEE]: 'Khóa nhân viên',
   [PERMISSION_KEYS.VIEW_SALARY]: 'Xem lương',
   [PERMISSION_KEYS.VIEW_SYSTEM_WIDE]: 'Xem toàn hệ thống',

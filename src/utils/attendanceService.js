@@ -5,6 +5,7 @@ import {
 } from './attendancePenalties'
 import { notifyDataSynced } from './dataSyncEvents'
 import { getBranchById, getBranchName } from './branchStorage'
+import { getEmployeeBranchAtDate } from './employeeBranchTimeline'
 import { getEmployeeById } from './employeeStorage'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { ATTENDANCE_STATUS } from '../constants/attendanceTypes'
@@ -69,7 +70,12 @@ function parseAttendanceError(error) {
   return message || 'Không thể lưu điểm danh. Vui lòng thử lại.'
 }
 
-async function ensureAttendanceForeignKeys(employeeId) {
+/**
+ * Resolve chi nhánh ghi chấm công theo ngày phát sinh (timeline), không mặc định current branch.
+ * @param {string} employeeId
+ * @param {{ recordDate?: string }} [options]
+ */
+async function ensureAttendanceForeignKeys(employeeId, options = {}) {
   if (!isSupabaseConfigured || !employeeId) {
     throw new Error('Không xác định được nhân viên.')
   }
@@ -79,7 +85,12 @@ async function ensureAttendanceForeignKeys(employeeId) {
     throw new Error('Không tìm thấy hồ sơ nhân viên.')
   }
 
-  const branchId = employee.branchId ?? ''
+  const recordDate = String(options.recordDate ?? '').slice(0, 10)
+  const branchId = (
+    (recordDate ? getEmployeeBranchAtDate(employee, recordDate) : '')
+    || employee.branchId
+    || ''
+  )
   if (!branchId) {
     throw new Error('Nhân viên chưa được gán chi nhánh.')
   }
@@ -143,18 +154,17 @@ export async function submitEmployeeAttendance({
     throw new Error('Vui lòng chọn trạng thái điểm danh.')
   }
 
-  let employee
-  let branchId
-  try {
-    ;({ employee, branchId } = await ensureAttendanceForeignKeys(employeeId))
-  } catch (err) {
-    throw new Error(parseAttendanceError(err))
-  }
-
   try {
     const saved = await withTimeout(
       (async () => {
         const { date, timestamp } = await getServerAttendanceDate()
+        let employee
+        let branchId
+        try {
+          ;({ employee, branchId } = await ensureAttendanceForeignKeys(employeeId, { recordDate: date }))
+        } catch (err) {
+          throw new Error(parseAttendanceError(err))
+        }
         if (!isAdmin() && isPayCycleClosedForRecordDate(date)) {
           throw new Error(getPayCycleLockBlockMessage(date))
         }
@@ -181,7 +191,7 @@ export async function submitEmployeeAttendance({
           submittedBy: employee.id,
           createdBy: employee.id,
         }, {
-          onForeignKeyError: () => ensureAttendanceForeignKeys(employee.id),
+          onForeignKeyError: () => ensureAttendanceForeignKeys(employee.id, { recordDate: date }),
         })
       })(),
       ATTENDANCE_SAVE_TIMEOUT_MS,
@@ -227,7 +237,7 @@ export async function submitEmployeeAttendanceBackfill({
   let employee
   let branchId
   try {
-    ;({ employee, branchId } = await ensureAttendanceForeignKeys(employeeId))
+    ;({ employee, branchId } = await ensureAttendanceForeignKeys(employeeId, { recordDate: date }))
   } catch (err) {
     throw new Error(parseAttendanceError(err))
   }
@@ -239,6 +249,10 @@ export async function submitEmployeeAttendanceBackfill({
         if (existing) {
           const err = new Error('Ngày này đã có chấm công. Không tạo bản ghi trùng.')
           err.existing = existing
+          err.timelineBranchId = branchId
+          err.warning = existing.branchId && existing.branchId !== branchId
+            ? `Đã có chấm công tại chi nhánh ${getBranchName(existing.branchId)}. Không tự sửa — hãy kiểm tra dữ liệu ngày chuyển công tác.`
+            : ''
           throw err
         }
 
@@ -260,7 +274,7 @@ export async function submitEmployeeAttendanceBackfill({
           submittedBy: employee.id,
           createdBy: employee.id,
         }, {
-          onForeignKeyError: () => ensureAttendanceForeignKeys(employee.id),
+          onForeignKeyError: () => ensureAttendanceForeignKeys(employee.id, { recordDate: date }),
         })
       })(),
       ATTENDANCE_SAVE_TIMEOUT_MS,
@@ -319,18 +333,25 @@ export async function adminCreateAttendance({
   updatedAt,
   editor,
 }) {
-  const resolvedBranchId = branchId || getEmployeeById(employeeId)?.branchId || ''
+  const employee = getEmployeeById(employeeId)
+  const timelineBranchId = date && employee ? getEmployeeBranchAtDate(employee, date) : ''
+  const resolvedBranchId = branchId || timelineBranchId || employee?.branchId || ''
   await assertCanEditAttendanceRecordBranch({ branchId: resolvedBranchId }, { date, editNote })
   if (!String(editNote ?? '').trim()) {
     throw new Error('Vui lòng nhập lý do bổ sung chấm công.')
   }
   if (resolvedBranchId) {
-    await ensureAttendanceForeignKeys(employeeId)
+    await ensureAttendanceForeignKeys(employeeId, { recordDate: date })
   }
 
   const existing = await fetchAttendanceByEmployeeAndDate(employeeId, date)
   if (existing) {
-    throw new Error('Nhân viên đã có bản ghi chấm công trong ngày này. Không được tạo trùng.')
+    const mismatch = existing.branchId && timelineBranchId && existing.branchId !== timelineBranchId
+    throw new Error(
+      mismatch
+        ? `Nhân viên đã có chấm công ngày này tại chi nhánh khác (${getBranchName(existing.branchId)}). Không tự sửa — hãy kiểm tra dữ liệu ngày chuyển công tác.`
+        : 'Nhân viên đã có bản ghi chấm công trong ngày này. Không được tạo trùng.',
+    )
   }
 
   const monthPrefix = getMonthPrefixFromDate(date)
@@ -346,7 +367,7 @@ export async function adminCreateAttendance({
     date,
     branchId: resolvedBranchId || branchId,
     employeeId,
-    employeeName: employeeName ?? getEmployeeById(employeeId)?.name ?? '',
+    employeeName: employeeName ?? employee?.name ?? '',
     status,
     reason: reason.trim(),
     note: note.trim(),
@@ -356,7 +377,7 @@ export async function adminCreateAttendance({
     submittedBy: editor?.editorId ?? editor?.editorName ?? 'admin',
     createdBy: editor?.editorId ?? editor?.editorName ?? 'admin',
   }, {
-    onForeignKeyError: () => ensureAttendanceForeignKeys(employeeId),
+    onForeignKeyError: () => ensureAttendanceForeignKeys(employeeId, { recordDate: date }),
   })
 
   notifyAttendanceDataChanged()

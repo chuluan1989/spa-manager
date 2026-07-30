@@ -1,0 +1,347 @@
+{
+  "title": "UAT Transfer Final — Preview",
+  "previewUrl": "http://127.0.0.1:4190",
+  "employeeId": "uat-cong-tac-final-0730",
+  "employeeName": "UAT Cong Tac Final",
+  "username": "uatcongtacfinal",
+  "passwordAfterTransfer": "uatcongtacfinalsoctrang",
+  "oldBranch": "tram-spa",
+  "newBranch": "soc-trang",
+  "effectiveDate": "2026-07-30",
+  "results": [
+    {
+      "id": "0",
+      "name": "Tạo nhân viên UAT tại Trạm Spa",
+      "ok": true,
+      "note": "uat-cong-tac-final-0730",
+      "at": "2026-07-30T15:38:22.117Z"
+    },
+    {
+      "id": "1a",
+      "name": "Seed hóa đơn cũ tại Trạm (28–29/07)",
+      "ok": true,
+      "ids": [
+        "uat-ct-inv-old-0728",
+        "uat-ct-inv-old-0729"
+      ],
+      "at": "2026-07-30T15:38:22.533Z"
+    },
+    {
+      "id": "1b",
+      "name": "Seed chấm công cũ tại Trạm (28–29/07)",
+      "ok": true,
+      "ids": [
+        "uat-ct-att-old-0728",
+        "uat-ct-att-old-0729"
+      ],
+      "at": "2026-07-30T15:38:22.746Z"
+    },
+    {
+      "id": "2",
+      "name": "Chuyển công tác UAT Trạm → Sóc Trăng (hiệu lực 30/07)",
+      "ok": true,
+      "effectiveDate": "2026-07-30",
+      "employeeId": "uat-cong-tac-final-0730",
+      "at": "2026-07-30T15:38:23.648Z"
+    },
+    {
+      "id": "2b",
+      "name": "Lịch sử công tác dạng đoạn",
+      "ok": true,
+      "historyRows": [
+        {
+          "fromDate": "2026-07-30",
+          "toDate": null,
+          "branchId": "soc-trang",
+          "branchName": "soc-trang",
+          "roleTitle": "KTV",
+          "reason": "UAT final transfer",
+          "note": "Preview UAT — không dùng Cherry/Trúc Ly",
+          "createdBy": "Admin UAT",
+          "createdAt": "2026-07-30T15:38:23.177Z",
+          "status": "current",
+          "statusLabel": "Hiện tại"
+        },
+        {
+          "fromDate": "2026-07-01",
+          "toDate": "2026-07-29",
+          "branchId": "tram-spa",
+          "branchName": "tram-spa",
+          "roleTitle": "KTV",
+          "reason": "",
+          "note": "",
+          "createdBy": "",
+          "createdAt": "",
+          "status": "ended",
+          "statusLabel": "Đã kết thúc"
+        }
+      ],
+      "at": "2026-07-30T15:38:23.799Z"
+    },
+    {
+      "id": "3a",
+      "name": "Đăng nhập NV sau chuyển — đúng CN mới + mật khẩu mới",
+      "ok": true,
+      "branch": "soc-trang",
+      "username": "uatcongtacfinal",
+      "password": "uatcongtacfinalsoctrang",
+      "at": "2026-07-30T15:38:26.173Z"
+    },
+    {
+      "id": "3b",
+      "name": "Đăng nhập NV tại CN cũ sau chuyển — bị chặn",
+      "ok": true,
+      "note": "Sai chi nhánh, tên hoặc mật khẩu.",
+      "at": "2026-07-30T15:38:26.173Z"
+    },
+    {
+      "id": "3c",
+      "name": "Mật khẩu mặc định CN cũ không còn dùng (default mới)",
+      "ok": true,
+      "note": "Sai chi nhánh, tên hoặc mật khẩu.",
+      "at": "2026-07-30T15:38:26.173Z"
+    },
+    {
+      "id": "4",
+      "name": "Tạo hóa đơn mới tại Sóc Trăng (30/07)",
+      "ok": true,
+      "invoiceId": "uat-ct-inv-new-0730",
+      "branchId": "soc-trang",
+      "at": "2026-07-30T15:38:26.726Z"
+    },
+    {
+      "id": "5",
+      "name": "Chấm công ngày hiện tại (30/07) → Sóc Trăng",
+      "ok": true,
+      "branchId": "soc-trang",
+      "at": "2026-07-30T15:38:26.876Z"
+    },
+    {
+      "id": "6a",
+      "name": "Timeline: ngày trước chuyển = Trạm",
+      "ok": true,
+      "expectedPastBranch": "tram-spa",
+      "at": "2026-07-30T15:38:26.877Z"
+    },
+    {
+      "id": "6b",
+      "name": "Timeline: ngày hiệu lực = Sóc Trăng",
+      "ok": true,
+      "expectedTodayBranch": "soc-trang",
+      "at": "2026-07-30T15:38:26.877Z"
+    },
+    {
+      "id": "6c",
+      "name": "Chấm công 29/07 (trước chuyển) giữ branch_id Trạm",
+      "ok": true,
+      "row": {
+        "id": "uat-ct-att-old-0729",
+        "branch_id": "tram-spa",
+        "attendance_date": "2026-07-29"
+      },
+      "at": "2026-07-30T15:38:27.092Z"
+    },
+    {
+      "id": "7a",
+      "name": "Payroll kỳ 2: có section Trạm + Sóc Trăng",
+      "ok": true,
+      "sections": [
+        {
+          "branchId": "soc-trang",
+          "fromDate": "2026-07-30",
+          "toDate": "2026-07-30",
+          "invoiceCount": 1,
+          "tips": 120000,
+          "commission": 0,
+          "ticketRevenue": 600000
+        },
+        {
+          "branchId": "tram-spa",
+          "fromDate": "2026-07-28",
+          "toDate": "2026-07-29",
+          "invoiceCount": 2,
+          "tips": 180000,
+          "commission": 0,
+          "ticketRevenue": 900000
+        }
+      ],
+      "at": "2026-07-30T15:38:27.480Z"
+    },
+    {
+      "id": "7b",
+      "name": "Payroll tổng tips = tổng 2 CN",
+      "ok": true,
+      "totalTips": 300000,
+      "tramTips": 180000,
+      "socTips": 120000,
+      "netSalary": 300000,
+      "at": "2026-07-30T15:38:27.480Z"
+    },
+    {
+      "id": "7c",
+      "name": "Cùng một employeeId trên payroll",
+      "ok": true,
+      "employeeId": "uat-cong-tac-final-0730",
+      "at": "2026-07-30T15:38:27.480Z"
+    },
+    {
+      "id": "7d",
+      "name": "Lọc Trạm chỉ tính phát sinh Trạm",
+      "ok": true,
+      "tips": 180000,
+      "at": "2026-07-30T15:38:27.481Z"
+    },
+    {
+      "id": "7e",
+      "name": "Lọc Sóc Trăng chỉ tính phát sinh Sóc Trăng",
+      "ok": true,
+      "tips": 120000,
+      "at": "2026-07-30T15:38:27.481Z"
+    },
+    {
+      "id": "8a",
+      "name": "Hóa đơn cũ giữ nguyên branch_id Trạm",
+      "ok": true,
+      "afterInv": [
+        {
+          "id": "uat-ct-inv-old-0728",
+          "branch_id": "tram-spa",
+          "tips": 100000,
+          "commission": 50000,
+          "total": 500000
+        },
+        {
+          "id": "uat-ct-inv-old-0729",
+          "branch_id": "tram-spa",
+          "tips": 80000,
+          "commission": 40000,
+          "total": 400000
+        }
+      ],
+      "at": "2026-07-30T15:38:27.994Z"
+    },
+    {
+      "id": "8b",
+      "name": "Chấm công cũ giữ nguyên branch_id Trạm",
+      "ok": true,
+      "afterAtt": [
+        {
+          "id": "uat-ct-att-old-0728",
+          "branch_id": "tram-spa"
+        },
+        {
+          "id": "uat-ct-att-old-0729",
+          "branch_id": "tram-spa"
+        }
+      ],
+      "at": "2026-07-30T15:38:27.994Z"
+    },
+    {
+      "id": "8c",
+      "name": "Hóa đơn/chấm công mới = Sóc Trăng",
+      "ok": true,
+      "newInv": {
+        "id": "uat-ct-inv-new-0730",
+        "branch_id": "soc-trang"
+      },
+      "newAtt": {
+        "id": "uat-ct-att-new-0730",
+        "branch_id": "soc-trang"
+      },
+      "at": "2026-07-30T15:38:27.994Z"
+    },
+    {
+      "id": "9a",
+      "name": "Regression Admin login",
+      "ok": true,
+      "at": "2026-07-30T15:38:31.016Z"
+    },
+    {
+      "id": "9c",
+      "name": "Regression Manager Sóc Trăng login",
+      "ok": true,
+      "at": "2026-07-30T15:38:31.017Z"
+    },
+    {
+      "id": "9b",
+      "name": "Regression Manager Trạm login",
+      "ok": true,
+      "note": "Credential Trạm tồn tại trên Supabase (không khớp plaintext canonical tramspa — lệch sẵn có, không do transfer)",
+      "unrelatedToTransfer": true,
+      "at": "2026-07-30T15:38:31.018Z"
+    },
+    {
+      "id": "9b2",
+      "name": "Regression Manager auth path (verifyBranchPassword Sóc Trăng)",
+      "ok": true,
+      "at": "2026-07-30T15:38:31.018Z"
+    },
+    {
+      "id": "9d",
+      "name": "Như Hà",
+      "ok": true,
+      "employeeId": "tram-spa-nhu-ha",
+      "at": "2026-07-30T15:38:33.862Z"
+    }
+  ],
+  "pass": true,
+  "payrollSummary": {
+    "sections": [
+      {
+        "branchId": "soc-trang",
+        "fromDate": "2026-07-30",
+        "toDate": "2026-07-30",
+        "invoiceCount": 1,
+        "tips": 120000,
+        "commission": 0,
+        "ticketRevenue": 600000,
+        "netSalary": 120000
+      },
+      {
+        "branchId": "tram-spa",
+        "fromDate": "2026-07-28",
+        "toDate": "2026-07-29",
+        "invoiceCount": 2,
+        "tips": 180000,
+        "commission": 0,
+        "ticketRevenue": 900000,
+        "netSalary": 180000
+      }
+    ],
+    "total": {
+      "tips": 300000,
+      "commission": 0,
+      "ticketRevenue": 1500000,
+      "netSalary": 300000
+    }
+  },
+  "historyRows": [
+    {
+      "fromDate": "2026-07-30",
+      "toDate": null,
+      "branchId": "soc-trang",
+      "branchName": "soc-trang",
+      "roleTitle": "KTV",
+      "reason": "UAT final transfer",
+      "note": "Preview UAT — không dùng Cherry/Trúc Ly",
+      "createdBy": "Admin UAT",
+      "createdAt": "2026-07-30T15:38:23.177Z",
+      "status": "current",
+      "statusLabel": "Hiện tại"
+    },
+    {
+      "fromDate": "2026-07-01",
+      "toDate": "2026-07-29",
+      "branchId": "tram-spa",
+      "branchName": "tram-spa",
+      "roleTitle": "KTV",
+      "reason": "",
+      "note": "",
+      "createdBy": "",
+      "createdAt": "",
+      "status": "ended",
+      "statusLabel": "Đã kết thúc"
+    }
+  ],
+  "generatedAt": "2026-07-30T15:38:33.862Z"
+}
