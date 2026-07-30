@@ -11,8 +11,10 @@ import {
 } from 'lucide-react'
 import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
 import { ROLES } from '../constants/auth'
-import { verifyLoginWithUsername } from '../constants/loginCredentials'
+import { verifyLogin } from '../constants/loginCredentials'
+import { getActiveBranches } from '../constants/branches'
 import { BRANCH_CONTACTS, SYSTEM_HOTLINE } from '../constants/branchContacts'
+import { getActiveEmployeesByBranch } from '../utils/employeeStorage'
 import './Login.css'
 
 const ROLE_OPTIONS = [
@@ -29,7 +31,8 @@ function FieldIcon({ children }) {
 
 export default function Login({ onLogin }) {
   const [role, setRole] = useState('')
-  const [username, setUsername] = useState('')
+  const [branch, setBranch] = useState('')
+  const [employeeId, setEmployeeId] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
@@ -47,19 +50,21 @@ export default function Login({ onLogin }) {
     }
   }, [])
 
-  const isAdminRole = role === ROLES.ADMIN
-  const needsUsername = role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE
+  const isBranchManager = role === ROLES.BRANCH_MANAGER
+  const isEmployeeRole = role === ROLES.EMPLOYEE
+  const branchEmployees = branch ? getActiveEmployeesByBranch(branch) : []
 
   const handleRoleChange = (nextRole) => {
     setRole(nextRole)
-    setUsername('')
+    setBranch('')
+    setEmployeeId('')
     setPassword('')
     setErrors({})
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const result = await verifyLoginWithUsername({ role, username, password })
+    const result = await verifyLogin({ role, branch, employeeId, password })
     if (!result.ok) {
       setErrors({ [result.field]: result.message })
       return
@@ -123,24 +128,51 @@ export default function Login({ onLogin }) {
                 {errors.role && <span className="login__error">{errors.role}</span>}
               </label>
 
-              {needsUsername && (
+              {(isBranchManager || isEmployeeRole) && (
                 <label className="login__field">
-                  <span>Tên đăng nhập</span>
+                  <span>Chi nhánh</span>
+                  <div className="login__input-wrap">
+                    <FieldIcon><MapPin size={18} strokeWidth={1.75} /></FieldIcon>
+                    <select
+                      value={branch}
+                      onChange={(e) => {
+                        setBranch(e.target.value)
+                        setEmployeeId('')
+                        setErrors((prev) => ({ ...prev, branch: undefined, employeeId: undefined }))
+                      }}
+                      className={errors.branch ? 'login__input--error' : ''}
+                    >
+                      <option value="">Chọn chi nhánh</option>
+                      {getActiveBranches().map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.branch && <span className="login__error">{errors.branch}</span>}
+                </label>
+              )}
+
+              {isEmployeeRole && (
+                <label className="login__field">
+                  <span>Nhân viên</span>
                   <div className="login__input-wrap">
                     <FieldIcon><User size={18} strokeWidth={1.75} /></FieldIcon>
-                    <input
-                      type="text"
-                      value={username}
+                    <select
+                      value={employeeId}
                       onChange={(e) => {
-                        setUsername(e.target.value)
-                        setErrors((prev) => ({ ...prev, username: undefined }))
+                        setEmployeeId(e.target.value)
+                        setErrors((prev) => ({ ...prev, employeeId: undefined }))
                       }}
-                      placeholder={role === ROLES.BRANCH_MANAGER ? 'vd: tramspa' : 'vd: hongthuong'}
-                      className={errors.username ? 'login__input--error' : ''}
-                      autoComplete="username"
-                    />
+                      className={errors.employeeId ? 'login__input--error' : ''}
+                      disabled={!branch}
+                    >
+                      <option value="">{branch ? 'Chọn nhân viên' : 'Chọn chi nhánh trước'}</option>
+                      {branchEmployees.map((employee) => (
+                        <option key={employee.id} value={employee.id}>{employee.name}</option>
+                      ))}
+                    </select>
                   </div>
-                  {errors.username && <span className="login__error">{errors.username}</span>}
+                  {errors.employeeId && <span className="login__error">{errors.employeeId}</span>}
                 </label>
               )}
 
@@ -171,10 +203,6 @@ export default function Login({ onLogin }) {
                   </div>
                   {errors.password && <span className="login__error">{errors.password}</span>}
                 </label>
-              )}
-
-              {isAdminRole && (
-                <p className="login__hint">Admin đăng nhập bằng mật khẩu hệ thống.</p>
               )}
 
               <label className="login__remember">

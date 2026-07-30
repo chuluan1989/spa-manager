@@ -12,7 +12,12 @@ import {
   resetEmployeePasswordsByBranch,
   resetAllLoginPasswordsToDefault,
   updateEmployeeLoginUsername,
+  regenerateAllAccountsFromProfiles,
 } from '../../utils/credentialsStorage'
+import {
+  downloadAccountExportCsv,
+  formatRegenerationReport,
+} from '../../login/accountExport'
 import {
   formatLastLogin,
   setAccountLocked,
@@ -71,6 +76,8 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
   const [usernameModal, setUsernameModal] = useState(null)
   const [nextUsername, setNextUsername] = useState('')
   const [savingUsername, setSavingUsername] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+  const [regenerationReport, setRegenerationReport] = useState('')
 
   const branches = useMemo(() => getMatrixBranches(), [matrixRevision])
   const matrix = useMemo(() => getBranchPermissionMatrix(), [matrixRevision])
@@ -320,6 +327,42 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
     }
   }
 
+  const handleRegenerateAllAccounts = async () => {
+    if (regenerating) return
+    const confirmed = window.confirm(
+      'Cập nhật toàn bộ tài khoản?\n\n'
+      + 'Hệ thống sẽ sinh lại username và mật khẩu mặc định cho TẤT CẢ quản lý chi nhánh và nhân viên '
+      + 'theo quy tắc Login V2. Mật khẩu cũ sẽ không còn hiệu lực.\n\n'
+      + 'Admin giữ nguyên mật khẩu.',
+    )
+    if (!confirmed) return
+
+    setRegenerating(true)
+    setRegenerationReport('')
+    try {
+      const result = await regenerateAllAccountsFromProfiles()
+      if (!result.success) {
+        showToast(result.error ?? 'Không thể cập nhật toàn bộ tài khoản')
+        if (result.summary) {
+          setRegenerationReport(formatRegenerationReport(result))
+        }
+        return
+      }
+
+      refreshAccounts()
+      setRegenerationReport(formatRegenerationReport(result))
+      downloadAccountExportCsv(result.exportRows ?? [], `login-v2-accounts-${Date.now()}.csv`)
+      showToast(
+        `Đã cập nhật ${result.summary?.employeesSucceeded ?? 0} NV + `
+        + `${result.summary?.branchManagers ?? 0} QL chi nhánh. File CSV đã được tải xuống.`,
+      )
+    } catch (error) {
+      showToast(error?.message ?? 'Không thể cập nhật toàn bộ tài khoản')
+    } finally {
+      setRegenerating(false)
+    }
+  }
+
   const branchLabel = (branch) => {
     const contact = getBranchContactByBranchId(branch.id)
     if (contact?.label) return `QL ${contact.label}`
@@ -328,6 +371,26 @@ export default function SettingsAccountsPermissionsTab({ showToast }) {
 
   return (
     <>
+      <section className="settings__card">
+        <h3 className="settings__card-title">Cập nhật toàn bộ tài khoản (Login V2)</h3>
+        <p className="settings__hint">
+          Sinh lại username và mật khẩu mặc định cho toàn bộ quản lý chi nhánh và nhân viên
+          từ Hồ sơ hiện tại. Không dùng dữ liệu cũ. Sau khi chạy, hệ thống xuất file CSV
+          (Tên, Chi nhánh, Username, Password mặc định) để kiểm tra.
+        </p>
+        <button
+          type="button"
+          className="settings__btn settings__btn--primary"
+          onClick={handleRegenerateAllAccounts}
+          disabled={regenerating}
+        >
+          {regenerating ? 'Đang cập nhật...' : 'Cập nhật toàn bộ tài khoản'}
+        </button>
+        {regenerationReport && (
+          <pre className="settings__report">{regenerationReport}</pre>
+        )}
+      </section>
+
       <section className="settings__card">
         <h3 className="settings__card-title">Reset mật khẩu hàng loạt</h3>
         <p className="settings__hint">

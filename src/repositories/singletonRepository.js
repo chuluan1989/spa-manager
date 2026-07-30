@@ -18,13 +18,26 @@ export async function fetchSingletonPayload(table) {
   return data?.payload ?? null
 }
 
-export async function upsertSingletonPayload(table, payload) {
-  if (!isSupabaseConfigured || !payload) return
-  const { error } = await supabase
+export async function upsertSingletonPayload(table, payload, { required = false } = {}) {
+  if (!payload) {
+    if (required) throw new Error(`Không thể ghi ${table}: payload rỗng`)
+    return
+  }
+  if (!isSupabaseConfigured) {
+    if (required) {
+      throw new Error(`Không thể ghi ${table}: Supabase chưa cấu hình (thiếu VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)`)
+    }
+    return
+  }
+  const { data, error } = await supabase
     .from(table)
     .upsert(
       { id: SINGLETON_ID, payload, updated_at: new Date().toISOString() },
       { onConflict: 'id' },
     )
+    .select('id')
   if (error) throw error
+  if (required && (!data || data.length === 0)) {
+    throw new Error(`Ghi ${table} thất bại: Supabase không trả về dòng nào (kiểm tra RLS / quyền anon key)`)
+  }
 }

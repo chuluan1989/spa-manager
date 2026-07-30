@@ -1,34 +1,18 @@
 import { ROLES } from '../constants/roles'
-import { resolveCanonicalBranchId } from '../constants/canonicalBranches'
 import { loadBranches } from '../constants/branches'
-import {
-  getEmployeeById,
-  isEmployeeActive,
-  isEmployeeLoginEligible,
-  loadEmployees,
-} from './employeeStorage'
 import { loadCredentials } from './credentialsStorage'
-import {
-  computeBranchManagerLoginUsername,
-  computeEmployeeLoginUsername,
-  findBranchByManagerLoginUsername,
-  findEmployeeByLoginUsername,
-  getEmployeeLoginUsername,
-} from './loginUsername'
+import { isEmployeeLoginEligible, loadEmployees } from './employeeStorage'
+import { branchManagerUsername } from '../login/loginRules'
+import { resolveLoginUsername, normalizeLoginUsernameInput } from '../login/loginResolver'
 
-function normalizeUsername(value) {
-  return String(value ?? '').trim().toLowerCase()
-}
+export { resolveLoginUsername, normalizeLoginUsernameInput as normalizeUsername }
 
-/**
- * Liệt kê xung đột username (cùng chuỗi đăng nhập map nhiều tài khoản).
- * Username NV = họ tên chuẩn hóa; QL CN = branch slug (tramspa); Admin = admin.
- */
+/** Liệt kê username trùng trong credentials đã lưu. */
 export function findDuplicateLoginUsernames() {
   const buckets = new Map()
 
   const add = (username, entry) => {
-    const key = normalizeUsername(username)
+    const key = normalizeLoginUsernameInput(username)
     if (!key) return
     if (!buckets.has(key)) buckets.set(key, [])
     buckets.get(key).push(entry)
@@ -37,36 +21,25 @@ export function findDuplicateLoginUsernames() {
   add('admin', { type: 'admin', accountKey: 'admin', label: 'Admin' })
 
   for (const branch of loadBranches()) {
-    add(computeBranchManagerLoginUsername(branch.id), {
+    add(branchManagerUsername(branch.id), {
       type: 'branch_manager',
       accountKey: branch.id,
       label: `QL ${branch.name}`,
       branchId: branch.id,
     })
-    add(branch.id, {
-      type: 'branch_manager_legacy',
-      accountKey: branch.id,
-      label: `QL ${branch.name} (legacy id)`,
-      branchId: branch.id,
-    })
   }
 
+  const credentials = loadCredentials()
   for (const employee of loadEmployees().filter(isEmployeeLoginEligible)) {
-    add(getEmployeeLoginUsername(employee), {
+    const stored = credentials.employees?.[employee.id]?.loginUsername
+    if (!stored) continue
+    add(stored, {
       type: 'employee',
       accountKey: `employee:${employee.id}`,
       label: employee.name || employee.id,
       employeeId: employee.id,
       branchId: employee.branchId,
     })
-    if (employee.id !== getEmployeeLoginUsername(employee)) {
-      add(employee.id, {
-        type: 'employee_legacy_id',
-        accountKey: `employee:${employee.id}`,
-        label: `${employee.name} (legacy id)`,
-        employeeId: employee.id,
-      })
-    }
   }
 
   return [...buckets.entries()]
@@ -74,13 +47,14 @@ export function findDuplicateLoginUsernames() {
     .map(([username, entries]) => ({ username, entries }))
 }
 
+/** @deprecated Dùng resolveLoginUsername từ login/loginResolver.js */
 export function resolveLoginAccount(usernameInput) {
-  const username = normalizeUsername(usernameInput)
-  if (!username) {
-    return { ok: false, field: 'username', message: 'Vui lòng nhập tên đăng nhập' }
-  }
+  const credentials = loadCredentials()
+  const employeesById = new Map(loadEmployees().map((employee) => [employee.id, employee]))
+  const resolved = resolveLoginUsername(usernameInput, credentials, employeesById)
+  if (!resolved.ok) return resolved
 
-  if (username === 'admin') {
+  if (resolved.role === ROLES.ADMIN) {
     return {
       ok: true,
       role: ROLES.ADMIN,
@@ -89,50 +63,21 @@ export function resolveLoginAccount(usernameInput) {
     }
   }
 
-  const branch = findBranchByManagerLoginUsername(username)
-  const employeeLookup = findEmployeeByLoginUsername(username)
-  if (employeeLookup?.conflict) {
-    return {
-      ok: false,
-      field: 'username',
-      message: 'Tên đăng nhập trùng nhiều nhân viên. Liên hệ Admin để chuẩn hóa.',
-    }
-  }
-  const employee = employeeLookup && !employeeLookup.conflict ? employeeLookup : null
-  const employeeEligible = employee && isEmployeeLoginEligible(employee)
-
-  if (branch && employeeEligible) {
-    return {
-      ok: false,
-      field: 'username',
-      message: 'Tên đăng nhập trùng giữa quản lý chi nhánh và nhân viên. Liên hệ Admin để chuẩn hóa.',
-    }
-  }
-
-  if (branch) {
+  if (resolved.role === ROLES.BRANCH_MANAGER) {
     return {
       ok: true,
       role: ROLES.BRANCH_MANAGER,
-      accountKey: branch.id,
-      branch: resolveCanonicalBranchId(branch.id),
+      accountKey: resolved.accountKey,
+      branch: resolved.branchId,
     }
   }
 
-  if (employeeEligible) {
-    if (!isEmployeeActive(employee)) {
-      return { ok: false, field: 'password', message: 'Sai tên đăng nhập hoặc mật khẩu' }
-    }
-    const credBranchId = loadCredentials().employees?.[employee.id]?.branchId
-    const sessionBranch = resolveCanonicalBranchId(employee.branchId || credBranchId || '')
-    return {
-      ok: true,
-      role: ROLES.EMPLOYEE,
-      accountKey: `employee:${employee.id}`,
-      branch: sessionBranch,
-      employeeId: employee.id,
-      employeeName: employee.name,
-    }
+  return {
+    ok: true,
+    role: ROLES.EMPLOYEE,
+    accountKey: resolved.accountKey,
+    branch: resolved.branchId,
+    employeeId: resolved.employeeId,
+    employeeName: resolved.employeeName,
   }
-
-  return { ok: false, field: 'password', message: 'Sai tên đăng nhập hoặc mật khẩu' }
 }
