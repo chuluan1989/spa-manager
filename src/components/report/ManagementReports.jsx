@@ -12,6 +12,7 @@ import {
   useManagementReportsData,
 } from '../../hooks/useManagementReportsData'
 import {
+  EMPLOYEE_INVOICE_DRILL_MODES,
   buildBranchEmployeeInsights,
   buildEmployeeDailyRevenue,
   buildEmployeeInvoiceList,
@@ -123,11 +124,62 @@ function sortRows(rows, sortKey, sortDir) {
   })
 }
 
+const DRILL_MODE_LABELS = {
+  [EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY]: 'Tour chính',
+  [EMPLOYEE_INVOICE_DRILL_MODES.SUPPORT]: 'Tour hỗ trợ',
+  [EMPLOYEE_INVOICE_DRILL_MODES.REQUESTED]: 'Khách yêu cầu',
+  [EMPLOYEE_INVOICE_DRILL_MODES.ALL]: 'Tất cả tour',
+}
+
+function EmployeeInvoiceDrillTable({ invoices }) {
+  if (invoices.length === 0) {
+    return <p className="mgmt-muted">Không có hóa đơn trong bộ lọc này.</p>
+  }
+
+  return (
+    <div className="mgmt-drill-wrap">
+      <table className="mgmt-drill-table">
+        <thead>
+          <tr>
+            <th>Ngày</th>
+            <th>Mã HĐ</th>
+            <th>Khách hàng</th>
+            <th>SĐT</th>
+            <th>CN phục vụ</th>
+            <th>Dịch vụ</th>
+            <th>Thành tiền</th>
+            <th>NV chính</th>
+            <th>NV hỗ trợ</th>
+            <th>Khách YC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoices.map((inv) => (
+            <tr key={inv.id}>
+              <td>{inv.date}{inv.time ? ` ${inv.time}` : ''}</td>
+              <td className="mgmt-mono">{inv.id}</td>
+              <td>{inv.customerName}</td>
+              <td>{inv.customerPhone || '—'}</td>
+              <td>{inv.branchName}</td>
+              <td className="mgmt-drill-services">{inv.serviceNames}</td>
+              <td className="is-num">{formatMoneyOrDash(inv.revenue)}</td>
+              <td>{inv.employeeName}</td>
+              <td>{inv.supportEmployeeName || '—'}</td>
+              <td>{inv.customerRequested ? 'Có' : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function ManagementReports({ onNavigate }) {
   const [view, setView] = useState('branch')
   const [filters, setFilters] = useState(() => buildDefaultManagementFilters())
   const [selectedBranchId, setSelectedBranchId] = useState(null)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null)
+  const [employeeDrillMode, setEmployeeDrillMode] = useState(EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY)
 
   const data = useManagementReportsData(filters)
 
@@ -170,8 +222,12 @@ export default function ManagementReports({ onNavigate }) {
 
   const employeeInvoices = useMemo(() => {
     if (!selectedEmployee) return []
-    return buildEmployeeInvoiceList(data.currentInvoices ?? [], selectedEmployee.employeeId)
-  }, [selectedEmployee, data.currentInvoices])
+    return buildEmployeeInvoiceList(
+      data.currentInvoices ?? [],
+      selectedEmployee.employeeId,
+      employeeDrillMode,
+    )
+  }, [selectedEmployee, data.currentInvoices, employeeDrillMode])
 
   const employeeTrend = useMemo(() => {
     if (!selectedEmployee) return []
@@ -211,6 +267,18 @@ export default function ManagementReports({ onNavigate }) {
       sortDir: prev.sortKey === key && prev.sortDir === 'desc' ? 'asc' : 'desc',
     }))
   }
+
+  const selectEmployee = (employeeId, drillMode = EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY) => {
+    setSelectedEmployeeId(employeeId)
+    setEmployeeDrillMode(drillMode)
+  }
+
+  const openEmployeeDrill = (event, employeeId, drillMode) => {
+    event.stopPropagation()
+    selectEmployee(employeeId, drillMode)
+  }
+
+  const employeeColSpan = filters.branchId || !isAdmin() ? 11 : 12
 
   return (
     <div className="mgmt-reports">
@@ -319,7 +387,7 @@ export default function ManagementReports({ onNavigate }) {
         <TopMoversPanel
           title="TOP tăng / giảm — Nhân viên"
           rows={filteredEmployees}
-          onSelect={(id) => setSelectedEmployeeId(id)}
+          onSelect={(id) => selectEmployee(id)}
         />
       )}
 
@@ -417,7 +485,7 @@ export default function ManagementReports({ onNavigate }) {
                           type="button"
                           onClick={() => {
                             setView('employee')
-                            setSelectedEmployeeId(emp.id)
+                            selectEmployee(emp.id)
                             setSelectedBranchId(null)
                           }}
                         >
@@ -446,21 +514,22 @@ export default function ManagementReports({ onNavigate }) {
       )}
 
       {view === 'employee' && (
-        <div className="mgmt-layout">
+        <div className="mgmt-layout mgmt-layout--employee">
           <div className="mgmt-table-wrap">
             <table className="mgmt-table">
               <thead>
                 <tr>
                   <th><button type="button" onClick={() => toggleSort('name')}>Tên</button></th>
                   {!filters.branchId && isAdmin() && <th>Chi nhánh</th>}
+                  <th><button type="button" onClick={() => toggleSort('mainTourCount')}>Tour chính</button></th>
+                  <th><button type="button" onClick={() => toggleSort('supportTourCount')}>Tour hỗ trợ</button></th>
+                  <th><button type="button" onClick={() => toggleSort('totalTourCount')}>Tổng tour</button></th>
+                  <th><button type="button" onClick={() => toggleSort('customerRequestedTourCount')}>Khách yêu cầu</button></th>
+                  <th><button type="button" onClick={() => toggleSort('customerRequestedTourRate')}>Tỷ lệ YC (%)</button></th>
                   <th><button type="button" onClick={() => toggleSort('revenue')}>Doanh thu</button></th>
                   <th>Tăng/giảm</th>
-                  <th><button type="button" onClick={() => toggleSort('totalCustomerCount')}>Tổng khách</button></th>
-                  <th><button type="button" onClick={() => toggleSort('invoiceCount')}>Tổng tour</button></th>
-                  <th><button type="button" onClick={() => toggleSort('customerRequestedTourCount')}>Khách yêu cầu</button></th>
-                  <th><button type="button" onClick={() => toggleSort('customerRequestedTourRate')}>Tỷ lệ YC/tour</button></th>
                   <th><button type="button" onClick={() => toggleSort('tips')}>Tips</button></th>
-                  <th><button type="button" onClick={() => toggleSort('averageRevenuePerCustomer')}>DT/khách</button></th>
+                  <th><button type="button" onClick={() => toggleSort('totalSalary')}>Lương</button></th>
                 </tr>
               </thead>
               <tbody>
@@ -468,10 +537,39 @@ export default function ManagementReports({ onNavigate }) {
                   <tr
                     key={row.id}
                     className={selectedEmployeeId === row.id ? 'is-selected' : ''}
-                    onClick={() => setSelectedEmployeeId(row.id)}
+                    onClick={() => selectEmployee(row.id, EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY)}
                   >
                     <td>{row.name}</td>
                     {!filters.branchId && isAdmin() && <td>{row.branchName}</td>}
+                    <td className="is-num">
+                      <button
+                        type="button"
+                        className="mgmt-drill-link"
+                        onClick={(e) => openEmployeeDrill(e, row.id, EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY)}
+                      >
+                        {row.mainTourCount ?? 0}
+                      </button>
+                    </td>
+                    <td className="is-num">
+                      <button
+                        type="button"
+                        className="mgmt-drill-link"
+                        onClick={(e) => openEmployeeDrill(e, row.id, EMPLOYEE_INVOICE_DRILL_MODES.SUPPORT)}
+                      >
+                        {row.supportTourCount ?? 0}
+                      </button>
+                    </td>
+                    <td className="is-num">{row.totalTourCount ?? row.invoiceCount ?? 0}</td>
+                    <td className="is-num">
+                      <button
+                        type="button"
+                        className="mgmt-drill-link"
+                        onClick={(e) => openEmployeeDrill(e, row.id, EMPLOYEE_INVOICE_DRILL_MODES.REQUESTED)}
+                      >
+                        {row.customerRequestedTourCount ?? 0}
+                      </button>
+                    </td>
+                    <td className="is-num">{formatRate(row.customerRequestedTourRate)}</td>
                     <td className="is-num">{formatMoneyOrDash(row.revenue)}</td>
                     <td>
                       <TrendCell
@@ -480,17 +578,13 @@ export default function ManagementReports({ onNavigate }) {
                         formatPrev={formatMoneyOrDash}
                       />
                     </td>
-                    <td className="is-num">{row.totalCustomerCount}</td>
-                    <td className="is-num">{row.invoiceCount}</td>
-                    <td className="is-num">{row.customerRequestedTourCount}</td>
-                    <td className="is-num">{formatRate(row.customerRequestedTourRate)}</td>
                     <td className="is-num">{formatMoneyOrDash(row.tips)}</td>
-                    <td className="is-num">{formatMoneyOrDash(row.averageRevenuePerCustomer)}</td>
+                    <td className="is-num">{formatMoneyOrDash(row.totalSalary)}</td>
                   </tr>
                 ))}
                 {!data.loading && filteredEmployees.length === 0 && (
                   <tr>
-                    <td colSpan={filters.branchId || !isAdmin() ? 9 : 10} className="mgmt-empty">
+                    <td colSpan={employeeColSpan} className="mgmt-empty">
                       Không có dữ liệu nhân viên.
                     </td>
                   </tr>
@@ -507,20 +601,51 @@ export default function ManagementReports({ onNavigate }) {
               </header>
               <p className="mgmt-muted">{selectedEmployee.branchName}</p>
               <dl className="mgmt-detail__grid">
+                <div>
+                  <dt>Tour chính</dt>
+                  <dd>
+                    <button
+                      type="button"
+                      className={`mgmt-drill-link${employeeDrillMode === EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY ? ' is-active' : ''}`}
+                      onClick={() => setEmployeeDrillMode(EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY)}
+                    >
+                      {selectedEmployee.mainTourCount ?? 0}
+                    </button>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Tour hỗ trợ</dt>
+                  <dd>
+                    <button
+                      type="button"
+                      className={`mgmt-drill-link${employeeDrillMode === EMPLOYEE_INVOICE_DRILL_MODES.SUPPORT ? ' is-active' : ''}`}
+                      onClick={() => setEmployeeDrillMode(EMPLOYEE_INVOICE_DRILL_MODES.SUPPORT)}
+                    >
+                      {selectedEmployee.supportTourCount ?? 0}
+                    </button>
+                  </dd>
+                </div>
+                <div><dt>Tổng tour</dt><dd>{selectedEmployee.totalTourCount ?? selectedEmployee.invoiceCount ?? 0}</dd></div>
+                <div>
+                  <dt>Khách yêu cầu</dt>
+                  <dd>
+                    <button
+                      type="button"
+                      className={`mgmt-drill-link${employeeDrillMode === EMPLOYEE_INVOICE_DRILL_MODES.REQUESTED ? ' is-active' : ''}`}
+                      onClick={() => setEmployeeDrillMode(EMPLOYEE_INVOICE_DRILL_MODES.REQUESTED)}
+                    >
+                      {selectedEmployee.customerRequestedTourCount ?? 0}
+                    </button>
+                  </dd>
+                </div>
+                <div><dt>Tỷ lệ YC / tour chính</dt><dd>{formatRate(selectedEmployee.customerRequestedTourRate)} <TrendCell trend={selectedEmployee.customerRequestedTourRateTrend} previousValue={selectedEmployee.previous?.customerRequestedTourRate} formatPrev={formatRate} /></dd></div>
                 <div><dt>Doanh thu</dt><dd className={`mgmt-kpi is-${resolveKpiTone(selectedEmployee.revenueTrend)}`}>{formatMoneyOrDash(selectedEmployee.revenue)}</dd></div>
-                <div><dt>vs kỳ trước</dt><dd><TrendCell trend={selectedEmployee.revenueTrend} previousValue={selectedEmployee.previous?.revenue} formatPrev={formatMoneyOrDash} /></dd></div>
-                <div><dt>Tổng khách</dt><dd>{selectedEmployee.totalCustomerCount}</dd></div>
-                <div><dt>Khách yêu cầu (lượt tour)</dt><dd>{selectedEmployee.customerRequestedTourCount}</dd></div>
-                <div><dt>Tổng tour</dt><dd>{selectedEmployee.invoiceCount}</dd></div>
-                <div><dt>Tỷ lệ YC/tour</dt><dd>{formatRate(selectedEmployee.customerRequestedTourRate)} <TrendCell trend={selectedEmployee.customerRequestedTourRateTrend} previousValue={selectedEmployee.previous?.customerRequestedTourRate} formatPrev={formatRate} /></dd></div>
                 <div><dt>Tips</dt><dd>{formatMoneyOrDash(selectedEmployee.tips)} <TrendCell trend={selectedEmployee.tipsTrend} previousValue={selectedEmployee.previous?.tips} formatPrev={formatMoneyOrDash} /></dd></div>
-                <div><dt>DT/khách</dt><dd>{formatMoneyOrDash(selectedEmployee.averageRevenuePerCustomer)}</dd></div>
-                <div><dt>Invoice TB</dt><dd>{formatMoneyOrDash(selectedEmployee.averageTicket)} <TrendCell trend={selectedEmployee.averageTicketTrend} previousValue={selectedEmployee.previous?.averageTicket} formatPrev={formatMoneyOrDash} /></dd></div>
+                <div><dt>Lương</dt><dd>{formatMoneyOrDash(selectedEmployee.totalSalary)} <TrendCell trend={selectedEmployee.totalSalaryTrend} previousValue={selectedEmployee.previous?.totalSalary} formatPrev={formatMoneyOrDash} /></dd></div>
+                <div><dt>vs kỳ trước (DT)</dt><dd><TrendCell trend={selectedEmployee.revenueTrend} previousValue={selectedEmployee.previous?.revenue} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>Ngày làm hợp lệ</dt><dd>{selectedEmployee.workDays}</dd></div>
                 <div><dt>DT/ngày làm</dt><dd>{formatMoneyOrDash(selectedEmployee.averageRevenuePerWorkDay)}</dd></div>
                 <div><dt>Hạng DT trong CN</dt><dd>{selectedEmployee.revenueRankInBranch}/{selectedEmployee.revenueRankTotal}</dd></div>
-                <div><dt>Hạng tỷ lệ YC/tour</dt><dd>{selectedEmployee.requestedTourRateRankInBranch}/{selectedEmployee.requestedTourRateRankTotal}</dd></div>
-                <div><dt>Hạng lượt YC</dt><dd>{selectedEmployee.requestedTourCountRankInBranch}/{selectedEmployee.requestedTourCountRankTotal}</dd></div>
               </dl>
 
               <InsightBlock row={selectedEmployee} />
@@ -539,22 +664,35 @@ export default function ManagementReports({ onNavigate }) {
                 {employeeTrend.length === 0 && <p className="mgmt-muted">Không có dữ liệu.</p>}
               </div>
 
-              <h4>Hóa đơn liên quan</h4>
-              <ul className="mgmt-invoice-list">
-                {employeeInvoices.slice(0, 40).map((inv) => (
-                  <li key={inv.id}>
-                    <div>
-                      <strong>{inv.date} {inv.time}</strong>
-                      <span>{inv.customerName}{inv.customerRequested ? ' · Yêu cầu' : ''}</span>
-                    </div>
-                    <div className="is-num">
-                      <strong>{formatMoneyOrDash(inv.revenue)}</strong>
-                      <span>Tips {formatMoneyOrDash(inv.tips)}</span>
-                    </div>
-                  </li>
+              <div className="mgmt-drill-tabs" role="tablist" aria-label="Lọc hóa đơn theo loại tour">
+                {Object.entries(DRILL_MODE_LABELS).map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="tab"
+                    className={employeeDrillMode === mode ? 'is-active' : ''}
+                    aria-selected={employeeDrillMode === mode}
+                    onClick={() => setEmployeeDrillMode(mode)}
+                  >
+                    {label}
+                    {mode === EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY ? ` (${selectedEmployee.mainTourCount ?? 0})` : ''}
+                    {mode === EMPLOYEE_INVOICE_DRILL_MODES.SUPPORT ? ` (${selectedEmployee.supportTourCount ?? 0})` : ''}
+                    {mode === EMPLOYEE_INVOICE_DRILL_MODES.REQUESTED ? ` (${selectedEmployee.customerRequestedTourCount ?? 0})` : ''}
+                    {mode === EMPLOYEE_INVOICE_DRILL_MODES.ALL ? ` (${selectedEmployee.totalTourCount ?? 0})` : ''}
+                  </button>
                 ))}
-                {employeeInvoices.length === 0 && <li className="mgmt-muted">Không có hóa đơn trong kỳ.</li>}
-              </ul>
+              </div>
+
+              <h4>
+                Hóa đơn —
+                {' '}
+                {DRILL_MODE_LABELS[employeeDrillMode] || 'Tour chính'}
+                {' '}
+                (
+                {employeeInvoices.length}
+                )
+              </h4>
+              <EmployeeInvoiceDrillTable invoices={employeeInvoices} />
 
               {typeof onNavigate === 'function' && (
                 <button

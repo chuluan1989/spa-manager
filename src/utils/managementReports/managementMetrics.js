@@ -1,4 +1,4 @@
-import { getInvoicePayment, getInvoiceTips } from '../invoice'
+import { getInvoicePayment, getInvoiceTips, getInvoiceServiceDetails } from '../invoice'
 import { countUniqueCustomers } from '../drillDownReport'
 import { buildDrillDownSummary } from '../drillDownReport'
 import { computeAttendanceStats } from '../payrollLiveHelpers'
@@ -6,12 +6,21 @@ import { computeTopServices } from '../report'
 import { getBranchById, loadBranches } from '../../constants/branches'
 import { getEmployeeById } from '../employeeStorage'
 import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
+import { buildAdminEmployeeSummary } from '../salaryReport'
 import {
   computeSafeTrend,
   countInclusiveDays,
   safeDivide,
   safeRatePercent,
 } from './periodCompare'
+
+/** Drill modes for employee invoice lists in Management Reports. */
+export const EMPLOYEE_INVOICE_DRILL_MODES = {
+  PRIMARY: 'primary',
+  SUPPORT: 'support',
+  REQUESTED: 'requested',
+  ALL: 'all',
+}
 
 function customerKey(invoice) {
   const phone = (invoice.customerPhone ?? '').replace(/\D/g, '')
@@ -28,6 +37,28 @@ function filterByBranch(invoices, branchId) {
 
 function primaryInvoicesForEmployee(invoices, employeeId) {
   return invoices.filter((inv) => inv.employeeId === employeeId)
+}
+
+function supportInvoicesForEmployee(invoices, employeeId) {
+  return invoices.filter((inv) => inv.supportEmployeeId === employeeId)
+}
+
+function scopedInvoices(invoices, scopeBranchId) {
+  return scopeBranchId ? filterByBranch(invoices, scopeBranchId) : invoices
+}
+
+function ensureEmployeeMeta(employeeMap, employeeId, inv, scopeBranchId) {
+  if (!employeeId || employeeMap.has(employeeId)) return
+  const emp = getEmployeeById(employeeId)
+  const displayBranchId = scopeBranchId || emp?.branchId || inv?.branchId || ''
+  employeeMap.set(employeeId, {
+    id: employeeId,
+    name: emp?.name || (inv?.employeeId === employeeId ? inv.employeeName : inv?.supportEmployeeName) || employeeId,
+    branchId: displayBranchId,
+    branchName: scopeBranchId
+      ? getPayrollBranchDisplayTitle(scopeBranchId, getBranchById(scopeBranchId)?.name)
+      : (getBranchById(emp?.branchId || inv?.branchId)?.name || inv?.branchName || '—'),
+  })
 }
 
 function countRequestedCustomers(invoices) {
@@ -165,6 +196,8 @@ export function buildBranchManagementRows({
  * Employee management rows.
  * Revenue / tips / requested: primary employee on invoice only (customerRequested flag).
  * Support role does not receive ticket revenue or requested credit.
+ * Tours: main (employeeId) + support (supportEmployeeId) kept separate; total = sum.
+ * Salary: commission (+ tips for primary) across both roles via salaryReport rules.
  */
 export function buildEmployeeManagementRows({
   invoices = [],
@@ -180,66 +213,65 @@ export function buildEmployeeManagementRows({
 }) {
   const days = countInclusiveDays(fromDate, toDate)
   const employeeMap = new Map()
+  const currentScoped = scopedInvoices(invoices, scopeBranchId)
+  const previousScoped = scopedInvoices(previousInvoices, scopeBranchId)
 
-  const consider = (inv) => {
-    const id = inv.employeeId
-    if (!id) return
+  const considerInvoice = (inv) => {
     if (scopeBranchId && inv.branchId !== scopeBranchId) return
-    if (employeeIds && !employeeIds.has(id)) return
-    if (!employeeMap.has(id)) {
-      const emp = getEmployeeById(id)
-      const displayBranchId = scopeBranchId || emp?.branchId || inv.branchId || ''
-      employeeMap.set(id, {
-        id,
-        name: emp?.name || inv.employeeName || id,
-        branchId: displayBranchId,
-        branchName: scopeBranchId
-          ? getPayrollBranchDisplayTitle(scopeBranchId, getBranchById(scopeBranchId)?.name)
-          : (getBranchById(emp?.branchId || inv.branchId)?.name || inv.branchName || '—'),
-      })
+    for (const id of [inv.employeeId, inv.supportEmployeeId].filter(Boolean)) {
+      if (employeeIds && !employeeIds.has(id)) continue
+      ensureEmployeeMeta(employeeMap, id, inv, scopeBranchId)
     }
   }
 
-  for (const inv of invoices) consider(inv)
-  for (const inv of previousInvoices) consider(inv)
+  for (const inv of invoices) considerInvoice(inv)
+  for (const inv of previousInvoices) considerInvoice(inv)
 
   if (employeeIds) {
     for (const id of employeeIds) {
       if (employeeMap.has(id)) continue
       const emp = getEmployeeById(id)
       if (!emp) continue
-      const displayBranchId = scopeBranchId || emp.branchId || ''
-      employeeMap.set(id, {
-        id,
-        name: emp.name || id,
-        branchId: displayBranchId,
-        branchName: scopeBranchId
-          ? getPayrollBranchDisplayTitle(scopeBranchId, getBranchById(scopeBranchId)?.name)
-          : (getBranchById(emp.branchId)?.name || '—'),
-      })
+      ensureEmployeeMeta(employeeMap, id, { branchId: emp.branchId, employeeName: emp.name }, scopeBranchId)
     }
   }
 
   const rows = [...employeeMap.values()].map((meta) => {
-    const curInv = primaryInvoicesForEmployee(
-      scopeBranchId ? filterByBranch(invoices, scopeBranchId) : invoices,
-      meta.id,
-    )
-    const prevInv = primaryInvoicesForEmployee(
-      scopeBranchId ? filterByBranch(previousInvoices, scopeBranchId) : previousInvoices,
-      meta.id,
-    )
-    const current = buildBaseMetrics(curInv, days)
-    const previous = buildBaseMetrics(prevInv, countInclusiveDays(previousFromDate, previousToDate))
+    const curPrimary = primaryInvoicesForEmployee(currentScoped, meta.id)
+    const curSupport = supportInvoicesForEmployee(currentScoped, meta.id)
+    const prevPrimary = primaryInvoicesForEmployee(previousScoped, meta.id)
+    const prevSupport = supportInvoicesForEmployee(previousScoped, meta.id)
+
+    const current = buildBaseMetrics(curPrimary, days)
+    const previous = buildBaseMetrics(prevPrimary, countInclusiveDays(previousFromDate, previousToDate))
+
+    const mainTourCount = curPrimary.length
+    const supportTourCount = curSupport.length
+    const totalTourCount = mainTourCount + supportTourCount
+    const prevMainTourCount = prevPrimary.length
+    const prevSupportTourCount = prevSupport.length
+    const prevTotalTourCount = prevMainTourCount + prevSupportTourCount
+
+    const salaryInvoices = [...curPrimary, ...curSupport]
+    const salarySummary = buildAdminEmployeeSummary(salaryInvoices, meta.id)
+    const totalSalary = salarySummary.totalSalary ?? 0
+    const prevSalarySummary = buildAdminEmployeeSummary([...prevPrimary, ...prevSupport], meta.id)
+    const previousTotalSalary = prevSalarySummary.totalSalary ?? 0
 
     const att = computeAttendanceStats(attendanceRecords, meta.id)
     const prevAtt = computeAttendanceStats(previousAttendanceRecords, meta.id)
     const workDays = att.workDays ?? 0
     const averageRevenuePerWorkDay = safeDivide(current.revenue, workDays)
 
-    return withTrends(
+    const row = withTrends(
       {
         ...current,
+        // invoiceCount = Tổng tour (chính + hỗ trợ) — cột tổng hợp
+        invoiceCount: totalTourCount,
+        mainTourCount,
+        supportTourCount,
+        totalTourCount,
+        totalSalary,
         id: meta.id,
         employeeId: meta.id,
         name: meta.name,
@@ -249,8 +281,23 @@ export function buildEmployeeManagementRows({
         averageRevenuePerWorkDay,
         previousWorkDays: prevAtt.workDays ?? 0,
       },
-      previous,
+      {
+        ...previous,
+        invoiceCount: prevTotalTourCount,
+        mainTourCount: prevMainTourCount,
+        supportTourCount: prevSupportTourCount,
+        totalTourCount: prevTotalTourCount,
+        totalSalary: previousTotalSalary,
+      },
     )
+    row.totalSalaryTrend = computeSafeTrend(totalSalary, previous ? previousTotalSalary : null)
+    if (row.previous) {
+      row.previous.mainTourCount = prevMainTourCount
+      row.previous.supportTourCount = prevSupportTourCount
+      row.previous.totalTourCount = prevTotalTourCount
+      row.previous.totalSalary = previousTotalSalary
+    }
+    return row
   })
 
   // Rank within scoped branch (record.branch_id), not employee.current_branch
@@ -315,20 +362,58 @@ export function buildBranchEmployeeInsights(branchId, employeeRows, invoices, fr
   }
 }
 
-export function buildEmployeeInvoiceList(invoices, employeeId) {
-  return primaryInvoicesForEmployee(invoices, employeeId)
+/**
+ * Invoice list for employee drill-down.
+ * @param {'primary'|'support'|'requested'|'all'} [mode]
+ */
+export function buildEmployeeInvoiceList(invoices, employeeId, mode = EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY) {
+  let list
+  if (mode === EMPLOYEE_INVOICE_DRILL_MODES.SUPPORT) {
+    list = supportInvoicesForEmployee(invoices, employeeId)
+  } else if (mode === EMPLOYEE_INVOICE_DRILL_MODES.REQUESTED) {
+    list = primaryInvoicesForEmployee(invoices, employeeId).filter((inv) => inv.customerRequested)
+  } else if (mode === EMPLOYEE_INVOICE_DRILL_MODES.ALL) {
+    const seen = new Set()
+    list = []
+    for (const inv of [
+      ...primaryInvoicesForEmployee(invoices, employeeId),
+      ...supportInvoicesForEmployee(invoices, employeeId),
+    ]) {
+      if (seen.has(inv.id)) continue
+      seen.add(inv.id)
+      list.push(inv)
+    }
+  } else {
+    list = primaryInvoicesForEmployee(invoices, employeeId)
+  }
+
+  return list
     .slice()
     .sort((a, b) => `${b.date}T${b.invoiceTime || ''}`.localeCompare(`${a.date}T${a.invoiceTime || ''}`))
-    .map((inv) => ({
-      id: inv.id,
-      date: inv.date,
-      time: inv.invoiceTime || '',
-      customerName: inv.customerName || '—',
-      customerRequested: Boolean(inv.customerRequested),
-      revenue: getInvoicePayment(inv),
-      tips: getInvoiceTips(inv),
-      invoice: inv,
-    }))
+    .map((inv) => {
+      const services = getInvoiceServiceDetails(inv)
+      const role = inv.supportEmployeeId === employeeId ? 'support' : 'primary'
+      return {
+        id: inv.id,
+        date: inv.date,
+        time: inv.invoiceTime || '',
+        customerName: inv.customerName || '—',
+        customerPhone: inv.customerPhone || '',
+        branchId: inv.branchId || '',
+        branchName: inv.branchName || getBranchById(inv.branchId)?.name || '—',
+        serviceNames: services.map((s) => s.name).filter(Boolean).join(', ') || '—',
+        customerRequested: Boolean(inv.customerRequested),
+        revenue: getInvoicePayment(inv),
+        tips: role === 'primary' ? getInvoiceTips(inv) : 0,
+        employeeId: inv.employeeId || '',
+        employeeName: inv.employeeName || getEmployeeById(inv.employeeId)?.name || '—',
+        supportEmployeeId: inv.supportEmployeeId || '',
+        supportEmployeeName: inv.supportEmployeeName || getEmployeeById(inv.supportEmployeeId)?.name || '',
+        salaryRole: role,
+        roleLabel: role === 'support' ? 'Hỗ trợ' : 'Chính',
+        invoice: inv,
+      }
+    })
 }
 
 /** Daily revenue series for employee trend chart (simple bars). */

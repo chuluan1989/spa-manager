@@ -14,7 +14,9 @@ import {
 } from '../src/utils/managementReports/periodCompare.js'
 import {
   buildBranchManagementRows,
+  buildEmployeeInvoiceList,
   buildEmployeeManagementRows,
+  EMPLOYEE_INVOICE_DRILL_MODES,
 } from '../src/utils/managementReports/managementMetrics.js'
 import {
   buildRevenueInsights,
@@ -125,9 +127,12 @@ assert.equal(st.requestedRate, 50)
 assert.ok(st.averageRevenuePerCustomer != null)
 assert.ok(Number.isFinite(st.averageRevenuePerDay))
 
+const julyCurrent = invoices.filter((i) => i.date >= '2026-07-01' && i.date <= '2026-07-21')
+const junePrevious = invoices.filter((i) => i.date.startsWith('2026-06'))
+
 const empRows = buildEmployeeManagementRows({
-  invoices,
-  previousInvoices: invoices.filter((i) => i.date.startsWith('2026-06')),
+  invoices: julyCurrent,
+  previousInvoices: junePrevious,
   attendanceRecords: [
     { employeeId: 'e1', date: '2026-07-10', status: 'on_time' },
     { employeeId: 'e1', date: '2026-07-11', status: 'on_time' },
@@ -146,11 +151,25 @@ assert.ok(e1)
 assert.equal(e1.requestedCustomerCount, 1)
 assert.equal(e1.workDays, 2)
 assert.ok(e1.revenueRankInBranch >= 1)
+assert.equal(e1.mainTourCount, 2)
+assert.equal(e1.supportTourCount, 0)
+assert.equal(e1.totalTourCount, 2)
+assert.equal(e1.customerRequestedTourCount, 1)
+assert.equal(e1.customerRequestedTourRate, 50)
+assert.ok(Number.isFinite(e1.totalSalary))
 
 const e2 = empRows.find((r) => r.employeeId === 'e2')
-if (e2) {
-  assert.equal(e2.revenue, 0)
-}
+assert.ok(e2, 'support employee must appear in rows')
+assert.equal(e2.revenue, 0)
+assert.equal(e2.mainTourCount, 0)
+assert.equal(e2.supportTourCount, 1)
+assert.equal(e2.totalTourCount, 1)
+assert.equal(e2.tips, 0)
+
+assert.equal(buildEmployeeInvoiceList(julyCurrent, 'e1', EMPLOYEE_INVOICE_DRILL_MODES.PRIMARY).length, 2)
+assert.equal(buildEmployeeInvoiceList(julyCurrent, 'e2', EMPLOYEE_INVOICE_DRILL_MODES.SUPPORT).length, 1)
+assert.equal(buildEmployeeInvoiceList(julyCurrent, 'e1', EMPLOYEE_INVOICE_DRILL_MODES.REQUESTED).length, 1)
+assert.equal(buildEmployeeInvoiceList(julyCurrent, 'e1', EMPLOYEE_INVOICE_DRILL_MODES.REQUESTED)[0].id, 'a1')
 
 {
   const rows = buildEmployeeManagementRows({
@@ -198,4 +217,5 @@ console.log('  ✓ MoM same-days + full-month compare')
 console.log('  ✓ safe divide / trend labels')
 console.log('  ✓ customerRequested metrics')
 console.log('  ✓ support employee not credited ticket revenue')
+console.log('  ✓ main/support/total tour split + drill list')
 console.log('  ✓ rule-based insights + KPI tones + top movers')

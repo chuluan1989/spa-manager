@@ -111,6 +111,85 @@
   align-items: start;
 }
 
+.mgmt-layout--employee {
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 1fr);
+}
+
+.mgmt-drill-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: #111;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.mgmt-drill-link.is-active {
+  color: #047857;
+}
+
+.mgmt-drill-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mgmt-drill-tabs button {
+  border: 1px solid var(--ks-border, #e5e7eb);
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.mgmt-drill-tabs button.is-active {
+  background: #111;
+  color: #d4af37;
+  border-color: #111;
+}
+
+.mgmt-drill-wrap {
+  overflow: auto;
+  border: 1px solid #f3f4f6;
+  border-radius: 8px;
+  max-height: 360px;
+}
+
+.mgmt-drill-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.mgmt-drill-table th,
+.mgmt-drill-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.mgmt-drill-table .is-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mgmt-drill-services {
+  max-width: 160px;
+  white-space: normal;
+}
+
+.mgmt-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+}
+
 .mgmt-table-wrap {
   overflow: auto;
   border: 1px solid var(--ks-border, #e5e7eb);
