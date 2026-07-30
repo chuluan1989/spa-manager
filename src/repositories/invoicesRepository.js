@@ -3,6 +3,9 @@ import { objectToSnakeRow, rowsToCamel } from './caseUtils'
 
 const TABLE = 'invoices'
 
+/** PostgREST mặc định cắt ~1000 dòng — phải paginate để báo cáo Admin đủ dữ liệu. */
+export const INVOICE_FETCH_PAGE_SIZE = 1000
+
 /** Cột có trên Supabase — không gửi field JS thừa (vd. serviceCommission). */
 const SUPABASE_INVOICE_FIELDS = [
   'id', 'date', 'branchId', 'branchName', 'employeeId', 'employeeName',
@@ -102,8 +105,36 @@ async function upsertInvoiceRows(rows) {
 }
 
 /**
- * Lấy hóa đơn từ Supabase.
+ * Chạy query builder theo trang đến hết — tránh cắt 1000 dòng của PostgREST.
+ * @param {() => object} buildQuery factory tạo query mới mỗi trang (kèm order/filter)
+ * @returns {Promise<object[]>}
+ */
+export async function fetchAllInvoiceRows(buildQuery) {
+  const all = []
+  let from = 0
+  for (;;) {
+    const { data, error } = await buildQuery().range(from, from + INVOICE_FETCH_PAGE_SIZE - 1)
+    if (error) throw error
+    const rows = data ?? []
+    all.push(...rows)
+    if (rows.length < INVOICE_FETCH_PAGE_SIZE) break
+    from += INVOICE_FETCH_PAGE_SIZE
+  }
+  return all
+}
+
+function buildOrderedInvoicesQuery(selectColumns = '*') {
+  return supabase
+    .from(TABLE)
+    .select(selectColumns)
+    .order('created_at', { ascending: false })
+    .order('date', { ascending: false })
+}
+
+/**
+ * Lấy hóa đơn từ Supabase (có filter).
  * Sort: created_at DESC, date DESC — KHÔNG order theo invoice_time (cột có thể không tồn tại).
+ * Paginate đến hết — không giới hạn 1000.
  */
 export async function fetchInvoicesFiltered(filters = {}) {
   if (!isSupabaseConfigured) {
@@ -118,38 +149,30 @@ export async function fetchInvoicesFiltered(filters = {}) {
     customerSearch = '',
   } = filters
 
-  let query = supabase
-    .from(TABLE)
-    .select('*')
-    .order('created_at', { ascending: false })
-    .order('date', { ascending: false })
+  const rows = await fetchAllInvoiceRows(() => {
+    let query = buildOrderedInvoicesQuery('*')
+    if (fromDate) query = query.gte('date', fromDate)
+    if (toDate) query = query.lte('date', toDate)
+    if (branchId) query = query.eq('branch_id', branchId)
+    if (employeeId) {
+      query = query.or(`employee_id.eq.${employeeId},support_employee_id.eq.${employeeId}`)
+    }
+    if (customerSearch.trim()) {
+      query = query.ilike('customer_name', `%${customerSearch.trim()}%`)
+    }
+    return query
+  })
 
-  if (fromDate) query = query.gte('date', fromDate)
-  if (toDate) query = query.lte('date', toDate)
-  if (branchId) query = query.eq('branch_id', branchId)
-  if (employeeId) {
-    query = query.or(`employee_id.eq.${employeeId},support_employee_id.eq.${employeeId}`)
-  }
-  if (customerSearch.trim()) {
-    query = query.ilike('customer_name', `%${customerSearch.trim()}%`)
-  }
-
-  const { data, error } = await query
-  if (error) throw error
-  return rowsToCamel(data ?? [])
+  return rowsToCamel(rows)
 }
 
+/** Lấy toàn bộ hóa đơn — paginate đến hết, không cắt 1000. */
 export async function fetchInvoices() {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase chưa cấu hình. Không thể tải hóa đơn.')
   }
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('*')
-    .order('created_at', { ascending: false })
-    .order('date', { ascending: false })
-  if (error) throw error
-  return rowsToCamel(data ?? [])
+  const rows = await fetchAllInvoiceRows(() => buildOrderedInvoicesQuery('*'))
+  return rowsToCamel(rows)
 }
 
 export async function upsertInvoice(invoice) {
