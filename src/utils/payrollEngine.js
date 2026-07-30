@@ -9,6 +9,7 @@ import { getAttendanceStatusLabel } from '../constants/attendanceTypes'
 import { getPayrollBranchDisplayTitle, getPayrollBranchSortOrder } from '../constants/branchPayrollDisplay'
 import { getBranchName } from './branchStorage'
 import { isPayrollListEmployee, recordBelongsToBranch } from './branchEmployeeMatch'
+import { collectEmployeeIdsWithRecordBranchActivity } from './employeeBranchTimeline'
 import { getInvoiceServiceDetails, getInvoiceServiceCommission, getInvoiceServiceTotal, getServiceLineCommissionAmount } from './invoice'
 import {
   computeAttendanceStats,
