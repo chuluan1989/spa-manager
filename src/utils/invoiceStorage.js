@@ -362,7 +362,7 @@ export async function saveInvoice(invoice, options = {}) {
       const employeeId = getCurrentUserEmployeeId()
       const homeBranchId = getCurrentUserBranch()
       const servingBranchId = invoice.branchId || homeBranchId
-      if (!canEmployeeServeAtBranch(employeeId, servingBranchId)) {
+      if (!canEmployeeServeAtBranch(employeeId, servingBranchId, homeBranchId)) {
         return { success: false, error: 'Bạn không có quyền tạo hóa đơn tại chi nhánh này.' }
       }
       payload = {
@@ -382,7 +382,7 @@ export async function saveInvoice(invoice, options = {}) {
     const branchId = payload.branchId ?? ''
     if (!isAdmin()) {
       if (isEmployee()) {
-        if (!canEmployeeServeAtBranch(payload.employeeId, branchId)) {
+        if (!canEmployeeServeAtBranch(payload.employeeId, branchId, payload.homeBranchId || getCurrentUserBranch())) {
           return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
         }
       } else if (branchId !== getCurrentUserBranch()) {

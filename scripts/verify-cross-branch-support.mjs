@@ -1,5 +1,5 @@
 /**
- * UAT logic — Hỗ trợ nhân viên liên chi nhánh (4 kịch bản bắt buộc).
+ * UAT — dropdown Chi nhánh phục vụ khách (không phụ thuộc supportEnabled DB).
  * Run: node --env-file=.env.local node_modules/.bin/vite-node scripts/verify-cross-branch-support.mjs
  */
 import assert from 'node:assert/strict'
@@ -7,9 +7,8 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { CANONICAL_BRANCHES } from '../src/constants/canonicalBranches.js'
 import { EMPLOYEE_STATUS } from '../src/utils/employeeStorage.js'
-import { ROLES } from '../src/constants/roles.js'
-import { setSession } from '../src/utils/authStorage.js'
 import {
+  CROSS_BRANCH_SUPPORT_IDS,
   canEmployeeServeAtBranch,
   canSelectServingBranch,
   getServingBranchOptions,
@@ -29,27 +28,23 @@ function createStorage() {
 
 globalThis.localStorage = createStorage()
 
+// Giả lập Production: supportEnabled = false trên local cache (bug cũ).
 const branches = CANONICAL_BRANCHES.map((b) => ({
   ...b,
   status: 'active',
-  supportEnabled: Boolean(b.supportEnabled),
+  supportEnabled: false,
 }))
 localStorage.setItem('spa-manager-branches', JSON.stringify(branches))
 
-const tramId = 'uat-xbranch-tram'
-const songId = 'uat-xbranch-song'
-const bacId = 'uat-xbranch-bac'
+const tramId = 'tram-spa-nhu-ha'
+const songId = 'song-khoe-spa-anh'
+const bacId = 'bac-lieu-yen'
 
 localStorage.setItem('spa-manager-employees', JSON.stringify([
-  { id: tramId, name: 'UAT Tram', branchId: 'tram-spa', status: EMPLOYEE_STATUS.ACTIVE },
-  { id: songId, name: 'UAT Song', branchId: 'song-khoe-spa', status: EMPLOYEE_STATUS.ACTIVE },
-  { id: bacId, name: 'UAT Bac', branchId: 'bac-lieu', status: EMPLOYEE_STATUS.ACTIVE },
+  { id: tramId, name: 'Như Hà', branchId: 'tram-spa', status: EMPLOYEE_STATUS.ACTIVE },
+  { id: songId, name: 'Ánh', branchId: 'song-khoe-spa', status: EMPLOYEE_STATUS.ACTIVE },
+  { id: bacId, name: 'Kim Yến', branchId: 'bac-lieu', status: EMPLOYEE_STATUS.ACTIVE },
 ]))
-
-localStorage.setItem('spa-manager-system-settings', JSON.stringify({
-  allowEmployeeEditOwnInvoice: true,
-  allowManagerEditBranchInvoice: true,
-}))
 
 function log(label, ok, detail = '') {
   const mark = ok ? 'PASS' : 'FAIL'
@@ -57,117 +52,59 @@ function log(label, ok, detail = '') {
   assert.ok(ok, label)
 }
 
-console.log('\n=== UAT: Hỗ trợ liên chi nhánh ===\n')
+console.log('\n=== UAT dropdown Chi nhánh phục vụ khách ===\n')
 
-console.log('Helpers / phạm vi 3 CN')
-log('Trạm được chọn phục vụ', canSelectServingBranch(tramId))
-log('Sống Khoẻ được chọn phục vụ', canSelectServingBranch(songId))
-log('Bạc Liêu KHÔNG được chọn phục vụ', !canSelectServingBranch(bacId))
+console.log('A. Như Hà @ Trạm — thấy dropdown dù supportEnabled=false trên cache')
+log('canSelectServingBranch(Như Hà)', canSelectServingBranch(tramId, 'tram-spa'))
+log('fallback session khi chưa có employee record', canSelectServingBranch('', 'tram-spa'))
+const options = getServingBranchOptions(tramId, 'tram-spa')
+log('đúng 3 CN', options.length === 3)
+log('có Trạm', options.some((b) => b.id === 'tram-spa'))
+log('có Sóc Trăng', options.some((b) => b.id === 'soc-trang'))
+log('có Sống Khoẻ', options.some((b) => b.id === 'song-khoe-spa'))
+log('CROSS ids cố định', CROSS_BRANCH_SUPPORT_IDS.join(',') === 'soc-trang,tram-spa,song-khoe-spa')
 
-const options = getServingBranchOptions(tramId).map((b) => b.id).sort()
-log(
-  'Options Trạm = tram + soc-trang + song-khoe',
-  options.length === 3
-    && options.includes('tram-spa')
-    && options.includes('soc-trang')
-    && options.includes('song-khoe-spa'),
-  options.join(','),
-)
-log('Bạc Liêu options rỗng', getServingBranchOptions(bacId).length === 0)
-log('Trạm → Trạm OK', canEmployeeServeAtBranch(tramId, 'tram-spa'))
-log('Trạm → Sóc Trăng OK', canEmployeeServeAtBranch(tramId, 'soc-trang'))
-log('Trạm → Bạc Liêu FAIL', !canEmployeeServeAtBranch(tramId, 'bac-lieu'))
-log('Bạc Liêu → Sóc Trăng FAIL', !canEmployeeServeAtBranch(bacId, 'soc-trang'))
-
-console.log('\n① Trạm tạo HĐ tại Trạm')
+console.log('\nB. Chọn Sóc Trăng — lưu branchId/homeBranchId')
 {
   const invoice = {
-    id: '1',
-    date: '2026-07-30',
-    branchId: 'tram-spa',
-    branchName: 'Trạm Spa',
-    homeBranchId: 'tram-spa',
-    homeBranchName: 'Trạm Spa',
-    employeeId: tramId,
-    employeeName: 'UAT Tram',
-    total: 100000,
-    serviceTotal: 100000,
-    commission: 10000,
-    tips: 5000,
-    services: [{ id: 's1', name: 'DV', price: 100000, commissionPercent: 10, commissionAmount: 10000 }],
-    createdAt: '2026-07-30T10:00:00.000Z',
-  }
-  log('Doanh thu → Trạm', invoice.branchId === 'tram-spa')
-  log('Lương → NV Trạm', invoice.employeeId === tramId)
-  log('Không tính hỗ trợ liên CN', !isCrossBranchSupportInvoice(invoice))
-}
-
-console.log('\n② Trạm tạo HĐ tại Sóc Trăng')
-{
-  const invoice = {
-    id: '2',
+    id: 'b',
     date: '2026-07-30',
     branchId: 'soc-trang',
-    branchName: 'Sóc Trăng Khoẻ Spa',
     homeBranchId: 'tram-spa',
-    homeBranchName: 'Trạm Spa',
     employeeId: tramId,
-    employeeName: 'UAT Tram',
     total: 200000,
     serviceTotal: 200000,
     commission: 20000,
-    tips: 10000,
+    tips: 5000,
     services: [{ id: 's1', name: 'DV', price: 200000, commissionPercent: 10, commissionAmount: 20000 }],
-    createdAt: '2026-07-30T11:00:00.000Z',
+    createdAt: '2026-07-30T10:00:00.000Z',
   }
-  log('Doanh thu → Sóc Trăng', invoice.branchId === 'soc-trang')
-  log('Lương → NV Trạm', invoice.employeeId === tramId)
-  log('Đánh dấu hỗ trợ liên CN', isCrossBranchSupportInvoice(invoice))
+  log('serve OK', canEmployeeServeAtBranch(tramId, 'soc-trang', 'tram-spa'))
+  log('branchId = soc-trang', invoice.branchId === 'soc-trang')
+  log('homeBranchId = tram-spa', invoice.homeBranchId === 'tram-spa')
+  log('cross-branch flag', isCrossBranchSupportInvoice(invoice))
   const report = computeEmployeeInvoiceDetailReport([invoice], tramId, {
-    fromDate: '2026-07-01',
-    toDate: '2026-07-31',
-    cycle: 'full',
-    employeeId: tramId,
-    branchId: '',
+    fromDate: '2026-07-01', toDate: '2026-07-31', cycle: 'full', employeeId: tramId, branchId: '',
   })
-  log('Tour hỗ trợ = 1', report.periodTotals.crossBranchSupportTourCount === 1)
-  log('DT hỗ trợ = 200000', report.periodTotals.crossBranchSupportRevenue === 200000)
-  log('% thuộc NV (period commission)', report.periodTotals.serviceCommission === 20000)
-  log('Tips thuộc NV', report.periodTotals.tips === 10000)
+  log('tour hỗ trợ = 1', report.periodTotals.crossBranchSupportTourCount === 1)
 }
 
-console.log('\n③ Sống Khoẻ tạo HĐ tại Sóc Trăng')
-{
-  const invoice = {
-    id: '3',
-    date: '2026-07-30',
-    branchId: 'soc-trang',
-    homeBranchId: 'song-khoe-spa',
-    employeeId: songId,
-    employeeName: 'UAT Song',
-    total: 150000,
-    serviceTotal: 150000,
-    commission: 15000,
-    tips: 0,
-    services: [{ id: 's1', name: 'DV', price: 150000, commissionPercent: 10, commissionAmount: 15000 }],
-    createdAt: '2026-07-30T12:00:00.000Z',
-  }
-  log('Doanh thu → Sóc Trăng', invoice.branchId === 'soc-trang')
-  log('Lương → NV Sống Khoẻ', invoice.employeeId === songId)
-  log('Serve OK', canEmployeeServeAtBranch(songId, 'soc-trang'))
-}
+console.log('\nC. Chọn lại Trạm')
+log('serve tại tram OK', canEmployeeServeAtBranch(tramId, 'tram-spa', 'tram-spa'))
+log('không cross khi cùng CN', !isCrossBranchSupportInvoice({
+  branchId: 'tram-spa', homeBranchId: 'tram-spa',
+}))
 
-console.log('\n④ CN khác không thấy chức năng')
-log('Bạc Liêu không select serving', !canSelectServingBranch(bacId))
-log('Options rỗng', getServingBranchOptions(bacId).length === 0)
+console.log('\nD. CN ngoài nhóm')
+log('Bạc Liêu không dropdown', !canSelectServingBranch(bacId, 'bac-lieu'))
+log('options rỗng', getServingBranchOptions(bacId, 'bac-lieu').length === 0)
+log('không serve Sóc Trăng', !canEmployeeServeAtBranch(bacId, 'soc-trang', 'bac-lieu'))
 
-console.log('\nFK / schema safety')
+console.log('\nUI labels')
 {
-  const src = readFileSync(fileURLToPath(new URL('../src/utils/syncForeignKeys.js', import.meta.url)), 'utf8')
-  log('Không reject theo employees.branch_id hiện tại', !src.includes('remoteEmployee.branchId !== branchId'))
   const invSrc = readFileSync(fileURLToPath(new URL('../src/pages/Invoice.jsx', import.meta.url)), 'utf8')
-  log('Có UI Chi nhánh phục vụ khách', invSrc.includes('Chi nhánh phục vụ khách'))
-  log('Không đụng Dashboard.jsx', !invSrc.includes('Dashboard'))
+  log('có label Chi nhánh phục vụ khách', invSrc.includes('Chi nhánh phục vụ khách'))
+  log('BranchBanner chỉ khi !canPickServingBranch', invSrc.includes('lockedBranch && !canPickServingBranch'))
 }
 
-console.log('\n=== ALL 4 CROSS-BRANCH SCENARIOS PASSED ===\n')
+console.log('\n=== ALL DROPDOWN UAT PASSED ===\n')

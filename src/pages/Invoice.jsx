@@ -105,16 +105,17 @@ export default function Invoice({ onNavigate }) {
   const lockedBranch = !canSelectBranch()
   const lockedEmployee = isEmployee()
   const currentEmployeeId = getCurrentUserEmployeeId()
-  const canPickServingBranch = lockedEmployee && canSelectServingBranch(currentEmployeeId)
+  const sessionBranchId = getCurrentUserBranch()
+  const canPickServingBranch = lockedEmployee && canSelectServingBranch(currentEmployeeId, sessionBranchId)
   const servingBranchOptions = useMemo(
-    () => (canPickServingBranch ? getServingBranchOptions(currentEmployeeId) : []),
-    [canPickServingBranch, currentEmployeeId],
+    () => (canPickServingBranch ? getServingBranchOptions(currentEmployeeId, sessionBranchId) : []),
+    [canPickServingBranch, currentEmployeeId, sessionBranchId],
   )
   // Quyền tạo HĐ chỉ theo role đăng nhập — không phụ thuộc hồ sơ/chấm công/payroll1.
   const canCreateInvoice = canAddInvoice()
   void onNavigate
   const activeBranchName = getCurrentUserBranchName()
-  const homeBranchName = getBranchById(getCurrentUserBranch())?.name || activeBranchName
+  const homeBranchName = getBranchById(sessionBranchId)?.name || activeBranchName
   const [form, setForm] = useState(INITIAL_FORM())
   const [selectedIds, setSelectedIds] = useState([])
   const [fallbackServices, setFallbackServices] = useState([])
@@ -251,9 +252,10 @@ export default function Invoice({ onNavigate }) {
       branchId,
       employeeId: lockedEmployee ? prev.employeeId : '',
     }))
+    // Đổi CN phục vụ → đổi bảng giá; xóa dịch vụ đã chọn (tránh giữ giá/CN cũ).
     setSelectedIds([])
     setFallbackServices([])
-    setErrors((prev) => ({ ...prev, branchId: undefined, employeeId: undefined }))
+    setErrors((prev) => ({ ...prev, branchId: undefined, employeeId: undefined, services: undefined }))
   }
 
   const handleEmployeeChange = (employeeId) => {
@@ -301,7 +303,7 @@ export default function Invoice({ onNavigate }) {
     if (!form.employeeId) {
       next.employeeId = 'Vui lòng chọn nhân viên'
     } else if (canPickServingBranch) {
-      if (!canEmployeeServeAtBranch(form.employeeId, branchId)) {
+      if (!canEmployeeServeAtBranch(form.employeeId, branchId, sessionBranchId)) {
         next.branchId = 'Chi nhánh phục vụ không hợp lệ cho hỗ trợ liên chi nhánh'
       }
     } else if (!isEmployeeInBranch(form.employeeId, branchId)) {
@@ -379,7 +381,7 @@ export default function Invoice({ onNavigate }) {
     const existingInvoice = editingId ? getInvoiceByIdFromList(editingId) : null
 
     const employeeOk = canPickServingBranch
-      ? canEmployeeServeAtBranch(form.employeeId, branchId)
+      ? canEmployeeServeAtBranch(form.employeeId, branchId, sessionBranchId)
       : isEmployeeInBranch(form.employeeId, branchId)
     if (!branch || !employee || !employeeOk) {
       setErrors({
