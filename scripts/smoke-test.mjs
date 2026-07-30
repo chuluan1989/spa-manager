@@ -713,6 +713,55 @@ test('login: admin credentials', async () => {
   assert.equal(result.user.branch, ADMIN_BRANCH)
 })
 
+test('login: username flow — QL chi nhánh và nhân viên (V2)', async () => {
+  const { verifyLoginWithUsername } = await import('../src/constants/loginCredentials.js')
+  const { syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials } = await import('../src/utils/credentialsStorage.js')
+
+  await syncMissingBranchCredentials()
+  await syncEmployeeCredentialsFromEmployees()
+
+  const manager = await verifyLoginWithUsername({
+    role: ROLES.BRANCH_MANAGER,
+    username: 'tramspa',
+    password: 'tramspa123',
+  })
+  assert.equal(manager.ok, true, 'QL CN đăng nhập bằng username V2')
+  assert.equal(manager.user.branch, 'tram-spa')
+  assert.equal(manager.user.mustChangePassword, true, 'QL CN chưa đổi MK phải bắt buộc đổi')
+
+  const managerLegacy = await verifyLoginWithUsername({
+    role: ROLES.BRANCH_MANAGER,
+    username: 'tram-spa',
+    password: 'tramspa123',
+  })
+  assert.equal(managerLegacy.ok, true, 'QL CN legacy id vẫn đăng nhập được')
+
+  const employee = await verifyLoginWithUsername({
+    role: ROLES.EMPLOYEE,
+    username: 'thanh',
+    password: 'thanhtramspa',
+  })
+  assert.equal(employee.ok, true, 'NV đăng nhập bằng username V2 (họ tên)')
+  assert.equal(employee.user.employeeId, 'tram-spa-thanh')
+  assert.equal(employee.user.branch, 'tram-spa')
+  assert.equal(employee.user.mustChangePassword, true)
+
+  const employeeLegacy = await verifyLoginWithUsername({
+    role: ROLES.EMPLOYEE,
+    username: 'tram-spa-thanh',
+    password: 'thanhtramspa',
+  })
+  assert.equal(employeeLegacy.ok, true, 'NV legacy id vẫn đăng nhập được')
+
+  const wrongRole = await verifyLoginWithUsername({
+    role: ROLES.EMPLOYEE,
+    username: 'tramspa',
+    password: 'tramspa123',
+  })
+  assert.equal(wrongRole.ok, false)
+  assert.equal(wrongRole.field, 'username')
+})
+
 test('branches: Gia Lai 1 và 2 tồn tại với đúng nhóm bảng giá', () => {
   const active = getActiveBranches()
   const giaLai1 = active.find((b) => b.id === 'gia-lai-1')
@@ -761,16 +810,17 @@ test('branches: sort_order ổn định và matrix hiển thị đủ 8 chi nhá
 })
 
 test('branches: mật khẩu mặc định đăng nhập Quản lý chi nhánh Gia Lai 1/2', async () => {
+  const { verifyBranchPassword } = await import('../src/utils/credentialsStorage.js')
   await ensureCredentialsHashed()
-  assert.equal(await verifyBranchPassword('gia-lai-1', 'khoespagialai1'), true)
-  assert.equal(await verifyBranchPassword('gia-lai-2', 'khoespagialai2'), true)
+  assert.equal(await verifyBranchPassword('gia-lai-1', 'gialai1123'), true)
+  assert.equal(await verifyBranchPassword('gia-lai-2', 'gialai2123'), true)
   assert.equal(await verifyBranchPassword('gia-lai-1', 'saipass'), false)
 
-  const login1 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-1', password: 'khoespagialai1' })
+  const login1 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-1', password: 'gialai1123' })
   assert.equal(login1.ok, true)
   assert.equal(login1.user.branch, 'gia-lai-1')
 
-  const login2 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-2', password: 'khoespagialai2' })
+  const login2 = await verifyLogin({ role: ROLES.BRANCH_MANAGER, branch: 'gia-lai-2', password: 'gialai2123' })
   assert.equal(login2.ok, true)
   assert.equal(login2.user.branch, 'gia-lai-2')
 })
@@ -3466,6 +3516,63 @@ test('bootstrap: repairCanonicalBranchMapping chỉ chạy một lần', async (
 test('App: import không crash (useMemo phải được import)', async () => {
   const App = (await import('../src/App.jsx')).default
   assert.equal(typeof App, 'function')
+})
+
+test('login v2 final: trùng tên, username cố định, reset hàng loạt', async () => {
+  const { ROLES } = await import('../src/constants/roles.js')
+  const { normalizeEmployee, saveEmployees, EMPLOYEE_STATUS } = await import('../src/utils/employeeStorage.js')
+  const {
+    syncEmployeeCredentialForEmployee,
+    syncEmployeeCredentialsFromEmployees,
+    resetEmployeePasswordsBulk,
+    resetEmployeePasswordsByBranch,
+    loadCredentials,
+  } = await import('../src/utils/credentialsStorage.js')
+  const {
+    allocateEmployeeLoginUsername,
+    getEmployeeLoginUsername,
+    computeEmployeeDefaultPasswordFromUsername,
+  } = await import('../src/utils/loginUsername.js')
+
+  sessionStorage.setItem('spa-manager-current-user', JSON.stringify({ role: ROLES.ADMIN, branch: 'all' }))
+
+  const first = normalizeEmployee({
+    id: 'smoke-thuy-an-1',
+    name: 'Thúy An',
+    branchId: 'soc-trang',
+    status: EMPLOYEE_STATUS.ACTIVE,
+  })
+  const second = normalizeEmployee({
+    id: 'smoke-thuy-an-2',
+    name: 'Thúy An',
+    branchId: 'vinh-long',
+    status: EMPLOYEE_STATUS.ACTIVE,
+  })
+  saveEmployees([first, second])
+  await syncEmployeeCredentialForEmployee(first.id)
+  await syncEmployeeCredentialForEmployee(second.id)
+
+  assert.equal(getEmployeeLoginUsername(first), 'thuyan')
+  assert.equal(getEmployeeLoginUsername(second), 'thuyan2')
+  assert.equal(allocateEmployeeLoginUsername('Thúy An'), 'thuyan3')
+
+  const renamed = normalizeEmployee({ ...first, name: 'Thúy An Nguyễn' })
+  saveEmployees([renamed, second])
+  await syncEmployeeCredentialsFromEmployees()
+  assert.equal(getEmployeeLoginUsername(renamed), 'thuyan', 'Đổi tên hồ sơ không đổi username')
+
+  const bulk = await resetEmployeePasswordsBulk([first.id, second.id])
+  assert.equal(bulk.success, true)
+  assert.equal(bulk.count, 2)
+
+  const creds = loadCredentials()
+  const pwd1 = computeEmployeeDefaultPasswordFromUsername('thuyan', 'soc-trang')
+  assert.equal(creds.employees[first.id].loginUsername, 'thuyan')
+  assert.equal(creds.employees[first.id].customPassword, false)
+
+  const branchReset = await resetEmployeePasswordsByBranch('tram-spa')
+  assert.equal(branchReset.success, true)
+  assert.equal(branchReset.branchManager.username, 'tramspa')
 })
 
 await runQueuedTests()

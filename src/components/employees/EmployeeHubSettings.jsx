@@ -14,7 +14,12 @@ import {
   isAdmin,
 } from '../../constants/auth'
 import {
-  addEmployee,
+  createEmployeeWithAccount,
+  reactivateEmployee,
+  resignEmployee,
+  transferEmployeeLifecycle,
+} from '../../services/employeeLifecycleService'
+import {
   archiveEmployee,
   deleteEmployee,
   EMPLOYEE_STATUS,
@@ -23,7 +28,6 @@ import {
   getStatusLabel,
   normalizeEmployee,
   setEmployeeStatus,
-  transferEmployee,
   updateEmployee,
 } from '../../utils/employeeStorage'
 import { PERMANENT_DELETE_BLOCKED_MESSAGE } from '../../utils/employeeDeleteGuard'
@@ -104,12 +108,15 @@ export default function EmployeeHubSettings({
     if (Object.keys(next).length > 0) return
 
     if (mode === 'add') {
-      const result = await addEmployee(payload)
+      const result = await createEmployeeWithAccount(payload)
       if (!result.success) {
         showToast(result.error ?? 'Không thể thêm nhân viên')
         return
       }
-      showToast('Thêm nhân viên thành công')
+      const loginHint = result.account?.username
+        ? ` — Đăng nhập: ${result.account.username} / ${result.account.defaultPassword}`
+        : ''
+      showToast(`Thêm nhân viên thành công${loginHint}`)
     } else if (mode === 'edit') {
       const baseline = employeeToForm(selectedEmployee)
       const result = await updateEmployee(selectedEmployeeId, payload, {
@@ -163,7 +170,7 @@ export default function EmployeeHubSettings({
       showToast('Vui lòng nhập đủ ngày hiệu lực, lý do và người duyệt')
       return
     }
-    const result = await transferEmployee(selectedEmployeeId, transfer.branchId, {
+    const result = await transferEmployeeLifecycle(selectedEmployeeId, transfer.branchId, {
       transferDate: transfer.effectiveDate,
       reason: transfer.reason,
       approver: transfer.approver,
@@ -180,14 +187,20 @@ export default function EmployeeHubSettings({
 
   const handleStatus = async (e) => {
     e.preventDefault()
-    const result = await setEmployeeStatus(selectedEmployeeId, statusValue)
+    const result = statusValue === EMPLOYEE_STATUS.RESIGNED
+      ? await resignEmployee(selectedEmployeeId)
+      : statusValue === EMPLOYEE_STATUS.ACTIVE
+        ? await reactivateEmployee(selectedEmployeeId)
+        : await setEmployeeStatus(selectedEmployeeId, statusValue)
     if (!result.success) {
       showToast(result.error ?? 'Không thể đổi trạng thái')
       return
     }
     const label = getStatusLabel(statusValue)
     if (statusValue === EMPLOYEE_STATUS.RESIGNED) {
-      showToast(`Đã chuyển sang Nghỉ việc — khóa đăng nhập, giữ toàn bộ dữ liệu lịch sử`)
+      showToast('Đã chuyển sang Nghỉ việc — khóa đăng nhập, giữ toàn bộ dữ liệu lịch sử')
+    } else if (statusValue === EMPLOYEE_STATUS.ACTIVE) {
+      showToast('Đã kích hoạt lại — nhân viên có thể đăng nhập bình thường')
     } else {
       showToast(`Đã cập nhật trạng thái: ${label}`)
     }

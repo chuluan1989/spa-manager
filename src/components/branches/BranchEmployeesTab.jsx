@@ -7,7 +7,12 @@ import BranchEmptyState from './BranchEmptyState'
 import { useBranchPayrollData } from './useBranchPayrollData'
 import { loadBranches } from '../../utils/branchStorage'
 import {
-  addEmployee,
+  createEmployeeWithAccount,
+  reactivateEmployee,
+  resignEmployee,
+  transferEmployeeLifecycle,
+} from '../../services/employeeLifecycleService'
+import {
   archiveEmployee,
   deleteEmployee,
   EMPTY_EMPLOYEE_FORM,
@@ -17,11 +22,10 @@ import {
   getStatusLabel,
   normalizeEmployee,
   setEmployeeStatus,
-  transferEmployee,
   updateEmployee,
 } from '../../utils/employeeStorage'
 import { PERMANENT_DELETE_BLOCKED_MESSAGE } from '../../utils/employeeDeleteGuard'
-import { updateEmployeePassword, syncEmployeeCredentialForEmployee } from '../../utils/credentialsStorage'
+import { updateEmployeePassword } from '../../utils/credentialsStorage'
 import { setEmployeeAccountLocked, isEmployeeAccountLocked } from '../../utils/accountMetadataStorage'
 import { computeEmployeeListStats } from '../../utils/employeeHubStats'
 import { computeEmployeePayrollRow } from '../../utils/payrollEngine'
@@ -135,20 +139,20 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
     if (Object.keys(next).length > 0) return
 
     if (modal.mode === 'add') {
-      const result = await addEmployee({ ...form, branchId })
+      const result = await createEmployeeWithAccount({ ...form, branchId })
       if (!result.success) {
         showToast(result.error ?? 'Không thể thêm nhân viên')
         return
       }
-      await syncEmployeeCredentialForEmployee(result.employee?.id)
-      showToast('Thêm nhân viên thành công')
+      showToast(result.account?.username
+        ? `Thêm nhân viên thành công — Đăng nhập: ${result.account.username} / ${result.account.defaultPassword}`
+        : 'Thêm nhân viên thành công')
     } else {
       const result = await updateEmployee(modal.id, form)
       if (!result.success) {
         showToast(result.error ?? 'Không thể cập nhật nhân viên')
         return
       }
-      await syncEmployeeCredentialForEmployee(modal.id)
       showToast('Cập nhật nhân viên thành công')
     }
     closeModal()
@@ -160,12 +164,15 @@ export default function BranchEmployeesTab({ branchId, branchName, showToast, re
       showToast('Vui lòng chọn chi nhánh đích')
       return
     }
-    const result = await transferEmployee(modal.id, modal.targetBranchId)
+    const result = await transferEmployeeLifecycle(modal.id, modal.targetBranchId, {
+      transferDate: new Date().toISOString().slice(0, 10),
+      reason: 'Chuyển chi nhánh từ tab Quản lý chi nhánh',
+      approver: 'Admin',
+    })
     if (!result.success) {
       showToast(result.error ?? 'Không thể chuyển chi nhánh')
       return
     }
-    await syncEmployeeCredentialForEmployee(modal.id)
     showToast('Chuyển chi nhánh thành công')
     closeModal()
     refresh()

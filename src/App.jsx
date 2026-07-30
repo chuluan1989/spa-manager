@@ -35,6 +35,7 @@ import Employees from './pages/Employees'
 import Expenses from './pages/Expenses'
 import Invoice from './pages/Invoice'
 import Login from './pages/Login'
+import MandatoryPasswordChange from './components/account/MandatoryPasswordChange'
 import MyProfile from './pages/MyProfile'
 import Report from './pages/Report'
 import Revenue from './pages/Revenue'
@@ -240,8 +241,26 @@ function App() {
         onLogin={(user) => {
           saveCurrentUser(user)
           setCurrentUser(user)
-          setActivePage(getDefaultPage(user))
+          if (!user.mustChangePassword) {
+            setActivePage(getDefaultPage(user))
+          }
         }}
+      />
+    )
+  }
+
+  const handleMandatoryPasswordComplete = () => {
+    const updated = { ...currentUser, mustChangePassword: false }
+    saveCurrentUser(updated)
+    setCurrentUser(updated)
+    setActivePage(getDefaultPage(updated))
+  }
+
+  if (currentUser.mustChangePassword) {
+    return (
+      <MandatoryPasswordChange
+        user={currentUser}
+        onComplete={handleMandatoryPasswordComplete}
       />
     )
   }

@@ -4,7 +4,10 @@ import EmployeeProfileDetail from '../employees/EmployeeProfileDetail'
 import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import { loadBranches } from '../../utils/branchStorage'
 import {
-  addEmployee,
+  createEmployeeWithAccount,
+  transferEmployeeLifecycle,
+} from '../../services/employeeLifecycleService'
+import {
   archiveEmployee,
   deleteEmployee,
   EMPTY_EMPLOYEE_FORM,
@@ -16,7 +19,6 @@ import {
   loadEmployeeProfileMediaFromServer,
   loadEmployees,
   normalizeEmployee,
-  transferEmployee,
   updateEmployee,
 } from '../../utils/employeeStorage'
 import { PERMANENT_DELETE_BLOCKED_MESSAGE } from '../../utils/employeeDeleteGuard'
@@ -123,7 +125,7 @@ export default function SettingsEmployeesTab({ showToast }) {
     if (Object.keys(next).length > 0) return
 
     if (modal.mode === 'add') {
-      const result = await addEmployee(form)
+      const result = await createEmployeeWithAccount(form)
       if (!result.success) {
         showToast(result.error ?? 'Không thể thêm nhân viên')
         return
@@ -174,7 +176,11 @@ export default function SettingsEmployeesTab({ showToast }) {
       showToast('Vui lòng chọn nhân viên và chi nhánh đích')
       return
     }
-    const result = await transferEmployee(transfer.employeeId, transfer.branchId)
+    const result = await transferEmployeeLifecycle(transfer.employeeId, transfer.branchId, {
+      transferDate: new Date().toISOString().slice(0, 10),
+      reason: 'Chuyển chi nhánh từ Cài đặt',
+      approver: 'Admin',
+    })
     if (!result.success) {
       showToast(result.error ?? 'Không thể chuyển chi nhánh')
       return

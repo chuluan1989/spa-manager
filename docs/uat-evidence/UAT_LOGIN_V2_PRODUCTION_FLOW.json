@@ -1,0 +1,109 @@
+{
+  "generatedAt": "2026-07-30T10:48:37.315Z",
+  "environment": "production-supabase",
+  "uatPrefix": "uat-login-v2-",
+  "steps": [
+    {
+      "step": "0",
+      "title": "Dọn tài khoản UAT cũ",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-30T10:48:39.179Z"
+    },
+    {
+      "step": "1",
+      "title": "Tạo 2 NV UAT cùng tên — username phân biệt",
+      "ok": true,
+      "detail": "thuyan, thuyan2",
+      "at": "2026-07-30T10:48:41.116Z"
+    },
+    {
+      "step": "2",
+      "title": "Đăng nhập MK mặc định",
+      "ok": true,
+      "detail": "thuyan",
+      "at": "2026-07-30T10:48:41.266Z"
+    },
+    {
+      "step": "3",
+      "title": "Bắt buộc đổi MK lần đầu",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-30T10:48:41.704Z"
+    },
+    {
+      "step": "4",
+      "title": "Đăng nhập lại bằng MK mới",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-30T10:48:41.706Z"
+    },
+    {
+      "step": "5",
+      "title": "Đổi tên hồ sơ — username không đổi",
+      "ok": true,
+      "detail": "thuyan",
+      "at": "2026-07-30T10:48:42.387Z"
+    },
+    {
+      "step": "6",
+      "title": "Admin đổi username thủ công",
+      "ok": true,
+      "detail": "uathuyan",
+      "at": "2026-07-30T10:48:42.827Z"
+    },
+    {
+      "step": "7",
+      "title": "Admin reset MK về mặc định",
+      "ok": true,
+      "detail": "uathuyanvinhlong",
+      "at": "2026-07-30T10:48:43.387Z"
+    },
+    {
+      "step": "8",
+      "title": "Đăng nhập MK mặc định sau reset",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-30T10:48:43.390Z"
+    },
+    {
+      "step": "9",
+      "title": "Bắt buộc đổi MK sau reset",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-30T10:48:43.681Z"
+    },
+    {
+      "step": "10",
+      "title": "Khóa tài khoản — không đăng nhập được",
+      "ok": true,
+      "detail": "Tài khoản nhân viên đang bị khóa",
+      "at": "2026-07-30T10:48:43.948Z"
+    },
+    {
+      "step": "11",
+      "title": "Mở khóa — đăng nhập được",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-30T10:48:44.226Z"
+    },
+    {
+      "step": "12",
+      "title": "Reset hàng loạt — chỉ UAT, bỏ qua NV thật",
+      "ok": true,
+      "detail": "ok=2 skip=1 fail=0",
+      "at": "2026-07-30T10:48:44.661Z"
+    },
+    {
+      "step": "13",
+      "title": "Chặn reset theo chi nhánh / toàn hệ thống trên live",
+      "ok": true,
+      "detail": "",
+      "at": "2026-07-30T10:48:44.662Z"
+    }
+  ],
+  "summary": {
+    "passed": 14,
+    "failed": 0
+  }
+}

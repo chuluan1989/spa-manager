@@ -14,8 +14,26 @@ import { loadSystemSettings } from '../utils/systemSettingsStorage'
 import { checkPermission, hasPermission, PERMISSION_KEYS } from '../utils/permissionsStorage'
 import { getInvoiceModifyBlockReason } from '../utils/invoiceEditPolicy'
 import { isPayCycleClosedForRecordDate } from '../utils/payrollPeriodLock'
+import {
+  applyRecordFetchScope,
+  buildRepositoryFilters,
+  RECORD_FETCH_USE_CASES,
+  resolveRecordFetchStrategy,
+} from '../contracts/recordFetchContract'
 
 export { ADMIN_BRANCH, ROLES }
+export {
+  RECORD_FETCH_USE_CASES,
+  RECORD_FETCH_STRATEGIES,
+  resolveRecordFetchStrategy,
+  buildRepositoryFilters,
+  resolveRecordFetchFilters,
+  applyRecordFetchScope,
+} from '../contracts/recordFetchContract'
+export {
+  buildBranchRosterEmployeeIds,
+  filterEmployeesForBranchRoster,
+} from '../contracts/recordFetchRoster'
 
 export function getCurrentUser() {
   return loadCurrentUser()
@@ -86,14 +104,29 @@ export function getScopedBranchId(selectedBranchId = '') {
 }
 
 /**
- * Branch filter khi fetch dữ liệu lịch sử (Design Freeze).
- * Employee: '' — query theo employee_id; chi nhánh hiển thị từ record.branch_id.
- * Manager: current branch — query theo record.branch_id.
+ * Branch filter khi fetch dữ liệu lịch sử — Record Fetch Contract V2.
  */
 export function getRecordFetchBranchFilter(selectedBranchId = '') {
-  if (isEmployee()) return ''
-  if (isBranchManager()) return getCurrentUserBranch()
-  return selectedBranchId
+  const { branchId } = buildRepositoryFilters(resolveRecordFetchStrategy({
+    useCase: RECORD_FETCH_USE_CASES.VIEW_BRANCH_HISTORY,
+    session: getCurrentUser(),
+    selectedBranchId,
+  }))
+  return branchId
+}
+
+/** Resolve full repository filters for a use case (V2 entry point for hooks/pages). */
+export function getRecordFetchFilters(useCase, { selectedBranchId = '', selectedEmployeeId = '' } = {}) {
+  const strategyResult = resolveRecordFetchStrategy({
+    useCase,
+    session: getCurrentUser(),
+    selectedBranchId,
+    selectedEmployeeId,
+  })
+  return {
+    ...strategyResult,
+    filters: buildRepositoryFilters(strategyResult),
+  }
 }
 
 export function getScopedEmployeeId(selectedEmployeeId = '') {
@@ -114,19 +147,12 @@ export function filterByUserScope(
   getEmployeeId = (item) => item.employeeId,
   getSupportEmployeeId = (item) => item.supportEmployeeId ?? '',
 ) {
-  if (isAdmin()) return items
-
-  if (isEmployee()) {
-    const employeeId = getCurrentUserEmployeeId()
-    if (!employeeId) return []
-    return items.filter((item) =>
-      getEmployeeId(item) === employeeId || getSupportEmployeeId(item) === employeeId,
-    )
-  }
-
-  const branchId = getCurrentUserBranch()
-  if (!branchId) return []
-  return items.filter((item) => getBranchId(item) === branchId)
+  return applyRecordFetchScope(items, {
+    session: getCurrentUser(),
+    getBranchId,
+    getEmployeeId,
+    getSupportEmployeeId,
+  })
 }
 
 export function isEmployeeInUserBranch(employee) {

@@ -1,0 +1,45 @@
+Employee ID,Họ tên,Chi nhánh hiện tại,Username,Trạng thái,Khóa đăng nhập,Đã đổi MK,Trùng username,Thiếu credential,UAT
+song-khoe-spa-anh,"Ánh","Sống Khoẻ Spa",anh,Active,Active,No,No,No,No
+soc-trang-bao-tran,"Bảo Trân","Sóc Trăng Khoẻ Spa",baotran,Active,Active,Yes,No,No,No
+tra-vinh-nhat-ha,"Cẩm Hà","Trà Vinh Khoẻ Spa",camha,Active,Active,No,No,No,No
+tram-spa-cherry,"Cherry","Trạm Spa",cherry,Active,Active,Yes,No,No,No
+soc-trang-chi-7,"Chị 7","Sóc Trăng Khoẻ Spa",chi7,Active,Active,No,No,No,No
+song-khoe-spa-di-di,"Di Di","Sống Khoẻ Spa",didi,Active,Active,No,No,No,No
+tra-vinh-diem-trinh,"Diễm Trinh","Trà Vinh Khoẻ Spa",diemtrinh,Active,Active,No,No,No,No
+song-khoe-spa-hai-anh,"Hải Anh","Sống Khoẻ Spa",haianh,Active,Active,No,No,No,No
+vinh-long-dau,"Hồng Thảo","Vĩnh Long Khoẻ Spa",hongthao,Active,Active,No,No,No,No
+vinh-long-bo,"Hồng Thương","Vĩnh Long Khoẻ Spa",hongthuong,Active,Active,No,No,No,No
+soc-trang-quyen,"Kim Quyên","Sóc Trăng Khoẻ Spa",kimquyen,Active,Active,Yes,No,No,No
+vinh-long-tho,"Kim Thơ","Vĩnh Long Khoẻ Spa",kimtho,Active,Active,No,No,No,No
+bac-lieu-yen,"Kim Yến","Bạc Liêu Khoẻ Spa",kimyen,Active,Active,Yes,No,No,No
+tram-spa-lan-anh,"Lan Anh","Trạm Spa",lananh,Active,Active,No,No,No,No
+soc-trang-ly-ly,"Ly Ly","Sóc Trăng Khoẻ Spa",lyly,Active,Active,No,No,No,No
+tra-vinh-mai-nhi,"Mai Nhi","Trà Vinh Khoẻ Spa",mainhi,Active,Active,No,No,No,No
+bac-lieu-my-nhien,"Mỹ Nhiên","Bạc Liêu Khoẻ Spa",mynhien,Active,Active,No,No,No,No
+song-khoe-spa-ngan,"Ngân","Sống Khoẻ Spa",ngan,Active,Active,No,No,No,No
+vinh-long-dieu,"Ngọc Diệu","Vĩnh Long Khoẻ Spa",ngocdieu,Active,Active,No,No,No,No
+vinh-long-tram,"Ngọc Trâm","Vĩnh Long Khoẻ Spa",ngoctram,Active,Active,No,No,No,No
+tram-spa-nhu-ha,"Như Hà","Trạm Spa",nhuha,Active,Active,No,No,No,No
+soc-trang-tinh,"Như Huỳnh","Sóc Trăng Khoẻ Spa",nhuhuynh,Active,Active,No,No,No,No
+tram-spa-thanh,"Thanh","Trạm Spa",thanh,Active,Active,Yes,No,No,No
+bac-lieu-thanh-thu,"Thanh Thư","Bạc Liêu Khoẻ Spa",thanhthu,Active,Active,Yes,No,No,No
+bac-lieu-thao-cam,"Thảo Cầm","Bạc Liêu Khoẻ Spa",thaocam,Active,Active,No,No,No,No
+gia-lai-1-thu-diem,"Thu Diễm","Gia Lai 1",thudiem,Active,Active,No,No,No,No
+bac-lieu-thu-huong,"Thu Hương","Bạc Liêu Khoẻ Spa",thuhuong,Active,Active,No,No,No,No
+vinh-long-thao,"Thu Thảo","Vĩnh Long Khoẻ Spa",thuthao,Active,Active,No,No,No,No
+soc-trang-an-nho,"Thuý An","Sóc Trăng Khoẻ Spa",thuyan,Active,Active,Yes,No,No,No
+tra-vinh-tra-my,"Trà My","Trà Vinh Khoẻ Spa",tramy,Active,Active,No,No,No,No
+vinh-long-linh,"Trúc Linh","Vĩnh Long Khoẻ Spa",truclinh,Active,Active,No,No,No,No
+tram-spa-truc-ly,"Trúc Ly","Trạm Spa",trucly,Active,Active,No,No,No,No
+tra-vinh-truc-trinh,"Trúc Trinh","Trà Vinh Khoẻ Spa",tructrinh,Active,Active,No,No,No,No
+uat-lifecycle-v1-demo,"UAT Demo Renamed","Vĩnh Long Khoẻ Spa",uatdemorenamed,Active,Active,No,No,No,No
+song-khoe-spa-uc,"Úc","Sống Khoẻ Spa",uc,Active,Active,No,No,No,No
+branch-manager:bac-lieu,"QL Bạc Liêu Khoẻ Spa","Bạc Liêu Khoẻ Spa",baclieu,Active,Active,No,No,No,No
+branch-manager:gia-lai-1,"QL Gia Lai 1","Gia Lai 1",gialai1,Active,Active,No,No,No,No
+branch-manager:gia-lai-2,"QL Gia Lai 2","Gia Lai 2",gialai2,Active,Active,No,No,No,No
+branch-manager:gia-lai-3,"QL Trạm Spa","Trạm Spa",gialai3,Active,Active,No,No,No,No
+branch-manager:soc-trang,"QL Sóc Trăng Khoẻ Spa","Sóc Trăng Khoẻ Spa",soctrang,Active,Active,Yes,No,No,No
+branch-manager:song-khoe-spa,"QL Sống Khoẻ Spa","Sống Khoẻ Spa",songkhoespa,Active,Active,No,No,No,No
+branch-manager:tra-vinh,"QL Trà Vinh Khoẻ Spa","Trà Vinh Khoẻ Spa",travinh,Active,Active,Yes,No,No,No
+branch-manager:tram-spa,"QL Trạm Spa","Trạm Spa",tramspa,Active,Active,Yes,No,No,No
+branch-manager:vinh-long,"QL Vĩnh Long Khoẻ Spa","Vĩnh Long Khoẻ Spa",vinhlong,Active,Active,No,No,No,No

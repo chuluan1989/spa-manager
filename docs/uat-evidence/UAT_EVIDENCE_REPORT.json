@@ -1,0 +1,2280 @@
+{
+  "generatedAt": "2026-07-30T10:27:41.494Z",
+  "productionUrl": "https://www.khoespa.net.vn",
+  "previewUrl": "http://127.0.0.1:4173",
+  "subjects": [
+    {
+      "id": "tram-spa-cherry",
+      "name": "Cherry",
+      "oldBranch": "tram-spa",
+      "currentBranch": "bac-lieu",
+      "employee": {
+        "id": "tram-spa-cherry",
+        "name": "Cherry",
+        "branch_id": "tram-spa",
+        "branch_history": [
+          {
+            "note": "Chuyển chi nhánh theo yêu cầu vận hành",
+            "branchId": "tram-spa",
+            "changedAt": "2026-07-30T07:48:56.080Z",
+            "toBranchId": "bac-lieu",
+            "fromBranchId": "tram-spa",
+            "transferDate": "2026-07-30",
+            "effectiveDate": "2026-07-30"
+          },
+          {
+            "note": "công tác",
+            "reason": "công tác",
+            "approver": "Admin",
+            "branchId": "bac-lieu",
+            "changedAt": "2026-07-30T09:34:28.621Z",
+            "branchName": "Bạc Liêu Khoẻ Spa",
+            "toBranchId": "tram-spa",
+            "fromBranchId": "bac-lieu",
+            "toBranchName": "Trạm Spa",
+            "transferDate": "2026-07-30",
+            "effectiveDate": "2026-07-30",
+            "fromBranchName": "Bạc Liêu Khoẻ Spa"
+          }
+        ],
+        "status": "active",
+        "updated_at": "2026-07-30T09:34:29.177+00:00"
+      },
+      "counts": {
+        "invoices": {
+          "total": 35,
+          "byBranch": {
+            "tram-spa": 35
+          },
+          "july2026": 35,
+          "customerRequested": 0
+        },
+        "attendance": {
+          "total": 21,
+          "byBranch": {
+            "tram-spa": 21
+          },
+          "july2026": 21
+        },
+        "payrollAdjustments": {
+          "total": 0,
+          "byBranch": {}
+        },
+        "customerRequested": {
+          "invoiceCount": 0,
+          "tourCount": 35,
+          "requestedRate": 0
+        },
+        "activityLog": {
+          "employeeAudit": 0,
+          "profileAudit": 0,
+          "total": 0,
+          "queryErrors": [
+            "Could not find the table 'public.employee_audit_logs' in the schema cache",
+            "Could not find the table 'public.employee_profile_audit_logs' in the schema cache"
+          ],
+          "recentEmployeeAudit": [],
+          "recentProfileAudit": []
+        },
+        "queryErrors": {
+          "attendance": null
+        }
+      },
+      "payrollJuly2026": {
+        "netSalary": 4760000,
+        "ticketRevenue": 5440000,
+        "sections": null,
+        "rawRow": {
+          "employeeId": "tram-spa-cherry",
+          "employeeName": "Cherry",
+          "branchId": "tram-spa",
+          "branchName": "CN8 Trạm Spa",
+          "position": "",
+          "avatar": "",
+          "invoiceCount": 35,
+          "workDays": 19,
+          "branchSections": null,
+          "baseSalary": 0,
+          "ticketRevenue": 5440000,
+          "commission": 252000,
+          "tips": 4508000,
+          "bonus": 0,
+          "reduction": 0,
+          "penalty": 0,
+          "attendancePenalty": 0,
+          "manualPenalty": 0,
+          "advance": 0,
+          "otherAdjustment": 0,
+          "grossBeforeDeduction": 4760000,
+          "netSalary": 4760000,
+          "paidAmount": 0,
+          "remainingAmount": 4760000,
+          "provisionalNet": 4760000
+        }
+      },
+      "raw": {
+        "invoices": [
+          {
+            "id": "a0dc0a14-e7f1-44ab-b86e-4feb9a85d7d0",
+            "branchId": "tram-spa",
+            "date": "2026-07-14",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 170000,
+            "tips": 50000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-duong-sinh",
+                "name": "Gội dưỡng sinh 60'",
+                "price": 120000,
+                "originalPrice": 120000,
+                "discountAmount": 0,
+                "commissionAmount": 24000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 24000
+          },
+          {
+            "id": "150d25c3-1fe3-4537-9f3b-4940dec0f6a1",
+            "branchId": "tram-spa",
+            "date": "2026-07-06",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 250000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "co-vai-gay",
+                "name": "Cổ vai gáy",
+                "price": 150000,
+                "originalPrice": 150000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 100000
+          },
+          {
+            "id": "89881ef1-ba85-4732-87c2-6eb1e6389dc4",
+            "branchId": "tram-spa",
+            "date": "2026-07-14",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 393000,
+            "tips": 173000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "combo-1",
+                "name": "Combo 1 90'",
+                "price": 220000,
+                "originalPrice": 220000,
+                "discountAmount": 0,
+                "commissionAmount": 22000,
+                "commissionPercent": 10
+              }
+            ],
+            "commission": 22000
+          },
+          {
+            "id": "907b7284-41df-4892-a4e5-22e0841a4001",
+            "branchId": "tram-spa",
+            "date": "2026-07-14",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "a2a37704-5ba0-43d1-ae00-c00dbcd1faec",
+            "branchId": "tram-spa",
+            "date": "2026-07-07",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 140000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 140000
+          },
+          {
+            "id": "dc0ef949-35fa-4c0b-a78f-034afb8a9d82",
+            "branchId": "tram-spa",
+            "date": "2026-07-02",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 500000,
+            "tips": 300000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 300000
+          },
+          {
+            "id": "87afbafe-3cc1-4bbf-bf5e-d13fb17a5582",
+            "branchId": "tram-spa",
+            "date": "2026-07-03",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 60000,
+            "tips": 0,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-sach",
+                "name": "Gội sạch",
+                "price": 60000,
+                "originalPrice": 60000,
+                "discountAmount": 0,
+                "commissionAmount": 12000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 12000
+          },
+          {
+            "id": "68dc0f9c-1095-4de8-9b99-adfc5e2d3605",
+            "branchId": "tram-spa",
+            "date": "2026-07-06",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 500000,
+            "tips": 300000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 300000
+          },
+          {
+            "id": "22c86ef6-97cd-4a5d-96d7-117653cd5354",
+            "branchId": "tram-spa",
+            "date": "2026-07-04",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 175000,
+            "tips": 55000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-duong-sinh",
+                "name": "Gội dưỡng sinh",
+                "price": 120000,
+                "originalPrice": 120000,
+                "discountAmount": 0,
+                "commissionAmount": 24000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 79000
+          },
+          {
+            "id": "ba8ed561-1f22-41ec-a99a-5eb00358d8de",
+            "branchId": "tram-spa",
+            "date": "2026-07-16",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 320000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "combo-1",
+                "name": "Combo 1 90'",
+                "price": 220000,
+                "originalPrice": 220000,
+                "discountAmount": 0,
+                "commissionAmount": 22000,
+                "commissionPercent": 10
+              }
+            ],
+            "commission": 22000
+          },
+          {
+            "id": "50b4e648-5e26-44ae-9fc4-b370e0b9dd1a",
+            "branchId": "tram-spa",
+            "date": "2026-07-12",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 430000,
+            "tips": 200000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "dap-thuoc",
+                "name": "Đắp thuốc thảo dược",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 6000
+          },
+          {
+            "id": "cdc4c45f-1688-4a4a-8279-7acb11b5ae17",
+            "branchId": "tram-spa",
+            "date": "2026-07-16",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 120000,
+            "tips": 0,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-duong-sinh",
+                "name": "Gội dưỡng sinh 60'",
+                "price": 120000,
+                "originalPrice": 120000,
+                "discountAmount": 0,
+                "commissionAmount": 24000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 24000
+          },
+          {
+            "id": "2a43c3b4-6459-4796-bb14-5fa460fbb22b",
+            "branchId": "tram-spa",
+            "date": "2026-07-17",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 250000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "co-vai-gay",
+                "name": "Cổ Vai Gáy 60'",
+                "price": 150000,
+                "originalPrice": 150000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "bec97ba5-6ac5-444b-a49f-21e610d21401",
+            "branchId": "tram-spa",
+            "date": "2026-07-16",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 310000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "foot",
+                "name": "Foot 60'",
+                "price": 150000,
+                "originalPrice": 150000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "goi-sach",
+                "name": "Gội sạch 30'",
+                "price": 60000,
+                "originalPrice": 60000,
+                "discountAmount": 0,
+                "commissionAmount": 12000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 12000
+          },
+          {
+            "id": "c4042a1d-f7a1-421a-b022-66cd77f51e08",
+            "branchId": "tram-spa",
+            "date": "2026-07-16",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 260000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "9ddb95ab-5338-4896-bc8d-1aa516de4f9a",
+            "branchId": "tram-spa",
+            "date": "2026-07-17",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 400000,
+            "tips": 240000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "05a43e60-5c0f-41c7-a64a-866695b0a5c5",
+            "branchId": "tram-spa",
+            "date": "2026-07-18",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 260000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "6982931e-b3ad-4b06-ba40-05e35bfbd1a2",
+            "branchId": "tram-spa",
+            "date": "2026-07-18",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 250000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "co-vai-gay",
+                "name": "Cổ Vai Gáy 60'",
+                "price": 150000,
+                "originalPrice": 150000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "f5287b31-3435-499d-81a7-c721aca6e771",
+            "branchId": "tram-spa",
+            "date": "2026-07-18",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 250000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "foot",
+                "name": "Foot 60'",
+                "price": 150000,
+                "originalPrice": 150000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "8d6ac877-33a9-4178-9616-874cd7cdefdd",
+            "branchId": "tram-spa",
+            "date": "2026-07-15",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 500000,
+            "tips": 320000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "co-vai-gay",
+                "name": "Cổ Vai Gáy 60'",
+                "price": 150000,
+                "originalPrice": 150000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 6000
+          },
+          {
+            "id": "2ce7cecd-5da8-4bf2-a85b-ba73b941230d",
+            "branchId": "tram-spa",
+            "date": "2026-07-08",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 360000,
+            "tips": 200000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "0c25f75f-1885-4370-bc78-a4f687a10f3e",
+            "branchId": "tram-spa",
+            "date": "2026-07-11",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "13809c39-a6b7-40c2-a375-62185fd5166b",
+            "branchId": "tram-spa",
+            "date": "2026-07-12",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 60000,
+            "tips": 0,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-sach",
+                "name": "Gội sạch 30'",
+                "price": 60000,
+                "originalPrice": 60000,
+                "discountAmount": 0,
+                "commissionAmount": 12000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 12000
+          },
+          {
+            "id": "ad18dc94-ff73-4676-96f6-e40cd2119cb7",
+            "branchId": "tram-spa",
+            "date": "2026-07-13",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 75000,
+            "tips": 15000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-sach",
+                "name": "Gội sạch 30'",
+                "price": 60000,
+                "originalPrice": 60000,
+                "discountAmount": 0,
+                "commissionAmount": 12000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 12000
+          },
+          {
+            "id": "6f36aa48-cb19-4893-affd-36ae89046a40",
+            "branchId": "tram-spa",
+            "date": "2026-07-13",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 271000,
+            "tips": 111000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "944d01bd-5216-499e-8ee6-6fc5f6b8afcf",
+            "branchId": "tram-spa",
+            "date": "2026-07-11",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 500000,
+            "tips": 340000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "d29bda24-1837-4fe6-9a14-59ceff8f532f",
+            "branchId": "tram-spa",
+            "date": "2026-07-10",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 334000,
+            "tips": 174000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "3a705ed0-1097-4969-bfa0-1adb14a45f7d",
+            "branchId": "tram-spa",
+            "date": "2026-07-10",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 120000,
+            "tips": 0,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-duong-sinh",
+                "name": "Gội dưỡng sinh 60'",
+                "price": 120000,
+                "originalPrice": 120000,
+                "discountAmount": 0,
+                "commissionAmount": 24000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 24000
+          },
+          {
+            "id": "c0131a91-0836-4919-930a-b5f3c6352174",
+            "branchId": "tram-spa",
+            "date": "2026-07-11",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 140000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "d1deb794-a5ae-4513-98de-975be9e818ee",
+            "branchId": "tram-spa",
+            "date": "2026-07-15",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 110000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 6000
+          },
+          {
+            "id": "a3b7763c-5667-4cd5-8193-f44134b3cf12",
+            "branchId": "tram-spa",
+            "date": "2026-07-27",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "81fc76e0-21d1-4055-88e5-3b2a776ab34f",
+            "branchId": "tram-spa",
+            "date": "2026-07-27",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 60000,
+            "tips": 0,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-sach",
+                "name": "Gội sạch 30'",
+                "price": 60000,
+                "originalPrice": 60000,
+                "discountAmount": 0,
+                "commissionAmount": 12000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 12000
+          },
+          {
+            "id": "d5a9aff2-6bad-40f5-bac3-1099466456c0",
+            "branchId": "tram-spa",
+            "date": "2026-07-28",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 500000,
+            "tips": 350000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "co-vai-gay",
+                "name": "Cổ Vai Gáy 60'",
+                "price": 150000,
+                "originalPrice": 150000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "064054cb-5d4a-460f-bf09-06723b94543d",
+            "branchId": "tram-spa",
+            "date": "2026-07-28",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 70000,
+            "tips": 10000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-sach",
+                "name": "Gội sạch 30'",
+                "price": 60000,
+                "originalPrice": 60000,
+                "discountAmount": 0,
+                "commissionAmount": 12000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 12000
+          },
+          {
+            "id": "7db200c1-1e1f-4ef6-a87a-fc23e1413497",
+            "branchId": "tram-spa",
+            "date": "2026-07-28",
+            "employeeId": "tram-spa-cherry",
+            "supportEmployeeId": "",
+            "total": 400000,
+            "tips": 180000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "combo-1",
+                "name": "Combo 1 90'",
+                "price": 220000,
+                "originalPrice": 220000,
+                "discountAmount": 0,
+                "commissionAmount": 22000,
+                "commissionPercent": 10
+              }
+            ],
+            "commission": 22000
+          }
+        ],
+        "attendance": [
+          {
+            "id": "att-1783504386924-qvm3lm",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-08",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-08"
+          },
+          {
+            "id": "att-1783574894536-h37dl4",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-09",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-09"
+          },
+          {
+            "id": "att-1783657997441-2t7qj3",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-10",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-10"
+          },
+          {
+            "id": "att-1783706392221-7vzbjq",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-11",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-11"
+          },
+          {
+            "id": "att-1783833725170-lc5ytv",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-12",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-12"
+          },
+          {
+            "id": "att-1784018756983-cazqm3",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-14",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-14"
+          },
+          {
+            "id": "att-1784052638057-fzq18a",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-15",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-15"
+          },
+          {
+            "id": "att-1784091055590-h27tds",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-01",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "att-1784126110726-tonqfu",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-02",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-02"
+          },
+          {
+            "id": "att-1784126155590-dn98xa",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-03",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-03"
+          },
+          {
+            "id": "att-1784126162139-stb6c1",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-04",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-04"
+          },
+          {
+            "id": "att-1784126167982-c09dqf",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-05",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-05"
+          },
+          {
+            "id": "att-1784126172131-mdu6gw",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-06",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-06"
+          },
+          {
+            "id": "att-1784126176839-ubuey8",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-07",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-07"
+          },
+          {
+            "id": "att-1784126183010-g5yjv4",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-13",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-13"
+          },
+          {
+            "id": "att-1784176718307-wipv9d",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-16",
+            "employeeId": "tram-spa-cherry",
+            "status": "late_2h_permitted",
+            "date": "2026-07-16"
+          },
+          {
+            "id": "att-1784222215379-z16fjy",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-17",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-17"
+          },
+          {
+            "id": "att-1784463543405-vdu5dx",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-19",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-19"
+          },
+          {
+            "id": "att-1784684458676-q6h77c",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-22",
+            "employeeId": "tram-spa-cherry",
+            "status": "full_day_permitted",
+            "date": "2026-07-22"
+          },
+          {
+            "id": "att-1785164417103-zmb4kz",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-27",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-27"
+          },
+          {
+            "id": "att-1785241664075-w4jedn",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-28",
+            "employeeId": "tram-spa-cherry",
+            "status": "on_time",
+            "date": "2026-07-28"
+          }
+        ],
+        "adjustments": []
+      }
+    },
+    {
+      "id": "tram-spa-truc-ly",
+      "name": "Trúc Ly",
+      "oldBranch": "tram-spa",
+      "currentBranch": "soc-trang",
+      "employee": {
+        "id": "tram-spa-truc-ly",
+        "name": "Trúc Ly",
+        "branch_id": "tram-spa",
+        "branch_history": [
+          {
+            "note": "Chuyển chi nhánh theo yêu cầu vận hành",
+            "branchId": "tram-spa",
+            "changedAt": "2026-07-30T07:48:56.392Z",
+            "toBranchId": "soc-trang",
+            "fromBranchId": "tram-spa",
+            "transferDate": "2026-07-30",
+            "effectiveDate": "2026-07-30"
+          },
+          {
+            "note": "công tác",
+            "reason": "công tác",
+            "approver": "Admin",
+            "branchId": "soc-trang",
+            "changedAt": "2026-07-30T09:35:08.136Z",
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "toBranchId": "tram-spa",
+            "fromBranchId": "soc-trang",
+            "toBranchName": "Trạm Spa",
+            "transferDate": "2026-07-30",
+            "effectiveDate": "2026-07-30",
+            "fromBranchName": "Sóc Trăng Khoẻ Spa"
+          },
+          {
+            "note": "công tác",
+            "reason": "công tác",
+            "approver": "Admin",
+            "branchId": "tram-spa",
+            "changedAt": "2026-07-30T10:01:43.482Z",
+            "branchName": "Trạm Spa",
+            "toBranchId": "soc-trang",
+            "fromBranchId": "tram-spa",
+            "toBranchName": "Sóc Trăng Khoẻ Spa",
+            "transferDate": "2026-07-30",
+            "effectiveDate": "2026-07-30",
+            "fromBranchName": "Trạm Spa"
+          },
+          {
+            "note": "d",
+            "reason": "d",
+            "approver": "Admin",
+            "branchId": "soc-trang",
+            "changedAt": "2026-07-30T10:02:06.033Z",
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "toBranchId": "tram-spa",
+            "fromBranchId": "soc-trang",
+            "toBranchName": "Trạm Spa",
+            "transferDate": "2026-07-30",
+            "effectiveDate": "2026-07-30",
+            "fromBranchName": "Sóc Trăng Khoẻ Spa"
+          }
+        ],
+        "status": "active",
+        "updated_at": "2026-07-30T10:02:06.502+00:00"
+      },
+      "counts": {
+        "invoices": {
+          "total": 25,
+          "byBranch": {
+            "tram-spa": 25
+          },
+          "july2026": 25,
+          "customerRequested": 0
+        },
+        "attendance": {
+          "total": 19,
+          "byBranch": {
+            "tram-spa": 18,
+            "soc-trang": 1
+          },
+          "july2026": 19
+        },
+        "payrollAdjustments": {
+          "total": 1,
+          "byBranch": {
+            "tram-spa": 1
+          }
+        },
+        "customerRequested": {
+          "invoiceCount": 0,
+          "tourCount": 25,
+          "requestedRate": 0
+        },
+        "activityLog": {
+          "employeeAudit": 0,
+          "profileAudit": 0,
+          "total": 0,
+          "queryErrors": [
+            "Could not find the table 'public.employee_audit_logs' in the schema cache",
+            "Could not find the table 'public.employee_profile_audit_logs' in the schema cache"
+          ],
+          "recentEmployeeAudit": [],
+          "recentProfileAudit": []
+        },
+        "queryErrors": {
+          "attendance": null
+        }
+      },
+      "payrollJuly2026": {
+        "netSalary": 2290000,
+        "ticketRevenue": 4750000,
+        "sections": null,
+        "rawRow": {
+          "employeeId": "tram-spa-truc-ly",
+          "employeeName": "Trúc Ly",
+          "branchId": "tram-spa",
+          "branchName": "CN8 Trạm Spa",
+          "position": "",
+          "avatar": "",
+          "invoiceCount": 25,
+          "workDays": 17,
+          "branchSections": [
+            {
+              "branchId": "soc-trang",
+              "branchName": "CN1 Sóc Trăng Khoẻ Spa",
+              "invoiceCount": 0,
+              "workDays": 1,
+              "baseSalary": 0,
+              "ticketRevenue": 0,
+              "commission": 0,
+              "tips": 0,
+              "bonus": 0,
+              "reduction": 0,
+              "penalty": 0,
+              "attendancePenalty": 0,
+              "manualPenalty": 0,
+              "advance": 0,
+              "otherAdjustment": 0,
+              "netSalary": 0
+            },
+            {
+              "branchId": "tram-spa",
+              "branchName": "CN8 Trạm Spa",
+              "invoiceCount": 25,
+              "workDays": 16,
+              "baseSalary": 0,
+              "ticketRevenue": 4750000,
+              "commission": 164000,
+              "tips": 4126000,
+              "bonus": 0,
+              "reduction": 0,
+              "penalty": 0,
+              "attendancePenalty": 0,
+              "manualPenalty": 0,
+              "advance": 2000000,
+              "otherAdjustment": 0,
+              "netSalary": 2290000
+            }
+          ],
+          "baseSalary": 0,
+          "ticketRevenue": 4750000,
+          "commission": 164000,
+          "tips": 4126000,
+          "bonus": 0,
+          "reduction": 0,
+          "penalty": 0,
+          "attendancePenalty": 0,
+          "manualPenalty": 0,
+          "advance": 2000000,
+          "otherAdjustment": 0,
+          "grossBeforeDeduction": 4290000,
+          "netSalary": 2290000,
+          "paidAmount": 0,
+          "remainingAmount": 2290000,
+          "provisionalNet": 2290000
+        }
+      },
+      "raw": {
+        "invoices": [
+          {
+            "id": "fd4d79e0-b0fb-4488-8bb4-6ed35d745cea",
+            "branchId": "tram-spa",
+            "date": "2026-07-04",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 317000,
+            "tips": 117000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 117000
+          },
+          {
+            "id": "e8b876de-1766-43e3-ba6e-bfec11a9af5b",
+            "branchId": "tram-spa",
+            "date": "2026-07-04",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 150000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "co-vai-gay",
+                "name": "Cổ vai gáy",
+                "price": 150000,
+                "originalPrice": 150000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 150000
+          },
+          {
+            "id": "1ab374e8-6ad2-4c86-b45e-5eb893ae956a",
+            "branchId": "tram-spa",
+            "date": "2026-07-01",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 325000,
+            "tips": 135000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 141000
+          },
+          {
+            "id": "54ea3584-809e-4ec6-a273-24bd8359c874",
+            "branchId": "tram-spa",
+            "date": "2026-07-03",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 271000,
+            "tips": 111000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 111000
+          },
+          {
+            "id": "236dc747-4b02-47b0-9579-fa58961b24bd",
+            "branchId": "tram-spa",
+            "date": "2026-07-02",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 455000,
+            "tips": 205000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              },
+              {
+                "id": "combo-1",
+                "name": "Combo 1",
+                "price": 220000,
+                "originalPrice": 220000,
+                "discountAmount": 0,
+                "commissionAmount": 22000,
+                "commissionPercent": 10
+              }
+            ],
+            "commission": 233000
+          },
+          {
+            "id": "0a63dfb2-afae-44b2-b0c1-232c5754e9d2",
+            "branchId": "tram-spa",
+            "date": "2026-07-05",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 400000,
+            "tips": 200000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 200000
+          },
+          {
+            "id": "94cb1a35-d3dc-4a19-b8f7-439b972313bd",
+            "branchId": "tram-spa",
+            "date": "2026-07-06",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 600000,
+            "tips": 320000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "combo-1",
+                "name": "Combo 1",
+                "price": 220000,
+                "originalPrice": 220000,
+                "discountAmount": 0,
+                "commissionAmount": 22000,
+                "commissionPercent": 10
+              },
+              {
+                "id": "dap-thuoc",
+                "name": "Đắp thuốc",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              },
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 354000
+          },
+          {
+            "id": "a88b160f-0f98-4fb9-8e84-76b60c42f0ba",
+            "branchId": "tram-spa",
+            "date": "2026-07-15",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 371000,
+            "tips": 211000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "c4582a47-aa97-4ab2-9d3e-2402cbb0a11a",
+            "branchId": "tram-spa",
+            "date": "2026-07-15",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 350000,
+            "tips": 150000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "f41c61d8-615b-4a5a-b5ad-b2b806d4b7ac",
+            "branchId": "tram-spa",
+            "date": "2026-07-10",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "d212a20b-f72d-4b27-bdb0-f7a80e4f80d7",
+            "branchId": "tram-spa",
+            "date": "2026-07-10",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 333000,
+            "tips": 173000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "b12d38df-2c7f-493e-a3f6-4ed1007b50de",
+            "branchId": "tram-spa",
+            "date": "2026-07-11",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 150000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "co-vai-gay",
+                "name": "Cổ Vai Gáy 60'",
+                "price": 150000,
+                "originalPrice": 150000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "53f40e8b-5b92-46b2-bd42-89c30ef72056",
+            "branchId": "tram-spa",
+            "date": "2026-07-11",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 500000,
+            "tips": 340000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "2463eace-bff0-475d-84fe-77c70b26b21e",
+            "branchId": "tram-spa",
+            "date": "2026-07-11",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "d2cb6d74-e9e5-4bcf-a54b-34cfc70259d1",
+            "branchId": "tram-spa",
+            "date": "2026-07-12",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 400000,
+            "tips": 180000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "combo-1",
+                "name": "Combo 1 90'",
+                "price": 220000,
+                "originalPrice": 220000,
+                "discountAmount": 0,
+                "commissionAmount": 22000,
+                "commissionPercent": 10
+              }
+            ],
+            "commission": 22000
+          },
+          {
+            "id": "9b2f4c8e-a299-460e-b6ce-58dcb2cdb81e",
+            "branchId": "tram-spa",
+            "date": "2026-07-12",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 80000,
+            "tips": 20000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "goi-sach",
+                "name": "Gội sạch 30'",
+                "price": 60000,
+                "originalPrice": 60000,
+                "discountAmount": 0,
+                "commissionAmount": 12000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 12000
+          },
+          {
+            "id": "55725144-617b-4b98-8814-3181dc7c7654",
+            "branchId": "tram-spa",
+            "date": "2026-07-13",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 500000,
+            "tips": 250000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "combo-1",
+                "name": "Combo 1 90'",
+                "price": 220000,
+                "originalPrice": 220000,
+                "discountAmount": 0,
+                "commissionAmount": 22000,
+                "commissionPercent": 10
+              },
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 28000
+          },
+          {
+            "id": "13694e61-e636-4c5e-8016-42d377c7ec3d",
+            "branchId": "tram-spa",
+            "date": "2026-07-13",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 271000,
+            "tips": 111000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "39fbc04c-fe8a-4794-8480-65ac34b5a7cf",
+            "branchId": "tram-spa",
+            "date": "2026-07-14",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 360000,
+            "tips": 160000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "b88d1151-6ef1-4ca7-8040-6b627362ad14",
+            "branchId": "tram-spa",
+            "date": "2026-07-14",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 300000,
+            "tips": 100000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 0
+          },
+          {
+            "id": "b34caac5-f107-4a1d-9e6c-5835387f9807",
+            "branchId": "tram-spa",
+            "date": "2026-07-14",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 393000,
+            "tips": 173000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "combo-1",
+                "name": "Combo 1 90'",
+                "price": 220000,
+                "originalPrice": 220000,
+                "discountAmount": 0,
+                "commissionAmount": 22000,
+                "commissionPercent": 10
+              }
+            ],
+            "commission": 22000
+          },
+          {
+            "id": "53dc3017-3715-41ee-9ef9-0097ebc04c22",
+            "branchId": "tram-spa",
+            "date": "2026-07-06",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 400000,
+            "tips": 200000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 200000
+          },
+          {
+            "id": "06d559c0-caaf-4d6e-a04c-8262519f571e",
+            "branchId": "tram-spa",
+            "date": "2026-07-01",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 325000,
+            "tips": 135000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 141000
+          },
+          {
+            "id": "32b3fb6c-9a42-4449-a5a0-baf3863526d7",
+            "branchId": "tram-spa",
+            "date": "2026-07-01",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 325000,
+            "tips": 135000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60",
+                "price": 160000,
+                "originalPrice": 160000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 30000,
+                "originalPrice": 30000,
+                "discountAmount": 0,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "commission": 141000
+          },
+          {
+            "id": "f854f34c-ee3a-4ff6-af07-8cd9e6ffb427",
+            "branchId": "tram-spa",
+            "date": "2026-07-07",
+            "employeeId": "tram-spa-truc-ly",
+            "supportEmployeeId": "",
+            "total": 400000,
+            "tips": 200000,
+            "customerRequested": false,
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90",
+                "price": 200000,
+                "originalPrice": 200000,
+                "discountAmount": 0,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "commission": 200000
+          }
+        ],
+        "attendance": [
+          {
+            "id": "att-1783526689710-bgi5w2",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-08",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-08"
+          },
+          {
+            "id": "att-1783566261611-r7muno",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-09",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-09"
+          },
+          {
+            "id": "att-1783678647839-wxkive",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-10",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-10"
+          },
+          {
+            "id": "att-1783707674480-ggqded",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-11",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-11"
+          },
+          {
+            "id": "att-1784088511555-wsuvot",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-15",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-15"
+          },
+          {
+            "id": "att-1784131331480-yqonre",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-01",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-01"
+          },
+          {
+            "id": "att-1784131371319-0bxiu4",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-02",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-02"
+          },
+          {
+            "id": "att-1784131376929-26mpyq",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-03",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-03"
+          },
+          {
+            "id": "att-1784131382801-yqjefq",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-04",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-04"
+          },
+          {
+            "id": "att-1784131387278-rp7yn9",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-05",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-05"
+          },
+          {
+            "id": "att-1784131392902-r5j81t",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-06",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-06"
+          },
+          {
+            "id": "att-1784131398287-ktnme5",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-07",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-07"
+          },
+          {
+            "id": "att-1784131410283-w1wisg",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-12",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-12"
+          },
+          {
+            "id": "att-1784153392392-eb5x8f",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-16",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "full_day_permitted",
+            "date": "2026-07-16"
+          },
+          {
+            "id": "att-1784154136797-ktr8kw",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-13",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-13"
+          },
+          {
+            "id": "att-1784154143180-scj7if",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-14",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-14"
+          },
+          {
+            "id": "att-1784537335216-97vigw",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-20",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "full_day_permitted",
+            "date": "2026-07-20"
+          },
+          {
+            "id": "att-1785248878942-eg62e4",
+            "branchId": "tram-spa",
+            "attendanceDate": "2026-07-28",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-28"
+          },
+          {
+            "id": "att-1785401602064-zf0i23",
+            "branchId": "soc-trang",
+            "attendanceDate": "2026-07-30",
+            "employeeId": "tram-spa-truc-ly",
+            "status": "on_time",
+            "date": "2026-07-30"
+          }
+        ],
+        "adjustments": [
+          {
+            "id": "payadj-1784556855355-1uzvco",
+            "branchId": "tram-spa",
+            "month": "2026-07",
+            "employeeId": "tram-spa-truc-ly",
+            "amount": 2000000,
+            "type": "advance"
+          }
+        ]
+      }
+    }
+  ],
+  "cherryVisibility": [
+    {
+      "role": "Cherry Employee (@ bac-lieu)",
+      "invoices": {
+        "total": 35,
+        "byBranch": {
+          "tram-spa": 35
+        },
+        "tramSpa": 35
+      },
+      "attendance": {
+        "total": 21,
+        "byBranch": {
+          "tram-spa": 21
+        },
+        "tramSpa": 21
+      },
+      "payrollAdjustments": {
+        "total": 0
+      }
+    },
+    {
+      "role": "QL Trạm Spa (tram-spa)",
+      "invoices": {
+        "total": 35,
+        "byBranch": {
+          "tram-spa": 35
+        },
+        "tramSpa": 35
+      },
+      "attendance": {
+        "total": 21,
+        "byBranch": {
+          "tram-spa": 21
+        },
+        "tramSpa": 21
+      },
+      "payrollAdjustments": {
+        "total": 0
+      }
+    },
+    {
+      "role": "QL chi nhánh mới (bac-lieu)",
+      "invoices": {
+        "total": 0,
+        "byBranch": {},
+        "tramSpa": 0
+      },
+      "attendance": {
+        "total": 0,
+        "byBranch": {},
+        "tramSpa": 0
+      },
+      "payrollAdjustments": {
+        "total": 0
+      }
+    },
+    {
+      "role": "Admin",
+      "invoices": {
+        "total": 35,
+        "byBranch": {
+          "tram-spa": 35
+        },
+        "tramSpa": 35
+      },
+      "attendance": {
+        "total": 21,
+        "byBranch": {
+          "tram-spa": 21
+        },
+        "tramSpa": 21
+      },
+      "payrollAdjustments": {
+        "total": 0
+      }
+    }
+  ],
+  "trucLyVisibility": [
+    {
+      "role": "Trúc Ly Employee (@ soc-trang)",
+      "invoices": {
+        "total": 25,
+        "byBranch": {
+          "tram-spa": 25,
+          "soc-trang": 0
+        },
+        "tramSpa": 25
+      },
+      "attendance": {
+        "total": 19,
+        "byBranch": {
+          "tram-spa": 18,
+          "soc-trang": 1
+        },
+        "tramSpa": 18
+      },
+      "payrollAdjustments": {
+        "total": 1
+      }
+    },
+    {
+      "role": "QL Trạm Spa (tram-spa)",
+      "invoices": {
+        "total": 25,
+        "byBranch": {
+          "tram-spa": 25
+        },
+        "tramSpa": 25
+      },
+      "attendance": {
+        "total": 18,
+        "byBranch": {
+          "tram-spa": 18
+        },
+        "tramSpa": 18
+      },
+      "payrollAdjustments": {
+        "total": 1
+      }
+    },
+    {
+      "role": "QL chi nhánh mới (soc-trang)",
+      "invoices": {
+        "total": 0,
+        "byBranch": {
+          "soc-trang": 0
+        },
+        "tramSpa": 0
+      },
+      "attendance": {
+        "total": 1,
+        "byBranch": {
+          "soc-trang": 1
+        },
+        "tramSpa": 0
+      },
+      "payrollAdjustments": {
+        "total": 0
+      }
+    },
+    {
+      "role": "Admin",
+      "invoices": {
+        "total": 25,
+        "byBranch": {
+          "tram-spa": 25,
+          "soc-trang": 0
+        },
+        "tramSpa": 25
+      },
+      "attendance": {
+        "total": 19,
+        "byBranch": {
+          "tram-spa": 18,
+          "soc-trang": 1
+        },
+        "tramSpa": 18
+      },
+      "payrollAdjustments": {
+        "total": 1
+      }
+    }
+  ],
+  "lifecycle": {
+    "employeeId": "uat-lifecycle-v1-demo",
+    "username": "uat-lifecycle-v1-demo",
+    "defaultPassword": "uatdemov1tramspa",
+    "steps": [
+      {
+        "step": "1. Tạo nhân viên mới",
+        "ok": true,
+        "note": "uat-lifecycle-v1-demo",
+        "at": "2026-07-30T10:27:10.238Z"
+      },
+      {
+        "step": "2. Username + Password + Đăng nhập",
+        "ok": true,
+        "username": "uat-lifecycle-v1-demo",
+        "password": "uatdemov1tramspa",
+        "branch": "tram-spa",
+        "at": "2026-07-30T10:27:10.688Z"
+      },
+      {
+        "step": "3. Đổi tên + Đăng nhập lại",
+        "ok": true,
+        "newName": "UAT Demo Renamed",
+        "at": "2026-07-30T10:27:11.129Z"
+      },
+      {
+        "step": "4. Chuyển chi nhánh + Đăng nhập lại",
+        "ok": true,
+        "from": "tram-spa",
+        "to": "vinh-long",
+        "sessionBranch": "vinh-long",
+        "at": "2026-07-30T10:27:11.664Z"
+      },
+      {
+        "step": "5. Nghỉ việc → không đăng nhập",
+        "ok": true,
+        "blocked": true,
+        "note": "Sai tên đăng nhập hoặc mật khẩu",
+        "at": "2026-07-30T10:27:12.177Z"
+      },
+      {
+        "step": "6. Kích hoạt lại + Đăng nhập",
+        "ok": true,
+        "sessionBranch": "vinh-long",
+        "at": "2026-07-30T10:27:12.590Z"
+      }
+    ],
+    "allOk": true
+  },
+  "screenshots": {
+    "skipped": false,
+    "shots": [
+      "/Users/chuluan/Spa-manager/docs/uat-evidence/manager-tram-spa-after-login.png",
+      "/Users/chuluan/Spa-manager/docs/uat-evidence/manager-tram-spa-report.png",
+      "/Users/chuluan/Spa-manager/docs/uat-evidence/manager-bac-lieu-after-login.png",
+      "/Users/chuluan/Spa-manager/docs/uat-evidence/manager-bac-lieu-report.png",
+      "/Users/chuluan/Spa-manager/docs/uat-evidence/admin-after-login.png"
+    ]
+  }
+}

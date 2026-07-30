@@ -607,6 +607,11 @@ export async function addEmployee(data) {
     return denyAccess(error.message)
   }
   notifyDataSynced(['employees'])
+  try {
+    await syncEmployeeCredentialForEmployee(employee.id)
+  } catch (error) {
+    console.warn('[Lifecycle] Không thể tạo tài khoản nhân viên mới:', error?.message)
+  }
   return { success: true, employee }
 }
 
@@ -919,6 +924,10 @@ export async function setEmployeeStatus(id, status, options = {}) {
     removeEmployeeCredential(id)
     pruneInactiveEmployeeCredentials().catch((error) => {
       console.warn('[Credentials] Không thể dọn credential nhân viên:', error?.message)
+    })
+  } else if (result.success && nextStatus === EMPLOYEE_STATUS.ACTIVE) {
+    syncEmployeeCredentialForEmployee(id).catch((error) => {
+      console.warn('[Lifecycle] Không thể khôi phục tài khoản nhân viên:', error?.message)
     })
   }
   return result

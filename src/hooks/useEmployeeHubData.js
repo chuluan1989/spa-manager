@@ -3,7 +3,7 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { fetchEmployeesFiltered, subscribeEmployeesChanges } from '../repositories/employeesRepository'
 import { fetchInvoicesFiltered, subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import { normalizeEmployee } from '../utils/employeeStorage'
-import { employeeBelongsToBranch } from '../utils/branchEmployeeMatch'
+import { filterEmployeesForBranchRoster } from '../contracts/recordFetchRoster'
 import { getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 
@@ -38,9 +38,14 @@ export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } 
 
         if (cancelled) return
 
-        setEmployees((employeeRows ?? [])
-          .map((row) => normalizeEmployee(row))
-          .filter((row) => !branchId || employeeBelongsToBranch(row, branchId)))
+        const normalizedEmployees = (employeeRows ?? []).map((row) => normalizeEmployee(row))
+        setEmployees(!branchId
+          ? normalizedEmployees
+          : filterEmployeesForBranchRoster({
+            employees: normalizedEmployees,
+            branchId,
+            activityRecords: invoiceRows ?? [],
+          }))
         setInvoices(Array.isArray(invoiceRows) ? invoiceRows : [])
         setError('')
       } catch (err) {

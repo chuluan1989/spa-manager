@@ -1,0 +1,187 @@
+{
+  "generatedAt": "2026-07-30T10:48:48.792Z",
+  "version": "login-v2",
+  "rules": [
+    {
+      "name": "Hồng Thương",
+      "username": "hongthuong",
+      "branchId": "vinh-long",
+      "password": "hongthuongvinhlong"
+    },
+    {
+      "name": "Thúy An",
+      "username": "thuyan",
+      "branchId": "soc-trang",
+      "password": "thuyansoctrang"
+    },
+    {
+      "name": "QL Trạm Spa",
+      "username": "tramspa",
+      "branchId": "tram-spa",
+      "password": "tramspa123"
+    }
+  ],
+  "useCases": [
+    {
+      "id": "UC-1",
+      "title": "Quản lý chi nhánh đăng nhập (tramspa / tramspa123)",
+      "steps": [
+        "Chọn QL CN",
+        "Nhập tramspa",
+        "Nhập tramspa123"
+      ],
+      "ok": true,
+      "notes": "branch=tram-spa, mustChangePassword=true"
+    },
+    {
+      "id": "UC-2",
+      "title": "Nhân viên đăng nhập theo họ tên (thanh / thanhtramspa)",
+      "steps": [
+        "Chọn NV",
+        "Nhập thanh",
+        "Nhập thanhtramspa"
+      ],
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "UC-3",
+      "title": "Đăng nhập lần đầu — bắt buộc đổi mật khẩu",
+      "steps": [
+        "Login MK mặc định",
+        "mustChangePassword=true",
+        "Đổi MK mới",
+        "customPassword=true"
+      ],
+      "ok": true,
+      "notes": "MK mới: thanhv2pass1 (test)"
+    },
+    {
+      "id": "UC-3b",
+      "title": "Sau đổi MK — login bằng mật khẩu mới",
+      "steps": [
+        "Login thanh / thanhv2pass1"
+      ],
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "UC-4",
+      "title": "Admin — Danh sách tài khoản (username, đã đổi MK, cập nhật MK)",
+      "steps": [
+        "Settings → Tài khoản & phân quyền"
+      ],
+      "ok": true,
+      "notes": "Thanh: thanh, đổi MK=true; QL: tramspa"
+    },
+    {
+      "id": "UC-5a",
+      "title": "Admin — Reset Password nhân viên về mặc định",
+      "steps": [
+        "Reset MK mặc định → thanhtramspa",
+        "customPassword=false"
+      ],
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "UC-5b",
+      "title": "Admin — Reset Password QL CN về mặc định",
+      "steps": [
+        "Reset MK mặc định → tramspa123"
+      ],
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "UC-6",
+      "title": "Thêm nhân viên mới — tự sinh account theo quy tắc V2",
+      "steps": [
+        "Tạo Hồng Thương @ Vĩnh Long",
+        "username=hongthuong",
+        "MK=hongthuongvinhlong"
+      ],
+      "ok": true,
+      "notes": "{\"username\":\"hongthuong\",\"defaultPassword\":\"hongthuongvinhlong\",\"mustChangePassword\":true}"
+    },
+    {
+      "id": "UC-6b",
+      "title": "Nhân viên mới đăng nhập ngay sau tạo",
+      "steps": [
+        "Login hongthuong / hongthuongvinhlong"
+      ],
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "UC-7",
+      "title": "Admin — Khóa / Mở khóa (metadata trạng thái có trong danh sách)",
+      "steps": [
+        "Cột trạng thái đăng nhập: active | locked"
+      ],
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "UC-8",
+      "title": "Trùng tên — username tự thêm hậu tố (thuyan, thuyan2)",
+      "steps": [
+        "Tạo 2 NV cùng tên Thúy An",
+        "Username không trùng nhau"
+      ],
+      "ok": true,
+      "notes": "thuyan, thuyan2"
+    },
+    {
+      "id": "UC-9",
+      "title": "Đổi tên Hồ sơ — username giữ nguyên",
+      "steps": [
+        "Sửa tên Thúy An → Thúy An Nguyễn",
+        "Username vẫn thuyan"
+      ],
+      "ok": true,
+      "notes": ""
+    },
+    {
+      "id": "UC-10",
+      "title": "Reset MK hàng loạt — báo succeeded/failed/skipped, không reset Admin",
+      "steps": [
+        "Chọn NV → Reset",
+        "Admin bị bỏ qua"
+      ],
+      "ok": true,
+      "notes": "ok=1 skip=1 fail=0"
+    },
+    {
+      "id": "UC-11",
+      "title": "Reset MK hàng loạt — theo chi nhánh (offline/local)",
+      "steps": [
+        "Reset NV + QL CN chi nhánh — chỉ môi trường local"
+      ],
+      "ok": true,
+      "notes": "employees=5"
+    },
+    {
+      "id": "UC-12",
+      "title": "Reset MK hàng loạt — toàn hệ thống (offline/local)",
+      "steps": [
+        "Reset tất cả NV + QL — chỉ môi trường local; bị chặn trên Preview/Production"
+      ],
+      "ok": true,
+      "notes": "employees=46, branches=8"
+    },
+    {
+      "id": "UC-13",
+      "title": "allocateEmployeeLoginUsername — gợi ý username không trùng",
+      "steps": [
+        "thuyan đã dùng → thuyan3"
+      ],
+      "ok": true,
+      "notes": ""
+    }
+  ],
+  "summary": {
+    "passed": 16,
+    "failed": 0
+  }
+}

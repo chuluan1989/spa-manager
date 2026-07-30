@@ -135,7 +135,7 @@ export default function Login({ onLogin }) {
                         setUsername(e.target.value)
                         setErrors((prev) => ({ ...prev, username: undefined }))
                       }}
-                      placeholder={role === ROLES.BRANCH_MANAGER ? 'Mã chi nhánh' : 'Mã nhân viên'}
+                      placeholder={role === ROLES.BRANCH_MANAGER ? 'vd: tramspa' : 'vd: hongthuong'}
                       className={errors.username ? 'login__input--error' : ''}
                       autoComplete="username"
                     />

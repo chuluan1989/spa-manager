@@ -10,11 +10,12 @@ import {
   subscribePayrollChanges,
 } from '../repositories/payrollRepository'
 import { normalizeEmployee } from '../utils/employeeStorage'
-import { collectEmployeeIdsWithRecordBranchActivity, employeeCurrentlyAtBranch } from '../utils/employeeBranchTimeline'
+import { filterEmployeesForBranchRoster } from '../contracts/recordFetchRoster'
 import { computePayrollReport } from '../utils/payrollEngine'
 import { isPayrollListEmployee } from '../utils/branchEmployeeMatch'
 import { getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
+import { getRecordFetchFilters, RECORD_FETCH_USE_CASES } from '../constants/auth'
 
 export function usePayrollData({ month, branchId = '', employeeId = '', cycle = PAY_CYCLES.PERIOD_1 }) {
   const [invoices, setInvoices] = useState([])
@@ -40,13 +41,17 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
         throw new Error('Supabase chưa cấu hình. Không thể tải dữ liệu lương.')
       }
 
-      const recordBranchFilter = employeeId ? '' : branchId
+      const historyScope = getRecordFetchFilters(RECORD_FETCH_USE_CASES.VIEW_SINGLE_EMPLOYEE_HISTORY, {
+        selectedBranchId: branchId,
+        selectedEmployeeId: employeeId,
+      })
+      const { branchId: recordBranchFilter, employeeId: scopedEmployeeId } = historyScope.filters
       const invoiceRange = getPayPeriodRange(month, cycle)
       const scope = {
         fromDate: invoiceRange.fromDate,
         toDate: invoiceRange.toDate,
         branchId: recordBranchFilter,
-        employeeId,
+        employeeId: scopedEmployeeId || employeeId,
       }
 
       // Attendance rules:
@@ -71,19 +76,15 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
       ])
       if (!mountedRef.current) return
 
-      const nextEmployees = (remoteEmployees ?? [])
-        .map((row) => normalizeEmployee(row))
-        .filter((row) => {
-          if (employeeId) return row.id === employeeId
-          if (!branchId) return true
-          if (employeeCurrentlyAtBranch(row, branchId)) return true
-          const activityIds = collectEmployeeIdsWithRecordBranchActivity(branchId, [
-            ...(Array.isArray(remoteInvoices) ? remoteInvoices : []),
-            ...(Array.isArray(attendanceRows) ? attendanceRows : []),
-            ...(adjustmentRows ?? []),
-          ])
-          return activityIds.has(row.id)
-        })
+      const nextEmployees = filterEmployeesForBranchRoster({
+        employees: (remoteEmployees ?? []).map((row) => normalizeEmployee(row)),
+        branchId: employeeId ? '' : branchId,
+        activityRecords: [
+          ...(Array.isArray(remoteInvoices) ? remoteInvoices : []),
+          ...(Array.isArray(attendanceRows) ? attendanceRows : []),
+          ...(adjustmentRows ?? []),
+        ],
+      }).filter((row) => !employeeId || row.id === employeeId)
 
       setEmployees(nextEmployees)
       setInvoices(Array.isArray(remoteInvoices) ? remoteInvoices : [])

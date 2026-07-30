@@ -1,5 +1,14 @@
 import { ADMIN_BRANCH, ROLES } from '../constants/roles'
 import { computeEmployeeDefaultPassword } from '../constants/loginCredentials'
+import {
+  allocateEmployeeLoginUsername,
+  computeBranchManagerDefaultPassword,
+  computeBranchManagerLoginUsername,
+  computeEmployeeDefaultPasswordFromUsername,
+  getEmployeeLoginUsername,
+  getStoredEmployeeLoginUsername,
+  isEmployeeLoginUsernameAvailable,
+} from './loginUsername'
 import { upsertCredentials } from '../repositories/credentialsRepository'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { CANONICAL_BRANCHES } from '../constants/canonicalBranches'
@@ -8,6 +17,14 @@ import { formatLastLogin, getAccountMeta, loadAccountMetadata } from './accountM
 import { isEmployeeLoginEligible, loadEmployees } from './employeeStorage'
 import { getSessionUser, isSessionAdmin } from './storageAccess'
 import { hashPassword, isPasswordHash, verifyPassword } from './passwordHash'
+import {
+  canMutateEmployeeAccountOnLive,
+  canUseBranchWideBulkReset,
+  canUseSystemWideBulkReset,
+  isLiveSupabaseEnvironment,
+  isUatEmployeeId,
+  liveMutationBlockedMessage,
+} from './uatAccountGuard'
 
 export const MIN_PASSWORD_LENGTH = 8
 
@@ -26,7 +43,7 @@ async function pushCredentialsToSupabase(credentials) {
 export const DEFAULT_ADMIN_PASSWORD = 'admin123'
 
 export const DEFAULT_BRANCH_PASSWORDS = Object.fromEntries(
-  CANONICAL_BRANCHES.map((branch) => [branch.id, branch.managerPassword]),
+  CANONICAL_BRANCHES.map((branch) => [branch.id, computeBranchManagerDefaultPassword(branch.id)]),
 )
 
 function buildDefaultCredentials() {
@@ -35,6 +52,7 @@ function buildDefaultCredentials() {
     branches: { ...DEFAULT_BRANCH_PASSWORDS },
     branchPasswordMeta: {},
     employees: {},
+    loginUsernameRegistry: {},
   }
 }
 
@@ -61,6 +79,7 @@ async function normalizeCredentials(data) {
     employees[employeeId] = {
       branchId: entry.branchId ?? '',
       name: entry.name ?? '',
+      loginUsername: entry.loginUsername ?? '',
       password: await normalizeStoredPassword(entry.password),
       passwordUpdatedAt: entry.passwordUpdatedAt ?? null,
       customPassword: Boolean(entry.customPassword),
@@ -84,6 +103,7 @@ export function loadCredentials() {
       branches: { ...DEFAULT_BRANCH_PASSWORDS, ...(data.branches ?? {}) },
       branchPasswordMeta: data.branchPasswordMeta ?? {},
       employees: data.employees ?? {},
+      loginUsernameRegistry: data.loginUsernameRegistry ?? {},
     }
   } catch {
     return buildDefaultCredentials()
@@ -102,6 +122,7 @@ export async function ensureCredentialsHashed() {
   const stored = {
     ...normalized,
     branchPasswordMeta: current.branchPasswordMeta ?? {},
+    loginUsernameRegistry: current.loginUsernameRegistry ?? {},
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
   return stored
@@ -117,6 +138,10 @@ export function saveCredentials(credentials, { skipRemoteSync = false } = {}) {
       ...(credentials.branchPasswordMeta ?? {}),
     },
     employees: { ...current.employees, ...(credentials.employees ?? {}) },
+    loginUsernameRegistry: {
+      ...(current.loginUsernameRegistry ?? {}),
+      ...(credentials.loginUsernameRegistry ?? {}),
+    },
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized))
   if (!skipRemoteSync) {
@@ -147,6 +172,10 @@ export async function saveCredentialsHashed(credentials, { skipRemoteSync = fals
     branchPasswordMeta: {
       ...(current.branchPasswordMeta ?? {}),
       ...(credentials.branchPasswordMeta ?? {}),
+    },
+    loginUsernameRegistry: {
+      ...(current.loginUsernameRegistry ?? {}),
+      ...(credentials.loginUsernameRegistry ?? {}),
     },
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
@@ -184,17 +213,50 @@ export async function verifyEmployeePassword(employeeId, password) {
 }
 
 /**
- * Password tuyệt đối: chỉ Change Password / Reset Password được ghi password.
- * Sync / repair / hydrate chỉ được tạo credential lần đầu hoặc cập nhật name/branchId.
+ * Sync / repair chỉ cập nhật name + branchId — KHÔNG đổi loginUsername sau khi đã cấp.
  */
 function buildEmployeeCredentialMeta(employee, existing = null) {
+  const loginUsername = existing?.loginUsername
+    || getStoredEmployeeLoginUsername(employee.id)
+    || ''
   return {
     branchId: employee.branchId ?? existing?.branchId ?? '',
     name: employee.name ?? existing?.name ?? '',
+    loginUsername,
     password: existing?.password,
     passwordUpdatedAt: existing?.passwordUpdatedAt ?? null,
     customPassword: Boolean(existing?.customPassword),
   }
+}
+
+function rememberEmployeeLoginUsername(credentials, employeeId, loginUsername) {
+  if (!employeeId || !loginUsername) return
+  credentials.loginUsernameRegistry = {
+    ...(credentials.loginUsernameRegistry ?? {}),
+    [employeeId]: loginUsername,
+  }
+}
+
+async function resetEmployeeCredentialToDefault(credentials, employee) {
+  const current = credentials.employees?.[employee.id]
+  const loginUsername = current?.loginUsername
+    || getStoredEmployeeLoginUsername(employee.id)
+    || allocateEmployeeLoginUsername(employee.name, employee.id)
+
+  const plain = computeEmployeeDefaultPasswordFromUsername(loginUsername, employee.branchId)
+  credentials.employees = {
+    ...credentials.employees,
+    [employee.id]: {
+      branchId: employee.branchId ?? '',
+      name: employee.name ?? '',
+      loginUsername,
+      password: await hashPassword(plain),
+      passwordUpdatedAt: null,
+      customPassword: false,
+    },
+  }
+  rememberEmployeeLoginUsername(credentials, employee.id, loginUsername)
+  return { employeeId: employee.id, username: loginUsername, defaultPassword: plain }
 }
 
 async function provisionEmployeeCredentialIfMissing(credentials, employee) {
@@ -209,24 +271,30 @@ async function provisionEmployeeCredentialIfMissing(credentials, employee) {
         ...current,
         branchId: nextMeta.branchId,
         name: nextMeta.name,
-        // password / passwordUpdatedAt / customPassword giữ nguyên
+      }
+      if (current.loginUsername) {
+        rememberEmployeeLoginUsername(credentials, employee.id, current.loginUsername)
       }
       return true
     }
     return false
   }
 
-  const plainPassword = computeEmployeeDefaultPassword(
-    employee.name,
-    getPasswordBranchName(employee.branchId),
+  const loginUsername = getStoredEmployeeLoginUsername(employee.id)
+    || allocateEmployeeLoginUsername(employee.name, employee.id)
+  const plainPassword = computeEmployeeDefaultPasswordFromUsername(
+    loginUsername,
+    employee.branchId,
   )
   credentials.employees[employee.id] = {
     branchId: employee.branchId ?? '',
     name: employee.name ?? '',
+    loginUsername,
     password: await hashPassword(plainPassword),
     passwordUpdatedAt: null,
     customPassword: false,
   }
+  rememberEmployeeLoginUsername(credentials, employee.id, loginUsername)
   return true
 }
 
@@ -342,7 +410,9 @@ export async function syncMissingBranchCredentials() {
 
   for (const branch of branches) {
     if (!credentials.branches[branch.id]) {
-      credentials.branches[branch.id] = await hashPassword(`spa-${branch.id}`)
+      credentials.branches[branch.id] = await hashPassword(
+        computeBranchManagerDefaultPassword(branch.id),
+      )
       changed = true
     }
   }
@@ -374,7 +444,16 @@ export function removeBranchCredential(branchId) {
 export function removeEmployeeCredential(employeeId) {
   if (!employeeId) return loadCredentials()
   const credentials = loadCredentials()
-  if (!credentials.employees?.[employeeId]) return credentials
+  const entry = credentials.employees?.[employeeId]
+  if (!entry) return credentials
+
+  if (entry.loginUsername) {
+    credentials.loginUsernameRegistry = {
+      ...(credentials.loginUsernameRegistry ?? {}),
+      [employeeId]: entry.loginUsername,
+    }
+  }
+
   const { [employeeId]: _removed, ...rest } = credentials.employees
   const next = { ...credentials, employees: rest }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
@@ -425,6 +504,7 @@ export async function updateEmployeePassword(employeeId, password, confirmPasswo
     [employeeId]: {
       branchId: entry?.branchId ?? employee?.branchId ?? '',
       name: entry?.name ?? employee?.name ?? '',
+      loginUsername: entry?.loginUsername ?? getStoredEmployeeLoginUsername(employeeId) ?? '',
       password: await hashPassword(passwordToStore),
       passwordUpdatedAt: new Date().toISOString(),
       customPassword: true,
@@ -435,6 +515,269 @@ export async function updateEmployeePassword(employeeId, password, confirmPasswo
     return { success: true }
   } catch {
     return { success: false, error: 'Không thể lưu mật khẩu' }
+  }
+}
+
+/** Admin reset về mật khẩu mặc định — giữ username đã cấp, bắt buộc đổi MK lần đăng nhập tiếp theo. */
+export async function resetEmployeePasswordToDefault(employeeId) {
+  if (!isSessionAdmin()) {
+    return { success: false, error: 'Chỉ Admin mới được reset mật khẩu nhân viên.' }
+  }
+  if (!canMutateEmployeeAccountOnLive(employeeId)) {
+    return { success: false, error: liveMutationBlockedMessage('Reset mật khẩu') }
+  }
+  const employee = loadEmployees().find((item) => item.id === employeeId)
+  if (!employee) {
+    return { success: false, error: 'Không tìm thấy nhân viên.' }
+  }
+  const credentials = await ensureCredentialsHashed()
+  try {
+    const result = await resetEmployeeCredentialToDefault(credentials, employee)
+    await saveCredentialsAndSync(credentials)
+    return { success: true, ...result }
+  } catch {
+    return { success: false, error: 'Không thể lưu mật khẩu mặc định' }
+  }
+}
+
+export async function resetEmployeePasswordsBulk(employeeIds = []) {
+  if (!isSessionAdmin()) {
+    return { success: false, error: 'Chỉ Admin mới được reset mật khẩu hàng loạt.' }
+  }
+  const ids = [...new Set((employeeIds ?? []).filter(Boolean))]
+  if (!ids.length) {
+    return { success: false, error: 'Chưa chọn nhân viên nào.' }
+  }
+
+  const credentials = await ensureCredentialsHashed()
+  const succeeded = []
+  const failed = []
+  const skipped = []
+
+  for (const employeeId of ids) {
+    if (employeeId === 'admin') {
+      skipped.push({ employeeId, reason: 'Không reset Admin' })
+      continue
+    }
+    if (!canMutateEmployeeAccountOnLive(employeeId)) {
+      skipped.push({ employeeId, reason: 'Không phải tài khoản UAT — bỏ qua trên Production' })
+      continue
+    }
+    const employee = loadEmployees().find((item) => item.id === employeeId)
+    if (!employee || !isEmployeeLoginEligible(employee)) {
+      skipped.push({ employeeId, reason: 'Không tìm thấy hoặc không đủ điều kiện đăng nhập' })
+      continue
+    }
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const result = await resetEmployeeCredentialToDefault(credentials, employee)
+      succeeded.push(result)
+    } catch (error) {
+      failed.push({ employeeId, reason: error?.message ?? 'Lỗi không xác định' })
+    }
+  }
+
+  if (!succeeded.length) {
+    return {
+      success: false,
+      error: 'Không có tài khoản hợp lệ được reset.',
+      succeeded: succeeded.length,
+      failed: failed.length,
+      skipped: skipped.length,
+      details: { succeeded, failed, skipped },
+    }
+  }
+
+  try {
+    await saveCredentialsAndSync(credentials)
+    return {
+      success: true,
+      count: succeeded.length,
+      succeeded: succeeded.length,
+      failed: failed.length,
+      skipped: skipped.length,
+      results: succeeded,
+      details: { succeeded, failed, skipped },
+    }
+  } catch {
+    return { success: false, error: 'Không thể lưu mật khẩu mặc định hàng loạt' }
+  }
+}
+
+export async function resetEmployeePasswordsByBranch(branchId) {
+  if (!isSessionAdmin()) {
+    return { success: false, error: 'Chỉ Admin mới được reset mật khẩu theo chi nhánh.' }
+  }
+  if (!canUseBranchWideBulkReset()) {
+    return {
+      success: false,
+      error: 'Không được reset theo chi nhánh trên Preview/Production. Chỉ chọn tài khoản UAT.',
+    }
+  }
+  if (!branchId) {
+    return { success: false, error: 'Chưa chọn chi nhánh.' }
+  }
+
+  const employeeIds = loadEmployees()
+    .filter((employee) => isEmployeeLoginEligible(employee) && employee.branchId === branchId)
+    .map((employee) => employee.id)
+
+  const credentials = await ensureCredentialsHashed()
+  const employeeResults = []
+  for (const employeeId of employeeIds) {
+    const employee = loadEmployees().find((item) => item.id === employeeId)
+    // eslint-disable-next-line no-await-in-loop
+    employeeResults.push(await resetEmployeeCredentialToDefault(credentials, employee))
+  }
+
+  const branchPlain = computeBranchManagerDefaultPassword(branchId)
+  credentials.branches = {
+    ...credentials.branches,
+    [branchId]: await hashPassword(branchPlain),
+  }
+  credentials.branchPasswordMeta = {
+    ...(credentials.branchPasswordMeta ?? {}),
+    [branchId]: { passwordUpdatedAt: null, customPassword: false },
+  }
+
+  try {
+    await saveCredentialsAndSync(credentials)
+    return {
+      success: true,
+      branchId,
+      employeeCount: employeeResults.length,
+      branchManager: {
+        username: computeBranchManagerLoginUsername(branchId),
+        defaultPassword: branchPlain,
+      },
+      results: employeeResults,
+    }
+  } catch {
+    return { success: false, error: 'Không thể reset mật khẩu theo chi nhánh' }
+  }
+}
+
+export async function resetAllLoginPasswordsToDefault() {
+  if (!isSessionAdmin()) {
+    return { success: false, error: 'Chỉ Admin mới được reset mật khẩu toàn hệ thống.' }
+  }
+  if (!canUseSystemWideBulkReset()) {
+    return {
+      success: false,
+      error: 'Không được reset toàn hệ thống trên Preview/Production. Chỉ chọn tài khoản UAT.',
+    }
+  }
+
+  const credentials = await ensureCredentialsHashed()
+  const employeeResults = []
+  for (const employee of loadEmployees().filter(isEmployeeLoginEligible)) {
+    // eslint-disable-next-line no-await-in-loop
+    employeeResults.push(await resetEmployeeCredentialToDefault(credentials, employee))
+  }
+
+  const branchResults = []
+  for (const branch of loadBranches()) {
+    const plain = computeBranchManagerDefaultPassword(branch.id)
+    credentials.branches = {
+      ...credentials.branches,
+      [branch.id]: await hashPassword(plain),
+    }
+    credentials.branchPasswordMeta = {
+      ...(credentials.branchPasswordMeta ?? {}),
+      [branch.id]: { passwordUpdatedAt: null, customPassword: false },
+    }
+    branchResults.push({
+      branchId: branch.id,
+      username: computeBranchManagerLoginUsername(branch.id),
+      defaultPassword: plain,
+    })
+  }
+
+  try {
+    await saveCredentialsAndSync(credentials)
+    return {
+      success: true,
+      employeeCount: employeeResults.length,
+      branchCount: branchResults.length,
+      employeeResults,
+      branchResults,
+    }
+  } catch {
+    return { success: false, error: 'Không thể reset mật khẩu toàn hệ thống' }
+  }
+}
+
+/** Admin đổi username nhân viên — không tự đổi theo tên trong Hồ sơ. */
+export async function updateEmployeeLoginUsername(employeeId, nextUsername) {
+  if (!isSessionAdmin()) {
+    return { success: false, error: 'Chỉ Admin mới được đổi username.' }
+  }
+  if (!canMutateEmployeeAccountOnLive(employeeId)) {
+    return { success: false, error: liveMutationBlockedMessage('Đổi username') }
+  }
+
+  const normalized = String(nextUsername ?? '').trim().toLowerCase()
+  if (!normalized || normalized.length < 2) {
+    return { success: false, error: 'Username phải có ít nhất 2 ký tự.' }
+  }
+  if (!/^[a-z0-9]+$/.test(normalized)) {
+    return { success: false, error: 'Username chỉ gồm chữ thường và số, không dấu.' }
+  }
+  if (!isEmployeeLoginUsernameAvailable(normalized, employeeId)) {
+    return { success: false, error: 'Username đã được sử dụng hoặc trùng tài khoản hệ thống.' }
+  }
+
+  const employee = loadEmployees().find((item) => item.id === employeeId)
+  if (!employee) {
+    return { success: false, error: 'Không tìm thấy nhân viên.' }
+  }
+
+  const credentials = await ensureCredentialsHashed()
+  const entry = credentials.employees?.[employeeId]
+  credentials.employees = {
+    ...credentials.employees,
+    [employeeId]: {
+      branchId: entry?.branchId ?? employee.branchId ?? '',
+      name: entry?.name ?? employee.name ?? '',
+      loginUsername: normalized,
+      password: entry?.password ?? '',
+      passwordUpdatedAt: entry?.passwordUpdatedAt ?? null,
+      customPassword: Boolean(entry?.customPassword),
+    },
+  }
+  rememberEmployeeLoginUsername(credentials, employeeId, normalized)
+
+  try {
+    await saveCredentialsAndSync(credentials)
+    return { success: true, username: normalized }
+  } catch {
+    return { success: false, error: 'Không thể lưu username mới' }
+  }
+}
+
+export async function resetBranchPasswordToDefault(branchId) {
+  if (!isSessionAdmin()) {
+    return { success: false, error: 'Chỉ Admin mới được reset mật khẩu chi nhánh.' }
+  }
+  const credentials = await ensureCredentialsHashed()
+  const plain = computeBranchManagerDefaultPassword(branchId)
+  credentials.branches = {
+    ...credentials.branches,
+    [branchId]: await hashPassword(plain),
+  }
+  credentials.branchPasswordMeta = {
+    ...(credentials.branchPasswordMeta ?? {}),
+    [branchId]: { passwordUpdatedAt: null, customPassword: false },
+  }
+  try {
+    await saveCredentialsAndSync(credentials)
+    return {
+      success: true,
+      defaultPassword: plain,
+      username: computeBranchManagerLoginUsername(branchId),
+    }
+  } catch {
+    return { success: false, error: 'Không thể lưu mật khẩu mặc định' }
   }
 }
 
@@ -467,9 +810,10 @@ export async function changeOwnEmployeePassword({
 
   const currentOk = await verifyEmployeePassword(employeeId, currentPassword)
   const employee = loadEmployees().find((item) => item.id === employeeId)
-  const defaultOk = employee
+  const loginUsername = entry?.loginUsername || getStoredEmployeeLoginUsername(employeeId)
+  const defaultOk = employee && loginUsername
     ? String(currentPassword).trim().toLowerCase()
-      === computeEmployeeDefaultPassword(employee.name, getPasswordBranchName(employee.branchId))
+      === computeEmployeeDefaultPasswordFromUsername(loginUsername, employee.branchId)
     : false
   if (!currentOk && !defaultOk) {
     return { success: false, error: 'Mật khẩu hiện tại không đúng' }
@@ -570,18 +914,23 @@ export function getAccountList() {
       lastLogin: formatLastLogin(metadata.admin?.lastLogin),
       passwordUpdatedAt: null,
     },
-    ...loadBranches().map((branch) => ({
-      id: branch.id,
-      accountKey: branch.id,
-      label: `QL ${branch.name}`,
-      username: branch.id,
-      branchId: branch.id,
-      branchName: branch.name,
-      role: 'Quản lý chi nhánh',
-      status: metadata[branch.id]?.locked ? 'locked' : 'active',
-      lastLogin: formatLastLogin(metadata[branch.id]?.lastLogin),
-      passwordUpdatedAt: null,
-    })),
+    ...loadBranches().map((branch) => {
+      const meta = credentials.branchPasswordMeta?.[branch.id] ?? {}
+      return {
+        id: branch.id,
+        accountKey: branch.id,
+        label: `QL ${branch.name}`,
+        username: computeBranchManagerLoginUsername(branch.id),
+        branchId: branch.id,
+        branchName: branch.name,
+        role: 'Quản lý chi nhánh',
+        status: metadata[branch.id]?.locked ? 'locked' : 'active',
+        lastLogin: formatLastLogin(metadata[branch.id]?.lastLogin),
+        passwordUpdatedAt: meta.passwordUpdatedAt ?? null,
+        hasChangedPassword: Boolean(meta.customPassword),
+        isBranchManager: true,
+      }
+    }),
     ...loadEmployees().filter(isEmployeeLoginEligible).map((employee) => {
       const accountKey = `employee:${employee.id}`
       const entry = credentials.employees?.[employee.id]
@@ -589,13 +938,14 @@ export function getAccountList() {
         id: employee.id,
         accountKey,
         label: employee.name || employee.id,
-        username: employee.id,
+        username: getEmployeeLoginUsername(employee),
         branchId: employee.branchId,
         branchName: getBranchName(employee.branchId),
         role: 'Nhân viên',
         status: metadata[accountKey]?.locked ? 'locked' : 'active',
         lastLogin: formatLastLogin(metadata[accountKey]?.lastLogin),
         passwordUpdatedAt: entry?.passwordUpdatedAt ?? null,
+        hasChangedPassword: Boolean(entry?.customPassword),
         isEmployee: true,
       }
     }),
@@ -660,6 +1010,7 @@ export function mergeCredentialsPreservingPasswords(localCredentials, remoteCred
       employees[employeeId] = {
         branchId: remoteEntry.branchId ?? '',
         name: remoteEntry.name ?? '',
+        loginUsername: remoteEntry.loginUsername ?? '',
         password: remoteEntry.password,
         passwordUpdatedAt: remoteEntry.passwordUpdatedAt ?? null,
         customPassword: Boolean(remoteEntry.customPassword),
@@ -675,6 +1026,7 @@ export function mergeCredentialsPreservingPasswords(localCredentials, remoteCred
     employees[employeeId] = {
       branchId: remoteEntry.branchId || localEntry.branchId || '',
       name: remoteEntry.name || localEntry.name || '',
+      loginUsername: remoteEntry.loginUsername || localEntry.loginUsername || '',
       password: preferRemotePassword ? remoteEntry.password : localEntry.password,
       passwordUpdatedAt: preferRemotePassword
         ? (remoteEntry.passwordUpdatedAt ?? localEntry.passwordUpdatedAt ?? null)
@@ -690,5 +1042,9 @@ export function mergeCredentialsPreservingPasswords(localCredentials, remoteCred
     branches,
     branchPasswordMeta,
     employees,
+    loginUsernameRegistry: {
+      ...(local.loginUsernameRegistry ?? {}),
+      ...(remote.loginUsernameRegistry ?? {}),
+    },
   }
 }

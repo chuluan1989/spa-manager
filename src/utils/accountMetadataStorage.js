@@ -3,6 +3,10 @@ import { upsertAccountMetadata } from '../repositories/accountMetadataRepository
 import { ADMIN_BRANCH } from '../constants/roles'
 import { loadBranches } from './branchStorage'
 import { isSessionAdmin } from './storageAccess'
+import {
+  canMutateEmployeeAccountOnLive,
+  liveMutationBlockedMessage,
+} from './uatAccountGuard'
 
 const STORAGE_KEY = 'spa-manager-account-metadata'
 
@@ -127,6 +131,10 @@ export function isEmployeeAccountLocked(employeeId) {
 export function setEmployeeAccountLocked(employeeId, locked) {
   if (!employeeId) return loadAccountMetadata()
   if (!isSessionAdmin()) return loadAccountMetadata()
+  if (!canMutateEmployeeAccountOnLive(employeeId)) {
+    console.warn('[Account]', liveMutationBlockedMessage('Khóa/mở khóa tài khoản'))
+    return loadAccountMetadata()
+  }
   return setAccountLocked(getEmployeeAccountKey(employeeId), locked)
 }
 
