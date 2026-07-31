@@ -283,22 +283,44 @@ export async function fetchAttendanceEditLogs(attendanceId) {
   return (data ?? []).map(rowToCamel)
 }
 
+/** Shared channel — nhiều hook/page gọi subscribe cùng lúc không được .on() sau .subscribe(). */
+let attendanceRealtimeChannel = null
+const attendanceRealtimeListeners = new Set()
+
+function notifyAttendanceRealtimeListeners() {
+  for (const listener of attendanceRealtimeListeners) {
+    try {
+      listener()
+    } catch {
+      /* listener lỗi không làm sập các listener khác */
+    }
+  }
+}
+
 export function subscribeAttendanceChanges(onChange) {
   if (!isSupabaseConfigured || typeof onChange !== 'function') {
     return () => {}
   }
 
-  const channel = supabase
-    .channel(`spa-attendance-realtime-${ATTENDANCE_TABLE}`)
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: ATTENDANCE_TABLE },
-      () => onChange(),
-    )
-    .subscribe()
+  attendanceRealtimeListeners.add(onChange)
+
+  if (!attendanceRealtimeChannel) {
+    attendanceRealtimeChannel = supabase
+      .channel(`spa-attendance-realtime-${ATTENDANCE_TABLE}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: ATTENDANCE_TABLE },
+        notifyAttendanceRealtimeListeners,
+      )
+      .subscribe()
+  }
 
   return () => {
-    supabase.removeChannel(channel)
+    attendanceRealtimeListeners.delete(onChange)
+    if (attendanceRealtimeListeners.size === 0 && attendanceRealtimeChannel) {
+      supabase.removeChannel(attendanceRealtimeChannel)
+      attendanceRealtimeChannel = null
+    }
   }
 }
 
