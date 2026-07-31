@@ -38,6 +38,8 @@ import {
   getPayPeriodRange,
 } from '../utils/salaryReport'
 import PayrollReconciliationActions from '../components/salary/PayrollReconciliationActions'
+import PayrollCycleClosePanel from '../components/salary/PayrollCycleClosePanel'
+import { getDefaultCloseCycleSelection } from '../utils/payrollCycleClose/payCycleCalendar'
 import './Salary.css'
 
 const LEVEL = {
@@ -424,21 +426,33 @@ function SalaryPage() {
       )}
 
       {!loading && !error && level === LEVEL.PROFILE && profileRow && (
-        <PayrollEmployeeProfile
-          employee={profileRow}
-          stats={profileRow}
-          walletEntries={walletEntries}
-          invoices={invoices}
-          attendance={attendance}
-          adjustments={adjustments}
-          month={month}
-          cycle={cycle}
-          fromDate={report.fromDate}
-          toDate={report.toDate}
-          auditLogs={auditLogs}
-          locks={locks}
-          onReload={reload}
-        />
+        <>
+          <PayrollEmployeeProfile
+            employee={profileRow}
+            stats={profileRow}
+            walletEntries={walletEntries}
+            invoices={invoices}
+            attendance={attendance}
+            adjustments={adjustments}
+            month={month}
+            cycle={cycle}
+            fromDate={report.fromDate}
+            toDate={report.toDate}
+            auditLogs={auditLogs}
+            locks={locks}
+            onReload={reload}
+          />
+          <PayrollCycleClosePanel
+            employeeId={profileRow.employeeId}
+            canSubmit={
+              isEmployee()
+                ? profileRow.employeeId === getCurrentUserEmployeeId()
+                : false
+            }
+            defaultBillingMonth={getDefaultCloseCycleSelection().billingMonth}
+            defaultCycle={getDefaultCloseCycleSelection().cycle}
+          />
+        </>
       )}
 
       {!loading && !error && level === LEVEL.PROFILE && !profileRow && (
