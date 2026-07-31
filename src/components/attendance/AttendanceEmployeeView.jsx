@@ -191,13 +191,47 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
               {item.status === ATTENDANCE_EDIT_REQUEST_STATUS.APPROVED
                 ? `✓ Đã duyệt yêu cầu ngày ${formatDate(item.date)}`
                 : `✗ Không được duyệt yêu cầu ngày ${formatDate(item.date)}`}
-              {item.reviewNote ? ` — ${item.reviewNote}` : ''}
+              {(item.rejectReason || item.reviewNote) ? ` — ${item.rejectReason || item.reviewNote}` : ''}
             </p>
           ))}
           <button type="button" className="attendance-page__edit" onClick={dismissReviewNotices}>
             Đã hiểu
           </button>
         </div>
+      )}
+
+      {ownRequests.length > 0 && (
+        <section className="attendance-page__requests" style={{ marginBottom: '1rem' }}>
+          <header className="attendance-page__requests-head">
+            <h2>Lịch sử yêu cầu bổ sung</h2>
+          </header>
+          <div className="attendance-page__table-wrap">
+            <table className="attendance-page__table">
+              <thead>
+                <tr>
+                  <th>Ngày</th>
+                  <th>Trạng thái</th>
+                  <th>Giờ vào/ra</th>
+                  <th>Lý do / phản hồi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ownRequests.slice(0, 20).map((item) => (
+                  <tr key={item.id}>
+                    <td>{formatDate(item.date)}</td>
+                    <td>{requestStatusLabel(item.status)}</td>
+                    <td>{(item.proposedCheckIn || '—')} → {(item.proposedCheckOut || '—')}</td>
+                    <td>
+                      {item.status === 'rejected'
+                        ? (item.rejectReason || item.reviewNote || '—')
+                        : (item.proposedReason || item.newReason || item.reviewNote || '—')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {toast && <div className="attendance-page__toast">{toast}</div>}
@@ -250,6 +284,7 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
         <AttendancePeriodReviewPanel
           lockedEmployeeId={employee.id}
           defaultBranchId={employee.branchId || ''}
+          showToast={showToast}
         />
       ) : (
         <>

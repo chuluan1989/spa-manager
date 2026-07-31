@@ -336,7 +336,10 @@ export async function adminCreateAttendance({
   const employee = getEmployeeById(employeeId)
   const timelineBranchId = date && employee ? getEmployeeBranchAtDate(employee, date) : ''
   const resolvedBranchId = branchId || timelineBranchId || employee?.branchId || ''
-  await assertCanEditAttendanceRecordBranch({ branchId: resolvedBranchId }, { date, editNote })
+  await assertCanEditAttendanceRecordBranch(
+    { branchId: resolvedBranchId, employeeId },
+    { date, editNote },
+  )
   if (!String(editNote ?? '').trim()) {
     throw new Error('Vui lòng nhập lý do bổ sung chấm công.')
   }

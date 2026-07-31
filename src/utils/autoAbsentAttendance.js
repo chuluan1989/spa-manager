@@ -86,31 +86,22 @@ export function resolveAutoAbsentSettings(raw = {}) {
   }
 }
 
-/** Gate cấu hình: enabled + applyFrom đã set và applyFrom <= hôm nay (ICT). */
+/** Gate cấu hình: Batch 4 — tuyệt đối không tự chuyển thiếu → nghỉ không phép. */
 export function getAutoAbsentConfigGate(settings, now = new Date()) {
-  const cfg = resolveAutoAbsentSettings(settings)
-  if (!cfg.autoAbsentEnabled) {
-    return { ok: false, reason: 'disabled', message: 'Tính năng tự động nghỉ không phép đang tắt.' }
+  void settings
+  void now
+  return {
+    ok: false,
+    reason: 'disabled_batch4',
+    message:
+      'Đã tắt tự động nghỉ không phép. Ngày thiếu giữ trạng thái «Chưa chấm công»; chỉ Admin/QL xác nhận nghỉ không phép thủ công.',
   }
-  if (!cfg.autoAbsentApplyFrom) {
-    return {
-      ok: false,
-      reason: 'missing_apply_from',
-      message: AUTO_ABSENT_MISSING_APPLY_FROM_MESSAGE,
-    }
-  }
-  const today = getIctParts(now).date
-  if (cfg.autoAbsentApplyFrom > today) {
-    return {
-      ok: false,
-      reason: 'apply_from_future',
-      message: `Ngày bắt đầu áp dụng (${cfg.autoAbsentApplyFrom}) chưa tới.`,
-    }
-  }
-  return { ok: true, reason: '', message: '', applyFrom: cfg.autoAbsentApplyFrom }
 }
 
 export function getAutoAbsentGateMessage(reason) {
+  if (reason === 'disabled_batch4') {
+    return 'Đã tắt tự động nghỉ không phép. Ngày thiếu giữ «Chưa chấm công»; chỉ Admin/QL xác nhận thủ công.'
+  }
   if (reason === 'missing_apply_from') return AUTO_ABSENT_MISSING_APPLY_FROM_MESSAGE
   if (reason === 'disabled') return 'Tính năng tự động nghỉ không phép đang tắt.'
   if (reason === 'apply_from_future') return 'Ngày bắt đầu áp dụng chưa tới.'

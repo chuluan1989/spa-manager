@@ -13,6 +13,10 @@ import { getTodayDate } from './invoiceStorage'
 import { isPayrollMonthLocked } from './payrollEngine'
 import { checkPermission, PERMISSION_KEYS } from './permissionsStorage'
 import { fetchPayrollLocks } from '../repositories/payrollRepository'
+import {
+  getApprovedCloseLockMessage,
+  isAttendanceDateLockedByApprovedClose,
+} from './payrollCycleClose/approvedCloseLock'
 
 export function getCurrentAttendanceMonth() {
   return getTodayDate().slice(0, 7)
@@ -71,7 +75,12 @@ export function canEditAttendanceRecord(
 export async function assertCanEditAttendanceRecord(record, { date, locks, editNote } = {}) {
   const targetDate = date ?? record?.date ?? ''
   const recordBranchId = record?.branchId ?? ''
+  const employeeId = record?.employeeId ?? ''
   const role = getCurrentUserRole()
+
+  if (employeeId && targetDate && await isAttendanceDateLockedByApprovedClose(employeeId, targetDate)) {
+    throw new Error(getApprovedCloseLockMessage(targetDate))
+  }
 
   if (isAdmin()) {
     if (!checkPermission(PERMISSION_KEYS.EDIT_ATTENDANCE, role, getCurrentUserBranch())) {

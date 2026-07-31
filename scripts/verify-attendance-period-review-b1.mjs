@@ -75,13 +75,14 @@ console.log('  [PASS] void/hủy không tính đã chấm')
   assert.equal(days[0].resultLabel, 'Đi làm đúng giờ')
   assert.equal(days[1].result, ATTENDANCE_DAY_RESULT.RECORDED)
   assert.equal(days[2].resultLabel, MISSING_ATTENDANCE_LABEL) // cancelled = missing
-  assert.equal(days[3].resultLabel, MISSING_ATTENDANCE_LABEL)
-  assert.equal(summary.missingDays, 2)
+  assert.equal(days[3].resultLabel, MISSING_ATTENDANCE_LABEL) // hôm nay vẫn hiện nhãn
+  assert.equal(days[3].isMissing, false) // nhưng không tính thiếu
+  assert.equal(summary.missingDays, 1)
   assert.equal(summary.completedDays, 2)
   assert.equal(summary.isComplete, false)
   const msg = formatMissingDaysMessage(summary)
-  assert.ok(msg.includes('2 ngày chưa chấm công'))
   assert.ok(msg.includes('03/08/2026'))
+  assert.ok(msg.includes('yêu cầu bổ sung'))
   console.log('  [PASS] list ngày + Chưa chấm công + message thiếu')
 }
 

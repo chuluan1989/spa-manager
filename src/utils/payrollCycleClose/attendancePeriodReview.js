@@ -5,10 +5,12 @@ import { CLOSE_CYCLES, getCloseCycleRange } from './payCycleCalendar'
 export const ATTENDANCE_DAY_RESULT = {
   RECORDED: 'recorded',
   MISSING: 'missing',
+  PENDING_CORRECTION: 'pending_correction',
   FUTURE: 'future',
 }
 
 export const MISSING_ATTENDANCE_LABEL = 'Chưa chấm công'
+export const PENDING_CORRECTION_LABEL = 'Chờ duyệt bổ sung'
 export const FUTURE_ATTENDANCE_LABEL = 'Chưa đến ngày'
 
 /** Bản ghi hợp lệ = có status và không void/hủy. */
@@ -32,14 +34,21 @@ export function pickValidAttendanceForDate(records, employeeId, date) {
   ))[0]
 }
 
+function pickPendingCorrection(requests, employeeId, date) {
+  return (requests ?? []).find((row) => (
+    row.employeeId === employeeId
+    && (row.date === date || row.attendanceDate === date)
+    && row.status === 'pending'
+  )) ?? null
+}
+
 /**
- * Danh sách ngày trong kỳ + kết quả chấm công đơn giản.
- * @param {object} options
- * @param {string} options.employeeId
- * @param {object[]} options.records
- * @param {string} options.fromDate
- * @param {string} options.toDate
- * @param {string} [options.todayDate] — ngày ICT hiện tại; ngày sau today = chưa đến
+ * Danh sách ngày trong kỳ + kết quả chấm công.
+ * - Không có bản ghi hợp lệ → "Chưa chấm công" (KHÔNG tự thành nghỉ không phép).
+ * - Có yêu cầu pending → "Chờ duyệt bổ sung" (vẫn chặn chốt lương).
+ * - Ngày hiện tại / tương lai không tính thiếu.
+ *
+ * @param {object[]} [options.correctionRequests] — yêu cầu bổ sung (pending/rejected/…)
  */
 export function buildEmployeeAttendancePeriodDays({
   employeeId,
@@ -47,6 +56,7 @@ export function buildEmployeeAttendancePeriodDays({
   fromDate,
   toDate,
   todayDate = '',
+  correctionRequests = [],
 }) {
   if (!employeeId || !fromDate || !toDate) {
     return { days: [], summary: emptySummary() }
@@ -62,8 +72,12 @@ export function buildEmployeeAttendancePeriodDays({
         resultLabel: getAttendanceStatusLabel(record.status),
         status: record.status,
         record,
+        correctionRequest: null,
         isMissing: false,
+        isPendingCorrection: false,
+        blocksClose: false,
         isRequired: true,
+        canRequestCorrection: false,
       }
     }
 
@@ -75,8 +89,47 @@ export function buildEmployeeAttendancePeriodDays({
         resultLabel: FUTURE_ATTENDANCE_LABEL,
         status: '',
         record: null,
+        correctionRequest: null,
         isMissing: false,
+        isPendingCorrection: false,
+        blocksClose: false,
         isRequired: false,
+        canRequestCorrection: false,
+      }
+    }
+
+    // Hôm nay: chưa bắt buộc thiếu (chỉ ngày trước đó)
+    const isToday = Boolean(todayDate && date === todayDate)
+    if (isToday) {
+      return {
+        date,
+        result: ATTENDANCE_DAY_RESULT.MISSING,
+        resultLabel: MISSING_ATTENDANCE_LABEL,
+        status: '',
+        record: null,
+        correctionRequest: null,
+        isMissing: false,
+        isPendingCorrection: false,
+        blocksClose: false,
+        isRequired: false,
+        canRequestCorrection: false,
+      }
+    }
+
+    const pending = pickPendingCorrection(correctionRequests, employeeId, date)
+    if (pending) {
+      return {
+        date,
+        result: ATTENDANCE_DAY_RESULT.PENDING_CORRECTION,
+        resultLabel: PENDING_CORRECTION_LABEL,
+        status: '',
+        record: null,
+        correctionRequest: pending,
+        isMissing: false,
+        isPendingCorrection: true,
+        blocksClose: true,
+        isRequired: true,
+        canRequestCorrection: false,
       }
     }
 
@@ -86,8 +139,12 @@ export function buildEmployeeAttendancePeriodDays({
       resultLabel: MISSING_ATTENDANCE_LABEL,
       status: '',
       record: null,
+      correctionRequest: null,
       isMissing: true,
+      isPendingCorrection: false,
+      blocksClose: true,
       isRequired: true,
+      canRequestCorrection: true,
     }
   })
 
@@ -100,8 +157,12 @@ function emptySummary() {
     requiredDays: 0,
     completedDays: 0,
     missingDays: 0,
+    pendingCorrectionDays: 0,
+    unresolvedDays: 0,
     futureDays: 0,
     missingDates: [],
+    pendingCorrectionDates: [],
+    unresolvedDates: [],
     isComplete: true,
   }
 }
@@ -109,15 +170,23 @@ function emptySummary() {
 export function summarizePeriodDays(days) {
   const required = days.filter((d) => d.isRequired)
   const missingDates = required.filter((d) => d.isMissing).map((d) => d.date)
-  const completedDays = required.filter((d) => !d.isMissing).length
+  const pendingCorrectionDates = required
+    .filter((d) => d.isPendingCorrection)
+    .map((d) => d.date)
+  const unresolvedDates = required.filter((d) => d.blocksClose).map((d) => d.date)
+  const completedDays = required.filter((d) => !d.blocksClose).length
   return {
     totalDays: days.length,
     requiredDays: required.length,
     completedDays,
     missingDays: missingDates.length,
+    pendingCorrectionDays: pendingCorrectionDates.length,
+    unresolvedDays: unresolvedDates.length,
     futureDays: days.filter((d) => d.result === ATTENDANCE_DAY_RESULT.FUTURE).length,
     missingDates,
-    isComplete: missingDates.length === 0,
+    pendingCorrectionDates,
+    unresolvedDates,
+    isComplete: unresolvedDates.length === 0,
   }
 }
 
@@ -163,14 +232,31 @@ export function resolveAttendanceReviewRange({
   return { fromDate: '', toDate: '', cycle: '', billingMonth: '' }
 }
 
-export function formatMissingDaysMessage(summary) {
-  const count = summary?.missingDays ?? 0
-  if (count <= 0) return ''
-  const dates = (summary.missingDates ?? []).map((iso) => {
+function formatDateList(dates) {
+  return (dates ?? []).map((iso) => {
     const [y, m, d] = iso.split('-')
     return `${d}/${m}/${y}`
   })
-  return `Bạn còn ${count} ngày chưa chấm công. Vui lòng hoàn thành trước khi gửi chốt kỳ lương.${
-    dates.length ? ` Ngày thiếu: ${dates.join(', ')}.` : ''
-  }`
+}
+
+/** Thông báo thiếu ngày — nhắc gửi yêu cầu bổ sung (không nhắc trừ lương). */
+export function formatMissingDaysMessage(summary) {
+  const missing = summary?.missingDates ?? []
+  if (missing.length <= 0) return ''
+  return `Bạn còn ngày chưa chấm công: ${formatDateList(missing).join(', ')}. Vui lòng gửi yêu cầu bổ sung chấm công.`
+}
+
+export function formatPendingCorrectionMessage(summary) {
+  const pending = summary?.pendingCorrectionDates ?? []
+  if (pending.length <= 0) return ''
+  return `Bạn còn ngày đang chờ duyệt bổ sung: ${formatDateList(pending).join(', ')}. Vui lòng đợi Admin/Quản lý xử lý trước khi gửi chốt kỳ lương.`
+}
+
+/** Ghép message chặn chốt lương (thiếu + chờ duyệt). */
+export function formatCloseBlockAttendanceMessage(summary) {
+  const parts = [
+    formatMissingDaysMessage(summary),
+    formatPendingCorrectionMessage(summary),
+  ].filter(Boolean)
+  return parts.join(' ')
 }

@@ -1,0 +1,55 @@
+.missing-att-remind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin: 0.75rem 1rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid #c45c26;
+  border-radius: 8px;
+  background: #fff6f0;
+  color: #5c2e14;
+}
+
+.missing-att-remind__body {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.missing-att-remind__body strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.missing-att-remind__body p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.missing-att-remind__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.missing-att-remind__go,
+.missing-att-remind__dismiss {
+  border-radius: 6px;
+  border: 1px solid #c45c26;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.missing-att-remind__go {
+  background: #c45c26;
+  color: #fff;
+}
+
+.missing-att-remind__dismiss {
+  background: transparent;
+  color: #5c2e14;
+}

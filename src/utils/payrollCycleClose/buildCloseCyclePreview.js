@@ -10,8 +10,9 @@ import { fetchPayrollCycleClose } from '../../repositories/payrollCycleCloseRepo
 import { CLOSE_CYCLES, getCloseCycleRange, shiftMonthValue } from './payCycleCalendar'
 import {
   buildEmployeeAttendancePeriodDays,
-  formatMissingDaysMessage,
+  formatCloseBlockAttendanceMessage,
 } from './attendancePeriodReview'
+import { loadCorrectionRequestsForEmployeeRange } from '../attendanceEditRequestService'
 import {
   canSubmitCloseCycle,
   getCloseCycleStatusLabel,
@@ -120,12 +121,19 @@ export async function buildCloseCyclePreview({
     scopedAdjustments,
   )
 
+  const correctionRequests = await loadCorrectionRequestsForEmployeeRange(
+    employeeId,
+    range.fromDate,
+    range.toDate,
+  ).catch(() => [])
+
   const attendanceReview = buildEmployeeAttendancePeriodDays({
     employeeId,
     records: attendance ?? [],
     fromDate: range.fromDate,
     toDate: range.toDate,
     todayDate,
+    correctionRequests,
   })
 
   const existing = await fetchPayrollCycleClose({ employeeId, billingMonth, cycle })
@@ -186,7 +194,7 @@ export async function buildCloseCyclePreview({
   preview.snapshot = buildCloseCycleSnapshot(preview)
 
   if (!attendanceComplete) {
-    preview.blockReasons.push(formatMissingDaysMessage(attendanceReview.summary))
+    preview.blockReasons.push(formatCloseBlockAttendanceMessage(attendanceReview.summary))
   }
   if (!canSubmitCloseCycle(status)) {
     preview.blockReasons.push(
@@ -227,6 +235,8 @@ export function buildCloseCycleSnapshot(preview) {
         resultLabel: day.resultLabel,
         status: day.status || '',
         isMissing: day.isMissing,
+        isPendingCorrection: Boolean(day.isPendingCorrection),
+        blocksClose: Boolean(day.blocksClose),
       })),
     },
     details: preview.details ?? { invoices: [], adjustments: [] },

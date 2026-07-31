@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { canSelectBranch, getCurrentUserBranch, isAdmin } from '../../constants/auth'
+import { useEffect, useMemo, useState } from 'react'
+import { canSelectBranch, getCurrentUserBranch, isAdmin, isEmployee } from '../../constants/auth'
 import { getActiveBranches } from '../../constants/branches'
 import { getTodayDate } from '../../utils/invoiceStorage'
 import { useAttendanceData } from '../../hooks/useAttendanceData'
@@ -18,9 +18,11 @@ import {
 import {
   ATTENDANCE_DAY_RESULT,
   buildEmployeeAttendancePeriodDays,
-  formatMissingDaysMessage,
+  formatCloseBlockAttendanceMessage,
   resolveAttendanceReviewRange,
 } from '../../utils/payrollCycleClose/attendancePeriodReview'
+import { loadCorrectionRequestsForEmployeeRange } from '../../utils/attendanceEditRequestService'
+import AttendanceEditRequestModal from './AttendanceEditRequestModal'
 import './AttendancePeriodReviewPanel.css'
 
 function formatDate(value) {
@@ -37,14 +39,17 @@ const RANGE_MODES = [
 ]
 
 /**
- * Batch 1 — danh sách Ngày + Kết quả chấm công theo kỳ (không ma trận, không CI/CO).
+ * Danh sách Ngày + Kết quả chấm công theo kỳ.
+ * Batch 4: nút yêu cầu bổ sung + trạng thái chờ duyệt.
  */
 export default function AttendancePeriodReviewPanel({
   lockedEmployeeId = '',
   defaultBranchId = '',
+  showToast,
 }) {
   const syncVersion = useDataSyncVersion()
   const employeeLocked = Boolean(lockedEmployeeId)
+  const employeeMode = employeeLocked || isEmployee()
   const [rangeMode, setRangeMode] = useState('cycle')
   const [billingMonth, setBillingMonth] = useState(() => getTodayDate().slice(0, 7))
   const [cycle, setCycle] = useState(CLOSE_CYCLES.PERIOD_2)
@@ -56,6 +61,9 @@ export default function AttendancePeriodReviewPanel({
   )
   const [employeeId, setEmployeeId] = useState(lockedEmployeeId || '')
   const [employeeQuery, setEmployeeQuery] = useState('')
+  const [correctionRequests, setCorrectionRequests] = useState([])
+  const [requestDate, setRequestDate] = useState('')
+  const [existingRequest, setExistingRequest] = useState(null)
 
   const resolved = useMemo(
     () => resolveAttendanceReviewRange({
@@ -81,7 +89,7 @@ export default function AttendancePeriodReviewPanel({
     employeeId: employeeLocked ? lockedEmployeeId : employeeId,
   }), [resolved.fromDate, resolved.toDate, fetchBranchId, employeeId, employeeLocked, lockedEmployeeId])
 
-  const { records, loading, error } = useAttendanceData(filters)
+  const { records, loading, error, reload } = useAttendanceData(filters)
 
   const employees = useMemo(() => {
     if (employeeLocked) {
@@ -104,6 +112,28 @@ export default function AttendancePeriodReviewPanel({
   const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId)
     || loadEmployees().find((e) => e.id === selectedEmployeeId)
 
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      if (!selectedEmployeeId || !resolved.fromDate || !resolved.toDate) {
+        setCorrectionRequests([])
+        return
+      }
+      try {
+        const rows = await loadCorrectionRequestsForEmployeeRange(
+          selectedEmployeeId,
+          resolved.fromDate,
+          resolved.toDate,
+        )
+        if (!cancelled) setCorrectionRequests(rows)
+      } catch {
+        if (!cancelled) setCorrectionRequests([])
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [selectedEmployeeId, resolved.fromDate, resolved.toDate, syncVersion])
+
   const todayDate = getTodayDate()
   const review = useMemo(() => {
     if (!selectedEmployeeId || !resolved.fromDate || !resolved.toDate) {
@@ -115,14 +145,22 @@ export default function AttendancePeriodReviewPanel({
       fromDate: resolved.fromDate,
       toDate: resolved.toDate,
       todayDate,
+      correctionRequests,
     })
-  }, [selectedEmployeeId, records, resolved.fromDate, resolved.toDate, todayDate])
+  }, [selectedEmployeeId, records, resolved.fromDate, resolved.toDate, todayDate, correctionRequests])
 
   const cycleHint = rangeMode === 'cycle'
     ? formatCloseCycleRangeLabel(billingMonth, cycle)
     : `${formatDate(resolved.fromDate)} → ${formatDate(resolved.toDate)}`
 
   const missingMessage = review.summary ? formatMissingDaysMessage(review.summary) : ''
+  const blockMessage = review.summary ? formatCloseBlockAttendanceMessage(review.summary) : ''
+
+  const openRequest = (day) => {
+    if (!employeeMode) return
+    setRequestDate(day.date)
+    setExistingRequest(day.correctionRequest || null)
+  }
 
   return (
     <div className="att-period-review">
@@ -253,13 +291,19 @@ export default function AttendancePeriodReviewPanel({
                 <strong>{review.summary.totalDays}</strong>
               </article>
               <article>
-                <span>Đã chấm</span>
+                <span>Đã xử lý</span>
                 <strong>{review.summary.completedDays}</strong>
               </article>
               <article className={review.summary.missingDays > 0 ? 'is-warn' : ''}>
                 <span>Chưa chấm</span>
                 <strong>{review.summary.missingDays}</strong>
               </article>
+              {review.summary.pendingCorrectionDays > 0 && (
+                <article className="is-warn">
+                  <span>Chờ duyệt</span>
+                  <strong>{review.summary.pendingCorrectionDays}</strong>
+                </article>
+              )}
               {review.summary.futureDays > 0 && (
                 <article>
                   <span>Chưa đến ngày</span>
@@ -269,10 +313,10 @@ export default function AttendancePeriodReviewPanel({
             </div>
           </header>
 
-          {missingMessage && (
-            <p className="att-period-review__warn" role="status">{missingMessage}</p>
+          {blockMessage && (
+            <p className="att-period-review__warn" role="status">{blockMessage}</p>
           )}
-          {!missingMessage && review.summary.requiredDays > 0 && (
+          {!blockMessage && review.summary.requiredDays > 0 && (
             <p className="att-period-review__ok" role="status">
               Đã có kết quả chấm công cho mọi ngày đến hôm nay trong kỳ.
             </p>
@@ -284,6 +328,7 @@ export default function AttendancePeriodReviewPanel({
                 <tr>
                   <th>Ngày</th>
                   <th>Kết quả chấm công</th>
+                  {employeeMode && <th />}
                 </tr>
               </thead>
               <tbody>
@@ -293,18 +338,49 @@ export default function AttendancePeriodReviewPanel({
                     className={
                       day.result === ATTENDANCE_DAY_RESULT.MISSING
                         ? 'is-missing'
-                        : day.result === ATTENDANCE_DAY_RESULT.FUTURE
-                          ? 'is-future'
-                          : ''
+                        : day.result === ATTENDANCE_DAY_RESULT.PENDING_CORRECTION
+                          ? 'is-missing'
+                          : day.result === ATTENDANCE_DAY_RESULT.FUTURE
+                            ? 'is-future'
+                            : ''
                     }
                   >
                     <td>{formatDate(day.date)}</td>
-                    <td>{day.resultLabel}</td>
+                    <td>
+                      {day.resultLabel}
+                      {day.isPendingCorrection && day.correctionRequest?.rejectReason
+                        ? ` · ${day.correctionRequest.rejectReason}`
+                        : ''}
+                    </td>
+                    {employeeMode && (
+                      <td>
+                        {day.canRequestCorrection && (
+                          <button
+                            type="button"
+                            className="attendance-page__edit"
+                            onClick={() => openRequest(day)}
+                          >
+                            Yêu cầu chấm công bổ sung
+                          </button>
+                        )}
+                        {day.isPendingCorrection && (
+                          <button
+                            type="button"
+                            className="attendance-page__edit"
+                            onClick={() => openRequest(day)}
+                          >
+                            Xem / sửa yêu cầu
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {review.days.length === 0 && (
                   <tr>
-                    <td colSpan={2} className="att-period-review__muted">Không có ngày trong khoảng đã chọn.</td>
+                    <td colSpan={employeeMode ? 3 : 2} className="att-period-review__muted">
+                      Không có ngày trong khoảng đã chọn.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -322,6 +398,29 @@ export default function AttendancePeriodReviewPanel({
             </details>
           )}
         </>
+      )}
+
+      {requestDate && (
+        <AttendanceEditRequestModal
+          date={requestDate}
+          existingRequest={existingRequest}
+          showToast={showToast}
+          onClose={() => {
+            setRequestDate('')
+            setExistingRequest(null)
+          }}
+          onSubmitted={async () => {
+            reload?.()
+            if (selectedEmployeeId && resolved.fromDate && resolved.toDate) {
+              const rows = await loadCorrectionRequestsForEmployeeRange(
+                selectedEmployeeId,
+                resolved.fromDate,
+                resolved.toDate,
+              )
+              setCorrectionRequests(rows)
+            }
+          }}
+        />
       )}
     </div>
   )

@@ -12,6 +12,7 @@ import PayrollCloseRemindBanner, {
   dismissPayrollCloseRemind,
   isPayrollCloseRemindDismissed,
 } from './components/common/PayrollCloseRemindBanner'
+import MissingAttendanceRemindBanner from './components/common/MissingAttendanceRemindBanner'
 import { shouldShowPayrollCloseRemind } from './utils/payrollCycleClose/closeRemind'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
@@ -132,6 +133,7 @@ function App() {
   const [todayRemindDismissed, setTodayRemindDismissed] = useState(false)
   const [payrollCloseRemind, setPayrollCloseRemind] = useState(null)
   const [payrollCloseRemindDismissed, setPayrollCloseRemindDismissed] = useState(false)
+  const [missingAttendRemindKey, setMissingAttendRemindKey] = useState(0)
   const syncVersion = useDataSyncVersion()
   const employeeId = currentUser?.role === ROLES.EMPLOYEE ? getCurrentUserEmployeeId() : ''
   const [remindDismissed, dismissRemind] = useCompletionRemindDismissed(employeeId)
@@ -348,6 +350,13 @@ function App() {
             dismissTodayAttendanceRemind(employeeId, todayServerDate)
             setTodayRemindDismissed(true)
           }}
+        />
+      )}
+      {isEmployee() && (
+        <MissingAttendanceRemindBanner
+          key={`${syncVersion}-${missingAttendRemindKey}`}
+          onGoAttendance={() => handleNavigate('attendance')}
+          onDismiss={() => setMissingAttendRemindKey((n) => n + 1)}
         />
       )}
       {showPayrollCloseRemind && payrollCloseRemind && (

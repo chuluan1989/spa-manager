@@ -6,6 +6,7 @@ export const ATTENDANCE_EDIT_REQUEST_STATUS = {
   PENDING: 'pending',
   APPROVED: 'approved',
   REJECTED: 'rejected',
+  CANCELLED: 'cancelled',
 }
 
 function createRequestId() {
