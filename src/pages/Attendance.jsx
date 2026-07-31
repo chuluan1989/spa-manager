@@ -4,6 +4,7 @@ import AttendanceEditModal from '../components/attendance/AttendanceEditModal'
 import AttendanceEmployeeView from '../components/attendance/AttendanceEmployeeView'
 import AttendanceEditRequestsPanel from '../components/attendance/AttendanceEditRequestsPanel'
 import AttendanceMonthMatrix from '../components/attendance/AttendanceMonthMatrix'
+import AttendancePeriodReviewPanel from '../components/attendance/AttendancePeriodReviewPanel'
 import ErpFilterBar from '../components/erp/ErpFilterBar'
 import ErpKpiGrid from '../components/erp/ErpKpiGrid'
 import ErpPageHeader from '../components/erp/ErpPageHeader'
@@ -160,7 +161,7 @@ export default function Attendance({ onNavigate } = {}) {
 
 function AttendancePage() {
   const syncVersion = useDataSyncVersion()
-  const [screen, setScreen] = useState('records')
+  const [screen, setScreen] = useState('period')
   const [todayDate, setTodayDate] = useState('')
   const [month, setMonth] = useState(() => getTodayDate().slice(0, 7))
   const [fromDate, setFromDate] = useState(() => `${getTodayDate().slice(0, 7)}-01`)
@@ -380,6 +381,7 @@ function AttendancePage() {
         actions={<ExportActions onExportExcel={handleExport} disabled={loading || records.length === 0} />}
       />
 
+      {screen !== 'period' && (
       <ErpFilterBar>
         <label>
           Tháng
@@ -411,8 +413,12 @@ function AttendancePage() {
           </>
         )}
       </ErpFilterBar>
+      )}
 
       <nav className="attendance-page__tabs">
+        <button type="button" className={screen === 'period' ? 'is-active' : ''} onClick={() => setScreen('period')}>
+          Theo kỳ lương
+        </button>
         <button type="button" className={screen === 'records' ? 'is-active' : ''} onClick={() => setScreen('records')}>
           Toàn hệ thống
         </button>
@@ -429,6 +435,8 @@ function AttendancePage() {
 
       {screen === 'requests' ? (
         <AttendanceEditRequestsPanel />
+      ) : screen === 'period' ? (
+        <AttendancePeriodReviewPanel defaultBranchId={branchId} />
       ) : (
         <>
       <section className="attendance-page__filters">

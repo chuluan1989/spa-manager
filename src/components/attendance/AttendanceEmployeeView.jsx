@@ -19,6 +19,7 @@ import {
 import AttendanceCheckInForm from './AttendanceCheckInForm'
 import AttendanceEditRequestModal from './AttendanceEditRequestModal'
 import AttendanceMonthMatrix from './AttendanceMonthMatrix'
+import AttendancePeriodReviewPanel from './AttendancePeriodReviewPanel'
 import { buildAttendanceMonthMatrix } from '../../utils/attendanceViewHelpers'
 
 function formatDate(value) {
@@ -72,7 +73,7 @@ function requestStatusLabel(status) {
 export default function AttendanceEmployeeView({ onNavigate } = {}) {
   const employee = getEmployeeById(getCurrentUserEmployeeId())
   const syncVersion = useDataSyncVersion()
-  const [screen, setScreen] = useState('today')
+  const [screen, setScreen] = useState('period')
   const todayDate = getTodayDate()
   const [checkedInToday, setCheckedInToday] = useState(null)
   const [justSaved, setJustSaved] = useState(false)
@@ -231,6 +232,9 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
       )}
 
       <nav className="attendance-page__tabs">
+        <button type="button" className={screen === 'period' ? 'is-active' : ''} onClick={() => setScreen('period')}>
+          Theo kỳ lương
+        </button>
         <button type="button" className={screen === 'today' ? 'is-active' : ''} onClick={() => setScreen('today')}>
           Hôm nay
         </button>
@@ -242,6 +246,13 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
         </button>
       </nav>
 
+      {screen === 'period' ? (
+        <AttendancePeriodReviewPanel
+          lockedEmployeeId={employee.id}
+          defaultBranchId={employee.branchId || ''}
+        />
+      ) : (
+        <>
       <section className="attendance-page__stats">
         <article><span>Tổng</span><strong>{stats.total}</strong></article>
         <article><span>Đúng giờ</span><strong>{stats.onTime}</strong></article>
@@ -332,6 +343,8 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
             Gửi yêu cầu bổ sung
           </button>
         </p>
+      )}
+        </>
       )}
 
       {(editTarget || createDate) && (

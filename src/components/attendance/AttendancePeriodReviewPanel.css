@@ -1,0 +1,168 @@
+.att-period-review {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.att-period-review__filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #eef0f3;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.att-period-review__mode-tabs {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.att-period-review__mode-tabs button {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.att-period-review__mode-tabs button.is-active {
+  background: #111;
+  border-color: #111;
+  color: #d4af37;
+}
+
+.att-period-review__filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.att-period-review__filters input,
+.att-period-review__filters select {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.att-period-review__search {
+  grid-column: span 1;
+}
+
+.att-period-review__range-hint,
+.att-period-review__submit-hint,
+.att-period-review__muted {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.88rem;
+}
+
+.att-period-review__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.att-period-review__header h3 {
+  margin: 0 0 4px;
+}
+
+.att-period-review__kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.att-period-review__kpis article {
+  min-width: 96px;
+  border: 1px solid #f3f4f6;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fafafa;
+}
+
+.att-period-review__kpis span {
+  display: block;
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+
+.att-period-review__kpis strong {
+  font-size: 1.05rem;
+}
+
+.att-period-review__kpis article.is-warn {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.att-period-review__warn {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 0.9rem;
+}
+
+.att-period-review__ok {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.9rem;
+}
+
+.att-period-review__error {
+  margin: 0;
+  color: #b91c1c;
+}
+
+.att-period-review__table-wrap {
+  overflow: auto;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  background: #fff;
+  max-height: 520px;
+}
+
+.att-period-review__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.att-period-review__table th,
+.att-period-review__table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
+}
+
+.att-period-review__table tr.is-missing {
+  background: #fff7ed;
+}
+
+.att-period-review__table tr.is-future {
+  color: #9ca3af;
+}
+
+.att-period-review__missing-list {
+  font-size: 0.88rem;
+}
+
+.att-period-review__missing-list ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
