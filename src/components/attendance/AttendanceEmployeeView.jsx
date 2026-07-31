@@ -64,9 +64,10 @@ function getMonthRange(today) {
 }
 
 function requestStatusLabel(status) {
-  if (status === ATTENDANCE_EDIT_REQUEST_STATUS.PENDING) return 'Chờ Quản lý duyệt'
-  if (status === ATTENDANCE_EDIT_REQUEST_STATUS.APPROVED) return '✓ Đã duyệt'
-  if (status === ATTENDANCE_EDIT_REQUEST_STATUS.REJECTED) return '✗ Không được duyệt'
+  if (status === ATTENDANCE_EDIT_REQUEST_STATUS.PENDING) return 'Chờ duyệt'
+  if (status === ATTENDANCE_EDIT_REQUEST_STATUS.APPROVED) return 'Đã duyệt'
+  if (status === ATTENDANCE_EDIT_REQUEST_STATUS.REJECTED) return 'Từ chối'
+  if (status === ATTENDANCE_EDIT_REQUEST_STATUS.CANCELLED) return 'Đã hủy'
   return status || '—'
 }
 
