@@ -8,6 +8,11 @@ import TodayAttendanceRemindBanner, {
   dismissTodayAttendanceRemind,
   isTodayAttendanceRemindDismissed,
 } from './components/common/TodayAttendanceRemindBanner'
+import PayrollCloseRemindBanner, {
+  dismissPayrollCloseRemind,
+  isPayrollCloseRemindDismissed,
+} from './components/common/PayrollCloseRemindBanner'
+import { shouldShowPayrollCloseRemind } from './utils/payrollCycleClose/closeRemind'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -125,6 +130,8 @@ function App() {
   const [todayCheckedIn, setTodayCheckedIn] = useState(null)
   const [todayServerDate, setTodayServerDate] = useState(() => getTodayDate())
   const [todayRemindDismissed, setTodayRemindDismissed] = useState(false)
+  const [payrollCloseRemind, setPayrollCloseRemind] = useState(null)
+  const [payrollCloseRemindDismissed, setPayrollCloseRemindDismissed] = useState(false)
   const syncVersion = useDataSyncVersion()
   const employeeId = currentUser?.role === ROLES.EMPLOYEE ? getCurrentUserEmployeeId() : ''
   const [remindDismissed, dismissRemind] = useCompletionRemindDismissed(employeeId)
@@ -177,29 +184,50 @@ function App() {
     if (!authReady || !currentUser || currentUser.role !== ROLES.EMPLOYEE) {
       setCompletionStatus(null)
       setTodayCheckedIn(null)
+      setPayrollCloseRemind(null)
       return
     }
 
     let cancelled = false
     async function loadStatus() {
       try {
+        const empId = getCurrentUserEmployeeId()
         const [status, server, checked] = await Promise.all([
-          loadEmployeePayroll1Status(getCurrentUserEmployeeId()),
+          loadEmployeePayroll1Status(empId),
           getServerAttendanceDate().catch(() => ({ date: getTodayDate() })),
-          hasCheckedInToday(getCurrentUserEmployeeId()).catch(() => true),
+          hasCheckedInToday(empId).catch(() => true),
         ])
         if (cancelled) return
+        const today = server?.date || getTodayDate()
         setCompletionStatus(status)
-        setTodayServerDate(server?.date || getTodayDate())
+        setTodayServerDate(today)
         setTodayCheckedIn(Boolean(checked))
-        setTodayRemindDismissed(
-          isTodayAttendanceRemindDismissed(getCurrentUserEmployeeId(), server?.date || getTodayDate()),
-        )
+        setTodayRemindDismissed(isTodayAttendanceRemindDismissed(empId, today))
+
+        const closeCheck = await shouldShowPayrollCloseRemind({
+          employeeId: empId,
+          todayDate: today,
+        }).catch(() => ({ show: false, target: null }))
+        if (cancelled) return
+        if (closeCheck?.show && closeCheck.target) {
+          setPayrollCloseRemind(closeCheck.target)
+          setPayrollCloseRemindDismissed(
+            isPayrollCloseRemindDismissed(
+              empId,
+              closeCheck.target.billingMonth,
+              closeCheck.target.cycle,
+            ),
+          )
+        } else {
+          setPayrollCloseRemind(null)
+          setPayrollCloseRemindDismissed(false)
+        }
       } catch (error) {
         console.warn('[completion-remind] Không tải trạng thái nhắc:', error?.message)
         if (!cancelled) {
           setCompletionStatus(null)
           setTodayCheckedIn(null)
+          setPayrollCloseRemind(null)
         }
       }
     }
@@ -225,6 +253,16 @@ function App() {
       && activePage !== 'attendance',
     ),
     [todayCheckedIn, todayRemindDismissed, currentUser, syncVersion, activePage],
+  )
+
+  const showPayrollCloseRemind = useMemo(
+    () => Boolean(
+      isEmployee()
+      && payrollCloseRemind
+      && !payrollCloseRemindDismissed
+      && activePage !== 'salary',
+    ),
+    [payrollCloseRemind, payrollCloseRemindDismissed, currentUser, syncVersion, activePage],
   )
 
   if (!authReady) {
@@ -309,6 +347,21 @@ function App() {
           onDismiss={() => {
             dismissTodayAttendanceRemind(employeeId, todayServerDate)
             setTodayRemindDismissed(true)
+          }}
+        />
+      )}
+      {showPayrollCloseRemind && payrollCloseRemind && (
+        <PayrollCloseRemindBanner
+          cycleLabel={payrollCloseRemind.cycleLabel}
+          rangeLabel={payrollCloseRemind.rangeLabel}
+          onOpenSalary={() => handleNavigate('salary')}
+          onDismiss={() => {
+            dismissPayrollCloseRemind(
+              employeeId,
+              payrollCloseRemind.billingMonth,
+              payrollCloseRemind.cycle,
+            )
+            setPayrollCloseRemindDismissed(true)
           }}
         />
       )}

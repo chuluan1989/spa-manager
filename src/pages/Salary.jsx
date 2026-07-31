@@ -39,6 +39,7 @@ import {
 } from '../utils/salaryReport'
 import PayrollReconciliationActions from '../components/salary/PayrollReconciliationActions'
 import PayrollCycleClosePanel from '../components/salary/PayrollCycleClosePanel'
+import PayrollCycleCloseAdminPanel from '../components/salary/PayrollCycleCloseAdminPanel'
 import { getDefaultCloseCycleSelection } from '../utils/payrollCycleClose/payCycleCalendar'
 import './Salary.css'
 
@@ -457,6 +458,10 @@ function SalaryPage() {
 
       {!loading && !error && level === LEVEL.PROFILE && !profileRow && (
         <p className="salary-page__empty">Không tìm thấy hồ sơ lương.</p>
+      )}
+
+      {!isEmployee() && (isAdmin() || isBranchManager()) && (
+        <PayrollCycleCloseAdminPanel />
       )}
 
       <PayrollAdjustmentModal
