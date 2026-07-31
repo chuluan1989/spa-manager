@@ -19,14 +19,14 @@ async function loadEnvFromProduction() {
   return { url, key, base: BASE }
 }
 
-function useLocalEnv() {
+function readLocalEnv() {
   const url = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? ''
   const key = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? ''
   if (!url || !key) return null
   return { url, key, base: 'local env' }
 }
 
-const env = useLocalEnv() ?? await loadEnvFromProduction()
+const env = readLocalEnv() ?? await loadEnvFromProduction()
 const sb = createClient(env.url, env.key)
 
 console.log(`\n=== Attendance audit schema probe (${env.base}) ===\n`)

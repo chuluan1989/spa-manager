@@ -92,6 +92,7 @@ export default function AttendancePeriodReviewPanel({
   const { records, loading, error, reload } = useAttendanceData(filters)
 
   const employees = useMemo(() => {
+    void syncVersion
     if (employeeLocked) {
       const self = loadEmployees().find((e) => e.id === lockedEmployeeId)
       return self ? [self] : []
@@ -153,7 +154,6 @@ export default function AttendancePeriodReviewPanel({
     ? formatCloseCycleRangeLabel(billingMonth, cycle)
     : `${formatDate(resolved.fromDate)} → ${formatDate(resolved.toDate)}`
 
-  const missingMessage = review.summary ? formatMissingDaysMessage(review.summary) : ''
   const blockMessage = review.summary ? formatCloseBlockAttendanceMessage(review.summary) : ''
 
   const openRequest = (day) => {

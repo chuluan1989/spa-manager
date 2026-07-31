@@ -42,15 +42,15 @@ function formatDateTime(value) {
 
 /**
  * Batch 3 — Admin/QL tổng hợp duyệt chốt kỳ (trong trang Lương).
+ * Hooks luôn gọi trước mọi return để không phụ thuộc role.
  */
 export default function PayrollCycleCloseAdminPanel() {
-  if (!isAdmin() && !isBranchManager()) return null
-
+  const canManage = isAdmin() || isBranchManager()
   const syncVersion = useDataSyncVersion()
   const defaults = getDefaultCloseCycleSelection(getTodayDate())
   const [billingMonth, setBillingMonth] = useState(defaults.billingMonth)
   const [cycle, setCycle] = useState(defaults.cycle)
-  const [branchId, setBranchId] = useState(isAdmin() ? '' : getCurrentUserBranch())
+  const [branchId, setBranchId] = useState(() => (isAdmin() ? '' : getCurrentUserBranch()))
   const [statusFilter, setStatusFilter] = useState('')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -59,6 +59,11 @@ export default function PayrollCycleCloseAdminPanel() {
   const [busy, setBusy] = useState(false)
 
   const reload = useCallback(async () => {
+    if (!canManage) {
+      setRows([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -76,7 +81,7 @@ export default function PayrollCycleCloseAdminPanel() {
     } finally {
       setLoading(false)
     }
-  }, [billingMonth, cycle, branchId, statusFilter])
+  }, [canManage, billingMonth, cycle, branchId, statusFilter])
 
   useEffect(() => {
     reload()
@@ -86,6 +91,8 @@ export default function PayrollCycleCloseAdminPanel() {
     () => rows.find((row) => row.id === selectedId) || null,
     [rows, selectedId],
   )
+
+  if (!canManage) return null
 
   const handleApprove = async (row) => {
     if (!isCloseCyclePendingReview(row.status)) {

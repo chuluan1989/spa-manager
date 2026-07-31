@@ -8,10 +8,11 @@ import TodayAttendanceRemindBanner, {
   dismissTodayAttendanceRemind,
   isTodayAttendanceRemindDismissed,
 } from './components/common/TodayAttendanceRemindBanner'
-import PayrollCloseRemindBanner, {
+import PayrollCloseRemindBanner from './components/common/PayrollCloseRemindBanner'
+import {
   dismissPayrollCloseRemind,
   isPayrollCloseRemindDismissed,
-} from './components/common/PayrollCloseRemindBanner'
+} from './utils/payrollCloseRemindDismiss'
 import MissingAttendanceRemindBanner from './components/common/MissingAttendanceRemindBanner'
 import { shouldShowPayrollCloseRemind } from './utils/payrollCycleClose/closeRemind'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
@@ -166,8 +167,8 @@ function App() {
         notifyDataSynced(['employees', 'credentials'])
       } catch (error) {
         console.error('[Bootstrap] Lỗi khởi tạo — vẫn cho phép vào app:', error?.message ?? error)
-      } finally {
-        if (cancelled) return
+      }
+      if (!cancelled) {
         setAuthReady(true)
         stopSync = startAutoSync({ skipInitialPull: true })
       }
@@ -238,32 +239,44 @@ function App() {
   }, [authReady, currentUser, syncVersion, activePage])
 
   const showRemind = useMemo(
-    () => Boolean(
-      isEmployee()
-      && completionStatus
-      && !completionStatus.dataComplete
-      && !remindDismissed,
-    ),
+    () => {
+      void currentUser
+      void syncVersion
+      return Boolean(
+        isEmployee()
+        && completionStatus
+        && !completionStatus.dataComplete
+        && !remindDismissed,
+      )
+    },
     [completionStatus, remindDismissed, currentUser, syncVersion],
   )
 
   const showTodayAttendanceRemind = useMemo(
-    () => Boolean(
-      isEmployee()
-      && todayCheckedIn === false
-      && !todayRemindDismissed
-      && activePage !== 'attendance',
-    ),
+    () => {
+      void currentUser
+      void syncVersion
+      return Boolean(
+        isEmployee()
+        && todayCheckedIn === false
+        && !todayRemindDismissed
+        && activePage !== 'attendance',
+      )
+    },
     [todayCheckedIn, todayRemindDismissed, currentUser, syncVersion, activePage],
   )
 
   const showPayrollCloseRemind = useMemo(
-    () => Boolean(
-      isEmployee()
-      && payrollCloseRemind
-      && !payrollCloseRemindDismissed
-      && activePage !== 'salary',
-    ),
+    () => {
+      void currentUser
+      void syncVersion
+      return Boolean(
+        isEmployee()
+        && payrollCloseRemind
+        && !payrollCloseRemindDismissed
+        && activePage !== 'salary',
+      )
+    },
     [payrollCloseRemind, payrollCloseRemindDismissed, currentUser, syncVersion, activePage],
   )
 

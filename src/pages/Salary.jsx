@@ -35,7 +35,6 @@ import {
   getDefaultPayCycleForVietnamDate,
   getPrevPayCycle,
   PAY_CYCLES,
-  getPayPeriodRange,
 } from '../utils/salaryReport'
 import PayrollReconciliationActions from '../components/salary/PayrollReconciliationActions'
 import PayrollCycleClosePanel from '../components/salary/PayrollCycleClosePanel'

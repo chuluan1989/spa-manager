@@ -1,0 +1,50 @@
+{
+  "aer-sample-1": {
+    "id": "aer-sample-1",
+    "type": "create",
+    "employeeId": "emp-1",
+    "employeeName": "Nguyen Van A",
+    "branchId": "branch-1",
+    "date": "2026-07-28",
+    "newStatus": "on_time",
+    "newReason": "Quên chấm",
+    "newNote": "",
+    "proposedCheckIn": "08:00",
+    "proposedCheckOut": "17:00",
+    "status": "pending",
+    "requestedAt": "2026-07-29T01:00:00.000Z",
+    "requestedBy": "emp-1",
+    "requestedByName": "Nguyen Van A"
+  },
+  "aer-sample-2": {
+    "id": "aer-sample-2",
+    "type": "create",
+    "employeeId": "emp-2",
+    "employeeName": "Tran B",
+    "branchId": "branch-1",
+    "date": "2026-07-27",
+    "newStatus": "on_time",
+    "newReason": "Quên",
+    "status": "approved",
+    "requestedAt": "2026-07-28T01:00:00.000Z",
+    "requestedBy": "emp-2",
+    "reviewedAt": "2026-07-28T03:00:00.000Z",
+    "reviewedBy": "admin",
+    "reviewedByName": "Admin"
+  },
+  "aer-sample-bad-status": {
+    "id": "aer-sample-bad-status",
+    "employeeId": "emp-3",
+    "date": "2026-07-26",
+    "newStatus": "on_time",
+    "status": "waiting_manager",
+    "requestedAt": "2026-07-27T01:00:00.000Z",
+    "requestedBy": "emp-3"
+  },
+  "aer-sample-missing-date": {
+    "id": "aer-sample-missing-date",
+    "employeeId": "emp-4",
+    "status": "pending",
+    "requestedBy": "emp-4"
+  }
+}

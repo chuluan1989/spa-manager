@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_OPTIONS, getAttendanceStatusLabel } from '../../constants/attendanceTypes'
 import { canSelectBranch, getCurrentUserBranch, isAdmin } from '../../constants/auth'
 import { getActiveBranches } from '../../constants/branches'
@@ -54,7 +54,7 @@ export default function AttendanceEditRequestsPanel() {
   const [finalNote, setFinalNote] = useState('')
   const [rejectReason, setRejectReason] = useState('')
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
@@ -66,11 +66,11 @@ export default function AttendanceEditRequestsPanel() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     reload()
-  }, [syncVersion])
+  }, [syncVersion, reload])
 
   const scopedBranch = isAdmin() ? branchFilter : (getCurrentUserBranch() || '')
 
@@ -84,6 +84,7 @@ export default function AttendanceEditRequestsPanel() {
   }, [requests, statusFilter, scopedBranch, employeeFilter, fromDate, toDate])
 
   const employees = useMemo(() => {
+    void syncVersion
     const ids = new Set(filtered.map((r) => r.employeeId).concat(
       requests.filter((r) => !scopedBranch || r.branchId === scopedBranch).map((r) => r.employeeId),
     ))
@@ -93,14 +94,16 @@ export default function AttendanceEditRequestsPanel() {
   const active = filtered.find((item) => item.id === activeId) || null
 
   useEffect(() => {
-    if (!active) return
-    setFinalStatus(active.proposedStatus || active.newStatus || ATTENDANCE_STATUS.ON_TIME)
-    setFinalCheckIn(active.proposedCheckIn || '08:00')
-    setFinalCheckOut(active.proposedCheckOut || '17:00')
-    setFinalReason(active.proposedReason || active.newReason || '')
-    setFinalNote(active.proposedNote || active.newNote || '')
+    if (!activeId) return
+    const item = requests.find((row) => row.id === activeId)
+    if (!item) return
+    setFinalStatus(item.proposedStatus || item.newStatus || ATTENDANCE_STATUS.ON_TIME)
+    setFinalCheckIn(item.proposedCheckIn || '08:00')
+    setFinalCheckOut(item.proposedCheckOut || '17:00')
+    setFinalReason(item.proposedReason || item.newReason || '')
+    setFinalNote(item.proposedNote || item.newNote || '')
     setRejectReason('')
-  }, [activeId])
+  }, [activeId, requests])
 
   const handleApprove = async (id) => {
     if (busyId) return

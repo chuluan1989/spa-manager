@@ -35,6 +35,10 @@ import {
   loadAttendanceEditRequests as loadLegacyRequests,
   upsertAttendanceEditRequest as upsertLegacyRequest,
 } from './attendanceEditRequestStorage'
+import {
+  findPendingConflict,
+  mergeCorrectionRequestSources,
+} from './attendanceCorrectionMerge'
 
 export const ATTENDANCE_EDIT_REQUEST_STATUS_EXTENDED = {
   ...ATTENDANCE_EDIT_REQUEST_STATUS,
@@ -143,6 +147,8 @@ function normalizeUiRequest(row) {
     reviewNote: row.reviewNote ?? '',
     rejectReason: row.rejectReason ?? row.reviewNote ?? '',
     employeeNotified: Boolean(row.employeeNotified),
+    legacySourceId: row.legacySourceId ?? '',
+    source: row.source || '',
   }
 }
 
@@ -157,8 +163,12 @@ async function writeAuditEvent(partial) {
   }
 }
 
-async function useDb() {
+async function isDatabaseAvailable() {
   return isSupabaseConfigured
+}
+
+function markUiSource(rows, source) {
+  return (rows ?? []).map((row) => (row ? { ...row, source } : row))
 }
 
 /**
@@ -220,14 +230,26 @@ export async function submitAttendanceEditRequest({
     throw new Error('Vui lòng nhập lý do quên chấm công.')
   }
 
-  const db = await useDb()
+  const db = await isDatabaseAvailable()
   if (db) {
-    const pendingSameDay = await fetchPendingCorrectionForDay(employeeId, targetDate)
-    if (pendingSameDay && pendingSameDay.id !== requestId) {
+    const merged = await loadAttendanceEditRequests()
+    const pendingConflict = findPendingConflict(merged, employeeId, targetDate, requestId)
+    if (pendingConflict && pendingConflict.source !== 'legacy') {
       throw new Error('Ngày này đang có yêu cầu chờ duyệt. Vui lòng đợi Quản lý xử lý hoặc rút yêu cầu cũ.')
     }
+    if (pendingConflict && pendingConflict.source === 'legacy') {
+      throw new Error('Ngày này đang có yêu cầu chờ duyệt (dữ liệu cũ). Vui lòng đợi Quản lý xử lý hoặc rút yêu cầu cũ.')
+    }
 
+    const pendingSameDay = await fetchPendingCorrectionForDay(employeeId, targetDate)
     let existing = requestId ? await fetchCorrectionRequestById(requestId) : pendingSameDay
+    // Không cho sửa bản legacy qua DB path — phải migrate hoặc dùng JSON path
+    if (requestId && !existing) {
+      const legacyHit = merged.find((item) => item.id === requestId && item.source === 'legacy')
+      if (legacyHit) {
+        throw new Error('Yêu cầu này còn ở dữ liệu cũ (JSON). Cần migrate hoặc thao tác trên bản đã chuyển sang bảng mới.')
+      }
+    }
     if (existing && existing.status !== CORRECTION_STATUS.PENDING) {
       throw new Error('Chỉ được sửa yêu cầu đang chờ duyệt.')
     }
@@ -266,6 +288,7 @@ export async function submitAttendanceEditRequest({
       reviewedByName: '',
       reviewNote: '',
       rejectReason: '',
+      legacySourceId: existing?.legacySourceId || '',
       createdAt: existing?.createdAt,
     }
 
@@ -289,7 +312,7 @@ export async function submitAttendanceEditRequest({
     return saved
   }
 
-  // Fallback settings JSON (khi chưa chạy migration)
+  // Fallback settings JSON (khi chưa chạy migration / Supabase off)
   const existingLegacy = await loadLegacyRequests()
   const pendingSameDay = existingLegacy.find((item) => (
     item.employeeId === employeeId
@@ -332,7 +355,7 @@ export async function cancelAttendanceEditRequest(requestId) {
   const employeeId = getCurrentUserEmployeeId()
   assertEmployeeOwns(employeeId)
 
-  const db = await useDb()
+  const db = await isDatabaseAvailable()
   if (db) {
     const request = await fetchCorrectionRequestById(requestId)
     if (!request) throw new Error('Không tìm thấy yêu cầu.')
@@ -394,7 +417,7 @@ export async function approveAttendanceEditRequest(requestId, {
   finalCheckIn,
   finalCheckOut,
 } = {}) {
-  const db = await useDb()
+  const db = await isDatabaseAvailable()
   const raw = db
     ? await fetchCorrectionRequestById(requestId)
     : await getLegacyById(requestId)
@@ -557,7 +580,7 @@ export async function rejectAttendanceEditRequest(requestId, { reviewNote = '' }
     throw new Error('Vui lòng nhập lý do từ chối.')
   }
 
-  const db = await useDb()
+  const db = await isDatabaseAvailable()
   const raw = db
     ? await fetchCorrectionRequestById(requestId)
     : await getLegacyById(requestId)
@@ -641,7 +664,7 @@ export async function rejectAttendanceEditRequest(requestId, { reviewNote = '' }
 export async function markAttendanceEditRequestNotified(requestIds = []) {
   if (!requestIds.length) return []
   const results = []
-  const db = await useDb()
+  const db = await isDatabaseAvailable()
   for (const id of requestIds) {
     if (db) {
       const request = await fetchCorrectionRequestById(id)
@@ -666,14 +689,18 @@ export async function markAttendanceEditRequestNotified(requestIds = []) {
 }
 
 export async function loadAttendanceEditRequests() {
-  const db = await useDb()
-  if (db) {
-    const rows = await fetchCorrectionRequestsFiltered({})
-    if (rows.length > 0) return rows.map(normalizeUiRequest)
-    // Migration chưa chạy / bảng trống — fallback legacy
+  const db = await isDatabaseAvailable()
+  const legacyRaw = await loadLegacyRequests().catch(() => [])
+  const legacy = markUiSource(legacyRaw.map(normalizeUiRequest).filter(Boolean), 'legacy')
+
+  if (!db) {
+    return legacy.sort((a, b) => String(b.requestedAt).localeCompare(String(a.requestedAt)))
   }
-  const legacy = await loadLegacyRequests()
-  return legacy.map(normalizeUiRequest)
+
+  const dbRaw = await fetchCorrectionRequestsFiltered({}).catch(() => [])
+  const dbRows = markUiSource(dbRaw.map(normalizeUiRequest).filter(Boolean), 'db')
+  const { merged } = mergeCorrectionRequestSources(dbRows, legacy)
+  return merged
 }
 
 export async function loadPendingEditRequestsForCurrentManager({
@@ -717,22 +744,12 @@ export async function loadOwnUnseenAttendanceReviews() {
 
 export async function loadCorrectionRequestsForEmployeeRange(employeeId, fromDate, toDate) {
   if (!employeeId || !fromDate || !toDate) return []
-  const db = await useDb()
-  if (db) {
-    return (await fetchCorrectionRequestsFiltered({
-      employeeId,
-      fromDate,
-      toDate,
-    })).map(normalizeUiRequest)
-  }
-  const all = await loadLegacyRequests()
-  return all
-    .map(normalizeUiRequest)
-    .filter((item) => (
-      item.employeeId === employeeId
-      && item.date >= fromDate
-      && item.date <= toDate
-    ))
+  const all = await loadAttendanceEditRequests()
+  return all.filter((item) => (
+    item.employeeId === employeeId
+    && item.date >= fromDate
+    && item.date <= toDate
+  ))
 }
 
 export {

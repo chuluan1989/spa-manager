@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getAttendanceStatusLabel, getAttendancePermitLabel } from '../../constants/attendanceTypes'
 import { getCurrentUserEmployeeId } from '../../constants/auth'
 import { formatCurrency } from '../../utils/invoice'
@@ -123,7 +123,7 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
     return map
   }, [ownRequests])
 
-  const refreshMeta = async () => {
+  const refreshMeta = useCallback(async () => {
     if (!employee?.id) return
     try {
       const [checked, requests, unseen] = await Promise.all([
@@ -137,11 +137,11 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
     } catch {
       setCheckedInToday(false)
     }
-  }
+  }, [employee?.id])
 
   useEffect(() => {
     refreshMeta()
-  }, [employee?.id, syncVersion])
+  }, [refreshMeta, syncVersion])
 
   const dismissReviewNotices = async () => {
     const ids = reviewNotices.map((item) => item.id)

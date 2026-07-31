@@ -1,3 +1,8 @@
+import './MissingAttendanceRemindBanner.css'
+import {
+  dismissMissingAttendanceRemind,
+  isMissingAttendanceRemindDismissed,
+} from '../../utils/missingAttendanceRemindDismiss'
 import { useEffect, useMemo, useState } from 'react'
 import { getCurrentUserEmployeeId, isEmployee } from '../../constants/auth'
 import { getTodayDate } from '../../utils/invoiceStorage'
@@ -9,23 +14,6 @@ import {
   formatMissingDaysMessage,
 } from '../../utils/payrollCycleClose/attendancePeriodReview'
 import { shiftMonthValue } from '../../utils/payrollCycleClose/payCycleCalendar'
-import './MissingAttendanceRemindBanner.css'
-
-const DISMISS_KEY = 'spa.missingAttendanceRemind.dismissed'
-
-function dismissKey(employeeId, today) {
-  return `${DISMISS_KEY}:${employeeId}:${today}`
-}
-
-export function isMissingAttendanceRemindDismissed(employeeId, today) {
-  if (typeof sessionStorage === 'undefined' || !employeeId) return false
-  return sessionStorage.getItem(dismissKey(employeeId, today)) === '1'
-}
-
-export function dismissMissingAttendanceRemind(employeeId, today) {
-  if (typeof sessionStorage === 'undefined' || !employeeId) return
-  sessionStorage.setItem(dismissKey(employeeId, today), '1')
-}
 
 /**
  * Banner nhắc NV các ngày trước đó còn chưa chấm (không tính hôm nay / tương lai / đã gửi YC).

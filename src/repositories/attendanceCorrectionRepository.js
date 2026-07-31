@@ -85,6 +85,9 @@ export async function upsertCorrectionRequest(record) {
     updatedAt: now,
     createdAt: record.createdAt ?? now,
   }
+  if (payload.legacySourceId === '' || payload.legacySourceId == null) {
+    delete payload.legacySourceId
+  }
   const row = objectToSnakeRow(payload)
   const { data, error } = await supabase
     .from(TABLE)
@@ -103,6 +106,22 @@ export async function upsertCorrectionRequest(record) {
     throw error
   }
   return rowsToCamel([data])[0]
+}
+
+export async function fetchCorrectionByLegacySourceId(legacySourceId) {
+  if (!isSupabaseConfigured || !legacySourceId) return null
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('legacy_source_id', legacySourceId)
+    .maybeSingle()
+  if (error) {
+    if (isMissingSchemaTableError(error)) return null
+    // Cột chưa có (chưa chạy 0039) → coi như chưa migrate
+    if (String(error.message || '').includes('legacy_source_id')) return null
+    throw error
+  }
+  return data ? rowsToCamel([data])[0] : null
 }
 
 export async function insertAttendanceChangeEvent(event) {

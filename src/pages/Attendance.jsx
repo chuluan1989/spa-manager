@@ -236,6 +236,7 @@ function AttendancePage() {
   const stats = useMemo(() => buildAttendanceStats(records), [records])
 
   const employees = useMemo(() => {
+    void syncVersion
     const scopedBranch = canSelectBranch() ? branchId : getCurrentUserBranch()
     const eligible = loadEmployees().filter((employee) => isEmployeeLoginEligible(employee))
     if (!scopedBranch) return eligible
