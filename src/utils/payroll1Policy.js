@@ -6,8 +6,21 @@ export const PAYROLL1_PERIOD_START = '2026-07-01'
 /** Ngày tham chiếu nội bộ (không dùng để khóa HĐ / không hiện popup). */
 export const PAYROLL1_DEFAULT_LOCK_DATE = '2026-07-18'
 
+/** Sống Khoẻ: thông báo hoàn thiện/chốt kỳ chỉ áp dụng từ tháng 08/2026. */
+export const SONG_KHOE_SPA_BRANCH_ID = 'song-khoe-spa'
+export const SONG_KHOE_REMIND_PERIOD_START = '2026-08-01'
+
 export function getPayroll1PeriodStart() {
   return loadSystemSettings().payroll1PeriodStart || PAYROLL1_PERIOD_START
+}
+
+/** Period start theo chi nhánh — Sống Khoẻ lệch tháng 08/2026; chi nhánh khác giữ global. */
+export function getPayroll1PeriodStartForBranch(branchId) {
+  const globalStart = getPayroll1PeriodStart()
+  if (branchId === SONG_KHOE_SPA_BRANCH_ID && SONG_KHOE_REMIND_PERIOD_START > globalStart) {
+    return SONG_KHOE_REMIND_PERIOD_START
+  }
+  return globalStart
 }
 
 export function getPayroll1LockDate() {
@@ -26,8 +39,8 @@ export function isPayroll1DeadlinePassed(now = new Date()) {
   return isAfterIctEndOfDay(getPayroll1LockDate(), now)
 }
 
-export function getPayroll1DateRange(now = new Date()) {
-  const start = getPayroll1PeriodStart()
+export function getPayroll1DateRange(now = new Date(), branchId = '') {
+  const start = getPayroll1PeriodStartForBranch(branchId)
   const today = getIctTodayDate(now)
   const end = today < start ? start : today
   return { start, end, dates: listDatesInclusive(start, end) }
@@ -41,7 +54,7 @@ export function summarizeEmployeePayroll1Status({
   override = null,
   now = new Date(),
 }) {
-  const { start, end, dates } = getPayroll1DateRange(now)
+  const { start, end, dates } = getPayroll1DateRange(now, employee?.branchId)
   const attendanceByDate = new Map(
     (attendanceRecords ?? [])
       .filter((row) => row?.date >= start && row?.date <= end)

@@ -821,14 +821,23 @@ export async function changeOwnEmployeePassword({
 
   const credentials = await ensureCredentialsHashed()
   let entry = credentials.employees?.[employeeId]
+  const employee = loadEmployees().find((item) => item.id === employeeId)
   if (!entry?.password) {
-    const employee = loadEmployees().find((item) => item.id === employeeId)
     if (!employee) return { success: false, error: 'Không tìm thấy tài khoản nhân viên.' }
     await provisionEmployeeCredentialIfMissing(credentials, employee)
     entry = credentials.employees[employeeId]
   }
 
-  const currentOk = await verifyEmployeePassword(employeeId, currentPassword)
+  // Khớp login: hash đã lưu HOẶC MK mặc định theo hồ sơ khi chưa đặt MK tùy chỉnh.
+  let currentOk = await verifyEmployeePassword(employeeId, currentPassword)
+  if (!currentOk && employee && !entry?.customPassword) {
+    const expectedDefault = computeEmployeeProfileDefaultPassword(
+      employee.name,
+      employee.branchId,
+    )
+    currentOk = Boolean(expectedDefault)
+      && String(currentPassword).trim().toLowerCase() === expectedDefault
+  }
   if (!currentOk) {
     return { success: false, error: 'Mật khẩu hiện tại không đúng' }
   }

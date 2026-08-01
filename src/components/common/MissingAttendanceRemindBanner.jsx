@@ -14,6 +14,11 @@ import {
   formatMissingDaysMessage,
 } from '../../utils/payrollCycleClose/attendancePeriodReview'
 import { shiftMonthValue } from '../../utils/payrollCycleClose/payCycleCalendar'
+import { getEmployeeById } from '../../utils/employeeStorage'
+import {
+  SONG_KHOE_REMIND_PERIOD_START,
+  SONG_KHOE_SPA_BRANCH_ID,
+} from '../../utils/payroll1Policy'
 
 /**
  * Banner nhắc NV các ngày trước đó còn chưa chấm (không tính hôm nay / tương lai / đã gửi YC).
@@ -30,8 +35,14 @@ export default function MissingAttendanceRemindBanner({
 
   const lookbackFrom = useMemo(() => {
     const prevMonth = shiftMonthValue(today.slice(0, 7), -1)
-    return `${prevMonth}-16`
-  }, [today])
+    let from = `${prevMonth}-16`
+    const branchId = getEmployeeById(employeeId)?.branchId
+    // Sống Khoẻ: không nhắc ngày thiếu thuộc tháng 07/2026.
+    if (branchId === SONG_KHOE_SPA_BRANCH_ID && from < SONG_KHOE_REMIND_PERIOD_START) {
+      from = SONG_KHOE_REMIND_PERIOD_START
+    }
+    return from
+  }, [today, employeeId])
 
   useEffect(() => {
     let cancelled = false

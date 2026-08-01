@@ -1,6 +1,11 @@
 import { CLOSE_CYCLES, getCloseCycleRange, formatCloseCycleRangeLabel } from './payCycleCalendar'
 import { canSubmitCloseCycle } from './closeCycleStatus'
 import { fetchPayrollCycleClose } from '../../repositories/payrollCycleCloseRepository'
+import { getEmployeeById } from '../employeeStorage'
+import {
+  SONG_KHOE_REMIND_PERIOD_START,
+  SONG_KHOE_SPA_BRANCH_ID,
+} from '../payroll1Policy'
 
 /**
  * Banner ngày 02 → Kỳ 1; ngày 17 → Kỳ 2.
@@ -36,6 +41,16 @@ export function resolvePayrollCloseRemindTarget(todayDate) {
 export async function shouldShowPayrollCloseRemind({ employeeId, todayDate }) {
   const target = resolvePayrollCloseRemindTarget(todayDate)
   if (!target || !employeeId) return { show: false, target: null }
+
+  const employee = getEmployeeById(employeeId)
+  if (employee?.branchId === SONG_KHOE_SPA_BRANCH_ID) {
+    const range = getCloseCycleRange(target.billingMonth, target.cycle)
+    // Sống Khoẻ: không nhắc chốt kỳ có ngày công thuộc trước 08/2026.
+    if (range.fromDate && range.fromDate < SONG_KHOE_REMIND_PERIOD_START) {
+      return { show: false, target: null }
+    }
+  }
+
   const existing = await fetchPayrollCycleClose({
     employeeId,
     billingMonth: target.billingMonth,

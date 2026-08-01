@@ -12,6 +12,7 @@ import { getEmployeeById, loadEmployees, isEmployeeLoginEligible } from './emplo
 import { notifyDataSynced } from './dataSyncEvents'
 import {
   getPayroll1PeriodStart,
+  getPayroll1PeriodStartForBranch,
   summarizeEmployeePayroll1Status,
 } from './payroll1Policy'
 import { getIctTodayDate } from './ictTime'
@@ -20,7 +21,7 @@ export async function loadEmployeePayroll1Status(employeeId, now = new Date()) {
   const employee = getEmployeeById(employeeId)
   if (!employee) return null
 
-  const start = getPayroll1PeriodStart()
+  const start = getPayroll1PeriodStartForBranch(employee.branchId)
   const end = getIctTodayDate(now)
 
   const [attendanceRecords, invoices, dayReviews, overrides] = await Promise.all([
