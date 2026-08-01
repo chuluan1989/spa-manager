@@ -34,7 +34,11 @@ export function sanitizeCustomerPhoneInput(value) {
 }
 
 export const INVOICE_CUSTOMER_REQUIRED_MESSAGE =
-  'Vui lòng nhập đầy đủ tên khách hàng và SĐT khách hàng trước khi lưu hóa đơn.'
+  'Vui lòng nhập tên khách hàng trước khi lưu hóa đơn.'
+
+/** Cảnh báo nhẹ khi SĐT khách có vẻ sai — không chặn lưu hóa đơn. */
+export const INVOICE_CUSTOMER_PHONE_SOFT_WARNING =
+  'Số điện thoại có thể chưa đúng'
 
 /**
  * Validate dữ liệu hồ sơ cá nhân nhân viên tự cập nhật.

@@ -55,10 +55,9 @@ import {
   updateInvoice,
 } from '../utils/invoiceStorage'
 import {
+  INVOICE_CUSTOMER_PHONE_SOFT_WARNING,
   INVOICE_CUSTOMER_REQUIRED_MESSAGE,
   isValidCustomerPhone,
-  normalizeCustomerPhone,
-  sanitizeCustomerPhoneInput,
 } from '../utils/validators'
 import { consumeInvoiceEditPrefill, consumeInvoiceCreateDatePrefill } from '../utils/navigationPrefill'
 import { exportInvoicesCsv } from '../utils/invoiceExport'
@@ -285,18 +284,20 @@ export default function Invoice({ onNavigate }) {
     })
   }
 
+  const customerPhoneSoftWarning = Boolean(
+    form.customerPhone.trim() && !isValidCustomerPhone(form.customerPhone),
+  )
+
   const validate = () => {
     const next = {}
     const branchId = canSelectBranch() || canPickServingBranch
       ? form.branchId
       : getCurrentUserBranch()
     const customerName = form.customerName.trim()
-    const customerPhone = form.customerPhone.trim()
 
-    if (!customerName || !customerPhone) {
+    // SĐT không bắt buộc; sai/thiếu/chữ chỉ cảnh báo nhẹ, không chặn lưu.
+    if (!customerName) {
       next.customerRequired = INVOICE_CUSTOMER_REQUIRED_MESSAGE
-    } else if (!isValidCustomerPhone(customerPhone)) {
-      next.customerPhone = 'SĐT khách hàng phải có ít nhất 9 số'
     }
 
     if (!branchId) next.branchId = 'Vui lòng chọn chi nhánh'
@@ -349,7 +350,7 @@ export default function Invoice({ onNavigate }) {
       supportEmployeeId: existingInvoice?.supportEmployeeId ?? '',
       supportEmployeeName: existingInvoice?.supportEmployeeName ?? '',
       customerName: form.customerName.trim(),
-      customerPhone: normalizeCustomerPhone(form.customerPhone),
+      customerPhone: String(form.customerPhone ?? '').trim(),
       customerRequested: Boolean(form.customerRequested),
       serviceIds: selectedIds,
       services: totals.services ?? getSelectedServiceDetails(selectedIds, branchId, fallbackServices, branch.name),
@@ -610,14 +611,15 @@ export default function Invoice({ onNavigate }) {
               <label className="invoice__field">
                 <span>SĐT khách hàng</span>
                 <input
-                  type="tel"
-                  inputMode="tel"
+                  type="text"
+                  inputMode="text"
                   placeholder="VD: 0774.099.777"
                   value={form.customerPhone}
-                  onChange={(e) => updateForm('customerPhone', sanitizeCustomerPhoneInput(e.target.value))}
-                  className={errors.customerRequired || errors.customerPhone ? 'invoice__input--error' : ''}
+                  onChange={(e) => updateForm('customerPhone', e.target.value)}
                 />
-                {errors.customerPhone && <span className="invoice__error">{errors.customerPhone}</span>}
+                {customerPhoneSoftWarning && (
+                  <span className="invoice__hint">{INVOICE_CUSTOMER_PHONE_SOFT_WARNING}</span>
+                )}
               </label>
               <label className="invoice__field invoice__field--checkbox invoice__field--full">
                 <input

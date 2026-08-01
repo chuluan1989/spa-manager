@@ -187,7 +187,8 @@ function normalizeInvoiceCustomerFields(invoice) {
   return {
     ...invoice,
     customerName: String(invoice.customerName ?? '').trim(),
-    customerPhone: normalizeCustomerPhone(invoice.customerPhone ?? ''),
+    // Giữ nguyên nội dung NV nhập (chỉ trim) — không tự xóa/sửa SĐT.
+    customerPhone: String(invoice.customerPhone ?? '').trim(),
     customerRequested: Boolean(invoice.customerRequested),
   }
 }
