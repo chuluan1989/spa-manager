@@ -536,6 +536,31 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-items: center;
+  min-width: 12rem;
+}
+
+.attendance-page__request-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.attendance-page__reject-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.attendance-page__reject-inline input {
+  min-width: 10rem;
+  flex: 1 1 10rem;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font: inherit;
 }
 
 .attendance-page__edit--danger {

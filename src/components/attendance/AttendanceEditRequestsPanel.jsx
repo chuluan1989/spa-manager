@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_OPTIONS, getAttendanceStatusLabel } from '../../constants/attendanceTypes'
+import { getAttendanceStatusLabel } from '../../constants/attendanceTypes'
 import { canSelectBranch, getCurrentUserBranch, isAdmin } from '../../constants/auth'
 import { getActiveBranches } from '../../constants/branches'
 import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
@@ -17,11 +17,20 @@ function formatDate(value) {
   return `${d}/${m}/${y}`
 }
 
-function formatDateTime(value) {
-  if (!value) return '—'
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return '—'
-  return parsed.toLocaleString('vi-VN')
+function currentStatusLabel(item) {
+  const status = item.oldStatus || ''
+  if (!status) return 'Chưa chấm'
+  return getAttendanceStatusLabel(status) || status
+}
+
+function proposedStatusLabel(item) {
+  const status = item.proposedStatus || item.newStatus || ''
+  if (!status) return '—'
+  return getAttendanceStatusLabel(status) || status
+}
+
+function requestReason(item) {
+  return item.proposedReason || item.newReason || item.evidenceNote || '—'
 }
 
 const STATUS_FILTERS = [
@@ -46,12 +55,7 @@ export default function AttendanceEditRequestsPanel() {
   const [employeeFilter, setEmployeeFilter] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
-  const [activeId, setActiveId] = useState('')
-  const [finalStatus, setFinalStatus] = useState('')
-  const [finalCheckIn, setFinalCheckIn] = useState('')
-  const [finalCheckOut, setFinalCheckOut] = useState('')
-  const [finalReason, setFinalReason] = useState('')
-  const [finalNote, setFinalNote] = useState('')
+  const [rejectingId, setRejectingId] = useState('')
   const [rejectReason, setRejectReason] = useState('')
 
   const reload = useCallback(async () => {
@@ -91,41 +95,40 @@ export default function AttendanceEditRequestsPanel() {
     return loadEmployees().filter((e) => ids.has(e.id))
   }, [filtered, requests, scopedBranch, syncVersion])
 
-  const active = filtered.find((item) => item.id === activeId) || null
-
-  useEffect(() => {
-    if (!activeId) return
-    const item = requests.find((row) => row.id === activeId)
-    if (!item) return
-    setFinalStatus(item.proposedStatus || item.newStatus || ATTENDANCE_STATUS.ON_TIME)
-    setFinalCheckIn(item.proposedCheckIn || '08:00')
-    setFinalCheckOut(item.proposedCheckOut || '17:00')
-    setFinalReason(item.proposedReason || item.newReason || '')
-    setFinalNote(item.proposedNote || item.newNote || '')
-    setRejectReason('')
-  }, [activeId, requests])
-
-  const handleApprove = async (id) => {
-    if (busyId) return
-    setBusyId(id)
+  const handleApprove = async (item) => {
+    if (busyId || item.status !== 'pending') return
+    setBusyId(item.id)
     setMessage('')
+    setRejectingId('')
+    setRejectReason('')
     try {
-      await approveAttendanceEditRequest(id, {
-        reviewNote: finalNote || 'Duyệt yêu cầu bổ sung chấm công',
-        finalStatus,
-        finalReason,
-        finalNote,
-        finalCheckIn,
-        finalCheckOut,
+      await approveAttendanceEditRequest(item.id, {
+        reviewNote: 'Duyệt yêu cầu bổ sung chấm công',
+        finalStatus: item.proposedStatus || item.newStatus,
+        finalReason: item.proposedReason || item.newReason || '',
+        finalNote: item.proposedNote || item.newNote || '',
+        finalCheckIn: item.proposedCheckIn || '',
+        finalCheckOut: item.proposedCheckOut || '',
       })
       setMessage('Đã duyệt yêu cầu và cập nhật chấm công chính thức.')
-      setActiveId('')
       await reload()
     } catch (err) {
       setMessage(err?.message ?? 'Không duyệt được yêu cầu.')
     } finally {
       setBusyId('')
     }
+  }
+
+  const openReject = (id) => {
+    if (busyId) return
+    setMessage('')
+    setRejectingId(id)
+    setRejectReason('')
+  }
+
+  const cancelReject = () => {
+    setRejectingId('')
+    setRejectReason('')
   }
 
   const handleReject = async (id) => {
@@ -139,7 +142,8 @@ export default function AttendanceEditRequestsPanel() {
     try {
       await rejectAttendanceEditRequest(id, { reviewNote: rejectReason.trim() })
       setMessage('Đã từ chối yêu cầu.')
-      setActiveId('')
+      setRejectingId('')
+      setRejectReason('')
       await reload()
     } catch (err) {
       setMessage(err?.message ?? 'Không từ chối được yêu cầu.')
@@ -210,124 +214,82 @@ export default function AttendanceEditRequestsPanel() {
                 <th>Ngày</th>
                 <th>Nhân viên</th>
                 <th>Chi nhánh</th>
-                <th>Giờ vào/ra đề nghị</th>
-                <th>Trạng thái đề nghị</th>
-                <th>Trạng thái YC</th>
-                <th>Gửi lúc</th>
-                <th />
+                <th>Trạng thái hiện tại</th>
+                <th>Đề nghị chuyển sang</th>
+                <th>Lý do</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="attendance-page__empty">Không có yêu cầu phù hợp bộ lọc.</td>
+                  <td colSpan={7} className="attendance-page__empty">Không có yêu cầu phù hợp bộ lọc.</td>
                 </tr>
               ) : filtered.map((item) => (
                 <tr key={item.id}>
                   <td>{formatDate(item.date)}</td>
                   <td>{item.employeeName || item.employeeId}</td>
                   <td>{getBranchName(item.branchId) || item.branchId}</td>
-                  <td>
-                    {(item.proposedCheckIn || '—')}
-                    {' → '}
-                    {(item.proposedCheckOut || '—')}
-                  </td>
-                  <td>
-                    {getAttendanceStatusLabel(item.proposedStatus || item.newStatus)}
-                    {(item.proposedReason || item.newReason) ? ` · ${item.proposedReason || item.newReason}` : ''}
-                  </td>
-                  <td>{item.statusLabel || item.status}</td>
-                  <td>{formatDateTime(item.requestedAt)}</td>
+                  <td>{currentStatusLabel(item)}</td>
+                  <td>{proposedStatusLabel(item)}</td>
+                  <td>{requestReason(item)}</td>
                   <td className="attendance-page__request-actions">
-                    {item.status === 'pending' && (
-                      <button
-                        type="button"
-                        className="attendance-page__edit"
-                        disabled={Boolean(busyId)}
-                        onClick={() => setActiveId(item.id === activeId ? '' : item.id)}
-                      >
-                        {item.id === activeId ? 'Đóng' : 'Xử lý'}
-                      </button>
+                    {item.status === 'pending' ? (
+                      rejectingId === item.id ? (
+                        <div className="attendance-page__reject-inline">
+                          <input
+                            type="text"
+                            placeholder="Lý do từ chối *"
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            disabled={Boolean(busyId)}
+                            aria-label="Lý do từ chối"
+                          />
+                          <button
+                            type="button"
+                            className="attendance-page__edit attendance-page__edit--danger"
+                            disabled={Boolean(busyId)}
+                            onClick={() => handleReject(item.id)}
+                          >
+                            Xác nhận từ chối
+                          </button>
+                          <button
+                            type="button"
+                            className="attendance-page__edit"
+                            disabled={Boolean(busyId)}
+                            onClick={cancelReject}
+                          >
+                            Hủy
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="attendance-page__request-inline-actions">
+                          <button
+                            type="button"
+                            className="attendance-page__edit"
+                            disabled={Boolean(busyId)}
+                            onClick={() => handleApprove(item)}
+                          >
+                            Duyệt
+                          </button>
+                          <button
+                            type="button"
+                            className="attendance-page__edit attendance-page__edit--danger"
+                            disabled={Boolean(busyId)}
+                            onClick={() => openReject(item.id)}
+                          >
+                            Từ chối
+                          </button>
+                        </div>
+                      )
+                    ) : (
+                      <span>{item.statusLabel || item.status}</span>
                     )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {active && active.status === 'pending' && (
-        <div className="att-period-review__warn" style={{ marginTop: '1rem' }}>
-          <h3 style={{ marginTop: 0 }}>
-            Duyệt yêu cầu — {active.employeeName} · {formatDate(active.date)}
-          </h3>
-          <p>
-            Lý do NV:
-            {' '}
-            {active.proposedReason || active.newReason || '—'}
-          </p>
-          {active.evidenceNote && (
-            <p>Bằng chứng: {active.evidenceNote}</p>
-          )}
-          <div className="att-period-review__filters">
-            <label>
-              <span>Trạng thái công (có thể sửa)</span>
-              <select value={finalStatus} onChange={(e) => setFinalStatus(e.target.value)}>
-                {ATTENDANCE_STATUS_OPTIONS.filter((o) => (
-                  o.id !== ATTENDANCE_STATUS.CANCELLED && o.id !== ATTENDANCE_STATUS.INVALID
-                )).map((option) => (
-                  <option key={option.id} value={option.id}>{option.label}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Giờ vào</span>
-              <input type="time" value={finalCheckIn} onChange={(e) => setFinalCheckIn(e.target.value)} />
-            </label>
-            <label>
-              <span>Giờ ra</span>
-              <input type="time" value={finalCheckOut} onChange={(e) => setFinalCheckOut(e.target.value)} />
-            </label>
-            <label>
-              <span>Lý do / ghi chú duyệt</span>
-              <input value={finalReason} onChange={(e) => setFinalReason(e.target.value)} />
-            </label>
-            <label>
-              <span>Ghi chú thêm</span>
-              <input value={finalNote} onChange={(e) => setFinalNote(e.target.value)} />
-            </label>
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-            <button
-              type="button"
-              className="attendance-page__edit"
-              disabled={Boolean(busyId)}
-              onClick={() => handleApprove(active.id)}
-            >
-              ✓ Duyệt
-            </button>
-          </div>
-          <div style={{ marginTop: '1rem' }}>
-            <label>
-              <span>Lý do từ chối *</span>
-              <textarea
-                rows={2}
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                style={{ width: '100%' }}
-              />
-            </label>
-            <button
-              type="button"
-              className="attendance-page__edit attendance-page__edit--danger"
-              disabled={Boolean(busyId)}
-              onClick={() => handleReject(active.id)}
-              style={{ marginTop: '0.5rem' }}
-            >
-              ✗ Từ chối
-            </button>
-          </div>
         </div>
       )}
     </section>
