@@ -1,9 +1,9 @@
 /**
- * Quy ước kỳ lương chốt (payroll cycle close) — KHÔNG dùng khoảng cũ 01–15 / 16–cuối.
+ * Quy ước kỳ lương chốt (payroll cycle close) — khớp Salary / PAY_CYCLES.
  *
  * Tháng M (ví dụ 2026-08):
- * - Kỳ 1: 16 → cuối tháng trước (16/07–31/07), gửi chốt ngày 02/M
- * - Kỳ 2: 01 → 15 tháng M (01/08–15/08), gửi chốt ngày 17/M
+ * - Kỳ 1: 01 → 15 tháng M, gửi chốt ngày 17/M
+ * - Kỳ 2: 16 → cuối tháng M, gửi chốt ngày 02 tháng M+1
  */
 
 export const CLOSE_CYCLES = {
@@ -15,12 +15,12 @@ export const CLOSE_CYCLE_OPTIONS = [
   {
     value: CLOSE_CYCLES.PERIOD_1,
     label: 'Kỳ 1',
-    hint: '16–cuối tháng trước · gửi ngày 02',
+    hint: '01–15 · gửi ngày 17',
   },
   {
     value: CLOSE_CYCLES.PERIOD_2,
     label: 'Kỳ 2',
-    hint: '01–15 tháng này · gửi ngày 17',
+    hint: '16–cuối tháng · gửi ngày 02 tháng sau',
   },
 ]
 
@@ -44,7 +44,7 @@ export function getLastDayOfMonthValue(monthValue) {
 }
 
 /**
- * @param {string} billingMonth YYYY-MM — tháng gắn với ngày gửi chốt
+ * @param {string} billingMonth YYYY-MM — tháng của kỳ lương (tháng chứa khoảng ngày công)
  * @param {'period1'|'period2'} cycle
  * @returns {{ fromDate: string, toDate: string, submitDate: string, billingMonth: string, cycle: string }}
  */
@@ -54,24 +54,24 @@ export function getCloseCycleRange(billingMonth, cycle) {
   }
 
   if (cycle === CLOSE_CYCLES.PERIOD_1) {
-    const prev = shiftMonthValue(billingMonth, -1)
-    const last = getLastDayOfMonthValue(prev)
     return {
       billingMonth,
       cycle: CLOSE_CYCLES.PERIOD_1,
-      fromDate: `${prev}-16`,
-      toDate: `${prev}-${String(last).padStart(2, '0')}`,
-      submitDate: `${billingMonth}-02`,
+      fromDate: `${billingMonth}-01`,
+      toDate: `${billingMonth}-15`,
+      submitDate: `${billingMonth}-17`,
     }
   }
 
   if (cycle === CLOSE_CYCLES.PERIOD_2) {
+    const next = shiftMonthValue(billingMonth, 1)
+    const last = getLastDayOfMonthValue(billingMonth)
     return {
       billingMonth,
       cycle: CLOSE_CYCLES.PERIOD_2,
-      fromDate: `${billingMonth}-01`,
-      toDate: `${billingMonth}-15`,
-      submitDate: `${billingMonth}-17`,
+      fromDate: `${billingMonth}-16`,
+      toDate: `${billingMonth}-${String(last).padStart(2, '0')}`,
+      submitDate: `${next}-02`,
     }
   }
 
@@ -95,18 +95,17 @@ export function formatCloseCycleRangeLabel(billingMonth, cycle) {
 }
 
 /**
- * Gợi ý kỳ chốt theo ngày VN hiện tại (tháng gửi chốt = tháng chứa ngày hôm nay).
- * Ngày 01–16: ưu tiên Kỳ 1 (gửi ngày 02).
- * Ngày 17–31: ưu tiên Kỳ 2 (gửi ngày 17).
+ * Gợi ý kỳ theo ngày hiện tại (tháng = tháng chứa ngày công).
+ * Ngày 01–15 → Kỳ 1; ngày 16–cuối → Kỳ 2.
  */
 export function getDefaultCloseCycleSelection(todayDate = '') {
   const iso = todayDate || new Date().toISOString().slice(0, 10)
   const billingMonth = iso.slice(0, 7)
   const day = Number(iso.slice(8, 10))
   if (!Number.isFinite(day)) {
-    return { billingMonth, cycle: CLOSE_CYCLES.PERIOD_2 }
+    return { billingMonth, cycle: CLOSE_CYCLES.PERIOD_1 }
   }
-  if (day <= 16) {
+  if (day <= 15) {
     return { billingMonth, cycle: CLOSE_CYCLES.PERIOD_1 }
   }
   return { billingMonth, cycle: CLOSE_CYCLES.PERIOD_2 }

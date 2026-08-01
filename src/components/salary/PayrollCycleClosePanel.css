@@ -55,6 +55,55 @@
   font-size: 0.85rem;
 }
 
+.pcc-panel__quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pcc-panel__link-btn {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.pcc-panel__checklist {
+  padding: 12px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.pcc-panel__checklist h4 {
+  margin: 0 0 8px;
+}
+
+.pcc-panel__checklist ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.pcc-panel__checklist li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.88rem;
+}
+
+.pcc-panel__checklist li.is-ok strong {
+  color: #166534;
+}
+
+.pcc-panel__checklist li.is-warn strong {
+  color: #b45309;
+}
+
 .pcc-panel__status {
   display: flex;
   justify-content: space-between;

@@ -1,23 +1,12 @@
 /**
- * Helpers dismiss banner chốt kỳ (tách khỏi component để tránh only-export-components).
+ * Banner nhắc chốt kỳ — không dùng sessionStorage để tắt nhắc.
+ * Thu gọn chỉ giữ trong state React của lần xem hiện tại (App.jsx).
  */
 
-const DISMISS_KEY = 'spa-manager-payroll-close-remind-dismissed'
-
-export function isPayrollCloseRemindDismissed(employeeId, billingMonth, cycle) {
-  if (!employeeId || !billingMonth || !cycle) return false
-  try {
-    return sessionStorage.getItem(`${DISMISS_KEY}:${employeeId}:${billingMonth}:${cycle}`) === '1'
-  } catch {
-    return false
-  }
+export function isPayrollCloseRemindDismissed() {
+  return false
 }
 
-export function dismissPayrollCloseRemind(employeeId, billingMonth, cycle) {
-  if (!employeeId || !billingMonth || !cycle) return
-  try {
-    sessionStorage.setItem(`${DISMISS_KEY}:${employeeId}:${billingMonth}:${cycle}`, '1')
-  } catch {
-    /* ignore */
-  }
+export function dismissPayrollCloseRemind() {
+  /* no-op: không được tắt nhắc vĩnh viễn / theo phiên */
 }

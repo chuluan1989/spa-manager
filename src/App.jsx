@@ -9,12 +9,13 @@ import TodayAttendanceRemindBanner, {
   isTodayAttendanceRemindDismissed,
 } from './components/common/TodayAttendanceRemindBanner'
 import PayrollCloseRemindBanner from './components/common/PayrollCloseRemindBanner'
-import {
-  dismissPayrollCloseRemind,
-  isPayrollCloseRemindDismissed,
-} from './utils/payrollCloseRemindDismiss'
 import MissingAttendanceRemindBanner from './components/common/MissingAttendanceRemindBanner'
 import { shouldShowPayrollCloseRemind } from './utils/payrollCycleClose/closeRemind'
+import {
+  consumeAppNavigate,
+  setPayrollClosePrefill,
+} from './utils/navigationPrefill'
+import { migrateLocalInvoicesToSupabase } from './utils/invoiceLegacyMigrate'
 import { useDataSyncVersion } from './hooks/useDataSyncVersion'
 import {
   canAccessEmployeesPage,
@@ -133,7 +134,9 @@ function App() {
   const [todayServerDate, setTodayServerDate] = useState(() => getTodayDate())
   const [todayRemindDismissed, setTodayRemindDismissed] = useState(false)
   const [payrollCloseRemind, setPayrollCloseRemind] = useState(null)
-  const [payrollCloseRemindDismissed, setPayrollCloseRemindDismissed] = useState(false)
+  const [payrollCloseRemindChecklist, setPayrollCloseRemindChecklist] = useState(null)
+  const [payrollCloseRemindCollapsed, setPayrollCloseRemindCollapsed] = useState(false)
+  const [payrollCloseSyncing, setPayrollCloseSyncing] = useState(false)
   const [missingAttendRemindKey, setMissingAttendRemindKey] = useState(0)
   const syncVersion = useDataSyncVersion()
   const employeeId = currentUser?.role === ROLES.EMPLOYEE ? getCurrentUserEmployeeId() : ''
@@ -188,6 +191,8 @@ function App() {
       setCompletionStatus(null)
       setTodayCheckedIn(null)
       setPayrollCloseRemind(null)
+      setPayrollCloseRemindChecklist(null)
+      setPayrollCloseRemindCollapsed(false)
       return
     }
 
@@ -210,20 +215,26 @@ function App() {
         const closeCheck = await shouldShowPayrollCloseRemind({
           employeeId: empId,
           todayDate: today,
-        }).catch(() => ({ show: false, target: null }))
+          user: currentUser,
+        }).catch(() => ({ show: false, target: null, checklist: null }))
         if (cancelled) return
         if (closeCheck?.show && closeCheck.target) {
-          setPayrollCloseRemind(closeCheck.target)
-          setPayrollCloseRemindDismissed(
-            isPayrollCloseRemindDismissed(
-              empId,
-              closeCheck.target.billingMonth,
-              closeCheck.target.cycle,
-            ),
-          )
+          const next = closeCheck.target
+          setPayrollCloseRemind((prev) => {
+            if (
+              !prev
+              || prev.billingMonth !== next.billingMonth
+              || prev.cycle !== next.cycle
+            ) {
+              setTimeout(() => setPayrollCloseRemindCollapsed(false), 0)
+            }
+            return next
+          })
+          setPayrollCloseRemindChecklist(closeCheck.checklist ?? null)
         } else {
           setPayrollCloseRemind(null)
-          setPayrollCloseRemindDismissed(false)
+          setPayrollCloseRemindChecklist(null)
+          setPayrollCloseRemindCollapsed(false)
         }
       } catch (error) {
         console.warn('[completion-remind] Không tải trạng thái nhắc:', error?.message)
@@ -231,6 +242,7 @@ function App() {
           setCompletionStatus(null)
           setTodayCheckedIn(null)
           setPayrollCloseRemind(null)
+          setPayrollCloseRemindChecklist(null)
         }
       }
     }
@@ -273,12 +285,22 @@ function App() {
       return Boolean(
         isEmployee()
         && payrollCloseRemind
-        && !payrollCloseRemindDismissed
         && activePage !== 'salary',
       )
     },
-    [payrollCloseRemind, payrollCloseRemindDismissed, currentUser, syncVersion, activePage],
+    [payrollCloseRemind, currentUser, syncVersion, activePage],
   )
+
+  useEffect(() => {
+    function onNavigateRequest() {
+      const pageId = consumeAppNavigate()
+      if (!pageId || !PAGES[pageId]) return
+      if (!canAccessPage(pageId)) return
+      setActivePage(pageId)
+    }
+    window.addEventListener('spa-app-navigate', onNavigateRequest)
+    return () => window.removeEventListener('spa-app-navigate', onNavigateRequest)
+  }, [])
 
   if (!authReady) {
     return (
@@ -376,14 +398,30 @@ function App() {
         <PayrollCloseRemindBanner
           cycleLabel={payrollCloseRemind.cycleLabel}
           rangeLabel={payrollCloseRemind.rangeLabel}
-          onOpenSalary={() => handleNavigate('salary')}
-          onDismiss={() => {
-            dismissPayrollCloseRemind(
-              employeeId,
-              payrollCloseRemind.billingMonth,
-              payrollCloseRemind.cycle,
-            )
-            setPayrollCloseRemindDismissed(true)
+          checklist={payrollCloseRemindChecklist}
+          collapsed={payrollCloseRemindCollapsed}
+          syncing={payrollCloseSyncing}
+          onExpand={() => setPayrollCloseRemindCollapsed(false)}
+          onCollapse={() => setPayrollCloseRemindCollapsed(true)}
+          onGoAttendance={() => handleNavigate('attendance')}
+          onSyncNow={async () => {
+            setPayrollCloseSyncing(true)
+            try {
+              const result = await migrateLocalInvoicesToSupabase(currentUser)
+              if (!result?.success) {
+                throw new Error(result?.error || result?.message || 'Đồng bộ thất bại.')
+              }
+              notifyDataSynced(['invoices'])
+            } finally {
+              setPayrollCloseSyncing(false)
+            }
+          }}
+          onOpenSalary={() => {
+            setPayrollClosePrefill({
+              billingMonth: payrollCloseRemind.billingMonth,
+              cycle: payrollCloseRemind.cycle,
+            })
+            handleNavigate('salary')
           }}
         />
       )}

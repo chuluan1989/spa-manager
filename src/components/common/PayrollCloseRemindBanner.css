@@ -2,7 +2,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
   margin: 0 0 12px;
   padding: 12px 14px;
@@ -11,9 +11,19 @@
   background: #fffbeb;
 }
 
+.payroll-close-remind--collapsed {
+  align-items: center;
+}
+
 .payroll-close-remind__title {
   margin: 0;
   font-weight: 600;
+  color: #92400e;
+}
+
+.payroll-close-remind__subtitle {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
   color: #92400e;
 }
 
@@ -23,9 +33,77 @@
   color: #a16207;
 }
 
+.payroll-close-remind__checklist {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.payroll-close-remind__checklist li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.82rem;
+  padding: 4px 0;
+  border-bottom: 1px solid #fef3c7;
+}
+
+.payroll-close-remind__checklist li span {
+  color: #78716c;
+}
+
+.payroll-close-remind__checklist li.is-ok strong {
+  color: #166534;
+}
+
+.payroll-close-remind__checklist li.is-warn strong {
+  color: #b45309;
+}
+
+.payroll-close-remind__missing {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: #b45309;
+}
+
+.payroll-close-remind__alert {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #fcd34d;
+  background: #fff7ed;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.payroll-close-remind__alert p {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #9a3412;
+}
+
+.payroll-close-remind__missing-dates {
+  font-weight: 500 !important;
+  font-size: 0.8rem !important;
+  color: #c2410c !important;
+}
+
+.payroll-close-remind__sync-error {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: #b91c1c;
+}
+
 .payroll-close-remind__actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
+  min-width: 180px;
 }
 
 .payroll-close-remind__btn {
@@ -37,8 +115,20 @@
   cursor: pointer;
 }
 
+.payroll-close-remind__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .payroll-close-remind__btn--primary {
   background: #111;
   border-color: #111;
   color: #d4af37;
+}
+
+.payroll-close-remind__btn--alert {
+  background: #9a3412;
+  border-color: #9a3412;
+  color: #fff;
+  font-weight: 600;
 }

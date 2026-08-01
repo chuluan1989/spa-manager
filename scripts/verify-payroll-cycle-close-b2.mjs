@@ -25,8 +25,9 @@ console.log('\n=== UAT Batch 2 — payroll cycle close ===\n')
 
 {
   const range = getCloseCycleRange('2026-08', CLOSE_CYCLES.PERIOD_1)
-  assert.equal(range.fromDate, '2026-07-16')
-  assert.equal(range.toDate, '2026-07-31')
+  assert.equal(range.fromDate, '2026-08-01')
+  assert.equal(range.toDate, '2026-08-15')
+  assert.equal(range.submitDate, '2026-08-17')
 }
 
 assert.equal(canSubmitCloseCycle(null), true)

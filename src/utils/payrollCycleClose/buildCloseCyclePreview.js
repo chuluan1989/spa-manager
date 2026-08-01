@@ -17,6 +17,8 @@ import {
   canSubmitCloseCycle,
   getCloseCycleStatusLabel,
 } from './closeCycleStatus'
+import { getCurrentUser } from '../../constants/auth'
+import { checkUnsyncedLocalInvoices } from '../invoiceLegacyMigrate'
 
 function filterAdjustmentsForCloseCycle(adjustments, { employeeId, fromDate, toDate }) {
   return (adjustments ?? []).filter((row) => {
@@ -139,7 +141,20 @@ export async function buildCloseCyclePreview({
   const existing = await fetchPayrollCycleClose({ employeeId, billingMonth, cycle })
   const status = existing?.status ?? null
   const attendanceComplete = attendanceReview.summary.isComplete
-  const canSubmit = canSubmitCloseCycle(status) && attendanceComplete
+
+  const syncCheck = await checkUnsyncedLocalInvoices(getCurrentUser()).catch((err) => ({
+    hasUnsynced: false,
+    count: 0,
+    error: err?.message ?? 'Không kiểm tra được hóa đơn chưa đồng bộ.',
+  }))
+  const invoicesSynced = !syncCheck.error && !syncCheck.hasUnsynced
+  const previewLoaded = true
+  const canSubmit = (
+    canSubmitCloseCycle(status)
+    && attendanceComplete
+    && invoicesSynced
+    && previewLoaded
+  )
 
   const salary = {
     baseSalary: payrollRow.baseSalary ?? 0,
@@ -184,6 +199,10 @@ export async function buildCloseCyclePreview({
     existing,
     attendanceReview,
     attendanceComplete,
+    invoicesSynced,
+    unsyncedInvoiceCount: syncCheck.count ?? 0,
+    unsyncedInvoiceError: syncCheck.error || null,
+    previewLoaded,
     canSubmit,
     blockReasons: [],
     salary,
@@ -195,6 +214,15 @@ export async function buildCloseCyclePreview({
 
   if (!attendanceComplete) {
     preview.blockReasons.push(formatCloseBlockAttendanceMessage(attendanceReview.summary))
+  }
+  if (syncCheck.error) {
+    preview.blockReasons.push(
+      `Không kiểm tra được hóa đơn/Tour chưa đồng bộ: ${syncCheck.error}`,
+    )
+  } else if (syncCheck.hasUnsynced) {
+    preview.blockReasons.push(
+      `Còn ${syncCheck.count} hóa đơn chưa đồng bộ.`,
+    )
   }
   if (!canSubmitCloseCycle(status)) {
     preview.blockReasons.push(

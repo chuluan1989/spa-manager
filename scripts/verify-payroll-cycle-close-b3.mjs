@@ -14,7 +14,7 @@ import {
   resolveNextSubmitStatus,
   CLOSE_CYCLE_STATUS,
 } from '../src/utils/payrollCycleClose/closeCycleStatus.js'
-import { resolvePayrollCloseRemindTarget } from '../src/utils/payrollCycleClose/closeRemind.js'
+import { resolvePayrollCloseRemindTarget, listDuePayrollCloseTargets } from '../src/utils/payrollCycleClose/closeRemind.js'
 import { buildCloseCycleSnapshot } from '../src/utils/payrollCycleClose/buildCloseCyclePreview.js'
 import { ATTENDANCE_STATUS } from '../src/constants/attendanceTypes.js'
 import { buildEmployeeAttendancePeriodDays } from '../src/utils/payrollCycleClose/attendancePeriodReview.js'
@@ -54,21 +54,40 @@ console.log('\n=== UAT Batch 3 — close cycle approve/return/banner ===\n')
   console.log('  [PASS] only submitted/resubmitted pending review')
 }
 
-// Banner day 02 / 17
+// Banner: từ ngày 17 / 02 trở đi (kéo dài), không chỉ đúng 1 ngày
 {
-  const d2 = resolvePayrollCloseRemindTarget('2026-08-02')
-  assert.ok(d2)
-  assert.equal(d2.cycle, CLOSE_CYCLES.PERIOD_1)
-  assert.equal(d2.billingMonth, '2026-08')
-  assert.equal(getCloseCycleRange('2026-08', CLOSE_CYCLES.PERIOD_1).fromDate, '2026-07-16')
-
   const d17 = resolvePayrollCloseRemindTarget('2026-08-17')
   assert.ok(d17)
-  assert.equal(d17.cycle, CLOSE_CYCLES.PERIOD_2)
+  assert.equal(d17.cycle, CLOSE_CYCLES.PERIOD_1)
+  assert.equal(d17.billingMonth, '2026-08')
+  assert.equal(getCloseCycleRange('2026-08', CLOSE_CYCLES.PERIOD_1).fromDate, '2026-08-01')
+  assert.equal(getCloseCycleRange('2026-08', CLOSE_CYCLES.PERIOD_1).submitDate, '2026-08-17')
 
-  assert.equal(resolvePayrollCloseRemindTarget('2026-08-03'), null)
-  assert.equal(resolvePayrollCloseRemindTarget('2026-08-16'), null)
-  console.log('  [PASS] banner targets day 02 Kỳ 1 / day 17 Kỳ 2 only')
+  const d18 = resolvePayrollCloseRemindTarget('2026-08-18')
+  assert.ok(d18)
+  assert.equal(d18.cycle, CLOSE_CYCLES.PERIOD_1)
+  assert.equal(d18.billingMonth, '2026-08')
+
+  const d2 = resolvePayrollCloseRemindTarget('2026-09-02')
+  assert.ok(d2)
+  assert.equal(d2.cycle, CLOSE_CYCLES.PERIOD_2)
+  assert.equal(d2.billingMonth, '2026-08')
+  assert.equal(getCloseCycleRange('2026-08', CLOSE_CYCLES.PERIOD_2).fromDate, '2026-08-16')
+  assert.equal(getCloseCycleRange('2026-08', CLOSE_CYCLES.PERIOD_2).submitDate, '2026-09-02')
+
+  const d5 = resolvePayrollCloseRemindTarget('2026-09-05')
+  assert.ok(d5)
+  assert.equal(d5.cycle, CLOSE_CYCLES.PERIOD_2)
+  assert.equal(d5.billingMonth, '2026-08')
+
+  // Trước hạn: Kỳ 1 tháng 8 chưa có trong list; resolve có thể trỏ Kỳ 2 tháng 7
+  assert.equal(
+    listDuePayrollCloseTargets('2026-08-16').some(
+      (x) => x.billingMonth === '2026-08' && x.cycle === CLOSE_CYCLES.PERIOD_1,
+    ),
+    false,
+  )
+  console.log('  [PASS] banner targets from day 17 Kỳ 1 / day 02 Kỳ 2 onward until submitted')
 }
 
 // Snapshot immutable shape + history append design

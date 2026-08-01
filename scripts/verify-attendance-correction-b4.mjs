@@ -211,10 +211,10 @@ console.log('\n=== UAT Batch 4 — attendance correction ===\n')
 {
   const d1 = resolveCloseCycleForAttendanceDate('2026-08-10')
   assert.equal(d1.billingMonth, '2026-08')
-  assert.equal(d1.cycle, CLOSE_CYCLES.PERIOD_2)
-  const d2 = resolveCloseCycleForAttendanceDate('2026-07-20')
+  assert.equal(d1.cycle, CLOSE_CYCLES.PERIOD_1)
+  const d2 = resolveCloseCycleForAttendanceDate('2026-08-20')
   assert.equal(d2.billingMonth, '2026-08')
-  assert.equal(d2.cycle, CLOSE_CYCLES.PERIOD_1)
+  assert.equal(d2.cycle, CLOSE_CYCLES.PERIOD_2)
   assert.ok(getApprovedCloseLockMessage('2026-08-10').includes('đã được Admin duyệt'))
   console.log('  [PASS] 13. map ngày → kỳ chốt; message khóa snapshot approved')
 }

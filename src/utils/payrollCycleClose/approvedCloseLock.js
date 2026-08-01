@@ -1,10 +1,10 @@
-import { CLOSE_CYCLES, shiftMonthValue } from './payCycleCalendar'
+import { CLOSE_CYCLES } from './payCycleCalendar'
 import { fetchPayrollCycleClose } from '../../repositories/payrollCycleCloseRepository'
 
 /**
- * Map ngày chấm công → kỳ chốt lương (quy ước Batch 1–3).
- * - Ngày 01–15 tháng M → Kỳ 2 tháng M
- * - Ngày 16–cuối tháng M → Kỳ 1 tháng M+1
+ * Map ngày chấm công → kỳ chốt lương.
+ * - Ngày 01–15 tháng M → Kỳ 1 tháng M
+ * - Ngày 16–cuối tháng M → Kỳ 2 tháng M
  */
 export function resolveCloseCycleForAttendanceDate(dateStr) {
   if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null
@@ -12,11 +12,11 @@ export function resolveCloseCycleForAttendanceDate(dateStr) {
   const day = Number(dateStr.slice(8, 10))
   if (!Number.isFinite(day)) return null
   if (day <= 15) {
-    return { billingMonth: month, cycle: CLOSE_CYCLES.PERIOD_2 }
+    return { billingMonth: month, cycle: CLOSE_CYCLES.PERIOD_1 }
   }
   return {
-    billingMonth: shiftMonthValue(month, 1),
-    cycle: CLOSE_CYCLES.PERIOD_1,
+    billingMonth: month,
+    cycle: CLOSE_CYCLES.PERIOD_2,
   }
 }
 

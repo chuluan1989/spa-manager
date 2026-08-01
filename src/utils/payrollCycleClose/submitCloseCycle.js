@@ -19,6 +19,7 @@ import {
   CLOSE_CYCLE_STATUS,
 } from './closeCycleStatus'
 import { CLOSE_CYCLES, getCloseCycleRange } from './payCycleCalendar'
+import { notifyDataSynced } from '../dataSyncEvents'
 
 function assertActorIsEmployeeOwner(employeeId) {
   const actorId = getCurrentUserEmployeeId()
@@ -60,8 +61,19 @@ export async function submitCloseCycle({
   assertValidPeriod(billingMonth, cycle, preview.fromDate, preview.toDate)
   if (!preview.branchId) throw new Error('Chi nhánh không hợp lệ.')
 
+  if (!preview.invoicesSynced) {
+    throw new Error(
+      preview.blockReasons.find((r) => /hóa đơn|Tour/i.test(r))
+      || 'Còn hóa đơn/Tour chưa đồng bộ — không gửi chốt.',
+    )
+  }
+
   if (!preview.attendanceComplete) {
     throw new Error(preview.blockReasons[0] || 'Chấm công chưa đầy đủ.')
+  }
+
+  if (!preview.previewLoaded) {
+    throw new Error('Bảng lương dự kiến chưa tải thành công.')
   }
 
   // Re-read DB để chống double-submit
@@ -175,6 +187,8 @@ export async function submitCloseCycle({
     actorName,
   })
 
+  notifyDataSynced(['payroll-cycle-closes', 'payroll'])
+
   return { record: saved, preview, snapshot }
 }
 
@@ -243,6 +257,8 @@ export async function returnCloseCycle({
     actorName,
   })
 
+  notifyDataSynced(['payroll-cycle-closes', 'payroll'])
+
   return { record: saved }
 }
 
@@ -293,6 +309,8 @@ export async function approveCloseCycle({
     actorId,
     actorName,
   })
+
+  notifyDataSynced(['payroll-cycle-closes', 'payroll'])
 
   return { record: saved }
 }

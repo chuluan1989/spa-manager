@@ -181,7 +181,7 @@ export default function AttendancePeriodReviewPanel({
         </div>
 
         <label>
-          <span>Tháng {rangeMode === 'cycle' ? '(tháng gửi chốt)' : ''}</span>
+          <span>Tháng {rangeMode === 'cycle' ? '(tháng kỳ lương)' : ''}</span>
           <input
             type="month"
             value={billingMonth}

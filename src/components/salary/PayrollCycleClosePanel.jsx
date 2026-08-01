@@ -6,11 +6,17 @@ import {
   CLOSE_CYCLES,
   formatCloseCycleRangeLabel,
   getCloseCycleRange,
+  getDefaultCloseCycleSelection,
 } from '../../utils/payrollCycleClose/payCycleCalendar'
+import { listDuePayrollCloseTargets } from '../../utils/payrollCycleClose/closeRemind'
 import { buildCloseCyclePreview } from '../../utils/payrollCycleClose/buildCloseCyclePreview'
 import { submitCloseCycle } from '../../utils/payrollCycleClose/submitCloseCycle'
 import { ATTENDANCE_DAY_RESULT } from '../../utils/payrollCycleClose/attendancePeriodReview'
 import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
+import {
+  consumePayrollClosePrefill,
+  requestAppNavigate,
+} from '../../utils/navigationPrefill'
 import './PayrollCycleClosePanel.css'
 
 function formatDate(value) {
@@ -19,8 +25,23 @@ function formatDate(value) {
   return `${d}/${m}/${y}`
 }
 
+function resolveInitialSelection(defaultBillingMonth, defaultCycle) {
+  const prefill = consumePayrollClosePrefill()
+  if (prefill?.billingMonth && prefill?.cycle) {
+    return { billingMonth: prefill.billingMonth, cycle: prefill.cycle }
+  }
+  if (defaultBillingMonth && defaultCycle) {
+    return { billingMonth: defaultBillingMonth, cycle: defaultCycle }
+  }
+  const today = getTodayDate()
+  const due = listDuePayrollCloseTargets(today)[0]
+  if (due) return { billingMonth: due.billingMonth, cycle: due.cycle }
+  const fallback = getDefaultCloseCycleSelection(today)
+  return { billingMonth: fallback.billingMonth, cycle: fallback.cycle }
+}
+
 /**
- * Batch 2 — Bảng lương dự kiến + Gửi chốt kỳ lương.
+ * Batch 2 — Bảng lương dự kiến + Gửi chốt kỳ lương + checklist điều kiện gửi.
  */
 export default function PayrollCycleClosePanel({
   employeeId,
@@ -29,10 +50,9 @@ export default function PayrollCycleClosePanel({
   defaultCycle = CLOSE_CYCLES.PERIOD_2,
 }) {
   const syncVersion = useDataSyncVersion()
-  const [billingMonth, setBillingMonth] = useState(
-    () => defaultBillingMonth || getTodayDate().slice(0, 7),
-  )
-  const [cycle, setCycle] = useState(defaultCycle)
+  const initial = resolveInitialSelection(defaultBillingMonth, defaultCycle)
+  const [billingMonth, setBillingMonth] = useState(initial.billingMonth)
+  const [cycle, setCycle] = useState(initial.cycle)
   const [preview, setPreview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -90,18 +110,52 @@ export default function PayrollCycleClosePanel({
   if (!employeeId) return null
 
   const salary = preview?.salary
-  const submitDisabled = !canSubmit || !preview?.canSubmit || submitting || loading
+  const submitDisabled = !canSubmit || !preview?.canSubmit || submitting || loading || Boolean(error)
+  const cycleLabel = cycle === CLOSE_CYCLES.PERIOD_1 ? 'Kỳ 1' : 'Kỳ 2'
+
+  const checklistRows = preview
+    ? [
+        {
+          title: 'Tour/Hóa đơn',
+          ok: preview.invoicesSynced,
+          label: preview.unsyncedInvoiceError
+            ? `Lỗi kiểm tra: ${preview.unsyncedInvoiceError}`
+            : preview.invoicesSynced
+              ? 'Đã đồng bộ'
+              : `Còn ${preview.unsyncedInvoiceCount} hóa đơn chưa đồng bộ.`,
+        },
+        {
+          title: 'Chấm công',
+          ok: preview.attendanceComplete,
+          label: preview.attendanceComplete
+            ? 'Đã đủ'
+            : `Còn ${preview.attendanceReview.summary.missingDays} ngày chưa chấm công.`,
+        },
+        {
+          title: 'Bảng lương dự kiến',
+          ok: Boolean(preview.previewLoaded && !error),
+          label: preview.previewLoaded && !error ? 'Có thể xem' : 'Chưa tải được',
+        },
+        {
+          title: 'Gửi chốt',
+          ok: !preview.canSubmit && Boolean(preview.status),
+          label: preview.statusLabel,
+        },
+      ]
+    : []
 
   return (
     <section className="pcc-panel" aria-label="Chốt kỳ lương">
       <header className="pcc-panel__head">
         <div>
           <h3>Chốt kỳ lương</h3>
-          <p>Xem bảng lương dự kiến và gửi cho Admin khi chấm công đã đủ.</p>
+          <p>
+            Kiểm tra Tour, chấm công và bảng lương dự kiến trước khi gửi Admin duyệt.
+          </p>
         </div>
         <div className="pcc-panel__filters">
           <label>
-            Tháng gửi chốt
+            Tháng kỳ lương
             <input type="month" value={billingMonth} onChange={(e) => setBillingMonth(e.target.value)} />
           </label>
           <label>
@@ -119,9 +173,27 @@ export default function PayrollCycleClosePanel({
 
       <p className="pcc-panel__hint">
         {formatCloseCycleRangeLabel(billingMonth, cycle)}
-        {' · Gửi dự kiến '}
+        {' · Chốt từ '}
         {formatDate(getCloseCycleRange(billingMonth, cycle).submitDate)}
+        {' · '}
+        {cycleLabel}
       </p>
+
+      <div className="pcc-panel__quick-links">
+        <button type="button" className="pcc-panel__link-btn" onClick={() => requestAppNavigate('invoices')}>
+          Kiểm tra Tour
+        </button>
+        <button type="button" className="pcc-panel__link-btn" onClick={() => requestAppNavigate('attendance')}>
+          Kiểm tra chấm công
+        </button>
+        <button
+          type="button"
+          className="pcc-panel__link-btn"
+          onClick={() => document.getElementById('pcc-salary-preview')?.scrollIntoView({ behavior: 'smooth' })}
+        >
+          Xem bảng lương dự kiến
+        </button>
+      </div>
 
       {loading && <p className="pcc-panel__muted">Đang tải bảng lương dự kiến…</p>}
       {error && <p className="pcc-panel__error" role="alert">{error}</p>}
@@ -129,6 +201,18 @@ export default function PayrollCycleClosePanel({
 
       {preview && !loading && (
         <>
+          <div className="pcc-panel__checklist" aria-label="Checklist chốt kỳ">
+            <h4>Checklist trước khi gửi</h4>
+            <ul>
+              {checklistRows.map((row) => (
+                <li key={row.title} className={row.ok ? 'is-ok' : 'is-warn'}>
+                  <span>{row.title}</span>
+                  <strong>{row.label}</strong>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           <div className="pcc-panel__status">
             <span>Trạng thái phiếu</span>
             <strong>{preview.statusLabel}</strong>
@@ -149,7 +233,7 @@ export default function PayrollCycleClosePanel({
             </p>
           )}
 
-          <div className="pcc-panel__salary">
+          <div className="pcc-panel__salary" id="pcc-salary-preview">
             <h4>Bảng lương dự kiến</h4>
             <ul>
               {(salary.baseSalary ?? 0) > 0 && (
@@ -185,7 +269,7 @@ export default function PayrollCycleClosePanel({
               <p key={reason} className="pcc-panel__warn">{reason}</p>
             ))}
             {preview.attendanceReview.summary.missingDates?.length > 0 && (
-              <details>
+              <details open>
                 <summary>Ngày chưa chấm</summary>
                 <ul>
                   {preview.attendanceReview.summary.missingDates.map((date) => (
@@ -221,7 +305,7 @@ export default function PayrollCycleClosePanel({
               title={submitDisabled ? (preview.blockReasons[0] || 'Chưa đủ điều kiện gửi') : undefined}
               onClick={handleSubmit}
             >
-              {submitting ? 'Đang gửi…' : 'Gửi chốt kỳ lương cho Admin'}
+              {submitting ? 'Đang gửi…' : 'Gửi chốt kỳ lương'}
             </button>
           )}
         </>

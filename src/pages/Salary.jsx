@@ -40,12 +40,20 @@ import PayrollReconciliationActions from '../components/salary/PayrollReconcilia
 import PayrollCycleClosePanel from '../components/salary/PayrollCycleClosePanel'
 import PayrollCycleCloseAdminPanel from '../components/salary/PayrollCycleCloseAdminPanel'
 import { getDefaultCloseCycleSelection } from '../utils/payrollCycleClose/payCycleCalendar'
+import { listDuePayrollCloseTargets } from '../utils/payrollCycleClose/closeRemind'
+import { getTodayDate } from '../utils/invoiceStorage'
 import './Salary.css'
 
 const LEVEL = {
   BRANCHES: 'branches',
   EMPLOYEES: 'employees',
   PROFILE: 'profile',
+}
+
+function getPreferredCloseCycleDefaults() {
+  const due = listDuePayrollCloseTargets(getTodayDate())[0]
+  if (due) return { billingMonth: due.billingMonth, cycle: due.cycle }
+  return getDefaultCloseCycleSelection(getTodayDate())
 }
 
 function getInitialLevel() {
@@ -449,8 +457,8 @@ function SalaryPage() {
                 ? profileRow.employeeId === getCurrentUserEmployeeId()
                 : false
             }
-            defaultBillingMonth={getDefaultCloseCycleSelection().billingMonth}
-            defaultCycle={getDefaultCloseCycleSelection().cycle}
+            defaultBillingMonth={getPreferredCloseCycleDefaults().billingMonth}
+            defaultCycle={getPreferredCloseCycleDefaults().cycle}
           />
         </>
       )}

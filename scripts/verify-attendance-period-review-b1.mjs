@@ -20,26 +20,26 @@ import { ATTENDANCE_STATUS } from '../src/constants/attendanceTypes.js'
 
 console.log('\n=== UAT Batch 1 — Attendance period review ===\n')
 
-// Kỳ 1 tháng 8 = 16/07–31/07, submit 02/08
+// Kỳ 1 tháng 8 = 01/08–15/08, submit 17/08
 {
   const range = getCloseCycleRange('2026-08', CLOSE_CYCLES.PERIOD_1)
-  assert.equal(range.fromDate, '2026-07-16')
-  assert.equal(range.toDate, '2026-07-31')
-  assert.equal(range.submitDate, '2026-08-02')
-  console.log('  [PASS] Kỳ 1 tháng 8 = 16/07–31/07 · gửi 02/08')
-}
-
-// Kỳ 2 tháng 8 = 01/08–15/08, submit 17/08
-{
-  const range = getCloseCycleRange('2026-08', CLOSE_CYCLES.PERIOD_2)
   assert.equal(range.fromDate, '2026-08-01')
   assert.equal(range.toDate, '2026-08-15')
   assert.equal(range.submitDate, '2026-08-17')
-  console.log('  [PASS] Kỳ 2 tháng 8 = 01/08–15/08 · gửi 17/08')
+  console.log('  [PASS] Kỳ 1 tháng 8 = 01/08–15/08 · gửi 17/08')
+}
+
+// Kỳ 2 tháng 8 = 16/08–31/08, submit 02/09
+{
+  const range = getCloseCycleRange('2026-08', CLOSE_CYCLES.PERIOD_2)
+  assert.equal(range.fromDate, '2026-08-16')
+  assert.equal(range.toDate, '2026-08-31')
+  assert.equal(range.submitDate, '2026-09-02')
+  console.log('  [PASS] Kỳ 2 tháng 8 = 16/08–31/08 · gửi 02/09')
 }
 
 assert.ok(getCloseCycleLabel(CLOSE_CYCLES.PERIOD_1).includes('Kỳ 1'))
-assert.ok(!getCloseCycleLabel(CLOSE_CYCLES.PERIOD_1).includes('ngày 1 – 15'))
+assert.ok(getCloseCycleLabel(CLOSE_CYCLES.PERIOD_1).includes('01–15'))
 
 {
   const resolved = resolveAttendanceReviewRange({
@@ -47,8 +47,8 @@ assert.ok(!getCloseCycleLabel(CLOSE_CYCLES.PERIOD_1).includes('ngày 1 – 15'))
     billingMonth: '2026-08',
     cycle: CLOSE_CYCLES.PERIOD_1,
   })
-  assert.equal(resolved.fromDate, '2026-07-16')
-  assert.equal(resolved.toDate, '2026-07-31')
+  assert.equal(resolved.fromDate, '2026-08-01')
+  assert.equal(resolved.toDate, '2026-08-15')
 }
 
 assert.equal(isValidAttendanceRecord({ status: ATTENDANCE_STATUS.ON_TIME }), true)
