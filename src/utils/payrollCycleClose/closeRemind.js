@@ -6,7 +6,7 @@ import { getEmployeeById } from '../employeeStorage'
 import { getCurrentUser } from '../../constants/auth'
 import { checkUnsyncedLocalInvoices } from '../invoiceLegacyMigrate'
 import { loadCorrectionRequestsForEmployeeRange } from '../attendanceEditRequestService'
-import { buildEmployeeAttendancePeriodDays } from './attendancePeriodReview'
+import { buildEmployeeAttendancePeriodDays, isAttendanceOptionalForCloseCycle } from './attendancePeriodReview'
 import {
   SONG_KHOE_REMIND_PERIOD_START,
   SONG_KHOE_SPA_BRANCH_ID,
@@ -110,6 +110,7 @@ export async function buildPayrollCloseRemindChecklist({
     ).catch(() => []),
   ])
 
+  const employee = getEmployeeById(employeeId)
   const attendanceReview = buildEmployeeAttendancePeriodDays({
     employeeId,
     records: attendanceRows ?? [],
@@ -117,6 +118,8 @@ export async function buildPayrollCloseRemindChecklist({
     toDate: target.toDate,
     todayDate,
     correctionRequests: corrections,
+    employmentStartDate: employee?.startDate || '',
+    employmentEndDate: employee?.endDate || employee?.daysOff || '',
   })
 
   const existing = await fetchPayrollCycleClose({
@@ -125,11 +128,12 @@ export async function buildPayrollCloseRemindChecklist({
     cycle: target.cycle,
   })
   const status = existing?.status ?? null
-  const missingDays = attendanceReview.summary.missingDays ?? 0
-  const missingDates = attendanceReview.summary.missingDates ?? []
+  const attendanceWaiver = isAttendanceOptionalForCloseCycle(target.billingMonth, target.cycle)
+  const missingDays = attendanceWaiver ? 0 : (attendanceReview.summary.missingDays ?? 0)
+  const missingDates = attendanceWaiver ? [] : (attendanceReview.summary.missingDates ?? [])
 
   const tourOk = !syncCheck.error && !syncCheck.hasUnsynced
-  const attendanceOk = attendanceReview.summary.isComplete
+  const attendanceOk = attendanceWaiver || attendanceReview.summary.isComplete
   const salaryOk = true
 
   return {
@@ -148,9 +152,11 @@ export async function buildPayrollCloseRemindChecklist({
     },
     attendance: {
       ok: attendanceOk,
-      label: attendanceOk
-        ? 'Đã đủ'
-        : `Còn ${missingDays} ngày chưa chấm công.`,
+      label: attendanceWaiver
+        ? 'Ngoại lệ Kỳ 1/07 — không bắt buộc'
+        : attendanceOk
+          ? 'Đã đủ'
+          : `Còn ${missingDays} ngày chưa chấm công.`,
       missingDays,
       missingDates,
       needsAttendance: !attendanceOk && missingDays > 0,

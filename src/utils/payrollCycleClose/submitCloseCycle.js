@@ -11,7 +11,7 @@ import {
   insertPayrollCycleCloseEvent,
   upsertPayrollCycleClose,
 } from '../../repositories/payrollCycleCloseRepository'
-import { buildCloseCyclePreview } from './buildCloseCyclePreview'
+import { buildCloseCyclePreview, buildCloseCycleSnapshot } from './buildCloseCyclePreview'
 import {
   buildCloseCycleId,
   canSubmitCloseCycle,
@@ -20,6 +20,9 @@ import {
 } from './closeCycleStatus'
 import { CLOSE_CYCLES, getCloseCycleRange } from './payCycleCalendar'
 import { notifyDataSynced } from '../dataSyncEvents'
+import {
+  areCloseConfirmationsComplete,
+} from './closeConfirmations'
 
 function assertActorIsEmployeeOwner(employeeId) {
   const actorId = getCurrentUserEmployeeId()
@@ -48,8 +51,13 @@ export async function submitCloseCycle({
   billingMonth,
   cycle,
   todayDate = getTodayDate(),
+  confirmations = null,
 }) {
   const actorId = assertActorIsEmployeeOwner(employeeId)
+
+  if (!areCloseConfirmationsComplete(confirmations)) {
+    throw new Error('Vui lòng xác nhận đủ 3 nội dung kiểm tra trước khi gửi bảng chốt lương.')
+  }
 
   const preview = await buildCloseCyclePreview({
     employeeId,
@@ -69,7 +77,7 @@ export async function submitCloseCycle({
   }
 
   if (!preview.attendanceComplete) {
-    throw new Error(preview.blockReasons[0] || 'Chấm công chưa đầy đủ.')
+    throw new Error(preview.blockReasons.find((r) => /chấm công|bổ sung/i.test(r)) || 'Chấm công chưa đầy đủ.')
   }
 
   if (!preview.previewLoaded) {
@@ -88,9 +96,12 @@ export async function submitCloseCycle({
   }
 
   const nextStatus = resolveNextSubmitStatus(currentStatus)
-  const snapshot = preview.snapshot
+  const snapshot = buildCloseCycleSnapshot(preview, confirmations)
   if (!snapshot?.totals || !snapshot?.attendance) {
     throw new Error('Snapshot lương không hợp lệ.')
+  }
+  if (!snapshot.confirmations || !areCloseConfirmationsComplete(snapshot.confirmations)) {
+    throw new Error('Snapshot thiếu xác nhận của nhân viên.')
   }
 
   const now = new Date().toISOString()

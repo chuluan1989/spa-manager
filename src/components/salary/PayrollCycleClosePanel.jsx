@@ -12,6 +12,11 @@ import { listDuePayrollCloseTargets } from '../../utils/payrollCycleClose/closeR
 import { buildCloseCyclePreview } from '../../utils/payrollCycleClose/buildCloseCyclePreview'
 import { submitCloseCycle } from '../../utils/payrollCycleClose/submitCloseCycle'
 import { ATTENDANCE_DAY_RESULT } from '../../utils/payrollCycleClose/attendancePeriodReview'
+import {
+  CLOSE_CONFIRMATION_ITEMS,
+  areCloseConfirmationsComplete,
+  emptyCloseConfirmations,
+} from '../../utils/payrollCycleClose/closeConfirmations'
 import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import {
   consumePayrollClosePrefill,
@@ -58,6 +63,7 @@ export default function PayrollCycleClosePanel({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [confirmations, setConfirmations] = useState(() => emptyCloseConfirmations())
 
   const reload = useCallback(async () => {
     if (!employeeId) {
@@ -75,6 +81,7 @@ export default function PayrollCycleClosePanel({
         todayDate: getTodayDate(),
       })
       setPreview(next)
+      setConfirmations(emptyCloseConfirmations())
     } catch (err) {
       setPreview(null)
       setError(err?.message ?? 'Không tải được bảng lương dự kiến.')
@@ -89,16 +96,20 @@ export default function PayrollCycleClosePanel({
 
   const handleSubmit = async () => {
     if (!canSubmit || !preview?.canSubmit || submitting) return
+    if (!areCloseConfirmationsComplete(confirmations)) {
+      setError('Vui lòng tick đủ 3 xác nhận trước khi gửi bảng chốt lương.')
+      return
+    }
     const ok = window.confirm(
-      `Gửi chốt ${formatCloseCycleRangeLabel(billingMonth, cycle)} cho Admin duyệt?\n\nSau khi gửi bạn không sửa được phiếu cho đến khi Admin trả lại.`,
+      `Gửi bảng chốt lương ${formatCloseCycleRangeLabel(billingMonth, cycle)} cho Admin duyệt?\n\nSau khi gửi bạn không sửa được phiếu cho đến khi Admin trả lại.`,
     )
     if (!ok) return
     setSubmitting(true)
     setMessage('')
     setError('')
     try {
-      await submitCloseCycle({ employeeId, billingMonth, cycle })
-      setMessage('Đã gửi chốt kỳ lương cho Admin.')
+      await submitCloseCycle({ employeeId, billingMonth, cycle, confirmations })
+      setMessage('Đã gửi bảng chốt lương. Quản lý và Admin đã nhận việc cần xử lý.')
       await reload()
     } catch (err) {
       setError(err?.message ?? 'Không gửi được chốt kỳ lương.')
@@ -110,7 +121,15 @@ export default function PayrollCycleClosePanel({
   if (!employeeId) return null
 
   const salary = preview?.salary
-  const submitDisabled = !canSubmit || !preview?.canSubmit || submitting || loading || Boolean(error)
+  const confirmationsComplete = areCloseConfirmationsComplete(confirmations)
+  const submitDisabled = (
+    !canSubmit
+    || !preview?.canSubmit
+    || !confirmationsComplete
+    || submitting
+    || loading
+    || Boolean(error && !preview)
+  )
   const cycleLabel = cycle === CLOSE_CYCLES.PERIOD_1 ? 'Kỳ 1' : 'Kỳ 2'
 
   const checklistRows = preview
@@ -128,7 +147,7 @@ export default function PayrollCycleClosePanel({
           title: 'Chấm công',
           ok: preview.attendanceComplete,
           label: preview.attendanceComplete
-            ? 'Đã đủ'
+            ? (preview.attendanceWaiver ? 'Ngoại lệ Kỳ 1/07 — không bắt buộc' : 'Đã đủ')
             : `Còn ${preview.attendanceReview.summary.missingDays} ngày chưa chấm công.`,
         },
         {
@@ -268,6 +287,9 @@ export default function PayrollCycleClosePanel({
             {preview.blockReasons.map((reason) => (
               <p key={reason} className="pcc-panel__warn">{reason}</p>
             ))}
+            {(preview.infoNotes ?? []).map((note) => (
+              <p key={note} className="pcc-panel__muted">{note}</p>
+            ))}
             {preview.attendanceReview.summary.missingDates?.length > 0 && (
               <details open>
                 <summary>Ngày chưa chấm</summary>
@@ -298,15 +320,42 @@ export default function PayrollCycleClosePanel({
           </div>
 
           {canSubmit && (
-            <button
-              type="button"
-              className="pcc-panel__submit"
-              disabled={submitDisabled}
-              title={submitDisabled ? (preview.blockReasons[0] || 'Chưa đủ điều kiện gửi') : undefined}
-              onClick={handleSubmit}
-            >
-              {submitting ? 'Đang gửi…' : 'Gửi chốt kỳ lương'}
-            </button>
+            <>
+              <div className="pcc-panel__confirmations" aria-label="Xác nhận trước khi gửi">
+                <h4>Xác nhận trước khi gửi</h4>
+                <p className="pcc-panel__muted">Chỉ xác nhận dữ liệu trong kỳ đang gửi — không yêu cầu kỳ cũ.</p>
+                {CLOSE_CONFIRMATION_ITEMS.map((item) => (
+                  <label key={item.key} className="pcc-panel__confirm-item">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(confirmations[item.key])}
+                      onChange={(e) => {
+                        setConfirmations((prev) => ({
+                          ...prev,
+                          [item.key]: e.target.checked,
+                        }))
+                      }}
+                    />
+                    <span>{item.label}</span>
+                  </label>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="pcc-panel__submit"
+                disabled={submitDisabled}
+                title={
+                  submitDisabled
+                    ? (!confirmationsComplete
+                      ? 'Cần tick đủ 3 xác nhận'
+                      : (preview.blockReasons.find((r) => !r.includes('Ngoại lệ')) || 'Chưa đủ điều kiện gửi'))
+                    : undefined
+                }
+                onClick={handleSubmit}
+              >
+                {submitting ? 'Đang gửi…' : 'Gửi bảng chốt lương'}
+              </button>
+            </>
           )}
         </>
       )}

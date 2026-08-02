@@ -7,11 +7,18 @@ export const ATTENDANCE_DAY_RESULT = {
   MISSING: 'missing',
   PENDING_CORRECTION: 'pending_correction',
   FUTURE: 'future',
+  OUT_OF_EMPLOYMENT: 'out_of_employment',
 }
 
 export const MISSING_ATTENDANCE_LABEL = 'Chưa chấm công'
 export const PENDING_CORRECTION_LABEL = 'Chờ duyệt bổ sung'
 export const FUTURE_ATTENDANCE_LABEL = 'Chưa đến ngày'
+export const OUT_OF_EMPLOYMENT_LABEL = 'Ngoài thời gian làm việc'
+
+/** Ngoại lệ lịch sử một lần: Kỳ 1 tháng 07/2026 — không bắt buộc đủ chấm công để gửi chốt. */
+export function isAttendanceOptionalForCloseCycle(billingMonth, cycle) {
+  return billingMonth === '2026-07' && cycle === CLOSE_CYCLES.PERIOD_1
+}
 
 /** Bản ghi hợp lệ = có status và không void/hủy. */
 export function isValidAttendanceRecord(record) {
@@ -42,13 +49,19 @@ function pickPendingCorrection(requests, employeeId, date) {
   )) ?? null
 }
 
+function isOutsideEmployment(date, employmentStartDate, employmentEndDate) {
+  if (employmentStartDate && date < employmentStartDate) return true
+  if (employmentEndDate && date > employmentEndDate) return true
+  return false
+}
+
 /**
  * Danh sách ngày trong kỳ + kết quả chấm công.
+ * - Chỉ xét fromDate–toDate được truyền vào (đúng kỳ đang chốt).
+ * - Ngày trước startDate / sau endDate → không tính thiếu, không chặn chốt.
  * - Không có bản ghi hợp lệ → "Chưa chấm công" (KHÔNG tự thành nghỉ không phép).
  * - Có yêu cầu pending → "Chờ duyệt bổ sung" (vẫn chặn chốt lương).
  * - Ngày hiện tại / tương lai không tính thiếu.
- *
- * @param {object[]} [options.correctionRequests] — yêu cầu bổ sung (pending/rejected/…)
  */
 export function buildEmployeeAttendancePeriodDays({
   employeeId,
@@ -57,6 +70,8 @@ export function buildEmployeeAttendancePeriodDays({
   toDate,
   todayDate = '',
   correctionRequests = [],
+  employmentStartDate = '',
+  employmentEndDate = '',
 }) {
   if (!employeeId || !fromDate || !toDate) {
     return { days: [], summary: emptySummary() }
@@ -64,6 +79,22 @@ export function buildEmployeeAttendancePeriodDays({
 
   const dates = listDatesInclusive(fromDate, toDate)
   const days = dates.map((date) => {
+    if (isOutsideEmployment(date, employmentStartDate, employmentEndDate)) {
+      return {
+        date,
+        result: ATTENDANCE_DAY_RESULT.OUT_OF_EMPLOYMENT,
+        resultLabel: OUT_OF_EMPLOYMENT_LABEL,
+        status: '',
+        record: null,
+        correctionRequest: null,
+        isMissing: false,
+        isPendingCorrection: false,
+        blocksClose: false,
+        isRequired: false,
+        canRequestCorrection: false,
+      }
+    }
+
     const record = pickValidAttendanceForDate(records, employeeId, date)
     if (record) {
       return {

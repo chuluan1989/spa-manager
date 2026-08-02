@@ -11,7 +11,9 @@ import { CLOSE_CYCLES, getCloseCycleRange, shiftMonthValue } from './payCycleCal
 import {
   buildEmployeeAttendancePeriodDays,
   formatCloseBlockAttendanceMessage,
+  isAttendanceOptionalForCloseCycle,
 } from './attendancePeriodReview'
+import { buildCloseConfirmationsSnapshot } from './closeConfirmations'
 import { loadCorrectionRequestsForEmployeeRange } from '../attendanceEditRequestService'
 import {
   canSubmitCloseCycle,
@@ -136,11 +138,14 @@ export async function buildCloseCyclePreview({
     toDate: range.toDate,
     todayDate,
     correctionRequests,
+    employmentStartDate: employee.startDate || '',
+    employmentEndDate: employee.endDate || employee.daysOff || '',
   })
 
   const existing = await fetchPayrollCycleClose({ employeeId, billingMonth, cycle })
   const status = existing?.status ?? null
-  const attendanceComplete = attendanceReview.summary.isComplete
+  const attendanceWaiver = isAttendanceOptionalForCloseCycle(billingMonth, cycle)
+  const attendanceComplete = attendanceWaiver || attendanceReview.summary.isComplete
 
   const syncCheck = await checkUnsyncedLocalInvoices(getCurrentUser()).catch((err) => ({
     hasUnsynced: false,
@@ -199,12 +204,14 @@ export async function buildCloseCyclePreview({
     existing,
     attendanceReview,
     attendanceComplete,
+    attendanceWaiver,
     invoicesSynced,
     unsyncedInvoiceCount: syncCheck.count ?? 0,
     unsyncedInvoiceError: syncCheck.error || null,
     previewLoaded,
     canSubmit,
     blockReasons: [],
+    infoNotes: [],
     salary,
     details,
   }
@@ -212,7 +219,11 @@ export async function buildCloseCyclePreview({
   // Snapshot gắn sẵn vào preview — UI/submit dùng chung 1 kết quả
   preview.snapshot = buildCloseCycleSnapshot(preview)
 
-  if (!attendanceComplete) {
+  if (attendanceWaiver) {
+    preview.infoNotes.push(
+      'Ngoại lệ Kỳ 1 tháng 07/2026: không bắt buộc đủ chấm công lịch sử để gửi chốt.',
+    )
+  } else if (!attendanceComplete) {
     preview.blockReasons.push(formatCloseBlockAttendanceMessage(attendanceReview.summary))
   }
   if (syncCheck.error) {
@@ -236,12 +247,13 @@ export async function buildCloseCyclePreview({
 }
 
 /** Build snapshot từ cùng preview (không tính lương lại). */
-export function buildCloseCycleSnapshot(preview) {
+export function buildCloseCycleSnapshot(preview, confirmations = null) {
   const salary = preview.salary
   const version = Number(preview.existing?.submissionVersion ?? 0) + 1
+  const capturedAt = new Date().toISOString()
   return {
     version,
-    capturedAt: new Date().toISOString(),
+    capturedAt,
     period: {
       billingMonth: preview.billingMonth,
       cycle: preview.cycle,
@@ -257,6 +269,7 @@ export function buildCloseCycleSnapshot(preview) {
     },
     attendance: {
       summary: preview.attendanceReview.summary,
+      waiver: Boolean(preview.attendanceWaiver),
       days: preview.attendanceReview.days.map((day) => ({
         date: day.date,
         result: day.result,
@@ -282,5 +295,8 @@ export function buildCloseCycleSnapshot(preview) {
       netSalary: salary.netSalary,
       invoiceCount: salary.invoiceCount,
     },
+    confirmations: confirmations
+      ? buildCloseConfirmationsSnapshot(confirmations, capturedAt)
+      : (preview.existing?.snapshot?.confirmations ?? null),
   }
 }

@@ -104,6 +104,33 @@
   color: #b45309;
 }
 
+.pcc-panel__confirmations {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pcc-panel__confirmations h4 {
+  margin: 0;
+}
+
+.pcc-panel__confirm-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.pcc-panel__confirm-item input {
+  margin-top: 3px;
+}
+
 .pcc-panel__status {
   display: flex;
   justify-content: space-between;

@@ -40,6 +40,7 @@ import { runAutoAbsentNightlyJob } from '../utils/autoAbsentAttendanceService'
 import { adminVoidAttendance } from '../utils/attendanceService'
 import { canEditAttendanceRecord } from '../utils/attendanceEditPolicy'
 import { fetchPayrollLocks } from '../repositories/payrollRepository'
+import { consumeAttendanceScreenPrefill } from '../utils/navigationPrefill'
 import './Attendance.css'
 
 function formatDate(value) {
@@ -161,7 +162,7 @@ export default function Attendance({ onNavigate } = {}) {
 
 function AttendancePage() {
   const syncVersion = useDataSyncVersion()
-  const [screen, setScreen] = useState('period')
+  const [screen, setScreen] = useState(() => consumeAttendanceScreenPrefill() || 'period')
   const [todayDate, setTodayDate] = useState('')
   const [month, setMonth] = useState(() => getTodayDate().slice(0, 7))
   const [fromDate, setFromDate] = useState(() => `${getTodayDate().slice(0, 7)}-01`)

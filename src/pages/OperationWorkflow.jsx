@@ -11,9 +11,11 @@ import {
   ManagerNotesPanel,
   PerformanceHistoryPanel,
 } from '../components/operationWorkflow/OperationWorkflowPanels'
+import { PendingWorkInboxPanel } from '../components/operationWorkflow/PendingWorkInboxPanel'
 import '../components/operationWorkflow/OperationWorkflow.css'
 
 const TABS = [
+  { id: 'pending', label: 'Cần xử lý' },
   { id: 'tasks', label: 'Daily Task' },
   { id: 'targets', label: 'Daily Target' },
   { id: 'notes', label: 'Manager Action' },
@@ -23,7 +25,7 @@ const TABS = [
 ]
 
 export default function OperationWorkflow() {
-  const [tab, setTab] = useState(isEmployee() ? 'timeline' : 'tasks')
+  const [tab, setTab] = useState(isEmployee() ? 'timeline' : 'pending')
   const [branchId, setBranchId] = useState('')
   const [employeeId, setEmployeeId] = useState('')
   const [timelineDate, setTimelineDate] = useState('')
@@ -45,7 +47,7 @@ export default function OperationWorkflow() {
       <header className="ow-page__header">
         <div>
           <h1>Công việc</h1>
-          <p className="ow-muted">Điều hành hằng ngày — task, KPI, ghi chú, timeline, lịch sử & audit.</p>
+          <p className="ow-muted">Việc cần xử lý, task ngày, KPI, ghi chú, timeline & audit.</p>
         </div>
         <button type="button" className="ow-btn" onClick={data.reload} disabled={data.loading}>
           {data.loading ? 'Đang tải…' : 'Làm mới'}
@@ -56,7 +58,9 @@ export default function OperationWorkflow() {
 
       <div className="ow-tabs" role="tablist">
         {TABS.filter((t) => {
-          if (isEmployee() && (t.id === 'tasks' || t.id === 'notes' || t.id === 'audit')) return false
+          if (isEmployee() && (t.id === 'pending' || t.id === 'tasks' || t.id === 'notes' || t.id === 'audit')) {
+            return false
+          }
           return true
         }).map((t) => (
           <button
@@ -71,6 +75,10 @@ export default function OperationWorkflow() {
         ))}
       </div>
 
+      {tab === 'pending' ? (
+        <PendingWorkInboxPanel />
+      ) : (
+        <>
       <div className="ow-filters">
         {canSelectBranch() && (
           <label>
@@ -156,6 +164,8 @@ export default function OperationWorkflow() {
 
       {tab === 'audit' && (
         <AuditLogPanel logs={data.auditLogs} />
+      )}
+        </>
       )}
     </div>
   )

@@ -23,7 +23,7 @@ import './Sidebar.css'
 const APP_VERSION = 'v1.4.0'
 
 /** Ẩn khỏi sidebar Admin — không xóa khỏi navigation config. */
-const ADMIN_HIDDEN_NAV_IDS = new Set(['payroll1-admin', 'operation-workflow'])
+const ADMIN_HIDDEN_NAV_IDS = new Set(['payroll1-admin'])
 
 function getSidebarUserName() {
   const user = getCurrentUser()

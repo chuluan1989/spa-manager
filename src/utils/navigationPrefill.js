@@ -80,6 +80,38 @@ export function consumePayrollClosePrefill() {
   }
 }
 
+const PAYROLL_CLOSE_REVIEW_PREFILL_KEY = 'spa-manager-payroll-close-review-prefill'
+const ATTENDANCE_SCREEN_PREFILL_KEY = 'spa-manager-attendance-screen-prefill'
+
+/** Prefill Admin/QL mở đúng phiếu chốt cần duyệt. */
+export function setPayrollCloseReviewPrefill(payload = {}) {
+  if (!payload?.employeeId || !payload?.billingMonth || !payload?.cycle) return
+  sessionStorage.setItem(PAYROLL_CLOSE_REVIEW_PREFILL_KEY, JSON.stringify(payload))
+}
+
+export function consumePayrollCloseReviewPrefill() {
+  const raw = sessionStorage.getItem(PAYROLL_CLOSE_REVIEW_PREFILL_KEY)
+  sessionStorage.removeItem(PAYROLL_CLOSE_REVIEW_PREFILL_KEY)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+/** Prefill tab Chấm công (vd. requests). */
+export function setAttendanceScreenPrefill(screen) {
+  if (!screen) return
+  sessionStorage.setItem(ATTENDANCE_SCREEN_PREFILL_KEY, screen)
+}
+
+export function consumeAttendanceScreenPrefill() {
+  const screen = sessionStorage.getItem(ATTENDANCE_SCREEN_PREFILL_KEY)
+  sessionStorage.removeItem(ATTENDANCE_SCREEN_PREFILL_KEY)
+  return screen || null
+}
+
 /** Điều hướng app một lần (Tour / Chấm công / Lương) từ panel chốt kỳ. */
 export function requestAppNavigate(pageId) {
   if (!pageId) return

@@ -9,6 +9,7 @@ import { getActiveBranches } from '../../constants/branches'
 import { formatCurrency } from '../../utils/invoice'
 import { getTodayDate } from '../../utils/invoiceStorage'
 import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
+import { consumePayrollCloseReviewPrefill } from '../../utils/navigationPrefill'
 import {
   CLOSE_CYCLE_OPTIONS,
   CLOSE_CYCLES,
@@ -47,16 +48,22 @@ function formatDateTime(value) {
 export default function PayrollCycleCloseAdminPanel() {
   const canManage = isAdmin() || isBranchManager()
   const syncVersion = useDataSyncVersion()
+  const reviewPrefill = consumePayrollCloseReviewPrefill()
   const defaults = getDefaultCloseCycleSelection(getTodayDate())
-  const [billingMonth, setBillingMonth] = useState(defaults.billingMonth)
-  const [cycle, setCycle] = useState(defaults.cycle)
+  const [billingMonth, setBillingMonth] = useState(
+    () => reviewPrefill?.billingMonth || defaults.billingMonth,
+  )
+  const [cycle, setCycle] = useState(() => reviewPrefill?.cycle || defaults.cycle)
   const [branchId, setBranchId] = useState(() => (isAdmin() ? '' : getCurrentUserBranch()))
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState(() => (
+    reviewPrefill ? '' : ''
+  ))
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedId, setSelectedId] = useState(null)
+  const [selectedId, setSelectedId] = useState(() => reviewPrefill?.closeId || null)
   const [busy, setBusy] = useState(false)
+  const [focusEmployeeId] = useState(() => reviewPrefill?.employeeId || '')
 
   const reload = useCallback(async () => {
     if (!canManage) {
@@ -73,15 +80,21 @@ export default function PayrollCycleCloseAdminPanel() {
         cycle,
         branchId: scopedBranch || '',
         status: statusFilter || '',
+        employeeId: focusEmployeeId || '',
       })
       setRows(data)
+      if (focusEmployeeId) {
+        const match = data.find((row) => row.employeeId === focusEmployeeId)
+          || data.find((row) => row.id === selectedId)
+        if (match) setSelectedId(match.id)
+      }
     } catch (err) {
       setError(err?.message ?? 'Không tải được danh sách phiếu chốt.')
       setRows([])
     } finally {
       setLoading(false)
     }
-  }, [canManage, billingMonth, cycle, branchId, statusFilter])
+  }, [canManage, billingMonth, cycle, branchId, statusFilter, focusEmployeeId])
 
   useEffect(() => {
     reload()
