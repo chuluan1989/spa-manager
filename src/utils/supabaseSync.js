@@ -112,16 +112,31 @@ const MIGRATION_FLAG_KEY = 'spa-manager-supabase-migrated-v1'
 import { notifyDataSynced, SYNC_EVENT } from './dataSyncEvents'
 // Realtime lo phần "gần như tức thời"; interval này chỉ là lưới an toàn dự
 // phòng khi kênh Realtime bị rớt (mất mạng, hết phiên...).
-const DEFAULT_SYNC_INTERVAL_MS = 30000
+const DEFAULT_SYNC_INTERVAL_MS = 180000
+const STALE_THRESHOLD_MS = 180000
 // Các bảng bật Realtime — khi có thay đổi (thiết bị khác ghi lên Supabase),
 // kéo lại dữ liệu gần như ngay lập tức thay vì chờ tới vòng polling kế tiếp.
-const REALTIME_TABLES = ['branches', 'employees', 'services', 'branch_pricing', 'branch_commission_policies', 'branch_catalogs', 'invoices', 'expenses', 'service_categories', 'catalog_services', 'service_durations', 'branch_service_prices']
+// Không lắng nghe service_categories/catalog_services/service_durations — pullAll không đọc các bảng đó.
+const REALTIME_TABLES = [
+  'branches',
+  'employees',
+  'services',
+  'branch_pricing',
+  'branch_commission_policies',
+  'branch_catalogs',
+  'invoices',
+  'expenses',
+  'branch_service_prices',
+]
 const REALTIME_DEBOUNCE_MS = 400
 
 let syncTimerId = null
 let syncInFlight = false
 let realtimeChannel = null
 let realtimeDebounceTimer = null
+let syncIntervalMs = DEFAULT_SYNC_INTERVAL_MS
+let visibilityHandler = null
+let lastSuccessfulPullAt = 0
 
 // -------------------- Event bus (thông báo UI khi có dữ liệu mới) --------------------
 
@@ -304,11 +319,29 @@ export async function pullAllFromSupabase() {
 
   syncInFlight = false
 
+  if (errors.length === 0) {
+    lastSuccessfulPullAt = Date.now()
+  }
+
   if (changed.length > 0) {
     notifyDataSynced(changed)
   }
 
   return { success: errors.length === 0, changed, errors }
+}
+
+/** Chỉ pullAll khi dữ liệu đã stale hoặc user/ boot bắt buộc (force). */
+export async function maybePullIfStale(force = false) {
+  if (!isSupabaseConfigured) return { success: false, reason: 'not_configured' }
+  if (!force && lastSuccessfulPullAt > 0 && Date.now() - lastSuccessfulPullAt < STALE_THRESHOLD_MS) {
+    return { success: true, skipped: true, reason: 'not_stale' }
+  }
+  return pullAllFromSupabase()
+}
+
+/** Làm mới thủ công — bỏ qua stale gate. */
+export async function refreshAllFromSupabase() {
+  return maybePullIfStale(true)
 }
 
 // -------------------- Push: LocalStorage -> Supabase (migration) --------------------
@@ -424,7 +457,7 @@ function scheduleRealtimePull() {
   if (realtimeDebounceTimer) clearTimeout(realtimeDebounceTimer)
   realtimeDebounceTimer = setTimeout(() => {
     realtimeDebounceTimer = null
-    pullAllFromSupabase()
+    maybePullIfStale()
   }, REALTIME_DEBOUNCE_MS)
 }
 
@@ -512,19 +545,46 @@ export function startAutoSync({ intervalMs = DEFAULT_SYNC_INTERVAL_MS, skipIniti
   if (!isSupabaseConfigured) return () => {}
   if (syncTimerId || realtimeChannel) return stopAutoSync
 
+  syncIntervalMs = intervalMs
+
   if (!skipInitialPull) {
     autoMigrateIfNeeded()
       .catch((error) => console.warn('[Supabase] autoMigrateIfNeeded lỗi:', error?.message))
       .finally(() => {
-        pullAllFromSupabase()
+        maybePullIfStale(true)
       })
   }
 
   startRealtimeSubscriptions()
 
-  syncTimerId = setInterval(() => {
-    pullAllFromSupabase()
-  }, intervalMs)
+  const startPolling = () => {
+    if (syncTimerId) return
+    syncTimerId = setInterval(() => {
+      maybePullIfStale()
+    }, syncIntervalMs)
+  }
+
+  const stopPolling = () => {
+    if (syncTimerId) {
+      clearInterval(syncTimerId)
+      syncTimerId = null
+    }
+  }
+
+  if (typeof document === 'undefined' || !document.hidden) {
+    startPolling()
+  }
+
+  if (typeof document !== 'undefined') {
+    visibilityHandler = () => {
+      if (document.hidden) {
+        stopPolling()
+        return
+      }
+      startPolling()
+    }
+    document.addEventListener('visibilitychange', visibilityHandler)
+  }
 
   return stopAutoSync
 }
@@ -533,6 +593,10 @@ export function stopAutoSync() {
   if (syncTimerId) {
     clearInterval(syncTimerId)
     syncTimerId = null
+  }
+  if (visibilityHandler && typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+    visibilityHandler = null
   }
   stopRealtimeSubscriptions()
 }
