@@ -390,6 +390,7 @@ function App() {
       {isEmployee() && (
         <MissingAttendanceRemindBanner
           key={`${syncVersion}-${missingAttendRemindKey}`}
+          todayDate={todayServerDate || undefined}
           onGoAttendance={() => handleNavigate('attendance')}
           onDismiss={() => setMissingAttendRemindKey((n) => n + 1)}
         />
