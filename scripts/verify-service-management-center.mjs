@@ -103,9 +103,9 @@ async function testAsync(name, fn) {
   }
 }
 
-test('A: create service with pricing appears only in selected branch', () => {
+await testAsync('A: create service with pricing appears only in selected branch', async () => {
   const treeBefore = getBranchPricingMatrix(BRANCH_B).length
-  const { duration } = createServiceWithPricing({
+  const { duration } = await createServiceWithPricing({
     branchId: BRANCH_A,
     categoryId,
     name: 'Test Svc Mgmt',
@@ -113,6 +113,9 @@ test('A: create service with pricing appears only in selected branch', () => {
     durationMinutes: 45,
     price: 150000,
     commissionPercent: 25,
+    reason: 'uat',
+    skipOnlineGuard: true,
+    skipRemote: true,
   })
 
   const rowA = getBranchPricingMatrix(BRANCH_A).find((r) => r.durationId === duration.id)
@@ -122,10 +125,10 @@ test('A: create service with pricing appears only in selected branch', () => {
   assert.equal(getBranchPricingMatrix(BRANCH_B).length, treeBefore)
 })
 
-test('B: price update updates matrix', () => {
+await testAsync('B: price update updates matrix', async () => {
   const row = getBranchPricingMatrix(BRANCH_A).find((r) => r.serviceName === 'Test Svc Mgmt')
   assert.ok(row)
-  setBranchDurationPrice(BRANCH_A, row.durationId, { price: 175000, commissionPercent: row.commissionPercent }, { log: false })
+  await setBranchDurationPrice(BRANCH_A, row.durationId, { price: 175000, commissionPercent: row.commissionPercent }, { log: false, skipOnlineGuard: true, skipRemote: true })
   const updated = getBranchPricingMatrix(BRANCH_A).find((r) => r.durationId === row.durationId)
   assert.equal(updated.price, 175000)
 })
@@ -149,17 +152,20 @@ test('D: inactive service excluded from active picker', () => {
   setDurationVisibility(BRANCH_A, row.durationId, ITEM_STATUS.ACTIVE)
 })
 
-test('Seed: tram-spa keeps admin-added service after reload', () => {
+await testAsync('Seed: tram-spa keeps admin-added service after reload', async () => {
   const tramCategoryId = getCatalogAdminTree(TRAM_SPA)[0]?.id
   assert.ok(tramCategoryId)
   const before = getBranchPricingMatrix(TRAM_SPA).length
-  const { duration } = createServiceWithPricing({
+  const { duration } = await createServiceWithPricing({
     branchId: TRAM_SPA,
     categoryId: tramCategoryId,
     name: 'Tram Spa Persist Test',
     durationMinutes: 30,
     price: 99000,
     commissionPercent: 20,
+    reason: 'uat',
+    skipOnlineGuard: true,
+    skipRemote: true,
   })
   ensureBranchCatalogSeeded(TRAM_SPA)
   loadBranchCatalog(TRAM_SPA)
@@ -168,10 +174,10 @@ test('Seed: tram-spa keeps admin-added service after reload', () => {
   assert.equal(after.length, before + 1)
 })
 
-test('Seed: tram-spa keeps edited price after reload', () => {
+await testAsync('Seed: tram-spa keeps edited price after reload', async () => {
   const row = getBranchPricingMatrix(TRAM_SPA).find((r) => r.serviceName === 'Tram Spa Persist Test')
   assert.ok(row)
-  setBranchDurationPrice(TRAM_SPA, row.durationId, { price: 120000, commissionPercent: 25 }, { log: false })
+  await setBranchDurationPrice(TRAM_SPA, row.durationId, { price: 120000, commissionPercent: 25 }, { log: false, skipOnlineGuard: true, skipRemote: true })
   ensureBranchCatalogSeeded(TRAM_SPA)
   const updated = getBranchPricingMatrix(TRAM_SPA).find((r) => r.durationId === row.durationId)
   assert.equal(updated.price, 120000)

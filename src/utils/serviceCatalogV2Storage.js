@@ -11,10 +11,12 @@ import { formatCatalogServiceName } from './serviceCatalog'
 import {
   fetchBranchCatalogsRemote,
   upsertBranchCatalogsRemote,
+  upsertBranchServicePriceRemote,
 } from '../repositories/branchCatalogRepository'
 import { verifyNoInvoiceReferencesRemote } from '../repositories/serviceInvoiceGuardRepository'
 import { appendServiceChangeLog } from './serviceChangeLogStorage'
 import { getCurrentUserName } from '../constants/auth'
+import { assertCanEditServicePricing } from './servicePricingGuard'
 
 const BRANCH_CATALOGS_KEY = 'spa-manager-branch-catalogs-v2'
 const PRICES_KEY = 'spa-manager-branch-service-prices-v2'
@@ -157,7 +159,7 @@ export function applyRemoteBranchCatalogs(remote) {
   saveBranchCatalogsMap(remote.catalogs, { skipRemoteSync: true, notify: false })
   saveBranchServicePricesV2(remote.branchPrices ?? {}, { skipRemoteSync: true, notify: false })
   localStorage.setItem(MIGRATED_KEY, '1')
-  notifyDataSynced(['serviceCatalogV2'])
+  notifyDataSynced(['serviceCatalogV2', 'branchPricing'])
   return true
 }
 
@@ -172,7 +174,15 @@ export function applyRemoteServiceCatalogV2(remote) {
 }
 
 function getDurationPrice(branchId, durationId, pricesMap) {
-  return pricesMap[branchId]?.[durationId] ?? { price: 0, commissionPercent: 0 }
+  const entry = pricesMap[branchId]?.[durationId]
+  if (!entry) return { price: 0, commissionPercent: null, hasPriceEntry: false }
+  return {
+    price: Number(entry.price) || 0,
+    commissionPercent: Number.isFinite(Number(entry.commissionPercent))
+      ? Number(entry.commissionPercent)
+      : null,
+    hasPriceEntry: true,
+  }
 }
 
 export function isBranchCatalogReady(branchId) {
@@ -217,7 +227,7 @@ export function getCatalogGroupsForBranchV2(branchId) {
           }
         })
 
-        const commissionPercent = getDurationPrice(branchId, serviceDurations[0].id, pricesMap).commissionPercent
+        const firstPrice = getDurationPrice(branchId, serviceDurations[0].id, pricesMap)
         const hasMultipleVariants = serviceDurations.length > 1
           || (serviceDurations.length === 1 && serviceDurations[0].durationMinutes)
 
@@ -225,7 +235,9 @@ export function getCatalogGroupsForBranchV2(branchId) {
           families.push({
             id: service.id,
             name: service.name,
-            commissionPercent,
+            ...(Number.isFinite(firstPrice.commissionPercent)
+              ? { commissionPercent: firstPrice.commissionPercent }
+              : {}),
             variants,
           })
         } else {
@@ -236,7 +248,9 @@ export function getCatalogGroupsForBranchV2(branchId) {
             name: service.name,
             durationMinutes: duration.durationMinutes,
             price: priceEntry.price,
-            commissionPercent: priceEntry.commissionPercent,
+            ...(Number.isFinite(priceEntry.commissionPercent)
+              ? { commissionPercent: priceEntry.commissionPercent }
+              : {}),
           })
         }
       }
@@ -273,7 +287,13 @@ export function getActiveServicesForBranchV2(branchId) {
       baseName: service.name,
       durationMinutes: duration.durationMinutes,
       price: priceEntry.price,
-      commissionPercent: priceEntry.commissionPercent,
+      ...(Number.isFinite(priceEntry.commissionPercent)
+        ? { commissionPercent: priceEntry.commissionPercent }
+        : {}),
+      pricingSource: priceEntry.hasPriceEntry && Number.isFinite(priceEntry.commissionPercent)
+        ? 'branch_service_prices'
+        : 'commission_policy',
+      catalogVersion: Number(catalog.version) || 1,
       status: ITEM_STATUS.ACTIVE,
       categoryId: category.id,
       categoryName: category.name,
@@ -312,7 +332,9 @@ export function getBranchPricingMatrix(branchId) {
           durationStatus: duration.status,
           durationMinutes: duration.durationMinutes,
           price: priceEntry.price,
-          commissionPercent: priceEntry.commissionPercent,
+          commissionPercent: Number.isFinite(priceEntry.commissionPercent)
+            ? priceEntry.commissionPercent
+            : 0,
         })
       }
     }
@@ -326,31 +348,54 @@ function findServiceIdForDuration(branchId, durationId) {
   return catalog.durations.find((item) => item.id === durationId)?.serviceId ?? ''
 }
 
-export function setBranchDurationPrice(branchId, durationId, { price, commissionPercent }, options = {}) {
-  const prices = loadBranchServicePricesV2()
-  if (!prices[branchId]) prices[branchId] = {}
-  const prev = prices[branchId][durationId] ?? { price: 0, commissionPercent: 0 }
-  prices[branchId][durationId] = {
+/**
+ * Lưu giá/% — server-first (Phase D). Không ghi local trước.
+ * @param {{ reason?: string, log?: boolean, skipOnlineGuard?: boolean, skipRemote?: boolean }} options
+ */
+export async function setBranchDurationPrice(branchId, durationId, { price, commissionPercent }, options = {}) {
+  if (!options.skipOnlineGuard) assertCanEditServicePricing()
+
+  const reason = String(options.reason ?? '').trim()
+  if (options.log !== false && !reason) {
+    throw new Error('Vui lòng nhập lý do thay đổi giá/% hoa hồng.')
+  }
+
+  const next = {
     price: Number(price) || 0,
     commissionPercent: Number(commissionPercent) || 0,
   }
-  saveBranchServicePricesV2(prices)
 
-  if (options.log !== false) {
-    appendServiceChangeLog(branchId, durationId, {
-      serviceId: findServiceIdForDuration(branchId, durationId),
-      byName: getCurrentUserName(),
-      oldPrice: prev.price,
-      newPrice: prices[branchId][durationId].price,
-      oldPercent: prev.commissionPercent,
-      newPercent: prices[branchId][durationId].commissionPercent,
-      action: 'update_price',
-    }).catch((error) => {
-      console.warn('[ServiceChangeLog] Không thể ghi nhật ký:', error?.message)
-    })
+  // Production: luôn ghi server trước. Test/local có thể skipRemote.
+  if (!options.skipRemote) {
+    if (!options.skipOnlineGuard || isSupabaseConfigured) {
+      await upsertBranchServicePriceRemote(branchId, durationId, next)
+    }
   }
 
-  return prices[branchId][durationId]
+  const prices = loadBranchServicePricesV2()
+  if (!prices[branchId]) prices[branchId] = {}
+  const prev = prices[branchId][durationId] ?? { price: 0, commissionPercent: 0 }
+  prices[branchId][durationId] = next
+  saveBranchServicePricesV2(prices, { skipRemoteSync: true, notify: true })
+
+  if (options.log !== false) {
+    try {
+      await appendServiceChangeLog(branchId, durationId, {
+        serviceId: findServiceIdForDuration(branchId, durationId),
+        byName: getCurrentUserName(),
+        oldPrice: prev.price,
+        newPrice: next.price,
+        oldPercent: prev.commissionPercent,
+        newPercent: next.commissionPercent,
+        action: 'update_price',
+        reason,
+      })
+    } catch (error) {
+      console.warn('[ServiceChangeLog] Không thể ghi nhật ký:', error?.message)
+    }
+  }
+
+  return next
 }
 
 function mutateBranchCatalog(branchId, mutator) {
@@ -474,7 +519,7 @@ export async function deleteDurationSafe(branchId, durationId, serviceId = '') {
   return { ok: true }
 }
 
-export function createServiceWithPricing({
+export async function createServiceWithPricing({
   branchId,
   categoryId,
   name,
@@ -483,7 +528,16 @@ export function createServiceWithPricing({
   price,
   commissionPercent,
   status = ITEM_STATUS.ACTIVE,
+  reason = '',
+  skipOnlineGuard = false,
+  skipRemote = false,
 }) {
+  if (!skipOnlineGuard) assertCanEditServicePricing()
+  const changeReason = String(reason ?? '').trim()
+  if (!changeReason && !skipOnlineGuard) {
+    throw new Error('Vui lòng nhập lý do khi thêm/sửa giá dịch vụ.')
+  }
+
   const service = addService({ branchId, categoryId, name })
   if (description.trim()) {
     updateService(branchId, service.id, { description: description.trim() })
@@ -493,35 +547,187 @@ export function createServiceWithPricing({
   }
 
   const duration = addDuration({ branchId, serviceId: service.id, durationMinutes })
-  setBranchDurationPrice(branchId, duration.id, { price, commissionPercent }, { log: false })
-  appendServiceChangeLog(branchId, duration.id, {
-    serviceId: service.id,
-    byName: getCurrentUserName(),
-    oldPrice: null,
-    newPrice: Number(price) || 0,
-    oldPercent: null,
-    newPercent: Number(commissionPercent) || 0,
-    action: 'create',
-  }).catch((error) => {
-    console.warn('[ServiceChangeLog] Không thể ghi nhật ký:', error?.message)
-  })
+  await setBranchDurationPrice(
+    branchId,
+    duration.id,
+    { price, commissionPercent },
+    {
+      log: false,
+      skipOnlineGuard: true,
+      skipRemote: skipRemote || skipOnlineGuard,
+    },
+  )
+  if (!skipOnlineGuard || isSupabaseConfigured) {
+    try {
+      await appendServiceChangeLog(branchId, duration.id, {
+        serviceId: service.id,
+        byName: getCurrentUserName(),
+        oldPrice: null,
+        newPrice: Number(price) || 0,
+        oldPercent: null,
+        newPercent: Number(commissionPercent) || 0,
+        action: 'create',
+        reason: changeReason || 'create',
+      })
+    } catch (error) {
+      console.warn('[ServiceChangeLog] Không thể ghi nhật ký:', error?.message)
+    }
+  }
 
   return { service, duration }
 }
 
-export function copyBranchCatalogConfig(fromBranchId, toBranchIds = []) {
+export const COPY_PRICE_MODES = {
+  ADD_MISSING: 'add_missing',
+  OVERWRITE_PRICE: 'overwrite_price',
+  OVERWRITE_PERCENT: 'overwrite_percent',
+  OVERWRITE_BOTH: 'overwrite_both',
+}
+
+/** Preview khác biệt bảng giá A → B trước khi sao chép. */
+export function previewCopyBranchPricing(fromBranchId, toBranchId) {
+  const sourcePrices = loadBranchServicePricesV2()[fromBranchId] ?? {}
+  const targetPrices = loadBranchServicePricesV2()[toBranchId] ?? {}
+  const sourceCatalog = loadBranchCatalog(fromBranchId)
+  const nameByDuration = Object.fromEntries(
+    sourceCatalog.durations.map((d) => {
+      const svc = sourceCatalog.services.find((s) => s.id === d.serviceId)
+      return [d.id, formatCatalogServiceName(svc?.name || d.id, d.durationMinutes)]
+    }),
+  )
+
+  const added = []
+  const priceChanged = []
+  const percentChanged = []
+  const overwritten = []
+
+  for (const [durationId, source] of Object.entries(sourcePrices)) {
+    const target = targetPrices[durationId]
+    const label = nameByDuration[durationId] || durationId
+    const srcPrice = Number(source.price) || 0
+    const srcPct = Number(source.commissionPercent) || 0
+
+    if (!target) {
+      added.push({ durationId, name: label, price: srcPrice, commissionPercent: srcPct })
+      continue
+    }
+
+    const tgtPrice = Number(target.price) || 0
+    const tgtPct = Number(target.commissionPercent) || 0
+    const priceDiff = srcPrice !== tgtPrice
+    const pctDiff = srcPct !== tgtPct
+    if (!priceDiff && !pctDiff) continue
+
+    const row = {
+      durationId,
+      name: label,
+      oldPrice: tgtPrice,
+      newPrice: srcPrice,
+      oldPercent: tgtPct,
+      newPercent: srcPct,
+      priceChanged: priceDiff,
+      percentChanged: pctDiff,
+    }
+    overwritten.push(row)
+    if (priceDiff) priceChanged.push(row)
+    if (pctDiff) percentChanged.push(row)
+  }
+
+  return { added, priceChanged, percentChanged, overwritten }
+}
+
+/**
+ * Sao chép bảng giá theo mode (Phase B). Server-first từng dòng giá thay đổi.
+ * Catalog structure vẫn copy khi mode ≠ add_missing-only cho services mới trong catalog.
+ */
+export async function copyBranchCatalogConfig(fromBranchId, toBranchIds = [], options = {}) {
+  assertCanEditServicePricing()
+  const mode = options.mode || COPY_PRICE_MODES.ADD_MISSING
+  const reason = String(options.reason ?? '').trim() || `Sao chép bảng giá từ ${fromBranchId}`
   const sourceCatalog = structuredClone(loadBranchCatalog(fromBranchId))
   const sourcePrices = structuredClone(loadBranchServicePricesV2()[fromBranchId] ?? {})
   const targets = (toBranchIds ?? []).filter((id) => id && id !== fromBranchId)
+  let applied = 0
 
   for (const targetId of targets) {
-    saveBranchCatalog(targetId, structuredClone(sourceCatalog))
-    const prices = loadBranchServicePricesV2()
-    prices[targetId] = structuredClone(sourcePrices)
-    saveBranchServicePricesV2(prices)
+    if (mode !== COPY_PRICE_MODES.ADD_MISSING) {
+      // Khi ghi đè giá/%, vẫn đồng bộ catalog cấu trúc để duration mới tồn tại.
+      saveBranchCatalog(targetId, structuredClone(sourceCatalog))
+    } else {
+      // Chỉ thêm dịch vụ thiếu: merge catalog durations/services chưa có.
+      const targetCatalog = structuredClone(loadBranchCatalog(targetId))
+      const existingDurations = new Set(targetCatalog.durations.map((d) => d.id))
+      const existingServices = new Set(targetCatalog.services.map((s) => s.id))
+      const existingCategories = new Set(targetCatalog.categories.map((c) => c.id))
+      for (const cat of sourceCatalog.categories) {
+        if (!existingCategories.has(cat.id)) targetCatalog.categories.push(structuredClone(cat))
+      }
+      for (const svc of sourceCatalog.services) {
+        if (!existingServices.has(svc.id)) targetCatalog.services.push(structuredClone(svc))
+      }
+      for (const dur of sourceCatalog.durations) {
+        if (!existingDurations.has(dur.id)) targetCatalog.durations.push(structuredClone(dur))
+      }
+      saveBranchCatalog(targetId, targetCatalog)
+    }
+
+    const currentPrices = loadBranchServicePricesV2()
+    if (!currentPrices[targetId]) currentPrices[targetId] = {}
+
+    for (const [durationId, source] of Object.entries(sourcePrices)) {
+      const target = currentPrices[targetId][durationId]
+      const next = {
+        price: Number(source.price) || 0,
+        commissionPercent: Number(source.commissionPercent) || 0,
+      }
+
+      if (!target) {
+        await upsertBranchServicePriceRemote(targetId, durationId, next)
+        currentPrices[targetId][durationId] = next
+        applied += 1
+        continue
+      }
+
+      if (mode === COPY_PRICE_MODES.ADD_MISSING) continue
+
+      const merged = { ...target }
+      if (mode === COPY_PRICE_MODES.OVERWRITE_PRICE || mode === COPY_PRICE_MODES.OVERWRITE_BOTH) {
+        merged.price = next.price
+      }
+      if (mode === COPY_PRICE_MODES.OVERWRITE_PERCENT || mode === COPY_PRICE_MODES.OVERWRITE_BOTH) {
+        merged.commissionPercent = next.commissionPercent
+      }
+
+      if (
+        Number(merged.price) === Number(target.price)
+        && Number(merged.commissionPercent) === Number(target.commissionPercent)
+      ) {
+        continue
+      }
+
+      await upsertBranchServicePriceRemote(targetId, durationId, merged)
+      try {
+        await appendServiceChangeLog(targetId, durationId, {
+          serviceId: findServiceIdForDuration(fromBranchId, durationId),
+          byName: getCurrentUserName(),
+          oldPrice: target.price,
+          newPrice: merged.price,
+          oldPercent: target.commissionPercent,
+          newPercent: merged.commissionPercent,
+          action: 'copy_price',
+          reason,
+        })
+      } catch (error) {
+        console.warn('[ServiceChangeLog] Không thể ghi nhật ký copy:', error?.message)
+      }
+      currentPrices[targetId][durationId] = merged
+      applied += 1
+    }
+
+    saveBranchServicePricesV2(currentPrices, { skipRemoteSync: true, notify: true })
   }
 
-  return targets.length
+  return { targetCount: targets.length, applied }
 }
 
 export function setServiceVisibility(branchId, serviceId, status) {

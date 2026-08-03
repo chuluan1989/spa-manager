@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  getServicePricingEditBlockReason,
+  isServicePricingEditable,
+} from '../../utils/servicePricingGuard'
 import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import {
   canEditBranchServicePricing,
@@ -212,13 +216,28 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
   const [formModal, setFormModal] = useState(null)
   const [logModal, setLogModal] = useState(null)
   const [confirmSave, setConfirmSave] = useState(null)
+  const [confirmReason, setConfirmReason] = useState('')
+  const [confirmSaving, setConfirmSaving] = useState(false)
+  const [confirmError, setConfirmError] = useState('')
+  const [onlineEditable, setOnlineEditable] = useState(() => isServicePricingEditable())
   const [statsMap, setStatsMap] = useState(null)
   const [statsStatus, setStatsStatus] = useState('loading')
   const [changeMetaByDuration, setChangeMetaByDuration] = useState({})
   const [deletingId, setDeletingId] = useState('')
 
-  const canEdit = !readOnly && canEditBranchServicePricing(branchId)
+  const canEdit = !readOnly && canEditBranchServicePricing(branchId) && onlineEditable
+  const pricingBlockReason = getServicePricingEditBlockReason()
   const dateRange = getDateRangeForTimeFilter(timeFilter, customFrom, customTo)
+
+  useEffect(() => {
+    const syncOnline = () => setOnlineEditable(isServicePricingEditable())
+    window.addEventListener('online', syncOnline)
+    window.addEventListener('offline', syncOnline)
+    return () => {
+      window.removeEventListener('online', syncOnline)
+      window.removeEventListener('offline', syncOnline)
+    }
+  }, [])
 
   useEffect(() => {
     if (!branchId) return
@@ -300,22 +319,43 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
       oldPercent: row.commissionPercent,
       newPercent: commissionPercent,
     })
+    setConfirmReason('')
+    setConfirmError('')
   }
 
-  const confirmInlineSave = () => {
+  const confirmInlineSave = async () => {
     if (!confirmSave) return
-    const { row, newPrice, newPercent } = confirmSave
-    setBranchDurationPrice(branchId, row.durationId, {
-      price: newPrice,
-      commissionPercent: newPercent,
-    })
-    setConfirmSave(null)
-    refresh()
+    const reason = confirmReason.trim()
+    if (!reason) {
+      setConfirmError('Vui lòng nhập lý do thay đổi.')
+      return
+    }
+    if (!isServicePricingEditable()) {
+      setConfirmError(getServicePricingEditBlockReason())
+      return
+    }
 
-    const parts = []
-    if (newPrice !== row.price) parts.push(`Giá ${formatCurrency(newPrice)}`)
-    if (newPercent !== row.commissionPercent) parts.push(`HH ${newPercent}%`)
-    showToast(`✓ Đã lưu ${row.serviceName} ${row.durationLabel}: ${parts.join(' · ')}. Hóa đơn cũ giữ nguyên.`)
+    const { row, newPrice, newPercent } = confirmSave
+    setConfirmSaving(true)
+    setConfirmError('')
+    try {
+      await setBranchDurationPrice(branchId, row.durationId, {
+        price: newPrice,
+        commissionPercent: newPercent,
+      }, { reason })
+      setConfirmSave(null)
+      setConfirmReason('')
+      refresh()
+
+      const parts = []
+      if (newPrice !== row.price) parts.push(`Giá ${formatCurrency(newPrice)}`)
+      if (newPercent !== row.commissionPercent) parts.push(`HH ${newPercent}%`)
+      showToast(`✓ Đã lưu ${row.serviceName} ${row.durationLabel}: ${parts.join(' · ')}. Hóa đơn cũ giữ nguyên.`)
+    } catch (error) {
+      setConfirmError(error?.message || 'Không thể lưu bảng giá.')
+    } finally {
+      setConfirmSaving(false)
+    }
   }
 
   const handleToggleStatus = (row) => {
@@ -382,6 +422,11 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
 
   return (
     <div className="svc-mgmt-quick">
+      {pricingBlockReason ? (
+        <p className="svc-mgmt__empty svc-mgmt__error" role="status">
+          {pricingBlockReason}
+        </p>
+      ) : null}
       <div className="svc-mgmt-kpis">
         <article><span>Tổng dịch vụ</span><strong>{kpis.total}</strong></article>
         <article><span>Đang sử dụng</span><strong>{kpis.active}</strong></article>
@@ -564,7 +609,16 @@ export default function ServiceQuickTab({ showToast, readOnly = false }) {
         newPrice={confirmSave?.newPrice}
         oldPercent={confirmSave?.oldPercent}
         newPercent={confirmSave?.newPercent}
-        onCancel={() => setConfirmSave(null)}
+        reason={confirmReason}
+        onReasonChange={setConfirmReason}
+        saving={confirmSaving}
+        error={confirmError}
+        onCancel={() => {
+          if (confirmSaving) return
+          setConfirmSave(null)
+          setConfirmReason('')
+          setConfirmError('')
+        }}
         onConfirm={confirmInlineSave}
       />
 

@@ -29,7 +29,7 @@ import {
   canSelectServingBranch,
   getServingBranchOptions,
 } from '../utils/crossBranchSupport'
-import { getActiveServicesForBranch } from '../utils/serviceStorage'
+import { getActiveServicesForBranch, getServiceMapForBranch } from '../utils/serviceStorage'
 import InvoiceDetailModal from '../components/invoice/InvoiceDetailModal'
 import GroupedServicePicker from '../components/invoice/GroupedServicePicker'
 import FlatServicePicker from '../components/invoice/FlatServicePicker'
@@ -81,6 +81,7 @@ import {
   refreshApprovedCloseCache,
 } from '../utils/payrollCycleClose/approvedCloseLock'
 import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
+import { subscribeToDataSync } from '../utils/supabaseSync'
 import './Invoice.css'
 
 /** Ngày form hóa đơn — luôn theo giờ Việt Nam. */
@@ -148,6 +149,8 @@ export default function Invoice({ onNavigate }) {
   const [adminEditReason, setAdminEditReason] = useState('')
   const [activeTab, setActiveTab] = useState(() => (isEmployee() ? 'create' : 'list'))
   const [approvedLockVersion, setApprovedLockVersion] = useState(0)
+  const [catalogRevision, setCatalogRevision] = useState(0)
+  const [pricingSyncNotice, setPricingSyncNotice] = useState('')
   const syncVersion = useDataSyncVersion()
 
   /** NV đang được nhập hộ (Admin/QL) hoặc chính mình (NV). */
@@ -265,12 +268,12 @@ export default function Invoice({ onNavigate }) {
 
   const catalogGroups = useMemo(
     () => (form.branchId ? getCatalogGroupsForBranch(form.branchId) : []),
-    [form.branchId],
+    [form.branchId, catalogRevision],
   )
 
   const branchServices = useMemo(
     () => (form.branchId ? getActiveServicesForBranch(form.branchId) : []),
-    [form.branchId],
+    [form.branchId, catalogRevision],
   )
 
   const currentBranch = useMemo(
@@ -297,6 +300,7 @@ export default function Invoice({ onNavigate }) {
       form.branchId,
       currentBranchName,
       fallbackServices,
+      catalogRevision,
     ],
   )
 
@@ -313,6 +317,7 @@ export default function Invoice({ onNavigate }) {
       form.branchId,
       currentBranchName,
       fallbackServices,
+      catalogRevision,
     ],
   )
 
@@ -327,16 +332,30 @@ export default function Invoice({ onNavigate }) {
     setErrors((prev) => ({ ...prev, [field]: undefined }))
   }
 
-  /** Đổi CN phục vụ — giữ NV đã chọn; đổi bảng giá/dịch vụ. */
+  /** Đổi CN phục vụ — giữ NV; reload catalog; bỏ dịch vụ không còn hợp lệ. */
   const handleBranchChange = (branchId) => {
     setForm((prev) => ({
       ...prev,
       branchId,
     }))
-    setSelectedIds([])
+    const validMap = branchId ? getServiceMapForBranch(branchId) : {}
+    setSelectedIds((prev) => prev.filter((id) => Boolean(validMap[id])))
     setFallbackServices([])
+    setPricingSyncNotice('')
     setErrors((prev) => ({ ...prev, branchId: undefined, employeeId: undefined, services: undefined }))
   }
+
+  useEffect(() => {
+    return subscribeToDataSync((detail) => {
+      const changed = detail?.changedEntities ?? []
+      if (!changed.includes('serviceCatalogV2') && !changed.includes('branchPricing')) return
+      setCatalogRevision((v) => v + 1)
+      if (!form.branchId) return
+      const validMap = getServiceMapForBranch(form.branchId)
+      setSelectedIds((ids) => ids.filter((id) => Boolean(validMap[id])))
+      setPricingSyncNotice('Bảng giá vừa được cập nhật. Danh sách dịch vụ đã tải lại.')
+    })
+  }, [form.branchId])
 
   /** Chọn NV trước — gắn CN phục vụ mặc định = nhà NV; hỗ trợ thì mở dropdown 3 CN. */
   const handleEmployeeChange = (employeeId) => {
@@ -725,6 +744,9 @@ export default function Invoice({ onNavigate }) {
         <div className="invoice__main">
           <section className="invoice__card invoice__form-section">
             <h3 className="invoice__section-title">A. Thông tin khách hàng</h3>
+            {pricingSyncNotice ? (
+              <p className="invoice__hint" role="status">{pricingSyncNotice}</p>
+            ) : null}
             {errors.customerRequired && (
               <p className="invoice__error invoice__error--block">{errors.customerRequired}</p>
             )}

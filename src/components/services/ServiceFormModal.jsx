@@ -13,6 +13,10 @@ import {
   parseCommissionPercentInput,
   parsePriceInput,
 } from '../../utils/serviceManagementHelpers'
+import {
+  getServicePricingEditBlockReason,
+  isServicePricingEditable,
+} from '../../utils/servicePricingGuard'
 
 const COMMISSION_CHIPS = [10, 20, 25, 30, 35, 40]
 
@@ -25,6 +29,7 @@ const EMPTY = {
   price: '',
   commissionPercent: '20',
   status: ITEM_STATUS.ACTIVE,
+  reason: '',
 }
 
 export default function ServiceFormModal({
@@ -36,6 +41,9 @@ export default function ServiceFormModal({
 }) {
   const branches = getActiveBranches()
   const [form, setForm] = useState(EMPTY)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [onlineEditable, setOnlineEditable] = useState(() => isServicePricingEditable())
 
   useEffect(() => {
     if (!open) return
@@ -52,8 +60,22 @@ export default function ServiceFormModal({
       status: initial?.isActive === false ? ITEM_STATUS.INACTIVE : ITEM_STATUS.ACTIVE,
       durationId: initial?.durationId ?? '',
       serviceId: initial?.serviceId ?? '',
+      reason: '',
     })
+    setError('')
+    setSaving(false)
+    setOnlineEditable(isServicePricingEditable())
   }, [open, initial])
+
+  useEffect(() => {
+    const syncOnline = () => setOnlineEditable(isServicePricingEditable())
+    window.addEventListener('online', syncOnline)
+    window.addEventListener('offline', syncOnline)
+    return () => {
+      window.removeEventListener('online', syncOnline)
+      window.removeEventListener('offline', syncOnline)
+    }
+  }, [])
 
   if (!open) return null
 
@@ -65,67 +87,96 @@ export default function ServiceFormModal({
   const priceChanged = mode === 'edit' && initial && price !== initial.price
   const percentChanged = mode === 'edit' && initial && commission !== initial.commissionPercent
   const showPreview = mode === 'edit' && (priceChanged || percentChanged)
+  const pricingChanged = mode === 'add' || priceChanged || percentChanged
+  const blockReason = getServicePricingEditBlockReason()
+  const reasonOk = String(form.reason ?? '').trim().length > 0
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (!form.branchId || !form.name.trim()) return
     if (!form.categoryId && mode === 'add') return
     if (!Number.isFinite(price)) return
     if (!Number.isFinite(commission)) return
 
-    if (mode === 'add') {
-      createServiceWithPricing({
-        branchId: form.branchId,
-        categoryId: form.categoryId,
-        name: form.name.trim(),
-        description: form.description,
-        durationMinutes: form.durationMinutes,
-        price,
-        commissionPercent: commission,
-        status: form.status,
-      })
-    } else {
-      updateService(form.branchId, form.serviceId, {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        status: form.status,
-      })
-      updateDuration(form.branchId, form.durationId, {
-        durationMinutes: form.durationMinutes,
-        status: form.status,
-      })
-      setBranchDurationPrice(form.branchId, form.durationId, {
-        price,
-        commissionPercent: commission,
-      })
+    if (pricingChanged) {
+      if (!onlineEditable) {
+        setError(blockReason || 'Không thể chỉnh bảng giá khi đang offline.')
+        return
+      }
+      if (!reasonOk) {
+        setError('Vui lòng nhập lý do thay đổi giá/% hoa hồng.')
+        return
+      }
     }
 
-    onSaved?.({
-      mode,
-      message: commission !== initial?.commissionPercent && price !== initial?.price
-        ? 'percent_and_price'
-        : commission !== initial?.commissionPercent
-          ? 'percent'
-          : 'price',
-    })
-    onClose()
+    setSaving(true)
+    setError('')
+    try {
+      if (mode === 'add') {
+        await createServiceWithPricing({
+          branchId: form.branchId,
+          categoryId: form.categoryId,
+          name: form.name.trim(),
+          description: form.description,
+          durationMinutes: form.durationMinutes,
+          price,
+          commissionPercent: commission,
+          status: form.status,
+          reason: form.reason.trim(),
+        })
+      } else {
+        updateService(form.branchId, form.serviceId, {
+          name: form.name.trim(),
+          description: form.description.trim(),
+          status: form.status,
+        })
+        updateDuration(form.branchId, form.durationId, {
+          durationMinutes: form.durationMinutes,
+          status: form.status,
+        })
+        if (pricingChanged) {
+          await setBranchDurationPrice(form.branchId, form.durationId, {
+            price,
+            commissionPercent: commission,
+          }, { reason: form.reason.trim() })
+        }
+      }
+
+      onSaved?.({
+        mode,
+        message: commission !== initial?.commissionPercent && price !== initial?.price
+          ? 'percent_and_price'
+          : commission !== initial?.commissionPercent
+            ? 'percent'
+            : 'price',
+      })
+      onClose()
+    } catch (err) {
+      setError(err?.message || 'Không thể lưu dịch vụ.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <div className="svc-mgmt-modal" role="dialog" aria-modal="true">
-      <div className="svc-mgmt-modal__backdrop" onClick={onClose} />
+      <div className="svc-mgmt-modal__backdrop" onClick={() => !saving && onClose()} />
       <form className="svc-mgmt-modal__panel" onSubmit={handleSubmit}>
         <header className="svc-mgmt-modal__head">
           <h3>{mode === 'add' ? 'Thêm dịch vụ mới' : 'Sửa dịch vụ'}</h3>
-          <button type="button" onClick={onClose} aria-label="Đóng">×</button>
+          <button type="button" onClick={onClose} aria-label="Đóng" disabled={saving}>×</button>
         </header>
 
         <div className="svc-mgmt-modal__body">
+          {blockReason ? (
+            <p className="svc-mgmt__empty svc-mgmt__error" role="status">{blockReason}</p>
+          ) : null}
+
           <label>
             Chi nhánh áp dụng
             <select
               value={form.branchId}
-              disabled={mode === 'edit'}
+              disabled={mode === 'edit' || saving}
               onChange={(e) => setForm({ ...form, branchId: e.target.value, categoryId: '' })}
             >
               {branches.map((b) => (
@@ -138,7 +189,7 @@ export default function ServiceFormModal({
             Nhóm dịch vụ
             <select
               value={form.categoryId}
-              disabled={mode === 'edit'}
+              disabled={mode === 'edit' || saving}
               required
               onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
             >
@@ -154,6 +205,7 @@ export default function ServiceFormModal({
             <input
               required
               value={form.name}
+              disabled={saving}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </label>
@@ -164,6 +216,7 @@ export default function ServiceFormModal({
               rows={2}
               placeholder="Dùng cho website / app sau này"
               value={form.description}
+              disabled={saving}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
           </label>
@@ -174,6 +227,7 @@ export default function ServiceFormModal({
               type="number"
               min="0"
               value={form.durationMinutes}
+              disabled={saving}
               onChange={(e) => setForm({ ...form, durationMinutes: e.target.value })}
             />
           </label>
@@ -184,6 +238,7 @@ export default function ServiceFormModal({
               required
               inputMode="numeric"
               value={form.price}
+              disabled={saving || !onlineEditable}
               onChange={(e) => setForm({ ...form, price: e.target.value })}
             />
           </label>
@@ -195,6 +250,7 @@ export default function ServiceFormModal({
                 required
                 inputMode="decimal"
                 value={form.commissionPercent}
+                disabled={saving || !onlineEditable}
                 onChange={(e) => setForm({ ...form, commissionPercent: e.target.value })}
               />
               <span>%</span>
@@ -205,6 +261,7 @@ export default function ServiceFormModal({
                   key={chip}
                   type="button"
                   className="svc-mgmt-modal__chip"
+                  disabled={saving || !onlineEditable}
                   onClick={() => setForm({ ...form, commissionPercent: String(chip) })}
                 >
                   {chip}
@@ -219,6 +276,7 @@ export default function ServiceFormModal({
               <input
                 type="radio"
                 checked={form.status === ITEM_STATUS.ACTIVE}
+                disabled={saving}
                 onChange={() => setForm({ ...form, status: ITEM_STATUS.ACTIVE })}
               />
               Đang sử dụng
@@ -227,11 +285,26 @@ export default function ServiceFormModal({
               <input
                 type="radio"
                 checked={form.status === ITEM_STATUS.INACTIVE}
+                disabled={saving}
                 onChange={() => setForm({ ...form, status: ITEM_STATUS.INACTIVE })}
               />
               Ngừng sử dụng
             </label>
           </fieldset>
+
+          {pricingChanged && (
+            <label>
+              Lý do thay đổi giá/% (bắt buộc)
+              <textarea
+                required
+                rows={3}
+                value={form.reason}
+                disabled={saving || !onlineEditable}
+                placeholder="Ví dụ: Điều chỉnh giá theo mùa…"
+                onChange={(e) => setForm({ ...form, reason: e.target.value })}
+              />
+            </label>
+          )}
 
           {showPreview && (
             <div className="svc-mgmt-modal__preview">
@@ -246,12 +319,18 @@ export default function ServiceFormModal({
               )}
             </div>
           )}
+
+          {error ? <p className="invoice__error">{error}</p> : null}
         </div>
 
         <footer className="svc-mgmt-modal__foot">
-          <button type="button" className="settings__btn" onClick={onClose}>Huỷ</button>
-          <button type="submit" className="settings__btn settings__btn--primary">
-            {mode === 'add' ? 'Lưu dịch vụ' : 'Cập nhật'}
+          <button type="button" className="settings__btn" onClick={onClose} disabled={saving}>Huỷ</button>
+          <button
+            type="submit"
+            className="settings__btn settings__btn--primary"
+            disabled={saving || (pricingChanged && (!onlineEditable || !reasonOk))}
+          >
+            {saving ? 'Đang lưu…' : (mode === 'add' ? 'Lưu dịch vụ' : 'Cập nhật')}
           </button>
         </footer>
       </form>

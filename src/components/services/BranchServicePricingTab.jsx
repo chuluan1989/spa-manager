@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { COMMISSION } from '../../constants/services'
 import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import {
@@ -13,6 +13,10 @@ import {
   getBranchPricingMatrix,
   setBranchDurationPrice,
 } from '../../utils/serviceCatalogV2Storage'
+import {
+  getServicePricingEditBlockReason,
+  isServicePricingEditable,
+} from '../../utils/servicePricingGuard'
 import './ServiceCatalogTab.css'
 
 const COMMISSION_OPTIONS = [
@@ -36,9 +40,22 @@ export default function BranchServicePricingTab({ showToast, readOnly = false, f
   })
   const [revision, setRevision] = useState(0)
   const [editing, setEditing] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [onlineEditable, setOnlineEditable] = useState(() => isServicePricingEditable())
+  const blockReason = getServicePricingEditBlockReason()
 
-  const canEdit = !readOnly && canEditBranchServicePricing(branchId)
+  const canEdit = !readOnly && canEditBranchServicePricing(branchId) && onlineEditable
   const rows = useMemo(() => (branchId ? getBranchPricingMatrix(branchId) : []), [branchId, revision])
+
+  useEffect(() => {
+    const syncOnline = () => setOnlineEditable(isServicePricingEditable())
+    window.addEventListener('online', syncOnline)
+    window.addEventListener('offline', syncOnline)
+    return () => {
+      window.removeEventListener('online', syncOnline)
+      window.removeEventListener('offline', syncOnline)
+    }
+  }, [])
 
   const refresh = () => setRevision((value) => value + 1)
 
@@ -57,15 +74,27 @@ export default function BranchServicePricingTab({ showToast, readOnly = false, f
     return [...map.values()]
   }, [rows])
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editing || !canEdit) return
-    setBranchDurationPrice(branchId, editing.durationId, {
-      price: Number(editing.price),
-      commissionPercent: Number(editing.commissionPercent),
-    })
-    setEditing(null)
-    showToast('Đã cập nhật giá chi nhánh')
-    refresh()
+    const reason = String(editing.reason ?? '').trim()
+    if (!reason) {
+      showToast('Vui lòng nhập lý do thay đổi.')
+      return
+    }
+    setSaving(true)
+    try {
+      await setBranchDurationPrice(branchId, editing.durationId, {
+        price: Number(editing.price),
+        commissionPercent: Number(editing.commissionPercent),
+      }, { reason })
+      setEditing(null)
+      showToast('Đã cập nhật giá chi nhánh')
+      refresh()
+    } catch (error) {
+      showToast(error?.message || 'Không thể lưu bảng giá.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!branches.length) {
@@ -82,6 +111,7 @@ export default function BranchServicePricingTab({ showToast, readOnly = false, f
               ? 'Chọn chi nhánh và nhập giá cho từng thời lượng. Hóa đơn đọc trực tiếp từ đây.'
               : 'Chế độ xem — chỉ xem bảng giá chi nhánh của bạn.'}
           </p>
+          {blockReason ? <p className="settings__hint" role="status">{blockReason}</p> : null}
         </div>
       </div>
 
@@ -136,6 +166,7 @@ export default function BranchServicePricingTab({ showToast, readOnly = false, f
                                 label: `${service.serviceName} ${row.durationMinutes ? `${row.durationMinutes}'` : ''}`.trim(),
                                 price: String(row.price),
                                 commissionPercent: row.commissionPercent,
+                                reason: '',
                               })}
                             >
                               Sửa giá
@@ -153,26 +184,32 @@ export default function BranchServicePricingTab({ showToast, readOnly = false, f
       ))}
 
       {editing && (
-        <div className="settings__modal-backdrop" onClick={() => setEditing(null)}>
+        <div className="settings__modal-backdrop" onClick={() => !saving && setEditing(null)}>
           <div className="settings__modal" onClick={(e) => e.stopPropagation()}>
             <h3 className="settings__modal-title">Sửa giá — {editing.label}</h3>
             <div className="settings__form-grid">
               <label className="settings__field">
                 <span>Giá</span>
-                <input type="number" min="0" step="1000" value={editing.price} onChange={(e) => setEditing({ ...editing, price: e.target.value })} />
+                <input type="number" min="0" step="1000" value={editing.price} disabled={saving} onChange={(e) => setEditing({ ...editing, price: e.target.value })} />
               </label>
               <label className="settings__field">
                 <span>% Hoa hồng</span>
-                <select value={editing.commissionPercent} onChange={(e) => setEditing({ ...editing, commissionPercent: Number(e.target.value) })}>
+                <select value={editing.commissionPercent} disabled={saving} onChange={(e) => setEditing({ ...editing, commissionPercent: Number(e.target.value) })}>
                   {COMMISSION_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </label>
+              <label className="settings__field">
+                <span>Lý do (bắt buộc)</span>
+                <input value={editing.reason} disabled={saving} onChange={(e) => setEditing({ ...editing, reason: e.target.value })} />
+              </label>
             </div>
             <div className="settings__modal-actions">
-              <button type="button" className="settings__btn settings__btn--primary" onClick={saveEdit}>Lưu</button>
-              <button type="button" className="settings__btn" onClick={() => setEditing(null)}>Hủy</button>
+              <button type="button" className="settings__btn settings__btn--primary" onClick={saveEdit} disabled={saving || !String(editing.reason ?? '').trim()}>
+                {saving ? 'Đang lưu…' : 'Lưu'}
+              </button>
+              <button type="button" className="settings__btn" onClick={() => setEditing(null)} disabled={saving}>Hủy</button>
             </div>
           </div>
         </div>

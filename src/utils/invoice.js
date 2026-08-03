@@ -40,13 +40,21 @@ export function parseDiscountInput(input) {
 }
 
 function resolveLineCommissionPercent(service, branchId = '') {
+  // Ưu tiên % từ bảng giá V2 (branch_service_prices / catalog) nếu có.
   if (Number.isFinite(service?.commissionPercent)) {
-    return service.commissionPercent
+    return Number(service.commissionPercent)
   }
+  // Fallback legacy: chính sách hoa hồng chi nhánh.
   return resolveCommissionPercent(branchId, service)
 }
 
-/** Hoa hồng 1 dòng dịch vụ = giá vé thực thu × % theo chính sách chi nhánh. */
+function resolvePricingSource(service) {
+  if (service?.pricingSource) return service.pricingSource
+  if (Number.isFinite(service?.commissionPercent)) return 'branch_service_prices'
+  return 'commission_policy'
+}
+
+/** Hoa hồng 1 dòng dịch vụ = giá vé thực thu × % theo bảng giá CN (fallback policy). */
 export function getServiceLineCommissionAmount(service, options = {}) {
   const branchId = typeof options === 'string' ? options : (options?.branchId ?? '')
   const preferSnapshot = typeof options === 'object' ? Boolean(options.preferSnapshot) : false
@@ -73,16 +81,22 @@ export function getInvoiceServiceCommission(invoice) {
 
 function buildBaseServiceLine(service, branchId = '') {
   const originalPrice = Number(service.price ?? 0)
-  const commissionPercent = resolveCommissionPercent(branchId, service)
+  const commissionPercent = resolveLineCommissionPercent(service, branchId)
 
   return {
     id: service.id,
+    serviceId: service.serviceId || service.id,
     name: service.name,
+    serviceName: service.name,
     originalPrice,
     price: originalPrice,
+    servicePrice: originalPrice,
     discountAmount: 0,
     commissionPercent,
     commissionAmount: calculateCommissionAmount(originalPrice, commissionPercent),
+    branchId: branchId || '',
+    pricingSource: resolvePricingSource(service),
+    catalogVersion: Number.isFinite(service?.catalogVersion) ? service.catalogVersion : null,
   }
 }
 

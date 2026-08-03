@@ -12,22 +12,35 @@ export async function insertServiceChangeLog(entry) {
     throw new Error('Supabase chưa cấu hình. Không thể ghi nhật ký dịch vụ.')
   }
 
-  const row = objectToSnakeRow({
+  const reason = String(entry.changeReason ?? entry.reason ?? '').trim()
+  const base = {
     id: entry.id ?? createLogId(),
     branchId: entry.branchId ?? '',
     serviceId: entry.serviceId ?? '',
     durationId: entry.durationId ?? '',
     action: entry.action ?? 'update',
     oldValues: entry.oldValues ?? {},
-    newValues: entry.newValues ?? {},
+    newValues: {
+      ...(entry.newValues ?? {}),
+      ...(reason ? { reason, note: reason } : {}),
+    },
     changedBy: entry.changedBy ?? '',
     changedByName: entry.changedByName ?? '',
     createdAt: entry.createdAt ?? new Date().toISOString(),
-  })
+  }
 
-  const { error } = await supabase.from(TABLE).insert(row)
+  const withReason = objectToSnakeRow({ ...base, changeReason: reason })
+  let { error } = await supabase.from(TABLE).insert(withReason)
+
+  // Schema chưa có change_reason: fallback — lý do vẫn nằm trong new_values.
+  if (error && /change_reason/i.test(error.message || '')) {
+    const fallback = objectToSnakeRow(base)
+    const retry = await supabase.from(TABLE).insert(fallback)
+    error = retry.error
+  }
+
   if (error) throw error
-  return row.id
+  return withReason.id
 }
 
 export async function fetchServiceChangeLogs({

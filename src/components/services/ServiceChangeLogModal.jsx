@@ -72,6 +72,9 @@ export default function ServiceChangeLogModal({ open, branchId, row, onClose }) 
               {oldValues(log).commissionPercent != null && newValues(log).commissionPercent != null && (
                 <p>% HH: {oldValues(log).commissionPercent}% → {newValues(log).commissionPercent}%</p>
               )}
+              {(log.changeReason || newValues(log).reason || newValues(log).note) && (
+                <p>Lý do: {log.changeReason || newValues(log).reason || newValues(log).note}</p>
+              )}
               {log.action === 'create' && <p>Khởi tạo dịch vụ</p>}
             </article>
           ))}

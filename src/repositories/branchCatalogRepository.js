@@ -65,3 +65,21 @@ export async function upsertBranchCatalogsRemote(catalogs, branchPrices) {
     if (error) throw error
   }
 }
+
+/** Ghi một dòng giá/% lên Supabase trước khi cập nhật cache local (Phase D). */
+export async function upsertBranchServicePriceRemote(branchId, durationId, { price, commissionPercent }) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase chưa cấu hình. Không thể chỉnh bảng giá.')
+  }
+  if (!branchId || !durationId) {
+    throw new Error('Thiếu chi nhánh hoặc dịch vụ.')
+  }
+  const { error } = await supabase.from('branch_service_prices').upsert({
+    branch_id: branchId,
+    duration_id: durationId,
+    price: Number(price) || 0,
+    commission_percent: Number(commissionPercent) || 0,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'branch_id,duration_id' })
+  if (error) throw error
+}

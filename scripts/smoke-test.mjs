@@ -2758,10 +2758,10 @@ test('branch pricing isolation: mỗi chi nhánh có bảng giá riêng, không 
   const tramTotals = calculateInvoiceTotals(['combo-1', 'body-60'], 0, 'tram-spa', [], '', '')
   assert.equal(tramTotals.originalServiceTotal, 220000 + 160000)
 
-  setBranchDurationPrice('tram-spa', 'body-60', { price: 355000, commissionPercent: 0 })
+  setBranchDurationPrice('tram-spa', 'body-60', { price: 355000, commissionPercent: 0 }, { log: false, skipOnlineGuard: true, skipRemote: true })
   const updated = calculateInvoiceTotals(['body-60'], 0, 'tram-spa', [], '', '')
   assert.equal(updated.originalServiceTotal, 355000, 'Đổi giá chi nhánh phải cập nhật hóa đơn ngay')
-  setBranchDurationPrice('tram-spa', 'body-60', { price: 160000, commissionPercent: 0 })
+  setBranchDurationPrice('tram-spa', 'body-60', { price: 160000, commissionPercent: 0 }, { log: false, skipOnlineGuard: true, skipRemote: true })
 })
 
 test('service catalog v2: admin thêm nhóm và giá có hiệu lực trên hóa đơn', async () => {
@@ -2781,7 +2781,7 @@ test('service catalog v2: admin thêm nhóm và giá có hiệu lực trên hóa
   const category = addCategory({ branchId, name: 'TEST GROUP' })
   const service = addService({ branchId, categoryId: category.id, name: 'Dịch vụ test' })
   const duration = addDuration({ branchId, serviceId: service.id, durationMinutes: 45 })
-  setBranchDurationPrice(branchId, duration.id, { price: 123000, commissionPercent: 10 })
+  await setBranchDurationPrice(branchId, duration.id, { price: 123000, commissionPercent: 10 }, { log: false, skipOnlineGuard: true, skipRemote: true })
 
   const groups = getCatalogGroupsForBranch(branchId)
   assert.ok(groups.some((group) => group.id === category.id), 'Hóa đơn phải thấy nhóm mới')
