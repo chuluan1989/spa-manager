@@ -13,7 +13,9 @@ import { loadCurrentUser } from '../utils/authStorage'
 import { loadSystemSettings } from '../utils/systemSettingsStorage'
 import { checkPermission, hasPermission, PERMISSION_KEYS } from '../utils/permissionsStorage'
 import { getInvoiceModifyBlockReason } from '../utils/invoiceEditPolicy'
-import { isPayCycleClosedForRecordDate } from '../utils/payrollPeriodLock'
+import {
+  isEmployeeDateLockedByApprovedCloseSync,
+} from '../utils/payrollCycleClose/approvedCloseLock'
 import { canEmployeeServeAtBranch } from '../utils/crossBranchSupport'
 import {
   applyRecordFetchScope,
@@ -311,10 +313,18 @@ export function canViewSystemWide(role = getCurrentUserRole(), branchId = getCur
   return checkPermission(PERMISSION_KEYS.VIEW_SYSTEM_WIDE, role, branchId)
 }
 
-export function canAddInvoiceForDate(date, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+export function canAddInvoiceForDate(
+  date,
+  role = getCurrentUserRole(),
+  branchId = getCurrentUserBranch(),
+  { employeeId = '' } = {},
+) {
   if (!canAddInvoice(role, branchId)) return false
   if (role === ROLES.ADMIN) return true
-  return !isPayCycleClosedForRecordDate(date)
+  const targetEmployeeId = employeeId || (role === ROLES.EMPLOYEE ? getCurrentUserEmployeeId() : '')
+  if (!targetEmployeeId || !date) return true
+  // Chỉ khóa khi đúng NV đã được Admin duyệt kỳ chứa ngày này (cache sync).
+  return !isEmployeeDateLockedByApprovedCloseSync(targetEmployeeId, date)
 }
 
 export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {

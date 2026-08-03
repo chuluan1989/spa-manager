@@ -20,6 +20,7 @@ import { ensureBranchAndEmployeeOnServer } from './syncForeignKeys'
 import { canEmployeeServeAtBranch } from './crossBranchSupport'
 import {
   assertCanModifyInvoice,
+  notifyCloseIfInvoiceSourceChanged,
   recordInvoiceAdminAuditIfNeeded,
 } from './invoiceEditPolicy'
 
@@ -414,6 +415,7 @@ export async function saveInvoice(invoice, options = {}) {
         return { success: false, error: 'Không thể lưu hóa đơn vào bộ nhớ máy (LocalStorage đầy).' }
       }
       notifyDataSynced(['invoices'])
+      await notifyCloseIfInvoiceSourceChanged(snapshot)
       return { success: true, invoice: snapshot, invoices }
     }
 
@@ -457,6 +459,7 @@ async function saveInvoiceRemote(snapshot, options = {}) {
   // Supabase đã thành công — cache phụ thất bại chỉ warn.
   patchInvoiceCacheAfterRemote(snapshot)
   notifyDataSynced(['invoices'])
+  await notifyCloseIfInvoiceSourceChanged(snapshot)
   return { success: true, invoice: snapshot, invoices: loadInvoices() }
 }
 
@@ -536,6 +539,7 @@ export function updateInvoice(id, data, currentFromCaller = null, options = {}) 
         return { success: false, error: 'Không thể cập nhật hóa đơn trên bộ nhớ máy (LocalStorage đầy).' }
       }
       notifyDataSynced(['invoices'])
+      await notifyCloseIfInvoiceSourceChanged(updated)
       return { success: true, invoice: updated, invoices }
     }
 
@@ -570,6 +574,7 @@ async function updateInvoiceRemote(updated, previous, options = {}) {
 
   patchInvoiceCacheAfterRemote(updated)
   notifyDataSynced(['invoices'])
+  await notifyCloseIfInvoiceSourceChanged(updated)
   return { success: true, invoice: updated, invoices: loadInvoices() }
 }
 
@@ -601,6 +606,7 @@ export function deleteInvoice(id, currentFromCaller = null, options = {}) {
         return { success: false, error: 'Không thể xoá hóa đơn trên bộ nhớ máy (LocalStorage đầy).' }
       }
       notifyDataSynced(['invoices'])
+      await notifyCloseIfInvoiceSourceChanged(current)
       return { success: true, invoices }
     }
 
@@ -626,6 +632,7 @@ async function deleteInvoiceRemote(id, previous, options = {}) {
 
   removeInvoiceFromCache(id)
   notifyDataSynced(['invoices'])
+  await notifyCloseIfInvoiceSourceChanged(previous)
   return { success: true, invoices: loadInvoices() }
 }
 

@@ -1,12 +1,18 @@
-import { CLOSE_CYCLES } from './payCycleCalendar'
-import { fetchPayrollCycleClose } from '../../repositories/payrollCycleCloseRepository'
+import { CLOSE_CYCLES, getCloseCycleRange } from './payCycleCalendar'
+import { CLOSE_CYCLE_STATUS, isCloseCyclePendingReview } from './closeCycleStatus'
+import {
+  fetchPayrollCycleClose,
+  fetchPayrollCycleClosesFiltered,
+  insertPayrollCycleCloseEvent,
+  upsertPayrollCycleClose,
+} from '../../repositories/payrollCycleCloseRepository'
+import { notifyDataSynced } from '../dataSyncEvents'
 
 /**
- * Map ngày chấm công → kỳ chốt lương.
- * - Ngày 01–15 tháng M → Kỳ 1 tháng M
- * - Ngày 16–cuối tháng M → Kỳ 2 tháng M
+ * Map ngày HĐ / chấm công → kỳ chốt (chỉ để tìm phiếu / invalidate).
+ * Khóa dữ liệu KHÔNG dựa hàm này — chỉ dựa fromDate–toDate của phiếu approved.
  */
-export function resolveCloseCycleForAttendanceDate(dateStr) {
+export function resolveCloseCycleForRecordDate(dateStr) {
   if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null
   const month = dateStr.slice(0, 7)
   const day = Number(dateStr.slice(8, 10))
@@ -20,25 +26,203 @@ export function resolveCloseCycleForAttendanceDate(dateStr) {
   }
 }
 
+/** @deprecated Dùng resolveCloseCycleForRecordDate */
+export function resolveCloseCycleForAttendanceDate(dateStr) {
+  return resolveCloseCycleForRecordDate(dateStr)
+}
+
 /**
- * Kỳ chốt đã approved → khóa sửa chấm công / gửi yêu cầu bổ sung (không đổi snapshot).
+ * Khoảng ngày khóa của một phiếu close.
+ * Ưu tiên fromDate/toDate đã lưu trên phiếu; thiếu thì suy từ billingMonth+cycle của phiếu
+ * (KHÔNG suy từ recordDate — tránh khóa nhầm kỳ kế tiếp).
  */
-export async function isAttendanceDateLockedByApprovedClose(employeeId, dateStr) {
+export function getApprovedCloseDateRange(close) {
+  if (!close) return { fromDate: '', toDate: '' }
+  const from = String(close.fromDate || '').slice(0, 10)
+  const to = String(close.toDate || '').slice(0, 10)
+  if (from && to) return { fromDate: from, toDate: to }
+  if (close.billingMonth && close.cycle) {
+    const range = getCloseCycleRange(close.billingMonth, close.cycle)
+    return { fromDate: range.fromDate || '', toDate: range.toDate || '' }
+  }
+  return { fromDate: '', toDate: '' }
+}
+
+export function isRecordDateInApprovedCloseRange(dateStr, close) {
+  if (!dateStr || !close) return false
+  if (close.status && close.status !== CLOSE_CYCLE_STATUS.APPROVED) return false
+  const { fromDate, toDate } = getApprovedCloseDateRange(close)
+  if (!fromDate || !toDate) return false
+  return dateStr >= fromDate && dateStr <= toDate
+}
+
+/** Cache sync cho UI — chỉ các phiếu approved, khóa theo from–to. */
+let approvedCloseCache = []
+
+export function getApprovedCloseCache() {
+  return approvedCloseCache
+}
+
+export function seedApprovedCloseCache(rows = []) {
+  approvedCloseCache = (rows || [])
+    .filter((row) => row?.status === CLOSE_CYCLE_STATUS.APPROVED && row.employeeId)
+    .map((row) => {
+      const range = getApprovedCloseDateRange(row)
+      return {
+        employeeId: row.employeeId,
+        billingMonth: row.billingMonth,
+        cycle: row.cycle,
+        fromDate: range.fromDate,
+        toDate: range.toDate,
+        status: CLOSE_CYCLE_STATUS.APPROVED,
+        approvedByName: row.approvedByName || '',
+        approvedAt: row.approvedAt || '',
+        netSalary: row.netSalary ?? row.snapshot?.netSalary ?? null,
+      }
+    })
+    .filter((row) => row.fromDate && row.toDate)
+}
+
+export async function refreshApprovedCloseCache({ employeeId = '', branchId = '' } = {}) {
+  const rows = await fetchPayrollCycleClosesFiltered({
+    employeeId,
+    branchId,
+    status: CLOSE_CYCLE_STATUS.APPROVED,
+  }).catch(() => [])
+  if (employeeId || branchId) {
+    const keep = approvedCloseCache.filter((row) => {
+      if (employeeId && row.employeeId === employeeId) return false
+      if (branchId && !employeeId) return false
+      return true
+    })
+    seedApprovedCloseCache([...keep, ...(rows || [])])
+  } else {
+    seedApprovedCloseCache(rows)
+  }
+  return approvedCloseCache
+}
+
+/**
+ * Sync: employeeId + date nằm trong fromDate–toDate của phiếu approved (cache).
+ * Không dùng ngày hôm nay / khóa lịch.
+ */
+export function isEmployeeDateLockedByApprovedCloseSync(employeeId, dateStr) {
   if (!employeeId || !dateStr) return false
-  const info = resolveCloseCycleForAttendanceDate(dateStr)
-  if (!info) return false
-  const close = await fetchPayrollCycleClose({
+  return approvedCloseCache.some(
+    (row) => (
+      row.employeeId === employeeId
+      && row.status === CLOSE_CYCLE_STATUS.APPROVED
+      && isRecordDateInApprovedCloseRange(dateStr, row)
+    ),
+  )
+}
+
+/**
+ * Async nguồn chuẩn: duyệt mọi phiếu approved của NV, khóa nếu date ∈ [from, to].
+ * Không khóa vì submitted; không khóa kỳ khác / NV khác / tháng 8 khi duyệt Kỳ 2/7.
+ */
+export async function isEmployeeRecordLockedByApprovedClose(employeeId, dateStr) {
+  if (!employeeId || !dateStr) return false
+
+  const rows = await fetchPayrollCycleClosesFiltered({
+    employeeId,
+    status: CLOSE_CYCLE_STATUS.APPROVED,
+  }).catch(() => [])
+
+  const hit = (rows || []).find((row) => isRecordDateInApprovedCloseRange(dateStr, row))
+  if (!hit) return false
+
+  // Warm cache entry
+  if (!isEmployeeDateLockedByApprovedCloseSync(employeeId, dateStr)) {
+    seedApprovedCloseCache([...approvedCloseCache, hit])
+  }
+  return true
+}
+
+/** @deprecated alias */
+export async function isAttendanceDateLockedByApprovedClose(employeeId, dateStr) {
+  return isEmployeeRecordLockedByApprovedClose(employeeId, dateStr)
+}
+
+export function getApprovedCloseLockMessage(dateStr, { employeeName = '', close } = {}) {
+  const range = close ? getApprovedCloseDateRange(close) : null
+  const info = resolveCloseCycleForRecordDate(dateStr)
+  const label = close?.cycle === CLOSE_CYCLES.PERIOD_1 || info?.cycle === CLOSE_CYCLES.PERIOD_1
+    ? 'Kỳ 1'
+    : 'Kỳ 2'
+  const billingMonth = close?.billingMonth || info?.billingMonth || ''
+  const [y, m] = billingMonth ? billingMonth.split('-') : ['', '']
+  const who = employeeName ? ` của ${employeeName}` : ''
+  const rangeLabel = range?.fromDate && range?.toDate
+    ? ` (${range.fromDate} → ${range.toDate})`
+    : ''
+  return (
+    `${label}${m ? ` tháng ${Number(m)}/${y}` : ''}${who} đã được Admin duyệt${rangeLabel}. `
+    + 'Không sửa trực tiếp dữ liệu trong khoảng ngày này — vui lòng gửi yêu cầu sửa hoặc nhờ Admin xử lý.'
+  )
+}
+
+/**
+ * Sau khi NV sửa HĐ/chấm công khi phiếu đang submitted/resubmitted:
+ * chuyển returned + đánh dấu cần gửi lại; đóng task duyệt snapshot cũ.
+ */
+export async function invalidateCloseAfterSourceChange(employeeId, recordDate) {
+  if (!employeeId || !recordDate) return null
+  const info = resolveCloseCycleForRecordDate(recordDate)
+  if (!info) return null
+
+  const existing = await fetchPayrollCycleClose({
     employeeId,
     billingMonth: info.billingMonth,
     cycle: info.cycle,
-  })
-  return close?.status === 'approved'
-}
+  }).catch(() => null)
 
-export function getApprovedCloseLockMessage(dateStr) {
-  const info = resolveCloseCycleForAttendanceDate(dateStr)
-  if (!info) return 'Kỳ lương đã duyệt — không được sửa chấm công.'
-  const label = info.cycle === CLOSE_CYCLES.PERIOD_1 ? 'Kỳ 1' : 'Kỳ 2'
-  const [y, m] = info.billingMonth.split('-')
-  return `${label} tháng ${m}/${y} đã được Admin duyệt — không sửa chấm công / gửi yêu cầu bổ sung (snapshot đã khóa).`
+  if (!existing) return null
+  if (existing.status === CLOSE_CYCLE_STATUS.APPROVED) return null
+  if (!isCloseCyclePendingReview(existing.status)) return null
+
+  // Chỉ invalidate nếu ngày sửa thuộc khoảng của phiếu đó
+  const range = getApprovedCloseDateRange({
+    ...existing,
+    status: CLOSE_CYCLE_STATUS.APPROVED, // chỉ để đọc range
+  })
+  if (!range.fromDate || !range.toDate) return null
+  if (recordDate < range.fromDate || recordDate > range.toDate) return null
+
+  const now = new Date().toISOString()
+  const reason = 'Dữ liệu đã thay đổi sau khi gửi. Vui lòng kiểm tra và gửi lại.'
+  const saved = await upsertPayrollCycleClose({
+    ...existing,
+    status: CLOSE_CYCLE_STATUS.RETURNED,
+    returnReason: reason,
+    returnedAt: now,
+    returnedBy: 'system',
+    returnedByName: 'Hệ thống',
+    approvedAt: null,
+    approvedBy: '',
+    approvedByName: '',
+    validation: {
+      ...(existing.validation && typeof existing.validation === 'object' ? existing.validation : {}),
+      dataChangedAfterSubmit: true,
+      dataChangedAt: now,
+      dataChangedDate: recordDate,
+    },
+  })
+
+  await insertPayrollCycleCloseEvent({
+    id: `pcce_${saved.id}_${saved.submissionVersion || 0}_data_changed_${Date.now()}`,
+    closeId: saved.id,
+    employeeId,
+    eventType: 'returned',
+    fromStatus: existing.status,
+    toStatus: CLOSE_CYCLE_STATUS.RETURNED,
+    submissionVersion: saved.submissionVersion || 0,
+    snapshot: existing.snapshot || {},
+    note: reason,
+    actorId: 'system',
+    actorName: 'Hệ thống',
+  }).catch(() => null)
+
+  notifyDataSynced(['payroll-cycle-closes', 'payroll'])
+  return saved
 }

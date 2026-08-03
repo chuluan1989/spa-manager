@@ -1,3 +1,13 @@
+/**
+ * Lịch khóa kỳ theo ngày cố định (16 / 01 tháng sau).
+ *
+ * DEPRECATED — KHÔNG dùng để chặn tạo/sửa hóa đơn hoặc chấm công của NV.
+ * Khóa nguồn duy nhất: employeeId + fromDate–toDate + status approved
+ * (xem payrollCycleClose/approvedCloseLock.js).
+ *
+ * isPayCycleClosedForRecordDate luôn false để tránh khóa nhầm kỳ mới
+ * (vd. duyệt Kỳ 2/7 không được khóa tháng 8).
+ */
 import { PAY_CYCLES, getPayCycleLabel, shiftMonthValue } from './salaryReport'
 
 /** Ngày hiện tại theo múi giờ Việt Nam (YYYY-MM-DD). */
@@ -25,9 +35,8 @@ export function resolvePayCycleForDate(dateStr) {
 }
 
 /**
- * Ngày bắt đầu khóa kỳ:
- * - Kỳ 1 (01–15): khóa từ ngày 16 cùng tháng.
- * - Kỳ 2 (16–cuối): khóa từ ngày 01 tháng sau.
+ * Ngày bắt đầu khóa kỳ (lịch) — chỉ còn ý nghĩa tham chiếu lịch nộp.
+ * Không dùng để block dữ liệu NV.
  */
 export function getPayCycleLockStartDate(month, cycle) {
   if (!month) return null
@@ -36,18 +45,17 @@ export function getPayCycleLockStartDate(month, cycle) {
   return null
 }
 
-export function isPayCycleClosedForRecordDate(recordDate, todayDate = getVietnamTodayDate()) {
-  const info = resolvePayCycleForDate(recordDate)
-  if (!info) return false
-  const lockStart = getPayCycleLockStartDate(info.month, info.cycle)
-  return Boolean(lockStart && todayDate >= lockStart)
+/** @deprecated Luôn false — khóa theo approvedCloseLock. */
+export function isPayCycleClosedForRecordDate(_recordDate, _todayDate = getVietnamTodayDate()) {
+  return false
 }
 
+/** @deprecated */
 export function getPayCycleLockBlockMessage(recordDate) {
   const info = resolvePayCycleForDate(recordDate)
   if (!info) return 'Không xác định được kỳ lương của bản ghi.'
   const monthLabel = `${info.month.slice(5, 7)}/${info.month.slice(0, 4)}`
-  return `Kỳ lương ${getPayCycleLabel(info.cycle)} tháng ${monthLabel} đã chốt. Chỉ Admin được chỉnh sửa.`
+  return `Kỳ lương ${getPayCycleLabel(info.cycle)} tháng ${monthLabel} — kiểm tra trạng thái duyệt phiếu chốt của nhân viên.`
 }
 
 export function describePayCycleLock(recordDate, todayDate = getVietnamTodayDate()) {
@@ -55,7 +63,7 @@ export function describePayCycleLock(recordDate, todayDate = getVietnamTodayDate
   if (!info) return { closed: false, info: null, lockStart: null, todayDate }
   const lockStart = getPayCycleLockStartDate(info.month, info.cycle)
   return {
-    closed: Boolean(lockStart && todayDate >= lockStart),
+    closed: false,
     info,
     lockStart,
     todayDate,

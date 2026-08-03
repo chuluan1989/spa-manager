@@ -14,6 +14,7 @@ import {
   getCurrentUserName,
   getScopedEmployeeId,
   isAdmin,
+  isBranchManager,
   isEmployee,
 } from '../constants/auth'
 import { getActiveBranches, getBranchById } from '../constants/branches'
@@ -54,6 +55,7 @@ import {
   saveInvoice,
   updateInvoice,
 } from '../utils/invoiceStorage'
+import { getIctTodayDate } from '../utils/ictTime'
 import {
   INVOICE_CUSTOMER_PHONE_SOFT_WARNING,
   INVOICE_CUSTOMER_REQUIRED_MESSAGE,
@@ -62,9 +64,22 @@ import {
 import { consumeInvoiceEditPrefill, consumeInvoiceCreateDatePrefill } from '../utils/navigationPrefill'
 import { exportInvoicesCsv } from '../utils/invoiceExport'
 import { getCatalogGroupsForBranch } from '../utils/branchPricingStorage'
-import { isInvoiceInClosedPayCycle } from '../utils/invoiceEditPolicy'
-import { getPayCycleLockBlockMessage, isPayCycleClosedForRecordDate } from '../utils/payrollPeriodLock'
+import {
+  getInvoiceCreateLockedDateMessage,
+  isInvoiceInClosedPayCycle,
+} from '../utils/invoiceEditPolicy'
+import {
+  getApprovedCloseLockMessage,
+  isEmployeeDateLockedByApprovedCloseSync,
+  refreshApprovedCloseCache,
+} from '../utils/payrollCycleClose/approvedCloseLock'
+import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import './Invoice.css'
+
+/** Ngày form hóa đơn — luôn theo giờ Việt Nam. */
+function getInvoiceFormToday() {
+  return getIctTodayDate()
+}
 
 const INITIAL_FILTERS = () => ({
   fromDate: getMonthStartDate(),
@@ -78,7 +93,7 @@ const INITIAL_FILTERS = () => ({
 })
 
 const INITIAL_FORM = () => ({
-  date: getTodayDate(),
+  date: getInvoiceFormToday(),
   invoiceTime: getCurrentTime(),
   branchId: canSelectBranch() ? '' : getCurrentUserBranch(),
   employeeId: getScopedEmployeeId(''),
@@ -131,13 +146,56 @@ export default function Invoice({ onNavigate }) {
   const [saving, setSaving] = useState(false)
   const [adminEditReason, setAdminEditReason] = useState('')
   const [activeTab, setActiveTab] = useState(() => (isEmployee() ? 'create' : 'list'))
+  const [approvedLockVersion, setApprovedLockVersion] = useState(0)
+  const syncVersion = useDataSyncVersion()
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        if (isEmployee()) {
+          await refreshApprovedCloseCache({ employeeId: currentEmployeeId || '' })
+        } else if (isBranchManager()) {
+          await refreshApprovedCloseCache({ branchId: sessionBranchId || '' })
+        } else if (isAdmin()) {
+          await refreshApprovedCloseCache({})
+        }
+      } catch {
+        /* ignore */
+      }
+      if (!cancelled) setApprovedLockVersion((n) => n + 1)
+    })()
+    return () => { cancelled = true }
+  }, [currentEmployeeId, sessionBranchId, syncVersion])
+
+  const isFormDateLockedForActor = (date, employeeId = form.employeeId || currentEmployeeId) => {
+    if (isAdmin()) return false
+    if (!date || !employeeId) return false
+    void approvedLockVersion
+    return isEmployeeDateLockedByApprovedCloseSync(employeeId, date)
+  }
+
 
   useEffect(() => {
     const prefillDate = consumeInvoiceCreateDatePrefill()
     if (!prefillDate) return
+    const employeeId = currentEmployeeId || ''
+    if (!isAdmin() && employeeId && isEmployeeDateLockedByApprovedCloseSync(employeeId, prefillDate)) {
+      setForm((prev) => ({
+        ...prev,
+        date: getInvoiceFormToday(),
+        invoiceTime: getCurrentTime(),
+      }))
+      setEditingId(null)
+      setActiveTab('create')
+      setToast(getInvoiceCreateLockedDateMessage())
+      setTimeout(() => setToast(''), 4500)
+      return
+    }
     setForm((prev) => ({ ...prev, date: prefillDate }))
+    setEditingId(null)
     setActiveTab('create')
-  }, [])
+  }, [currentEmployeeId])
 
   const getInvoiceByIdFromList = (id) => invoices.find((invoice) => invoice.id === id) ?? null
 
@@ -316,7 +374,7 @@ export default function Invoice({ onNavigate }) {
   }
 
   const resetForm = () => {
-    setForm({ ...INITIAL_FORM(), date: getTodayDate() })
+    setForm({ ...INITIAL_FORM(), date: getInvoiceFormToday(), invoiceTime: getCurrentTime() })
     setSelectedIds([])
     setFallbackServices([])
     setTipsInput('')
@@ -325,6 +383,14 @@ export default function Invoice({ onNavigate }) {
     setEditingId(null)
     setAdminEditReason('')
     setErrors({})
+  }
+
+  /** Mở form thêm hóa đơn mới — reset toàn bộ, không kế thừa HĐ vừa sửa. */
+  const openNewInvoiceForm = () => {
+    resetForm()
+    setDetailInvoice(null)
+    setActiveTab('create')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const showToast = (message) => {
@@ -394,16 +460,21 @@ export default function Invoice({ onNavigate }) {
     }
 
     const payload = buildInvoicePayload(branchId, branch, employee, existingInvoice)
+    const lockedForSelectedEmployee = Boolean(
+      form.employeeId
+      && form.date
+      && isEmployeeDateLockedByApprovedCloseSync(form.employeeId, form.date),
+    )
     const closedTarget = editingId
-      ? isInvoiceInClosedPayCycle(existingInvoice) || isPayCycleClosedForRecordDate(form.date)
-      : isPayCycleClosedForRecordDate(form.date)
+      ? (isInvoiceInClosedPayCycle(existingInvoice) || lockedForSelectedEmployee)
+      : lockedForSelectedEmployee
 
     if (!isAdmin() && closedTarget) {
-      showToast(getPayCycleLockBlockMessage(form.date))
+      showToast(getApprovedCloseLockMessage(form.date) || getInvoiceCreateLockedDateMessage())
       return
     }
     if (isAdmin() && closedTarget && !adminEditReason.trim()) {
-      setErrors({ adminEditReason: 'Vui lòng nhập lý do khi Admin sửa dữ liệu kỳ đã chốt.' })
+      setErrors({ adminEditReason: 'Vui lòng nhập lý do khi Admin bổ sung/sửa dữ liệu kỳ đã duyệt.' })
       return
     }
 
@@ -418,7 +489,7 @@ export default function Invoice({ onNavigate }) {
         }
         reloadInvoices()
         resetForm()
-        setActiveTab('list')
+        setActiveTab(isEmployee() ? 'create' : 'list')
         showToast('Cập nhật hóa đơn thành công')
         return
       }
@@ -436,7 +507,7 @@ export default function Invoice({ onNavigate }) {
       }
       reloadInvoices()
       resetForm()
-      setActiveTab('list')
+      setActiveTab(isEmployee() ? 'create' : 'list')
       showToast('Lưu thành công')
     } finally {
       setSaving(false)
@@ -495,7 +566,7 @@ export default function Invoice({ onNavigate }) {
       showToast('Bạn không có quyền xóa hóa đơn.')
       return
     }
-    const closed = invoice && isPayCycleClosedForRecordDate(invoice.date)
+    const closed = invoice && isInvoiceInClosedPayCycle(invoice)
     let editReason = ''
     if (isAdmin() && closed) {
       editReason = window.prompt('Nhập lý do xóa hóa đơn trong kỳ đã chốt:') ?? ''
@@ -546,12 +617,21 @@ export default function Invoice({ onNavigate }) {
         {canCreateInvoice && (
         <button
           type="button"
-          className={`app-tabs__btn ${activeTab === 'create' ? 'app-tabs__btn--active' : ''}`}
-          onClick={() => setActiveTab('create')}
+          className={`app-tabs__btn ${activeTab === 'create' && !editingId ? 'app-tabs__btn--active' : ''}`}
+          onClick={openNewInvoiceForm}
         >
-          {editingId ? 'Sửa hóa đơn' : 'Tạo hóa đơn'}
+          Tạo hóa đơn
         </button>
         )}
+        {canCreateInvoice && editingId && activeTab === 'create' ? (
+          <button
+            type="button"
+            className="app-tabs__btn app-tabs__btn--active"
+            onClick={() => setActiveTab('create')}
+          >
+            Sửa hóa đơn
+          </button>
+        ) : null}
       </div>
 
       {activeTab === 'list' && (
@@ -797,12 +877,10 @@ export default function Invoice({ onNavigate }) {
               />
             </label>
 
-            {isAdmin() && (
-              isPayCycleClosedForRecordDate(form.date)
-              || (editingId && isInvoiceInClosedPayCycle(getInvoiceByIdFromList(editingId)))
-            ) && (
+            {isAdmin() && form.employeeId && form.date
+              && isEmployeeDateLockedByApprovedCloseSync(form.employeeId, form.date) && (
               <label className="invoice__field invoice__field--full">
-                <span>Lý do Admin sửa kỳ đã chốt *</span>
+                <span>Lý do bổ sung/sửa sau kỳ đã duyệt *</span>
                 <textarea
                   rows={2}
                   value={adminEditReason}
@@ -810,15 +888,15 @@ export default function Invoice({ onNavigate }) {
                     setAdminEditReason(e.target.value)
                     setErrors((prev) => ({ ...prev, adminEditReason: undefined }))
                   }}
-                  placeholder="Bắt buộc khi sửa hóa đơn trong kỳ lương đã chốt"
+                  placeholder="Bắt buộc khi Admin nhập bổ sung hoặc sửa hóa đơn thuộc kỳ lương đã duyệt"
                   className={errors.adminEditReason ? 'invoice__input--error' : ''}
                 />
                 {errors.adminEditReason && <span className="invoice__error">{errors.adminEditReason}</span>}
               </label>
             )}
 
-            {!isAdmin() && isPayCycleClosedForRecordDate(form.date) && (
-              <p className="invoice__error invoice__error--block">{getPayCycleLockBlockMessage(form.date)}</p>
+            {!isAdmin() && isFormDateLockedForActor(form.date) && (
+              <p className="invoice__error invoice__error--block">{getInvoiceCreateLockedDateMessage()}</p>
             )}
           </section>
 
@@ -829,8 +907,10 @@ export default function Invoice({ onNavigate }) {
               onClick={handleSave}
               disabled={
                 saving
-                || (!isAdmin() && isPayCycleClosedForRecordDate(form.date))
-                || !canAddInvoiceForDate(form.date)
+                || (!isAdmin() && isFormDateLockedForActor(form.date))
+                || !canAddInvoiceForDate(form.date, undefined, undefined, {
+                  employeeId: form.employeeId || currentEmployeeId,
+                })
               }
             >
               {saving ? 'Đang lưu...' : editingId ? 'Cập nhật hóa đơn' : 'Lưu hóa đơn'}

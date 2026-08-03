@@ -5,10 +5,6 @@ import {
   isAdmin,
 } from '../constants/auth'
 import { getMonthPrefixFromDate } from './attendancePenalties'
-import {
-  getPayCycleLockBlockMessage,
-  isPayCycleClosedForRecordDate,
-} from './payrollPeriodLock'
 import { getTodayDate } from './invoiceStorage'
 import { isPayrollMonthLocked } from './payrollEngine'
 import { checkPermission, PERMISSION_KEYS } from './permissionsStorage'
@@ -16,6 +12,7 @@ import { fetchPayrollLocks } from '../repositories/payrollRepository'
 import {
   getApprovedCloseLockMessage,
   isAttendanceDateLockedByApprovedClose,
+  isEmployeeDateLockedByApprovedCloseSync,
 } from './payrollCycleClose/approvedCloseLock'
 
 export function getCurrentAttendanceMonth() {
@@ -36,7 +33,12 @@ export function getAttendanceMonthBounds(monthPrefix = getCurrentAttendanceMonth
 export function getAttendanceEditBlockReason(
   recordBranchId = '',
   recordDate = '',
-  { locks = [], role = getCurrentUserRole(), branchId = getCurrentUserBranch() } = {},
+  {
+    locks = [],
+    role = getCurrentUserRole(),
+    branchId = getCurrentUserBranch(),
+    employeeId = '',
+  } = {},
 ) {
   if (!checkPermission(PERMISSION_KEYS.EDIT_ATTENDANCE, role, branchId)) {
     return 'Không có quyền sửa chấm công.'
@@ -48,8 +50,8 @@ export function getAttendanceEditBlockReason(
     return 'Không có quyền sửa chấm công nhân viên chi nhánh khác.'
   }
 
-  if (recordDate && isPayCycleClosedForRecordDate(recordDate)) {
-    return getPayCycleLockBlockMessage(recordDate)
+  if (employeeId && recordDate && isEmployeeDateLockedByApprovedCloseSync(employeeId, recordDate)) {
+    return getApprovedCloseLockMessage(recordDate)
   }
 
   const recordMonth = getMonthPrefixFromDate(recordDate)
@@ -86,15 +88,17 @@ export async function assertCanEditAttendanceRecord(record, { date, locks, editN
     if (!checkPermission(PERMISSION_KEYS.EDIT_ATTENDANCE, role, getCurrentUserBranch())) {
       throw new Error('Không có quyền sửa chấm công.')
     }
-    const closed = isPayCycleClosedForRecordDate(targetDate)
+    const locked = employeeId && targetDate
+      ? await isAttendanceDateLockedByApprovedClose(employeeId, targetDate)
+      : false
     const lockRows = locks ?? await fetchPayrollLocks({ month: getMonthPrefixFromDate(targetDate) })
     const monthLocked = isPayrollMonthLocked(
       getMonthPrefixFromDate(targetDate),
       recordBranchId,
       lockRows,
     )
-    if ((closed || monthLocked) && !String(editNote ?? '').trim()) {
-      throw new Error('Vui lòng nhập lý do khi Admin sửa dữ liệu kỳ lương đã chốt.')
+    if ((locked || monthLocked) && !String(editNote ?? '').trim()) {
+      throw new Error('Vui lòng nhập lý do khi Admin sửa dữ liệu kỳ lương đã duyệt.')
     }
     return
   }
@@ -104,6 +108,7 @@ export async function assertCanEditAttendanceRecord(record, { date, locks, editN
     locks: lockRows,
     role,
     branchId: getCurrentUserBranch(),
+    employeeId,
   })
   if (reason) {
     throw new Error(reason)

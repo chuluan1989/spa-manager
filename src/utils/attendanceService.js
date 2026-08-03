@@ -11,7 +11,11 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { ATTENDANCE_STATUS } from '../constants/attendanceTypes'
 import { isAdmin } from '../constants/auth'
 import { assertCanEditAttendanceRecord } from './attendanceEditPolicy'
-import { getPayCycleLockBlockMessage, isPayCycleClosedForRecordDate } from './payrollPeriodLock'
+import {
+  getApprovedCloseLockMessage,
+  invalidateCloseAfterSourceChange,
+  isEmployeeRecordLockedByApprovedClose,
+} from './payrollCycleClose/approvedCloseLock'
 import { upsertBranchMinimal } from '../repositories/branchesRepository'
 import { fetchEmployeeById } from '../repositories/employeesRepository'
 import {
@@ -30,6 +34,13 @@ const ATTENDANCE_SAVE_TIMEOUT_MS = 15000
 
 function notifyAttendanceDataChanged() {
   notifyDataSynced(['attendance', 'payroll', 'reports', 'dashboard'])
+}
+
+async function afterAttendanceSourceChanged(employeeId, date) {
+  if (!employeeId || !date) return
+  await invalidateCloseAfterSourceChange(employeeId, date).catch((err) => {
+    console.warn('[attendance] invalidate close:', err?.message)
+  })
 }
 
 function withTimeout(promise, ms, timeoutMessage) {
@@ -165,8 +176,8 @@ export async function submitEmployeeAttendance({
         } catch (err) {
           throw new Error(parseAttendanceError(err))
         }
-        if (!isAdmin() && isPayCycleClosedForRecordDate(date)) {
-          throw new Error(getPayCycleLockBlockMessage(date))
+        if (!isAdmin() && await isEmployeeRecordLockedByApprovedClose(employee.id, date)) {
+          throw new Error(getApprovedCloseLockMessage(date))
         }
         const existing = await fetchAttendanceByEmployeeAndDate(employee.id, date)
         if (existing) {
@@ -198,6 +209,7 @@ export async function submitEmployeeAttendance({
       'Lưu điểm danh quá lâu. Kiểm tra mạng và thử lại.',
     )
     notifyAttendanceDataChanged()
+    await afterAttendanceSourceChanged(saved.employeeId, saved.date)
     return saved
   } catch (err) {
     throw new Error(parseAttendanceError(err))
@@ -230,8 +242,8 @@ export async function submitEmployeeAttendanceBackfill({
   if (date < minDate) {
     throw new Error(`Chỉ được bổ sung từ ngày ${minDate}.`)
   }
-  if (!isAdmin() && isPayCycleClosedForRecordDate(date)) {
-    throw new Error(getPayCycleLockBlockMessage(date))
+  if (!isAdmin() && await isEmployeeRecordLockedByApprovedClose(employeeId, date)) {
+    throw new Error(getApprovedCloseLockMessage(date))
   }
 
   let employee
@@ -281,6 +293,7 @@ export async function submitEmployeeAttendanceBackfill({
       'Lưu điểm danh quá lâu. Kiểm tra mạng và thử lại.',
     )
     notifyAttendanceDataChanged()
+    await afterAttendanceSourceChanged(saved.employeeId, saved.date)
     return saved
   } catch (err) {
     if (err?.existing) throw err
@@ -384,6 +397,7 @@ export async function adminCreateAttendance({
   })
 
   notifyAttendanceDataChanged()
+  await afterAttendanceSourceChanged(saved.employeeId, saved.date)
 
   await insertAttendanceEditLogs([{
     id: createAttendanceLogId(),
@@ -507,6 +521,7 @@ export async function adminUpdateAttendance({
   })
 
   notifyAttendanceDataChanged()
+  await afterAttendanceSourceChanged(saved.employeeId, saved.date)
 
   await insertAttendanceEditLogs(
     buildEditLogs(record.id, editor, changes, editNote || resolvedNote),

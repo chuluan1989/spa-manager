@@ -19,6 +19,7 @@ import {
   CLOSE_CYCLE_STATUS,
 } from './closeCycleStatus'
 import { CLOSE_CYCLES, getCloseCycleRange } from './payCycleCalendar'
+import { refreshApprovedCloseCache } from './approvedCloseLock'
 import { notifyDataSynced } from '../dataSyncEvents'
 import {
   areCloseConfirmationsComplete,
@@ -322,6 +323,8 @@ export async function approveCloseCycle({
   })
 
   notifyDataSynced(['payroll-cycle-closes', 'payroll'])
+
+  await refreshApprovedCloseCache({ employeeId }).catch(() => {})
 
   return { record: saved }
 }

@@ -7,6 +7,10 @@ import { loadEmployeePayroll1Status } from '../utils/payroll1Service'
 import { submitEmployeeAttendanceBackfill } from '../utils/attendanceService'
 import { fetchAttendanceByEmployeeAndDate } from '../repositories/attendanceRepository'
 import { setInvoiceCreateDatePrefill } from '../utils/navigationPrefill'
+import {
+  isEmployeeDateLockedByApprovedCloseSync,
+  refreshApprovedCloseCache,
+} from '../utils/payrollCycleClose/approvedCloseLock'
 import { getEmployeeById } from '../utils/employeeStorage'
 import Payroll1Progress from '../components/payroll1/Payroll1Progress'
 import '../components/payroll1/payroll1.css'
@@ -43,6 +47,7 @@ export default function Payroll1CheckPage({ onNavigate }) {
 
   useEffect(() => {
     reload()
+    refreshApprovedCloseCache({ employeeId: employeeId || '' }).catch(() => {})
   }, [employeeId])
 
   useEffect(() => {
@@ -74,7 +79,10 @@ export default function Payroll1CheckPage({ onNavigate }) {
   }
 
   const handleAddInvoice = (dayDate) => {
-    setInvoiceCreateDatePrefill(dayDate)
+    // Không đẩy ngày thuộc kỳ đã Admin duyệt sang form Invoice.
+    if (dayDate && employeeId && !isEmployeeDateLockedByApprovedCloseSync(employeeId, dayDate)) {
+      setInvoiceCreateDatePrefill(dayDate)
+    }
     onNavigate?.('invoices')
   }
 
