@@ -38,6 +38,7 @@ import {
   getDrillLevelConfig,
 } from '../../utils/drillDownReport'
 import { formatCurrency } from '../../utils/invoice'
+import { PAYMENT_METHOD_FILTER_OPTIONS } from '../../constants/paymentMethods'
 import { getTodayDate, getMonthStartDate } from '../../utils/invoiceStorage'
 import { loadServices } from '../../utils/serviceStorage'
 import { setInvoiceEditPrefill } from '../../utils/navigationPrefill'
@@ -355,6 +356,14 @@ export default function DrillDownExplorer({
             <option value="">Tất cả</option>
             <option value="with">Có KM</option>
             <option value="without">Không KM</option>
+          </select>
+        </label>
+        <label>
+          <span>Phương thức TT</span>
+          <select value={filters.paymentMethod || ''} onChange={(e) => updateFilter('paymentMethod', e.target.value)}>
+            {PAYMENT_METHOD_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
         </label>
       </section>

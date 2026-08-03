@@ -171,6 +171,11 @@ export default function EmployeeSalaryPanel() {
                 <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(employee.summary.revenue)}</strong></div>
                 <div><span>Tổng tips</span><strong>{formatCurrency(employee.summary.tips)}</strong></div>
                 <div><span>Tổng hoa hồng DV</span><strong className="salary-report__commission">{formatCurrency(employee.summary.serviceCommission)}</strong></div>
+                <div><span>Tiền mặt</span><strong>{formatCurrency(employee.summary.cashAmount ?? 0)}</strong></div>
+                <div><span>Chuyển khoản</span><strong>{formatCurrency(employee.summary.bankTransferAmount ?? 0)}</strong></div>
+                <div><span>Tổng thu</span><strong>{formatCurrency(employee.summary.totalCollected ?? 0)}</strong></div>
+                <div><span>Số HĐ tiền mặt</span><strong>{employee.summary.cashCount ?? 0}</strong></div>
+                <div><span>Số HĐ chuyển khoản</span><strong>{employee.summary.bankTransferCount ?? 0}</strong></div>
                 <div><span>Tổng lương</span><strong className="salary-report__salary">{formatCurrency(employee.summary.totalSalary)}</strong></div>
               </div>
             </div>
@@ -182,6 +187,7 @@ export default function EmployeeSalaryPanel() {
                   {invoice.branchName && invoice.branchName !== '—' ? ` · ${invoice.branchName}` : ''}
                   {invoice.salaryRole === 'support' ? ' (hỗ trợ)' : ''}
                   {invoice.customerName !== '—' ? ` (${invoice.customerName})` : ''}
+                  {invoice.paymentMethodLabel ? ` · ${invoice.paymentMethodLabel}` : ''}
                 </h4>
                 <div className="report-table-card__wrap">
                   <table className="report-table-card__table salary-report__table">
@@ -231,6 +237,9 @@ export default function EmployeeSalaryPanel() {
               <div className="salary-report__period-total-grid">
                 <div><span>Doanh thu tiền vé kỳ</span><strong>{formatCurrency(employee.periodTotals.revenue)}</strong></div>
                 <div><span>Tổng tips kỳ</span><strong>{formatCurrency(employee.periodTotals.tips)}</strong></div>
+                <div><span>Tiền mặt kỳ</span><strong>{formatCurrency(employee.periodTotals.cashAmount ?? 0)}</strong></div>
+                <div><span>Chuyển khoản kỳ</span><strong>{formatCurrency(employee.periodTotals.bankTransferAmount ?? 0)}</strong></div>
+                <div><span>Tổng thu kỳ</span><strong>{formatCurrency(employee.periodTotals.totalCollected ?? 0)}</strong></div>
                 <div><span>Tổng hoa hồng kỳ</span><strong className="salary-report__commission">{formatCurrency(employee.periodTotals.serviceCommission)}</strong></div>
                 <div><span>Tổng lương kỳ</span><strong className="salary-report__salary">{formatCurrency(employee.periodTotals.totalSalary)}</strong></div>
               </div>

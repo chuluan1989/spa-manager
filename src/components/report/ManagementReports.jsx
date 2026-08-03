@@ -405,6 +405,9 @@ export default function ManagementReports({ onNavigate }) {
                   <th><button type="button" onClick={() => toggleSort('customerRequestedTourCount')}>Khách yêu cầu</button></th>
                   <th><button type="button" onClick={() => toggleSort('customerRequestedTourRate')}>Tỷ lệ YC/tour</button></th>
                   <th><button type="button" onClick={() => toggleSort('tips')}>Tips</button></th>
+                  <th><button type="button" onClick={() => toggleSort('cashAmount')}>Tiền mặt</button></th>
+                  <th><button type="button" onClick={() => toggleSort('bankTransferAmount')}>Chuyển khoản</button></th>
+                  <th><button type="button" onClick={() => toggleSort('totalCollected')}>Tổng thu</button></th>
                   <th><button type="button" onClick={() => toggleSort('averageRevenuePerCustomer')}>DT/khách</button></th>
                 </tr>
               </thead>
@@ -429,11 +432,14 @@ export default function ManagementReports({ onNavigate }) {
                     <td className="is-num">{row.customerRequestedTourCount}</td>
                     <td className="is-num">{formatRate(row.customerRequestedTourRate)}</td>
                     <td className="is-num">{formatMoneyOrDash(row.tips)}</td>
+                    <td className="is-num">{formatMoneyOrDash(row.cashAmount)}</td>
+                    <td className="is-num">{formatMoneyOrDash(row.bankTransferAmount)}</td>
+                    <td className="is-num">{formatMoneyOrDash(row.totalCollected)}</td>
                     <td className="is-num">{formatMoneyOrDash(row.averageRevenuePerCustomer)}</td>
                   </tr>
                 ))}
                 {!data.loading && filteredBranches.length === 0 && (
-                  <tr><td colSpan={9} className="mgmt-empty">Không có dữ liệu chi nhánh.</td></tr>
+                  <tr><td colSpan={12} className="mgmt-empty">Không có dữ liệu chi nhánh.</td></tr>
                 )}
               </tbody>
             </table>
@@ -453,6 +459,12 @@ export default function ManagementReports({ onNavigate }) {
                 <div><dt>Tổng tour</dt><dd>{selectedBranch.invoiceCount}</dd></div>
                 <div><dt>Tỷ lệ YC/tour</dt><dd>{formatRate(selectedBranch.customerRequestedTourRate)} <TrendCell trend={selectedBranch.customerRequestedTourRateTrend} previousValue={selectedBranch.previous?.customerRequestedTourRate} formatPrev={formatRate} /></dd></div>
                 <div><dt>Tips</dt><dd>{formatMoneyOrDash(selectedBranch.tips)} <TrendCell trend={selectedBranch.tipsTrend} previousValue={selectedBranch.previous?.tips} formatPrev={formatMoneyOrDash} /></dd></div>
+                <div><dt>Tiền mặt</dt><dd>{formatMoneyOrDash(selectedBranch.cashAmount)}</dd></div>
+                <div><dt>Chuyển khoản</dt><dd>{formatMoneyOrDash(selectedBranch.bankTransferAmount)}</dd></div>
+                <div><dt>Chưa xác định PTTT</dt><dd>{formatMoneyOrDash(selectedBranch.unknownPaymentAmount)}</dd></div>
+                <div><dt>Tổng thu (khách trả)</dt><dd>{formatMoneyOrDash(selectedBranch.totalCollected)}</dd></div>
+                <div><dt>Tỷ lệ tiền mặt</dt><dd>{`${Number(selectedBranch.cashRatePercent ?? 0).toFixed(1)}%`}</dd></div>
+                <div><dt>Tỷ lệ chuyển khoản</dt><dd>{`${Number(selectedBranch.bankTransferRatePercent ?? 0).toFixed(1)}%`}</dd></div>
                 <div><dt>DT/khách</dt><dd>{formatMoneyOrDash(selectedBranch.averageRevenuePerCustomer)}</dd></div>
                 <div><dt>Invoice TB</dt><dd>{formatMoneyOrDash(selectedBranch.averageTicket)} <TrendCell trend={selectedBranch.averageTicketTrend} previousValue={selectedBranch.previous?.averageTicket} formatPrev={formatMoneyOrDash} /></dd></div>
                 <div><dt>DT/ngày</dt><dd>{formatMoneyOrDash(selectedBranch.averageRevenuePerDay)}</dd></div>

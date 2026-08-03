@@ -43,6 +43,10 @@ function InvoiceRow({ item, onView, onEdit, onDelete, allowDelete }) {
             </span>
           </div>
           <div className="employee-invoice-row__field">
+            <span className="employee-invoice-row__label">Phương thức thanh toán</span>
+            <span className="employee-invoice-row__value">{item.paymentMethodLabel || 'Chưa xác định'}</span>
+          </div>
+          <div className="employee-invoice-row__field">
             <span className="employee-invoice-row__label">Hoa hồng</span>
             <span className="employee-invoice-row__value employee-invoice-row__commission">
               {formatCurrency(item.commission)}
@@ -162,6 +166,11 @@ export default function AdminEmployeeDetail({
               <div><span>Tour hỗ trợ liên CN</span><strong>{detail.periodTotals.crossBranchSupportTourCount ?? 0}</strong></div>
               <div><span>DT hỗ trợ liên CN</span><strong>{formatCurrency(detail.periodTotals.crossBranchSupportRevenue ?? 0)}</strong></div>
               <div><span>Tổng Tips</span><strong className="employee-invoice-row__tips">{formatCurrency(detail.periodTotals.tips)}</strong></div>
+              <div><span>Tiền mặt</span><strong>{formatCurrency(detail.periodTotals.cashAmount ?? 0)}</strong></div>
+              <div><span>Chuyển khoản</span><strong>{formatCurrency(detail.periodTotals.bankTransferAmount ?? 0)}</strong></div>
+              <div><span>Tổng thu</span><strong>{formatCurrency(detail.periodTotals.totalCollected ?? 0)}</strong></div>
+              <div><span>Số HĐ tiền mặt</span><strong>{detail.periodTotals.cashCount ?? 0}</strong></div>
+              <div><span>Số HĐ chuyển khoản</span><strong>{detail.periodTotals.bankTransferCount ?? 0}</strong></div>
               <div><span>Tổng hoa hồng</span><strong className="salary-report__commission">{formatCurrency(detail.periodTotals.serviceCommission)}</strong></div>
               <div><span>Tổng lương</span><strong className="salary-report__salary">{formatCurrency(detail.periodTotals.totalSalary)}</strong></div>
             </div>

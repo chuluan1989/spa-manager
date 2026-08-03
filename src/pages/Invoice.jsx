@@ -48,6 +48,12 @@ import {
   sortInvoicesDesc,
 } from '../utils/invoiceFilters'
 import {
+  isKnownPaymentMethod,
+  normalizePaymentMethod,
+  PAYMENT_METHOD_OPTIONS,
+  PAYMENT_METHODS,
+} from '../constants/paymentMethods'
+import {
   createInvoiceId,
   deleteInvoice,
   getMonthStartDate,
@@ -135,7 +141,7 @@ export default function Invoice({ onNavigate }) {
   const [fallbackServices, setFallbackServices] = useState([])
   const [tipsInput, setTipsInput] = useState('')
   const [discountInput, setDiscountInput] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('cash')
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH)
   const [editingId, setEditingId] = useState(null)
   const { invoices, loading: invoicesLoading, error: invoicesError, reload: reloadInvoices } = useInvoicesData()
   const [listFilters, setListFilters] = useState(INITIAL_FILTERS)
@@ -369,6 +375,9 @@ export default function Invoice({ onNavigate }) {
       next.employeeId = 'Nhân viên không thuộc chi nhánh đã chọn'
     }
     if (selectedIds.length === 0) next.services = 'Vui lòng chọn ít nhất 1 dịch vụ'
+    if (!isKnownPaymentMethod(paymentMethod)) {
+      next.paymentMethod = 'Vui lòng chọn phương thức thanh toán'
+    }
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -379,7 +388,7 @@ export default function Invoice({ onNavigate }) {
     setFallbackServices([])
     setTipsInput('')
     setDiscountInput('')
-    setPaymentMethod('cash')
+    setPaymentMethod(PAYMENT_METHODS.CASH)
     setEditingId(null)
     setAdminEditReason('')
     setErrors({})
@@ -421,7 +430,7 @@ export default function Invoice({ onNavigate }) {
       serviceIds: selectedIds,
       services: totals.services ?? getSelectedServiceDetails(selectedIds, branchId, fallbackServices, branch.name),
       tips: totals.tips,
-      paymentMethod,
+      paymentMethod: normalizePaymentMethod(paymentMethod),
       note: form.note.trim(),
       originalServiceTotal: totals.originalServiceTotal,
       discountInput: totals.discountInput,
@@ -541,7 +550,7 @@ export default function Invoice({ onNavigate }) {
     setFallbackServices(services)
     setTipsInput(String(invoice.tips ?? 0))
     setDiscountInput(invoice.discountInput ?? '')
-    setPaymentMethod(invoice.paymentMethod ?? 'cash')
+    setPaymentMethod(normalizePaymentMethod(invoice.paymentMethod) || '')
     setErrors({})
     setActiveTab('create')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -843,6 +852,34 @@ export default function Invoice({ onNavigate }) {
                   onChange={handleTipsChange}
                 />
               </label>
+              <fieldset className={`invoice__field invoice__payment-method${errors.paymentMethod ? ' is-error' : ''}`}>
+                <legend>Phương thức thanh toán</legend>
+                <div className="invoice__payment-method-options" role="radiogroup" aria-label="Phương thức thanh toán">
+                  {PAYMENT_METHOD_OPTIONS.map((opt) => (
+                    <label key={opt.value} className="invoice__payment-method-option">
+                      <input
+                        type="radio"
+                        name="invoice-payment-method"
+                        value={opt.value}
+                        checked={paymentMethod === opt.value}
+                        onChange={() => {
+                          setPaymentMethod(opt.value)
+                          setErrors((prev) => {
+                            if (!prev.paymentMethod) return prev
+                            const next = { ...prev }
+                            delete next.paymentMethod
+                            return next
+                          })
+                        }}
+                      />
+                      <span>{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {errors.paymentMethod && (
+                  <span className="invoice__error">{errors.paymentMethod}</span>
+                )}
+              </fieldset>
               <div className="invoice__calc">
                 <div className="invoice__calc-row">
                   <span>Giá vé</span>

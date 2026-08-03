@@ -1,5 +1,6 @@
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { ROLES } from '../constants/roles'
+import { normalizePaymentMethod } from '../constants/paymentMethods'
 import { fetchInvoices, upsertInvoice } from '../repositories/invoicesRepository'
 import { rowToCamel } from '../repositories/caseUtils'
 import { loadInvoices } from './invoiceStorage'
@@ -44,7 +45,7 @@ function normalizeCollectedInvoice(raw) {
       originalServiceTotal: Number(
         camel.originalServiceTotal ?? camel.original_service_total ?? legacy.serviceTotal ?? 0,
       ),
-      paymentMethod: camel.paymentMethod ?? camel.payment_method ?? legacy.paymentMethod ?? 'cash',
+      paymentMethod: normalizePaymentMethod(camel.paymentMethod ?? camel.payment_method ?? legacy.paymentMethod),
       enteredBy: camel.enteredBy ?? camel.entered_by ?? '',
       supportEmployeeId: camel.supportEmployeeId ?? camel.support_employee_id ?? legacy.supportEmployeeId ?? '',
       supportEmployeeName: camel.supportEmployeeName ?? camel.support_employee_name ?? legacy.supportEmployeeName ?? '',

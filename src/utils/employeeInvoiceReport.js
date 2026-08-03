@@ -15,6 +15,8 @@ import {
 } from './salaryReport'
 import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
 import { isCrossBranchSupportInvoice } from './crossBranchSupport'
+import { getPaymentMethodLabel } from '../constants/paymentMethods'
+import { aggregatePaymentMethodTotals } from './paymentMethodTotals'
 
 function getSalaryRole(invoice, employeeId) {
   if (employeeId && invoice.supportEmployeeId === employeeId) {
@@ -97,6 +99,8 @@ export function buildEmployeeInvoiceDetailItem(invoice, employeeId) {
     tips,
     commission,
     customerTotal: getInvoiceCustomerTotal(invoice),
+    paymentMethod: invoice.paymentMethod ?? '',
+    paymentMethodLabel: getPaymentMethodLabel(invoice.paymentMethod),
     totalSalary: commission + tips,
     salaryRole: role,
     roleLabel: role === SALARY_ROLES.SUPPORT ? 'Hỗ trợ' : 'Chính',
@@ -180,6 +184,17 @@ export function computeEmployeeInvoiceDetailReport(invoices, employeeId, filters
   )
   periodTotals.crossBranchSupportTourCount = crossBranchItems.length
   periodTotals.crossBranchSupportRevenue = crossBranchItems.reduce((sum, row) => sum + row.payment, 0)
+
+  const primaryInvoices = employeeInvoices.filter((inv) => inv.employeeId === employeeId)
+  const payments = aggregatePaymentMethodTotals(primaryInvoices)
+  Object.assign(periodTotals, {
+    cashAmount: payments.cashAmount,
+    bankTransferAmount: payments.bankTransferAmount,
+    unknownPaymentAmount: payments.unknownAmount,
+    totalCollected: payments.totalCollected,
+    cashCount: payments.cashCount,
+    bankTransferCount: payments.bankTransferCount,
+  })
 
   const first = employeeInvoices[0]
   const employeeName = first?.employeeName ?? '—'

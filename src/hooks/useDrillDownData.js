@@ -23,6 +23,7 @@ export function buildDefaultDrillFilters(overrides = {}) {
     customerSearch: '',
     serviceId: '',
     discountFilter: '',
+    paymentMethod: '',
     ...overrides,
   }
 }

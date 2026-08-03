@@ -16,6 +16,7 @@ import { normalizeCustomerPhone } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { deleteInvoiceRow, upsertInvoice, fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import { notifyDataSynced } from './dataSyncEvents'
+import { normalizePaymentMethod } from '../constants/paymentMethods'
 import { ensureBranchAndEmployeeOnServer } from './syncForeignKeys'
 import { canEmployeeServeAtBranch } from './crossBranchSupport'
 import {
@@ -195,21 +196,25 @@ function normalizeInvoiceCustomerFields(invoice) {
 }
 
 function ensureInvoiceSnapshot(invoice) {
-  if (Array.isArray(invoice.services) && invoice.services.length > 0) {
-    return invoice
+  const base = {
+    ...invoice,
+    paymentMethod: normalizePaymentMethod(invoice?.paymentMethod) || String(invoice?.paymentMethod ?? '').trim(),
+  }
+  if (Array.isArray(base.services) && base.services.length > 0) {
+    return base
   }
 
-  if (!Array.isArray(invoice.serviceIds) || invoice.serviceIds.length === 0) {
-    return { ...invoice, services: invoice.services ?? [] }
+  if (!Array.isArray(base.serviceIds) || base.serviceIds.length === 0) {
+    return { ...base, services: base.services ?? [] }
   }
 
   return {
-    ...invoice,
+    ...base,
     services: getSelectedServiceDetails(
-      invoice.serviceIds,
-      invoice.branchId ?? '',
+      base.serviceIds,
+      base.branchId ?? '',
       [],
-      invoice.branchName ?? '',
+      base.branchName ?? '',
     ),
   }
 }

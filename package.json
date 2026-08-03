@@ -26,6 +26,7 @@
     "verify:crm-growth": "vite-node scripts/verify-crm-growth.mjs",
     "verify:invoice-realtime": "vite-node scripts/verify-invoice-realtime-listeners.mjs",
     "verify:preview-final": "node --env-file=.env.local scripts/verify-preview-final.mjs",
+    "verify:invoice-payment-method": "vite-node scripts/verify-invoice-payment-method-uat.mjs",
     "verify:salary-advance": "vite-node scripts/verify-salary-advance.mjs",
     "verify:schema": "npx vite-node scripts/verify-schema.mjs",
     "verify:storage": "node --env-file=.env.local scripts/verify-storage.mjs",

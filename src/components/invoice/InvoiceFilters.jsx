@@ -4,6 +4,7 @@ import ExportActions from '../common/ExportActions'
 import { loadBranches } from '../../constants/branches'
 import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../../utils/employeeStorage'
 import { getMonthStartDate, getTodayDate } from '../../utils/invoiceStorage'
+import { PAYMENT_METHOD_OPTIONS } from '../../utils/invoiceFilters'
 import './InvoiceFilters.css'
 
 export default function InvoiceFilters({
@@ -107,6 +108,18 @@ export default function InvoiceFilters({
             <option value="">Tất cả nhân viên</option>
             {branchEmployees.map((employee) => (
               <option key={employee.id} value={employee.id}>{employee.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="invoice-filters__field">
+          <span>Phương thức TT</span>
+          <select
+            value={filters.paymentMethod || ''}
+            onChange={(e) => update('paymentMethod', e.target.value)}
+          >
+            {PAYMENT_METHOD_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </label>

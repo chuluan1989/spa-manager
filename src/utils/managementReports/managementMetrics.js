@@ -1,4 +1,5 @@
 import { getInvoicePayment, getInvoiceTips, getInvoiceServiceDetails } from '../invoice'
+import { aggregatePaymentMethodTotals } from '../paymentMethodTotals'
 import { countUniqueCustomers } from '../drillDownReport'
 import { buildDrillDownSummary } from '../drillDownReport'
 import { computeAttendanceStats } from '../payrollLiveHelpers'
@@ -85,6 +86,7 @@ function buildBaseMetrics(invoices, daysInPeriod) {
   const averageRevenuePerCustomer = safeDivide(revenue, totalCustomerCount)
   const averageRevenuePerDay = safeDivide(revenue, daysInPeriod)
   const averageTicket = safeDivide(revenue, invoices.length)
+  const payments = aggregatePaymentMethodTotals(invoices)
 
   return {
     revenue,
@@ -98,6 +100,15 @@ function buildBaseMetrics(invoices, daysInPeriod) {
     averageRevenuePerDay,
     averageTicket,
     invoiceCount: invoices.length,
+    cashAmount: payments.cashAmount,
+    bankTransferAmount: payments.bankTransferAmount,
+    unknownPaymentAmount: payments.unknownAmount,
+    totalCollected: payments.totalCollected,
+    cashCount: payments.cashCount,
+    bankTransferCount: payments.bankTransferCount,
+    unknownPaymentCount: payments.unknownCount,
+    cashRatePercent: payments.cashRatePercent,
+    bankTransferRatePercent: payments.bankTransferRatePercent,
   }
 }
 

@@ -1,4 +1,6 @@
 import { getInvoiceServiceDetails, getInvoicePayment, getInvoiceServiceCommission, getInvoiceTips, getInvoiceCustomerTotal, invoiceHasDiscount, getServiceLineCommissionAmount } from './invoice'
+import { aggregatePaymentMethodTotals } from './paymentMethodTotals'
+import { invoiceMatchesPaymentMethodFilter } from '../constants/paymentMethods'
 import {
   computeExpenseByBranch,
   filterExpenses,
@@ -16,7 +18,14 @@ import {
 
 export { getMonthStartDate }
 
-export function filterInvoices(invoices, { fromDate, toDate, branchId, employeeId, discountFilter = '' }) {
+export function filterInvoices(invoices, {
+  fromDate,
+  toDate,
+  branchId,
+  employeeId,
+  discountFilter = '',
+  paymentMethod = '',
+}) {
   return invoices.filter((inv) => {
     if (fromDate && inv.date < fromDate) return false
     if (toDate && inv.date > toDate) return false
@@ -24,6 +33,7 @@ export function filterInvoices(invoices, { fromDate, toDate, branchId, employeeI
     if (employeeId && inv.employeeId !== employeeId) return false
     if (discountFilter === 'with' && !invoiceHasDiscount(inv)) return false
     if (discountFilter === 'without' && invoiceHasDiscount(inv)) return false
+    if (!invoiceMatchesPaymentMethodFilter(inv, paymentMethod)) return false
     return true
   })
 }
@@ -33,7 +43,7 @@ function getInvoiceTicketRevenue(invoice) {
 }
 
 export function computeReportSummary(invoices) {
-  return invoices.reduce(
+  const base = invoices.reduce(
     (acc, inv) => {
       const ticketRevenue = getInvoiceTicketRevenue(inv)
       acc.ticketRevenue += ticketRevenue
@@ -53,6 +63,17 @@ export function computeReportSummary(invoices) {
       invoiceCount: 0,
     },
   )
+  const payments = aggregatePaymentMethodTotals(invoices)
+  return {
+    ...base,
+    cashAmount: payments.cashAmount,
+    bankTransferAmount: payments.bankTransferAmount,
+    unknownPaymentAmount: payments.unknownAmount,
+    totalCollected: payments.totalCollected,
+    cashCount: payments.cashCount,
+    bankTransferCount: payments.bankTransferCount,
+    unknownPaymentCount: payments.unknownCount,
+  }
 }
 
 export function computeBranchReport(invoices) {
@@ -71,6 +92,7 @@ export function computeBranchReport(invoices) {
       commission: 0,
       expenses: 0,
       profit: 0,
+      _invoices: [],
     }
 
     const ticketRevenue = getInvoiceTicketRevenue(inv)
@@ -80,10 +102,25 @@ export function computeBranchReport(invoices) {
     current.customerTotal += getInvoiceCustomerTotal(inv)
     current.tips += getInvoiceTips(inv)
     current.commission += getInvoiceServiceCommission(inv)
+    current._invoices.push(inv)
     map.set(key, current)
   }
 
-  return [...map.values()].sort((a, b) => b.ticketRevenue - a.ticketRevenue)
+  return [...map.values()].map((row) => {
+    const payments = aggregatePaymentMethodTotals(row._invoices)
+    const { _invoices, ...rest } = row
+    return {
+      ...rest,
+      cashAmount: payments.cashAmount,
+      bankTransferAmount: payments.bankTransferAmount,
+      unknownPaymentAmount: payments.unknownAmount,
+      totalCollected: payments.totalCollected,
+      cashRatePercent: payments.cashRatePercent,
+      bankTransferRatePercent: payments.bankTransferRatePercent,
+      cashCount: payments.cashCount,
+      bankTransferCount: payments.bankTransferCount,
+    }
+  }).sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 
 function mergeBranchReports(revenueRows, expenseRows) {

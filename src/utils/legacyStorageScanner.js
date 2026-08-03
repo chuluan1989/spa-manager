@@ -3,6 +3,7 @@
  * (không phụ thuộc một key cố định).
  */
 import { rowToCamel } from '../repositories/caseUtils'
+import { normalizePaymentMethod } from '../constants/paymentMethods'
 import { normalizeEmployee } from './employeeStorage'
 import { normalizeExpense } from './expenseStorage'
 import { normalizeBranch } from './branchStorage'
@@ -120,7 +121,7 @@ export function normalizeLegacyInvoice(raw) {
     serviceIds,
     services,
     tips: Number.isFinite(tips) ? tips : 0,
-    paymentMethod: camel.paymentMethod ?? camel.payment_method ?? 'cash',
+    paymentMethod: normalizePaymentMethod(camel.paymentMethod ?? camel.payment_method),
     note: camel.note ?? '',
     serviceTotal: Number(camel.serviceTotal ?? camel.service_total ?? 0),
     total: Number(camel.total ?? 0),

@@ -1,5 +1,11 @@
 import { resolveCanonicalBranchId } from '../constants/canonicalBranches'
 import {
+  PAYMENT_METHOD_FILTER_OPTIONS,
+  getPaymentMethodLabel,
+  invoiceMatchesPaymentMethodFilter,
+  normalizePaymentMethod,
+} from '../constants/paymentMethods'
+import {
   getInvoiceDiscountAmount,
   getInvoiceOriginalServiceTotal,
   invoiceHasDiscount,
@@ -11,17 +17,9 @@ import {
 
 export const INVOICE_PAGE_SIZE = 20
 
-export const PAYMENT_METHOD_OPTIONS = [
-  { value: '', label: 'Tất cả phương thức' },
-  { value: 'cash', label: 'Tiền mặt' },
-  { value: 'transfer', label: 'Chuyển khoản' },
-]
+export const PAYMENT_METHOD_OPTIONS = PAYMENT_METHOD_FILTER_OPTIONS
 
-export function getPaymentMethodLabel(method) {
-  if (method === 'cash') return 'Tiền mặt'
-  if (method === 'transfer') return 'Chuyển khoản'
-  return method || '—'
-}
+export { getPaymentMethodLabel, normalizePaymentMethod }
 
 export function formatInvoiceDateTime(iso) {
   if (!iso) return '—'
@@ -102,7 +100,7 @@ export function filterInvoices(invoices, filters) {
       return false
     }
 
-    if (paymentMethod && invoice.paymentMethod !== paymentMethod) return false
+    if (!invoiceMatchesPaymentMethodFilter(invoice, paymentMethod)) return false
 
     if (serviceId) {
       const services = getInvoiceServiceDetails(invoice)

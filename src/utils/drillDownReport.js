@@ -21,6 +21,7 @@ import {
   filterVariableExpenses,
 } from './branchProfitBreakdown'
 import { computeFixedCostTotals } from './fixedCostStorage'
+import { aggregatePaymentMethodTotals } from './paymentMethodTotals'
 
 function getInvoiceCommission(invoice) {
   return getInvoiceServiceCommission(invoice)
@@ -82,6 +83,7 @@ export function buildDrillDownSummary(
     commission: metrics.commission,
     payrollByBranch,
   })
+  const payments = aggregatePaymentMethodTotals(filtered)
 
   return enrichProfitMetrics({
     ...metrics,
@@ -93,6 +95,12 @@ export function buildDrillDownSummary(
     salary: totalSalary,
     totalSalary,
     customerCount: countUniqueCustomers(filtered),
+    cashAmount: payments.cashAmount,
+    bankTransferAmount: payments.bankTransferAmount,
+    unknownPaymentAmount: payments.unknownAmount,
+    totalCollected: payments.totalCollected,
+    cashCount: payments.cashCount,
+    bankTransferCount: payments.bankTransferCount,
     filtered,
     filteredExpenses,
   }, payrollByBranch)
@@ -195,14 +203,23 @@ export function buildBranchDrillRows(
     map.set(key, current)
   }
 
-  const revenueRows = [...map.values()].map((row) => ({
-    ...row,
-    revenue: row.ticketRevenue,
-    payment: row.ticketRevenue,
-    salary: row.commission + row.tips,
-    customerCount: countUniqueCustomers(row.invoices),
-    invoices: undefined,
-  }))
+  const revenueRows = [...map.values()].map((row) => {
+    const payments = aggregatePaymentMethodTotals(row.invoices)
+    return {
+      ...row,
+      revenue: row.ticketRevenue,
+      payment: row.ticketRevenue,
+      salary: row.commission + row.tips,
+      customerCount: countUniqueCustomers(row.invoices),
+      cashAmount: payments.cashAmount,
+      bankTransferAmount: payments.bankTransferAmount,
+      unknownPaymentAmount: payments.unknownAmount,
+      totalCollected: payments.totalCollected,
+      cashRatePercent: payments.cashRatePercent,
+      bankTransferRatePercent: payments.bankTransferRatePercent,
+      invoices: undefined,
+    }
+  })
 
   const expenseRows = computeExpenseByBranch(filteredExpenses).map((row) => ({
     ...row,
@@ -269,6 +286,7 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
       commission: 0,
       invoiceCount: 0,
       customers: new Set(),
+      invoices: [],
     }
 
     current.ticketRevenue += ticketRevenue
@@ -277,6 +295,7 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
     current.discount += getInvoiceDiscountAmount(inv)
     current.commission += getInvoiceCommission(inv)
     current.invoiceCount += 1
+    current.invoices.push(inv)
 
     const name = (inv.customerName ?? '').trim().toLowerCase()
     const phone = (inv.customerPhone ?? '').replace(/\D/g, '')
@@ -287,22 +306,31 @@ export function buildEmployeeDrillRows(invoices, filters = {}) {
   }
 
   return [...map.values()]
-    .map((row) => ({
-      employeeId: row.employeeId,
-      employeeName: row.employeeName,
-      branchId: row.branchId,
-      branchName: row.branchName,
-      ticketRevenue: row.ticketRevenue,
-      payment: row.ticketRevenue,
-      revenue: row.ticketRevenue,
-      customerTotal: row.customerTotal,
-      tips: row.tips,
-      discount: row.discount,
-      commission: row.commission,
-      salary: row.commission + row.tips,
-      invoiceCount: row.invoiceCount,
-      customerCount: row.customers.size,
-    }))
+    .map((row) => {
+      const payments = aggregatePaymentMethodTotals(row.invoices)
+      return {
+        employeeId: row.employeeId,
+        employeeName: row.employeeName,
+        branchId: row.branchId,
+        branchName: row.branchName,
+        ticketRevenue: row.ticketRevenue,
+        payment: row.ticketRevenue,
+        revenue: row.ticketRevenue,
+        customerTotal: row.customerTotal,
+        tips: row.tips,
+        discount: row.discount,
+        commission: row.commission,
+        salary: row.commission + row.tips,
+        invoiceCount: row.invoiceCount,
+        customerCount: row.customers.size,
+        cashAmount: payments.cashAmount,
+        bankTransferAmount: payments.bankTransferAmount,
+        unknownPaymentAmount: payments.unknownAmount,
+        totalCollected: payments.totalCollected,
+        cashCount: payments.cashCount,
+        bankTransferCount: payments.bankTransferCount,
+      }
+    })
     .sort((a, b) => b.ticketRevenue - a.ticketRevenue)
 }
 

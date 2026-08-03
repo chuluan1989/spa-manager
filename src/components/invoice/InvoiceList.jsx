@@ -12,6 +12,7 @@ import {
 } from '../../utils/invoice'
 import {
   computeInvoiceListTotals,
+  getPaymentMethodLabel,
   paginateInvoices,
   readInvoiceTime,
 } from '../../utils/invoiceFilters'
@@ -66,6 +67,7 @@ export default function InvoiceList({
               <th className="is-center">Ngày</th>
               <th className="is-center">Giờ</th>
               <th>Chi nhánh</th>
+              <th>PTTT</th>
               <th>NV thực hiện</th>
               <th>Tên khách</th>
               <th>SĐT khách</th>
@@ -96,6 +98,7 @@ export default function InvoiceList({
                   <td className="is-center">{inv.date}</td>
                   <td className="is-center">{readInvoiceTime(inv)}</td>
                   <td className="invoice-list__branch">{inv.branchName}</td>
+                  <td className="invoice-list__payment">{getPaymentMethodLabel(inv.paymentMethod)}</td>
                   <td>{inv.employeeName}</td>
                   <td className="invoice-list__customer">
                     {inv.customerName || '—'}
@@ -151,7 +154,7 @@ export default function InvoiceList({
           </tbody>
           <tfoot>
             <tr className="invoice-list__totals-row">
-              <td colSpan={8}><strong>Tổng ({totals.count})</strong></td>
+              <td colSpan={9}><strong>Tổng ({totals.count})</strong></td>
               <td className="is-money"><strong>{formatCurrency(totals.ticketPrice)}</strong></td>
               <td className="is-money"><strong>{totals.discount > 0 ? `−${formatCurrency(totals.discount)}` : '—'}</strong></td>
               <td className="is-money"><strong>{formatCurrency(totals.ticketRevenue)}</strong></td>

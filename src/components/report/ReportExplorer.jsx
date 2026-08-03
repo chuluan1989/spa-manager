@@ -37,6 +37,7 @@ import {
   exportReportInvoiceCsv,
   exportReportOverviewCsv,
 } from '../../utils/reportExport'
+import { PAYMENT_METHOD_FILTER_OPTIONS } from '../../constants/paymentMethods'
 import './ReportExplorer.css'
 
 const LEVEL = {
@@ -50,6 +51,10 @@ const REPORT_KPIS = [
   { id: 'ticketRevenue', label: 'Doanh thu', icon: Receipt, variant: 'gold' },
   { id: 'tips', label: 'Tips', icon: Gift, variant: 'green' },
   { id: 'actualRevenue', label: 'Tổng doanh thu', icon: Wallet, variant: 'gold' },
+  { id: 'cashAmount', label: 'Tổng tiền mặt', icon: Wallet, variant: 'green' },
+  { id: 'bankTransferAmount', label: 'Tổng chuyển khoản', icon: Wallet, variant: 'blue' },
+  { id: 'unknownPaymentAmount', label: 'Chưa xác định', icon: Wallet, variant: 'slate' },
+  { id: 'totalCollected', label: 'Tổng thu', icon: Wallet, variant: 'gold' },
   { id: 'totalSalary', label: 'Tổng lương', icon: Users, variant: 'purple' },
   { id: 'fixedExpenses', label: 'Chi phí mặt bằng', icon: Wallet, variant: 'orange' },
   { id: 'variableExpenses', label: 'Chi phí phát sinh', icon: Wallet, variant: 'orange' },
@@ -121,6 +126,7 @@ function InvoiceTimelineRow({ item, onOpen }) {
         <div><span>KM</span><strong>{formatCurrency(item.discount)}</strong></div>
         <div><span>Doanh thu tiền vé</span><strong>{formatCurrency(item.payment)}</strong></div>
         <div><span>Tips</span><strong className="is-tips">{formatCurrency(item.tips)}</strong></div>
+        <div><span>Phương thức TT</span><strong>{item.paymentMethodLabel || 'Chưa xác định'}</strong></div>
         <div><span>Hoa hồng</span><strong>{formatCurrency(item.commission)}</strong></div>
       </div>
     </button>
@@ -365,6 +371,17 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
             </select>
           </label>
         )}
+        <label className="report-toolbar__field">
+          <span>Phương thức TT</span>
+          <select
+            value={draftFilters.paymentMethod || ''}
+            onChange={(e) => setDraftFilters((prev) => ({ ...prev, paymentMethod: e.target.value }))}
+          >
+            {PAYMENT_METHOD_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
         <button type="button" className="report-toolbar__search ks-btn-primary" onClick={applySearch}>
           <Search size={16} />
           Tìm
@@ -442,6 +459,9 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
                   { label: 'Doanh thu', value: formatCurrency(row.ticketRevenue), highlight: activeMetric === 'ticketRevenue' },
                   { label: 'Tips', value: formatCurrency(row.tips), highlight: activeMetric === 'tips' },
                   { label: 'Tổng DT', value: formatCurrency(row.actualRevenue), highlight: activeMetric === 'actualRevenue' },
+                  { label: 'Tiền mặt', value: formatCurrency(row.cashAmount ?? 0), highlight: activeMetric === 'cashAmount' },
+                  { label: 'Chuyển khoản', value: formatCurrency(row.bankTransferAmount ?? 0), highlight: activeMetric === 'bankTransferAmount' },
+                  { label: 'Tổng thu', value: formatCurrency(row.totalCollected ?? 0), highlight: activeMetric === 'totalCollected' },
                   { label: 'Tổng lương', value: formatCurrency(row.totalSalary), highlight: activeMetric === 'totalSalary' },
                   { label: 'Mặt bằng', value: formatCurrency(row.fixedExpenses), highlight: activeMetric === 'fixedExpenses' },
                   { label: 'Phát sinh', value: formatCurrency(row.variableExpenses), highlight: activeMetric === 'variableExpenses' },
@@ -480,6 +500,9 @@ export default function ReportExplorer({ onNavigate, initialPrefill = null }) {
                   metrics={[
                     { label: 'Doanh thu tiền vé', value: formatCurrency(row.ticketRevenue), highlight: activeMetric === 'ticketRevenue' },
                     { label: 'Tips', value: formatCurrency(row.tips), highlight: activeMetric === 'tips' },
+                    { label: 'Tiền mặt', value: formatCurrency(row.cashAmount ?? 0), highlight: activeMetric === 'cashAmount' },
+                    { label: 'Chuyển khoản', value: formatCurrency(row.bankTransferAmount ?? 0), highlight: activeMetric === 'bankTransferAmount' },
+                    { label: 'Tổng thu', value: formatCurrency(row.totalCollected ?? 0), highlight: activeMetric === 'totalCollected' },
                     { label: 'Khách', value: String(row.customerCount), highlight: activeMetric === 'customerCount' },
                     { label: 'Hóa đơn', value: String(row.invoiceCount), highlight: activeMetric === 'invoiceCount' },
                     { label: 'Hoa hồng', value: formatCurrency(row.commission), highlight: activeMetric === 'commission' },

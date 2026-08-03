@@ -1,5 +1,7 @@
 import { getInvoiceServiceDetails, getInvoiceServiceTotal, invoiceHasDiscount, getServiceLineCommissionAmount } from './invoice'
 import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
+import { getPaymentMethodLabel, invoiceMatchesPaymentMethodFilter } from '../constants/paymentMethods'
+import { aggregatePaymentMethodTotals } from './paymentMethodTotals'
 import { getBranchName } from './branchStorage'
 import { getEmployeeById } from './employeeStorage'
 import { recordBelongsToBranch } from './branchEmployeeMatch'
@@ -112,7 +114,14 @@ function scaleCommissionAmount(amount, role) {
   return Math.round(amount * SUPPORT_EMPLOYEE_COMMISSION_RATE)
 }
 
-export function filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId, discountFilter = '' }) {
+export function filterSalaryInvoices(invoices, {
+  fromDate,
+  toDate,
+  branchId,
+  employeeId,
+  discountFilter = '',
+  paymentMethod = '',
+}) {
   return invoices.filter((invoice) => {
     if (fromDate && invoice.date < fromDate) return false
     if (toDate && invoice.date > toDate) return false
@@ -124,6 +133,7 @@ export function filterSalaryInvoices(invoices, { fromDate, toDate, branchId, emp
     }
     if (discountFilter === 'with' && !invoiceHasDiscount(invoice)) return false
     if (discountFilter === 'without' && invoiceHasDiscount(invoice)) return false
+    if (!invoiceMatchesPaymentMethodFilter(invoice, paymentMethod)) return false
     return true
   })
 }
@@ -160,6 +170,8 @@ function buildInvoiceSalaryRow(invoice, employeeId, role = getSalaryRole(invoice
     branchId: invoice.branchId ?? '',
     branchName: invoice.branchName || getBranchName(invoice.branchId) || '—',
     customerName: invoice.customerName || '—',
+    paymentMethod: invoice.paymentMethod ?? '',
+    paymentMethodLabel: getPaymentMethodLabel(invoice.paymentMethod),
     salaryRole: role,
     roleLabel: role === SALARY_ROLES.SUPPORT ? 'Hỗ trợ' : 'Chính',
     services,
@@ -183,6 +195,10 @@ function buildEmployeeSalaryReport(invoices, employeeId, cycle) {
   const serviceCommission = invoiceRows.reduce((sum, row) => sum + row.serviceCommission, 0)
   const totalSalary = tips + serviceCommission
 
+  // Dòng tiền theo HĐ chính của NV (không double-count tour hỗ trợ).
+  const primarySourceInvoices = invoices.filter((inv) => inv.employeeId === employeeId)
+  const payments = aggregatePaymentMethodTotals(primarySourceInvoices)
+
   const first = invoices[0]
   const employee = getEmployeeById(employeeId)
   const branchLabels = [...new Set(
@@ -191,6 +207,16 @@ function buildEmployeeSalaryReport(invoices, employeeId, cycle) {
   const branchName = branchLabels.length > 0
     ? branchLabels.join(' · ')
     : (employee?.branchId ? getBranchName(employee.branchId) : first?.branchName ?? '—')
+
+  const paymentSummary = {
+    cashAmount: payments.cashAmount,
+    bankTransferAmount: payments.bankTransferAmount,
+    unknownPaymentAmount: payments.unknownAmount,
+    totalCollected: payments.totalCollected,
+    cashCount: payments.cashCount,
+    bankTransferCount: payments.bankTransferCount,
+    unknownPaymentCount: payments.unknownCount,
+  }
 
   return {
     employeeId: employeeId || first?.employeeId || '',
@@ -204,6 +230,7 @@ function buildEmployeeSalaryReport(invoices, employeeId, cycle) {
       tips,
       serviceCommission,
       totalSalary,
+      ...paymentSummary,
     },
     invoices: invoiceRows,
     periodTotals: {
@@ -211,6 +238,7 @@ function buildEmployeeSalaryReport(invoices, employeeId, cycle) {
       tips,
       serviceCommission,
       totalSalary,
+      ...paymentSummary,
     },
   }
 }
@@ -333,6 +361,9 @@ export function buildAdminEmployeeSummary(invoices, employeeId) {
   const serviceCommission = invoiceRows.reduce((sum, row) => sum + row.serviceCommission, 0)
   const totalSalary = tips + serviceCommission
 
+  const primarySourceInvoices = invoices.filter((inv) => inv.employeeId === employeeId)
+  const payments = aggregatePaymentMethodTotals(primarySourceInvoices)
+
   const first = invoices[0]
   const employee = getEmployeeById(employeeId)
 
@@ -349,6 +380,12 @@ export function buildAdminEmployeeSummary(invoices, employeeId) {
     tips,
     serviceCommission,
     totalSalary,
+    cashAmount: payments.cashAmount,
+    bankTransferAmount: payments.bankTransferAmount,
+    unknownPaymentAmount: payments.unknownAmount,
+    totalCollected: payments.totalCollected,
+    cashCount: payments.cashCount,
+    bankTransferCount: payments.bankTransferCount,
   }
 }
 
@@ -372,9 +409,24 @@ export function computeAdminEmployeeReports(invoices, filters) {
       acc.totalSalary += row.totalSalary
       acc.invoiceCount += row.invoiceCount
       acc.customerRequestedCount += row.customerRequestedCount
+      acc.cashAmount += row.cashAmount ?? 0
+      acc.bankTransferAmount += row.bankTransferAmount ?? 0
+      acc.unknownPaymentAmount += row.unknownPaymentAmount ?? 0
+      acc.totalCollected += row.totalCollected ?? 0
       return acc
     },
-    { invoiceCount: 0, customerRequestedCount: 0, serviceRevenue: 0, tips: 0, serviceCommission: 0, totalSalary: 0 },
+    {
+      invoiceCount: 0,
+      customerRequestedCount: 0,
+      serviceRevenue: 0,
+      tips: 0,
+      serviceCommission: 0,
+      totalSalary: 0,
+      cashAmount: 0,
+      bankTransferAmount: 0,
+      unknownPaymentAmount: 0,
+      totalCollected: 0,
+    },
   )
 
   return {

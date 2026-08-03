@@ -22,6 +22,7 @@ function buildExportRows(detail) {
     'Hoa hồng',
     'Lương dòng',
     'Vai trò',
+    'Phương thức thanh toán',
   ])
 
   for (const day of detail.days) {
@@ -39,6 +40,7 @@ function buildExportRows(detail) {
         inv.commission,
         inv.totalSalary,
         inv.roleLabel,
+        inv.paymentMethodLabel ?? '',
       ])
     }
     rows.push([
@@ -54,6 +56,7 @@ function buildExportRows(detail) {
       day.serviceCommission,
       day.totalSalary,
       `${day.invoiceCount} HĐ`,
+      '',
     ])
   }
 
@@ -70,7 +73,12 @@ function buildExportRows(detail) {
     detail.periodTotals.serviceCommission,
     detail.periodTotals.totalSalary,
     `${detail.periodTotals.invoiceCount} HĐ`,
+    '',
   ])
+  rows.push(['Tiền mặt', '', '', '', '', '', '', detail.periodTotals.cashAmount ?? 0])
+  rows.push(['Chuyển khoản', '', '', '', '', '', '', detail.periodTotals.bankTransferAmount ?? 0])
+  rows.push(['Chưa xác định', '', '', '', '', '', '', detail.periodTotals.unknownPaymentAmount ?? 0])
+  rows.push(['Tổng thu', '', '', '', '', '', '', detail.periodTotals.totalCollected ?? 0])
 
   return rows
 }

@@ -30,6 +30,7 @@ import {
   getCurrentMonthValue,
   getPayPeriodRange,
 } from '../../utils/salaryReport'
+import { PAYMENT_METHOD_FILTER_OPTIONS } from '../../constants/paymentMethods'
 
 const PERMITTED_LEAVE_UNIT_BY_STATUS = {
   [ATTENDANCE_STATUS.FULL_DAY_PERMITTED]: 2,
@@ -134,6 +135,7 @@ export default function AdminEmployeeReport({ onNavigate }) {
     employeeId: '',
     cycle: PAY_CYCLES.PERIOD_1,
     discountFilter: '',
+    paymentMethod: '',
     customerSearch: '',
     serviceId: '',
   }))
@@ -394,6 +396,15 @@ export default function AdminEmployeeReport({ onNavigate }) {
             <option value="without">Không giảm giá</option>
           </select>
         </label>
+
+        <label className="report__field">
+          <span>Phương thức TT</span>
+          <select value={filters.paymentMethod} onChange={(e) => updateFilter('paymentMethod', e.target.value)}>
+            {PAYMENT_METHOD_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
       </section>
 
       <p className="salary-report__period">
@@ -430,6 +441,9 @@ export default function AdminEmployeeReport({ onNavigate }) {
                   <th>Tổng dịch vụ</th>
                   <th>Doanh thu tiền vé</th>
                   <th>Tips</th>
+                  <th>Tiền mặt</th>
+                  <th>Chuyển khoản</th>
+                  <th>Tổng thu</th>
                   <th>Hoa hồng</th>
                   <th>Tổng lương</th>
                   <th>Trừ chấm công</th>
@@ -449,6 +463,9 @@ export default function AdminEmployeeReport({ onNavigate }) {
                     <td className="report-table-card__num">{row.serviceCount}</td>
                     <td className="report-table-card__money">{formatCurrency(row.serviceRevenue)}</td>
                     <td className="report-table-card__money">{formatCurrency(row.tips)}</td>
+                    <td className="report-table-card__money">{formatCurrency(row.cashAmount ?? 0)}</td>
+                    <td className="report-table-card__money">{formatCurrency(row.bankTransferAmount ?? 0)}</td>
+                    <td className="report-table-card__money">{formatCurrency(row.totalCollected ?? 0)}</td>
                     <td className="report-table-card__money report-table-card__commission">
                       {formatCurrency(row.serviceCommission)}
                     </td>
@@ -479,6 +496,9 @@ export default function AdminEmployeeReport({ onNavigate }) {
                     <td />
                     <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.serviceRevenue)}</strong></td>
                     <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.tips)}</strong></td>
+                    <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.cashAmount ?? 0)}</strong></td>
+                    <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.bankTransferAmount ?? 0)}</strong></td>
+                    <td className="report-table-card__money"><strong>{formatCurrency(report.periodTotals.totalCollected ?? 0)}</strong></td>
                     <td className="report-table-card__money report-table-card__commission">
                       <strong>{formatCurrency(report.periodTotals.serviceCommission)}</strong>
                     </td>

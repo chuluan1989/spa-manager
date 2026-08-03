@@ -1,4 +1,5 @@
 import { getInvoicePayment, getInvoiceServiceCommission, getInvoiceTips } from './invoice'
+import { getPaymentMethodLabel } from '../constants/paymentMethods'
 import { downloadCsv } from './csvExport'
 
 export function exportInvoicesCsv(invoices, filters = {}) {
@@ -17,7 +18,7 @@ export function exportInvoicesCsv(invoices, filters = {}) {
       'Thanh toán',
       'Tips',
       'Hoa hồng',
-      'PTTT',
+      'Phương thức thanh toán',
       'Ghi chú',
     ],
     ...invoices.map((inv) => {
@@ -35,7 +36,7 @@ export function exportInvoicesCsv(invoices, filters = {}) {
         getInvoicePayment(inv),
         getInvoiceTips(inv),
         getInvoiceServiceCommission(inv),
-        inv.paymentMethod ?? '',
+        getPaymentMethodLabel(inv.paymentMethod),
         inv.note ?? '',
       ]
     }),

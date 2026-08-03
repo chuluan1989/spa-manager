@@ -232,7 +232,10 @@ function CeoDashboard() {
 
     const totalRevenue = sumInvoiceRevenue(invoicesToday)
     const completedCustomers = countUniqueCustomers(invoicesToday)
-    const pendingPaymentCustomers = invoicesToday.filter((inv) => inv.paymentMethod === 'transfer').length
+    const pendingPaymentCustomers = invoicesToday.filter((inv) => {
+      const method = String(inv.paymentMethod ?? '').toLowerCase()
+      return method === 'transfer' || method === 'bank_transfer'
+    }).length
 
     const branchRows = branches.map((branch) => {
       const branchInvoices = invoicesToday.filter((inv) => inv.branchId === branch.id)
