@@ -79,18 +79,15 @@ export async function assertCanEditAttendanceRecord(record, { date, locks, editN
   const recordBranchId = record?.branchId ?? ''
   const employeeId = record?.employeeId ?? ''
   const role = getCurrentUserRole()
+  const locked = employeeId && targetDate
+    ? await isAttendanceDateLockedByApprovedClose(employeeId, targetDate)
+    : false
 
-  if (employeeId && targetDate && await isAttendanceDateLockedByApprovedClose(employeeId, targetDate)) {
-    throw new Error(getApprovedCloseLockMessage(targetDate))
-  }
-
+  // Admin được sửa kỳ đã duyệt khi có lý do + audit (không chặn sớm).
   if (isAdmin()) {
     if (!checkPermission(PERMISSION_KEYS.EDIT_ATTENDANCE, role, getCurrentUserBranch())) {
       throw new Error('Không có quyền sửa chấm công.')
     }
-    const locked = employeeId && targetDate
-      ? await isAttendanceDateLockedByApprovedClose(employeeId, targetDate)
-      : false
     const lockRows = locks ?? await fetchPayrollLocks({ month: getMonthPrefixFromDate(targetDate) })
     const monthLocked = isPayrollMonthLocked(
       getMonthPrefixFromDate(targetDate),
@@ -101,6 +98,10 @@ export async function assertCanEditAttendanceRecord(record, { date, locks, editN
       throw new Error('Vui lòng nhập lý do khi Admin sửa dữ liệu kỳ lương đã duyệt.')
     }
     return
+  }
+
+  if (locked) {
+    throw new Error(getApprovedCloseLockMessage(targetDate))
   }
 
   const lockRows = locks ?? await fetchPayrollLocks({ month: getMonthPrefixFromDate(targetDate) })

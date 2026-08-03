@@ -1,4 +1,5 @@
 import { getCurrentUserEmployeeId, getCurrentUserName, isAdmin } from '../constants/auth'
+import { ROLES } from '../constants/roles'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import {
   createPayrollAuditId,
@@ -11,6 +12,7 @@ import {
   invalidateCloseAfterSourceChange,
   isEmployeeDateLockedByApprovedCloseSync,
   isEmployeeRecordLockedByApprovedClose,
+  markPostApprovalSourceAdjustment,
 } from './payrollCycleClose/approvedCloseLock'
 
 /**
@@ -28,7 +30,7 @@ export function getInvoiceModifyBlockReason(
   invoice,
   { role } = {},
 ) {
-  if (isAdmin(role)) return ''
+  if (role === ROLES.ADMIN || isAdmin()) return ''
 
   const date = invoice?.date ?? ''
   if (!date) return ''
@@ -54,6 +56,7 @@ export function getInvoiceCreateLockedDateMessage() {
 export function canModifyInvoice(invoice, options = {}) {
   return !getInvoiceModifyBlockReason(invoice, options)
 }
+
 
 export async function writeInvoiceOverrideAudit({
   invoice,
@@ -126,6 +129,18 @@ export async function recordInvoiceAdminAuditIfNeeded({
     oldValue,
     newValue,
     reason: editReason.trim(),
+  })
+  await markPostApprovalSourceAdjustment(employeeId, invoice.date, {
+    reason: editReason.trim(),
+    sourceType: 'invoice',
+    sourceId: invoice?.id || '',
+    action: `post_approval_invoice_${action || 'update'}`,
+    oldValue,
+    newValue,
+    actorId: getCurrentUserEmployeeId() || 'admin',
+    actorName: getCurrentUserName() || 'Admin',
+  }).catch((err) => {
+    console.warn('[invoice] post-approval mark:', err?.message)
   })
 }
 

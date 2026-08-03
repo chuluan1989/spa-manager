@@ -9,12 +9,13 @@ import { getEmployeeBranchAtDate } from './employeeBranchTimeline'
 import { getEmployeeById } from './employeeStorage'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { ATTENDANCE_STATUS } from '../constants/attendanceTypes'
-import { isAdmin } from '../constants/auth'
+import { isAdmin, getCurrentUserEmployeeId, getCurrentUserName } from '../constants/auth'
 import { assertCanEditAttendanceRecord } from './attendanceEditPolicy'
 import {
   getApprovedCloseLockMessage,
   invalidateCloseAfterSourceChange,
   isEmployeeRecordLockedByApprovedClose,
+  markPostApprovalSourceAdjustment,
 } from './payrollCycleClose/approvedCloseLock'
 import { upsertBranchMinimal } from '../repositories/branchesRepository'
 import { fetchEmployeeById } from '../repositories/employeesRepository'
@@ -36,8 +37,29 @@ function notifyAttendanceDataChanged() {
   notifyDataSynced(['attendance', 'payroll', 'reports', 'dashboard'])
 }
 
-async function afterAttendanceSourceChanged(employeeId, date) {
+async function afterAttendanceSourceChanged(employeeId, date, {
+  reason = '',
+  sourceId = '',
+  oldValue = {},
+  newValue = {},
+} = {}) {
   if (!employeeId || !date) return
+  const locked = await isEmployeeRecordLockedByApprovedClose(employeeId, date).catch(() => false)
+  if (locked && isAdmin()) {
+    await markPostApprovalSourceAdjustment(employeeId, date, {
+      reason,
+      sourceType: 'attendance',
+      sourceId,
+      action: 'post_approval_attendance_adjustment',
+      oldValue,
+      newValue,
+      actorId: getCurrentUserEmployeeId() || 'admin',
+      actorName: getCurrentUserName() || 'Admin',
+    }).catch((err) => {
+      console.warn('[attendance] post-approval mark:', err?.message)
+    })
+    return
+  }
   await invalidateCloseAfterSourceChange(employeeId, date).catch((err) => {
     console.warn('[attendance] invalidate close:', err?.message)
   })
@@ -397,7 +419,11 @@ export async function adminCreateAttendance({
   })
 
   notifyAttendanceDataChanged()
-  await afterAttendanceSourceChanged(saved.employeeId, saved.date)
+  await afterAttendanceSourceChanged(saved.employeeId, saved.date, {
+    reason: editNote.trim(),
+    sourceId: saved.id,
+    newValue: { date: saved.date, status: saved.status },
+  })
 
   await insertAttendanceEditLogs([{
     id: createAttendanceLogId(),
@@ -521,7 +547,12 @@ export async function adminUpdateAttendance({
   })
 
   notifyAttendanceDataChanged()
-  await afterAttendanceSourceChanged(saved.employeeId, saved.date)
+  await afterAttendanceSourceChanged(saved.employeeId, saved.date, {
+    reason: String(editNote || resolvedNote || '').trim(),
+    sourceId: saved.id,
+    oldValue: { date: record.date, status: record.status },
+    newValue: { date: saved.date, status: saved.status },
+  })
 
   await insertAttendanceEditLogs(
     buildEditLogs(record.id, editor, changes, editNote || resolvedNote),

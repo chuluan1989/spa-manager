@@ -7,6 +7,11 @@ import {
   upsertPayrollCycleClose,
 } from '../../repositories/payrollCycleCloseRepository'
 import { notifyDataSynced } from '../dataSyncEvents'
+import { isSupabaseConfigured } from '../../lib/supabaseClient'
+import {
+  createPayrollAuditId,
+  insertPayrollAuditLog,
+} from '../../repositories/payrollRepository'
 
 /**
  * Map ngày HĐ / chấm công → kỳ chốt (chỉ để tìm phiếu / invalidate).
@@ -163,8 +168,110 @@ export function getApprovedCloseLockMessage(dateStr, { employeeName = '', close 
 }
 
 /**
+ * Admin bổ sung/sửa nguồn sau khi phiếu đã approved:
+ * - Đánh dấu validation.postApprovalAdjustment (không đổi snapshot / net / status)
+ * - Ghi audit payroll
+ * Snapshot lương đã duyệt giữ nguyên.
+ */
+export async function markPostApprovalSourceAdjustment(employeeId, recordDate, {
+  reason = '',
+  sourceType = 'invoice',
+  sourceId = '',
+  action = 'post_approval_adjustment',
+  oldValue = {},
+  newValue = {},
+  actorId = '',
+  actorName = '',
+} = {}) {
+  if (!employeeId || !recordDate) return null
+
+  const rows = await fetchPayrollCycleClosesFiltered({
+    employeeId,
+    status: CLOSE_CYCLE_STATUS.APPROVED,
+  }).catch(() => [])
+  const close = (rows || []).find((row) => isRecordDateInApprovedCloseRange(recordDate, row))
+  if (!close) return null
+
+  const now = new Date().toISOString()
+  const resolvedActorId = actorId || 'admin'
+  const resolvedActorName = actorName || 'Admin'
+  const entry = {
+    at: now,
+    recordDate,
+    sourceType,
+    sourceId: sourceId || '',
+    reason: String(reason || '').trim(),
+    actorId: resolvedActorId,
+    actorName: resolvedActorName,
+  }
+  const prevValidation = (
+    close.validation && typeof close.validation === 'object'
+      ? close.validation
+      : {}
+  )
+  const prevEntries = Array.isArray(prevValidation.postApprovalAdjustments)
+    ? prevValidation.postApprovalAdjustments
+    : []
+
+  // Giữ nguyên snapshot + số liệu đã duyệt — chỉ gắn cờ / nhật ký bổ sung.
+  const saved = await upsertPayrollCycleClose({
+    ...close,
+    status: CLOSE_CYCLE_STATUS.APPROVED,
+    snapshot: close.snapshot,
+    attendanceSnapshot: close.attendanceSnapshot,
+    netSalary: close.netSalary,
+    ticketRevenue: close.ticketRevenue,
+    commission: close.commission,
+    tips: close.tips,
+    bonus: close.bonus,
+    penalty: close.penalty,
+    advance: close.advance,
+    reduction: close.reduction,
+    otherAdjustment: close.otherAdjustment,
+    baseSalary: close.baseSalary,
+    validation: {
+      ...prevValidation,
+      postApprovalAdjustment: true,
+      postApprovalAdjustedAt: now,
+      postApprovalAdjustments: [...prevEntries, entry],
+    },
+  }).catch((err) => {
+    console.warn('[close-post-approval] validation mark:', err?.message)
+    return null
+  })
+
+  if (isSupabaseConfigured) {
+    await insertPayrollAuditLog({
+      id: createPayrollAuditId(),
+      entityType: 'payroll_cycle_close',
+      entityId: close.id,
+      action,
+      editorId: resolvedActorId,
+      editorName: resolvedActorName,
+      oldValue: {
+        ...(oldValue && typeof oldValue === 'object' ? oldValue : {}),
+        snapshotNetSalary: close.netSalary ?? close.snapshot?.netSalary ?? null,
+        status: CLOSE_CYCLE_STATUS.APPROVED,
+      },
+      newValue: {
+        ...(newValue && typeof newValue === 'object' ? newValue : {}),
+        postApprovalAdjustment: true,
+        recordDate,
+        sourceType,
+        sourceId: sourceId || '',
+        snapshotUnchanged: true,
+      },
+      reason: entry.reason || `Bổ sung/sửa ${sourceType} sau duyệt kỳ`,
+    }).catch((err) => console.warn('[close-post-approval] audit:', err?.message))
+  }
+
+  if (saved) notifyDataSynced(['payroll-cycle-closes', 'payroll'])
+  return saved || close
+}
+
+/**
  * Sau khi NV sửa HĐ/chấm công khi phiếu đang submitted/resubmitted:
- * chuyển returned + đánh dấu cần gửi lại; đóng task duyệt snapshot cũ.
+ * chuyển returned + đánh dấu cần gửi lại (không đụng phiếu approved).
  */
 export async function invalidateCloseAfterSourceChange(employeeId, recordDate) {
   if (!employeeId || !recordDate) return null
