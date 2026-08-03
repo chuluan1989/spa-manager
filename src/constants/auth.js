@@ -320,16 +320,17 @@ export function canAddInvoiceForDate(
   { employeeId = '' } = {},
 ) {
   if (!canAddInvoice(role, branchId)) return false
-  if (role === ROLES.ADMIN) return true
+  // Admin luôn được chọn mọi ngày — không khóa theo approvedCloseLock / payrollPeriodLock.
+  if (role === ROLES.ADMIN || isAdmin()) return true
   const targetEmployeeId = employeeId || (role === ROLES.EMPLOYEE ? getCurrentUserEmployeeId() : '')
   if (!targetEmployeeId || !date) return true
-  // Chỉ khóa khi đúng NV đã được Admin duyệt kỳ chứa ngày này (cache sync).
+  // Chỉ khóa NV khi đúng employeeId + ngày ∈ from–to + status approved.
   return !isEmployeeDateLockedByApprovedCloseSync(targetEmployeeId, date)
 }
 
 export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
   // Nhân viên / Quản lý / Admin luôn được tạo HĐ — không phụ thuộc ma trận quyền hay trạng thái hồ sơ/chấm công.
-  if (role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE) {
+  if (role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER || role === ROLES.EMPLOYEE || isAdmin()) {
     return true
   }
   return checkPermission(PERMISSION_KEYS.ADD_INVOICE, role, branchId)
@@ -338,7 +339,8 @@ export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrent
 export function canEditInvoice(invoice = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
   const settings = loadSystemSettings()
 
-  if (role === ROLES.ADMIN) return true
+  // Admin toàn quyền sửa — bypass mọi lock.
+  if (role === ROLES.ADMIN || isAdmin()) return true
 
   if (role === ROLES.BRANCH_MANAGER) {
     if (!settings.allowManagerEditBranchInvoice) return false
@@ -363,12 +365,13 @@ export function canEditInvoice(invoice = null, role = getCurrentUserRole(), bran
 
 export function canDeleteInvoice(invoice = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
   const settings = loadSystemSettings()
+  // Admin toàn quyền xóa — bypass mọi lock.
+  if (role === ROLES.ADMIN || isAdmin()) return true
   if (settings.onlyAdminDeleteInvoice) {
-    if (role !== ROLES.ADMIN) return false
-    return true
+    return false
   }
   if (!checkPermission(PERMISSION_KEYS.DELETE_INVOICE, role, branchId)) return false
-  if (!invoice || role === ROLES.ADMIN) return true
+  if (!invoice) return true
   return !getInvoiceModifyBlockReason(invoice, { role })
 }
 

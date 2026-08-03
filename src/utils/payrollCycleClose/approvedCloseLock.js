@@ -129,6 +129,9 @@ export function isEmployeeDateLockedByApprovedCloseSync(employeeId, dateStr) {
 export async function isEmployeeRecordLockedByApprovedClose(employeeId, dateStr) {
   if (!employeeId || !dateStr) return false
 
+  // Fast-path: cache sync (đã warm từ UI) — Admin vẫn bypass ở tầng assert/can*.
+  if (isEmployeeDateLockedByApprovedCloseSync(employeeId, dateStr)) return true
+
   const rows = await fetchPayrollCycleClosesFiltered({
     employeeId,
     status: CLOSE_CYCLE_STATUS.APPROVED,
@@ -138,9 +141,7 @@ export async function isEmployeeRecordLockedByApprovedClose(employeeId, dateStr)
   if (!hit) return false
 
   // Warm cache entry
-  if (!isEmployeeDateLockedByApprovedCloseSync(employeeId, dateStr)) {
-    seedApprovedCloseCache([...approvedCloseCache, hit])
-  }
+  seedApprovedCloseCache([...approvedCloseCache, hit])
   return true
 }
 

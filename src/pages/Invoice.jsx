@@ -907,10 +907,14 @@ export default function Invoice({ onNavigate }) {
               onClick={handleSave}
               disabled={
                 saving
-                || (!isAdmin() && isFormDateLockedForActor(form.date))
-                || !canAddInvoiceForDate(form.date, undefined, undefined, {
-                  employeeId: form.employeeId || currentEmployeeId,
-                })
+                || (
+                  !isAdmin() && (
+                    isFormDateLockedForActor(form.date)
+                    || !canAddInvoiceForDate(form.date, undefined, undefined, {
+                      employeeId: form.employeeId || currentEmployeeId,
+                    })
+                  )
+                )
               }
             >
               {saving ? 'Đang lưu...' : editingId ? 'Cập nhật hóa đơn' : 'Lưu hóa đơn'}

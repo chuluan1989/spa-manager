@@ -579,13 +579,13 @@ async function updateInvoiceRemote(updated, previous, options = {}) {
 }
 
 export function deleteInvoice(id, currentFromCaller = null, options = {}) {
-  if (!canDeleteInvoice()) {
-    return { success: false, error: 'Bạn không có quyền xóa hóa đơn.' }
-  }
-
   const current = currentFromCaller ?? getInvoiceById(id)
   if (!current) {
     return { success: false, error: 'Không tìm thấy hóa đơn.' }
+  }
+
+  if (!canDeleteInvoice(current)) {
+    return { success: false, error: 'Bạn không có quyền xóa hóa đơn.' }
   }
 
   const scoped = filterByUserBranch([current])

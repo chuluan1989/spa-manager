@@ -84,17 +84,12 @@ export async function assertCanEditAttendanceRecord(record, { date, locks, editN
     : false
 
   // Admin được sửa kỳ đã duyệt khi có lý do + audit (không chặn sớm).
+  // Không dùng payroll month lock để chặn Admin — chỉ bắt lý do khi approved close.
   if (isAdmin()) {
     if (!checkPermission(PERMISSION_KEYS.EDIT_ATTENDANCE, role, getCurrentUserBranch())) {
       throw new Error('Không có quyền sửa chấm công.')
     }
-    const lockRows = locks ?? await fetchPayrollLocks({ month: getMonthPrefixFromDate(targetDate) })
-    const monthLocked = isPayrollMonthLocked(
-      getMonthPrefixFromDate(targetDate),
-      recordBranchId,
-      lockRows,
-    )
-    if ((locked || monthLocked) && !String(editNote ?? '').trim()) {
+    if (locked && !String(editNote ?? '').trim()) {
       throw new Error('Vui lòng nhập lý do khi Admin sửa dữ liệu kỳ lương đã duyệt.')
     }
     return

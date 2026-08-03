@@ -3,10 +3,8 @@ import { ROLES } from '../constants/roles'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import {
   createPayrollAuditId,
-  fetchPayrollLocks,
   insertPayrollAuditLog,
 } from '../repositories/payrollRepository'
-import { isPayrollMonthLocked } from './payrollEngine'
 import {
   getApprovedCloseLockMessage,
   invalidateCloseAfterSourceChange,
@@ -81,23 +79,22 @@ export async function writeInvoiceOverrideAudit({
 
 export async function assertCanModifyInvoice(
   invoice,
-  { locks, editReason } = {},
+  { locks, editReason, role } = {},
 ) {
+  const actorRole = role || (isAdmin() ? ROLES.ADMIN : null)
+  const isActorAdmin = actorRole === ROLES.ADMIN || isAdmin()
+
   const employeeId = invoice?.employeeId || getCurrentUserEmployeeId() || ''
   const date = invoice?.date ?? ''
   const lockedByApproved = employeeId && date
     ? await isEmployeeRecordLockedByApprovedClose(employeeId, date)
     : false
-  const lockRows = locks ?? await fetchPayrollLocks({ month: date.slice(0, 7) ?? '' })
 
-  if (isAdmin()) {
-    if (
-      lockedByApproved
-      || isPayrollMonthLocked(date.slice(0, 7) ?? '', invoice?.branchId ?? '', lockRows)
-    ) {
-      if (!String(editReason ?? '').trim()) {
-        throw new Error('Vui lòng nhập lý do khi Admin sửa dữ liệu kỳ lương đã duyệt.')
-      }
+  // Admin toàn quyền tạo/sửa/xóa — không dùng approvedCloseLock / payrollPeriodLock / payroll month lock để chặn.
+  // Chỉ bắt buộc lý do + audit khi sửa nguồn thuộc kỳ đã approved.
+  if (isActorAdmin) {
+    if (lockedByApproved && !String(editReason ?? '').trim()) {
+      throw new Error('Vui lòng nhập lý do khi Admin sửa dữ liệu kỳ lương đã duyệt.')
     }
     return
   }
@@ -106,6 +103,8 @@ export async function assertCanModifyInvoice(
     throw new Error(getApprovedCloseLockMessage(date) || getInvoiceCreateLockedDateMessage())
   }
 
+  // Giữ kiểm tra khóa tháng lương cho non-admin (nếu còn dùng ở tầng khác).
+  void locks
   return
 }
 
