@@ -7,6 +7,7 @@ import {
   getCurrentUserEmployeeId,
   getCurrentUserName,
   isAdmin,
+  isBranchManager,
   isEmployee,
 } from '../constants/auth'
 import { getBranchName } from './branchStorage'
@@ -392,6 +393,16 @@ export async function saveInvoice(invoice, options = {}) {
         if (!canEmployeeServeAtBranch(payload.employeeId, branchId, payload.homeBranchId || getCurrentUserBranch())) {
           return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
         }
+      } else if (isBranchManager()) {
+        const employee = getEmployeeById(payload.employeeId)
+        const homeBranchId = employee?.branchId || payload.homeBranchId || ''
+        const managerBranch = getCurrentUserBranch()
+        if (!employee || homeBranchId !== managerBranch) {
+          return { success: false, error: 'Chỉ được nhập hóa đơn cho nhân viên thuộc chi nhánh mình.' }
+        }
+        if (!canEmployeeServeAtBranch(payload.employeeId, branchId, homeBranchId)) {
+          return { success: false, error: 'Chi nhánh phục vụ không hợp lệ cho hỗ trợ liên chi nhánh.' }
+        }
       } else if (branchId !== getCurrentUserBranch()) {
         return { success: false, error: 'Bạn không có quyền thêm hóa đơn chi nhánh này.' }
       }
@@ -494,7 +505,7 @@ export function updateInvoice(id, data, currentFromCaller = null, options = {}) 
   // Nhân viên chỉ được sửa nội dung dịch vụ/khách/tips/thanh toán/ghi chú;
   // không được đổi chi nhánh, nhân viên chính, nhân viên hỗ trợ — kể cả khi
   // dữ liệu gửi lên (qua code/browser) cố tình chứa các trường này.
-  // Quản lý được sửa nội dung HĐ chi nhánh mình nhưng không đổi branch_id.
+  // Admin/Quản lý được đổi NV + CN phục vụ theo rule hỗ trợ liên CN.
   const safeData = isEmployee()
     ? {
         ...pickEmployeeEditableInvoiceFields(data),
@@ -505,20 +516,30 @@ export function updateInvoice(id, data, currentFromCaller = null, options = {}) 
         supportEmployeeId: current.supportEmployeeId,
         supportEmployeeName: current.supportEmployeeName,
       }
-    : isAdmin()
-      ? data
-      : {
-          ...data,
-          branchId: current.branchId,
-          branchName: current.branchName,
-        }
+    : data
+
+  const nextEmployeeId = safeData.employeeId ?? current.employeeId
+  const nextEmployee = getEmployeeById(nextEmployeeId)
+  const nextHomeBranchId = nextEmployee?.branchId || current.homeBranchId || ''
+  const nextHomeBranchName = getBranchName(nextHomeBranchId) || current.homeBranchName || ''
+  const nextBranchId = safeData.branchId ?? current.branchId
+
+  if (isBranchManager()) {
+    const managerBranch = getCurrentUserBranch()
+    if (!nextEmployee || nextHomeBranchId !== managerBranch) {
+      return { success: false, error: 'Chỉ được sửa hóa đơn của nhân viên thuộc chi nhánh mình.' }
+    }
+    if (!canEmployeeServeAtBranch(nextEmployeeId, nextBranchId, nextHomeBranchId)) {
+      return { success: false, error: 'Chi nhánh phục vụ không hợp lệ cho hỗ trợ liên chi nhánh.' }
+    }
+  }
 
   const updated = normalizeInvoiceCustomerFields(ensureInvoiceSnapshot({
     ...current,
     ...safeData,
     id: current.id,
-    homeBranchId: current.homeBranchId ?? '',
-    homeBranchName: current.homeBranchName ?? '',
+    homeBranchId: nextHomeBranchId,
+    homeBranchName: nextHomeBranchName,
     createdAt: current.createdAt,
     updatedAt: new Date().toISOString(),
     updatedBy: getCurrentUserName(),
