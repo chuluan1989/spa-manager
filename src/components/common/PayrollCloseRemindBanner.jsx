@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import { formatPayrollCloseSubmitCta } from '../../utils/payrollCycleClose/employmentPeriodGate'
 import './PayrollCloseRemindBanner.css'
 
 /**
- * Banner nhắc chốt kỳ — hiện từ ngày nộp trở đi đến khi gửi/duyệt.
- * Thu gọn chỉ áp dụng lần xem hiện tại (không sessionStorage).
+ * Banner nhắc chốt kỳ — neo kỳ đang đến hạn theo lịch.
+ * Kỳ cũ chưa hoàn thành: cảnh báo phụ (không đổi CTA chính).
  */
 export default function PayrollCloseRemindBanner({
   cycleLabel,
@@ -16,8 +17,12 @@ export default function PayrollCloseRemindBanner({
   onOpenSalary,
   onSyncNow,
   onGoAttendance,
+  onViewPendingPeriods,
 }) {
   const [localSyncError, setLocalSyncError] = useState('')
+  const submitCta = formatPayrollCloseSubmitCta(cycleLabel)
+  const pendingOlderCount = checklist?.pendingOlderCount ?? 0
+  const pendingOlderMessage = checklist?.pendingOlderMessage || ''
 
   if (collapsed) {
     return (
@@ -48,6 +53,7 @@ export default function PayrollCloseRemindBanner({
   const needsAttendance = Boolean(checklist?.attendance?.needsAttendance)
   const unsyncedCount = checklist?.tour?.unsyncedCount ?? 0
   const missingDays = checklist?.attendance?.missingDays ?? 0
+  const employmentStartWarning = checklist?.employmentStartWarning || ''
 
   async function handleSyncClick() {
     if (!onSyncNow || syncing) return
@@ -82,6 +88,27 @@ export default function PayrollCloseRemindBanner({
               </li>
             ))}
           </ul>
+        ) : null}
+
+        {pendingOlderCount > 0 && pendingOlderMessage ? (
+          <div className="payroll-close-remind__older">
+            <p>{pendingOlderMessage}</p>
+            {onViewPendingPeriods ? (
+              <button
+                type="button"
+                className="payroll-close-remind__btn payroll-close-remind__btn--older"
+                onClick={onViewPendingPeriods}
+              >
+                Xem các kỳ còn thiếu
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {employmentStartWarning ? (
+          <p className="payroll-close-remind__sync-error" role="status">
+            {employmentStartWarning}
+          </p>
         ) : null}
 
         {needsSync ? (
@@ -133,7 +160,7 @@ export default function PayrollCloseRemindBanner({
           className="payroll-close-remind__btn payroll-close-remind__btn--primary"
           onClick={onOpenSalary}
         >
-          Kiểm tra &amp; Chốt kỳ lương
+          {submitCta}
         </button>
         <button type="button" className="payroll-close-remind__btn" onClick={onCollapse}>
           Thu gọn

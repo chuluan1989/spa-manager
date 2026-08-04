@@ -21,6 +21,10 @@ import {
   formatCloseBlockAttendanceMessage,
   resolveAttendanceReviewRange,
 } from '../../utils/payrollCycleClose/attendancePeriodReview'
+import {
+  resolveEmployeeEmploymentEndDate,
+  resolveEmployeeEmploymentStartDate,
+} from '../../utils/payrollCycleClose/employmentPeriodGate'
 import { loadCorrectionRequestsForEmployeeRange } from '../../utils/attendanceEditRequestService'
 import AttendanceEditRequestModal from './AttendanceEditRequestModal'
 import './AttendancePeriodReviewPanel.css'
@@ -140,6 +144,8 @@ export default function AttendancePeriodReviewPanel({
     if (!selectedEmployeeId || !resolved.fromDate || !resolved.toDate) {
       return { days: [], summary: null }
     }
+    const { startDate: employmentStartDate } = resolveEmployeeEmploymentStartDate(selectedEmployee)
+    const employmentEndDate = resolveEmployeeEmploymentEndDate(selectedEmployee)
     return buildEmployeeAttendancePeriodDays({
       employeeId: selectedEmployeeId,
       records,
@@ -147,8 +153,18 @@ export default function AttendancePeriodReviewPanel({
       toDate: resolved.toDate,
       todayDate,
       correctionRequests,
+      employmentStartDate,
+      employmentEndDate,
     })
-  }, [selectedEmployeeId, records, resolved.fromDate, resolved.toDate, todayDate, correctionRequests])
+  }, [
+    selectedEmployeeId,
+    selectedEmployee,
+    records,
+    resolved.fromDate,
+    resolved.toDate,
+    todayDate,
+    correctionRequests,
+  ])
 
   const cycleHint = rangeMode === 'cycle'
     ? formatCloseCycleRangeLabel(billingMonth, cycle)

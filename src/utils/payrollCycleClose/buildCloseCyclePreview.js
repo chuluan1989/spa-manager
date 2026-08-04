@@ -13,6 +13,12 @@ import {
   formatCloseBlockAttendanceMessage,
   isAttendanceOptionalForCloseCycle,
 } from './attendancePeriodReview'
+import {
+  clampRangeToEmployment,
+  isClosePeriodOutsideEmployment,
+  resolveEmployeeEmploymentEndDate,
+  resolveEmployeeEmploymentStartDate,
+} from './employmentPeriodGate'
 import { buildCloseConfirmationsSnapshot } from './closeConfirmations'
 import { loadCorrectionRequestsForEmployeeRange } from '../attendanceEditRequestService'
 import {
@@ -86,6 +92,24 @@ export async function buildCloseCyclePreview({
   const branchId = employee.branchId ?? ''
   if (!branchId) throw new Error('Nhân viên thiếu chi nhánh — không thể chốt kỳ.')
 
+  const {
+    startDate: employmentStartDate,
+    source: employmentStartSource,
+    warning: employmentStartWarning,
+  } = resolveEmployeeEmploymentStartDate(employee)
+  const employmentEndDate = resolveEmployeeEmploymentEndDate(employee)
+  const periodBeforeEmployment = isClosePeriodOutsideEmployment(
+    range,
+    employmentStartDate,
+    employmentEndDate,
+  )
+  const effectiveAttendanceRange = clampRangeToEmployment(
+    range.fromDate,
+    range.toDate,
+    employmentStartDate,
+    employmentEndDate,
+  )
+
   const adjustmentMonths = cycle === CLOSE_CYCLES.PERIOD_1
     ? [billingMonth, shiftMonthValue(billingMonth, -1)]
     : [billingMonth]
@@ -138,8 +162,8 @@ export async function buildCloseCyclePreview({
     toDate: range.toDate,
     todayDate,
     correctionRequests,
-    employmentStartDate: employee.startDate || '',
-    employmentEndDate: employee.endDate || employee.daysOff || '',
+    employmentStartDate,
+    employmentEndDate,
   })
 
   const existing = await fetchPayrollCycleClose({ employeeId, billingMonth, cycle })
@@ -155,7 +179,8 @@ export async function buildCloseCyclePreview({
   const invoicesSynced = !syncCheck.error && !syncCheck.hasUnsynced
   const previewLoaded = true
   const canSubmit = (
-    canSubmitCloseCycle(status)
+    !periodBeforeEmployment
+    && canSubmitCloseCycle(status)
     && attendanceComplete
     && invoicesSynced
     && previewLoaded
@@ -199,6 +224,16 @@ export async function buildCloseCyclePreview({
     toDate: range.toDate,
     submitDate: range.submitDate,
     todayDate,
+    employmentStartDate,
+    employmentStartSource,
+    employmentStartWarning,
+    periodBeforeEmployment,
+    effectiveAttendanceFromDate: effectiveAttendanceRange.empty
+      ? ''
+      : effectiveAttendanceRange.fromDate,
+    effectiveAttendanceToDate: effectiveAttendanceRange.empty
+      ? ''
+      : effectiveAttendanceRange.toDate,
     status,
     statusLabel: status ? getCloseCycleStatusLabel(status) : 'Chưa gửi',
     existing,
@@ -219,11 +254,29 @@ export async function buildCloseCyclePreview({
   // Snapshot gắn sẵn vào preview — UI/submit dùng chung 1 kết quả
   preview.snapshot = buildCloseCycleSnapshot(preview)
 
+  if (periodBeforeEmployment) {
+    preview.blockReasons.push(
+      'Kỳ lương này nằm trước ngày bắt đầu làm việc — không áp dụng với nhân viên.',
+    )
+  }
+  if (employmentStartWarning) {
+    preview.infoNotes.push(`[Admin] ${employmentStartWarning}`)
+  } else if (
+    employmentStartDate
+    && effectiveAttendanceRange.clamped
+    && !effectiveAttendanceRange.empty
+    && effectiveAttendanceRange.fromDate > range.fromDate
+  ) {
+    const [, m, d] = employmentStartDate.split('-')
+    preview.infoNotes.push(
+      `Chỉ kiểm tra chấm công từ ${d}/${m}/${employmentStartDate.slice(0, 4)} (ngày bắt đầu làm việc).`,
+    )
+  }
   if (attendanceWaiver) {
     preview.infoNotes.push(
       'Ngoại lệ Kỳ 1 tháng 07/2026: không bắt buộc đủ chấm công lịch sử để gửi chốt.',
     )
-  } else if (!attendanceComplete) {
+  } else if (!periodBeforeEmployment && !attendanceComplete) {
     preview.blockReasons.push(formatCloseBlockAttendanceMessage(attendanceReview.summary))
   }
   if (syncCheck.error) {

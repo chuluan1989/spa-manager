@@ -1,6 +1,7 @@
 import { isEmployeeProfileComplete, getMissingProfileFields } from './employeeStorage'
 import { loadSystemSettings } from './systemSettingsStorage'
 import { formatVnDate, getIctTodayDate, isAfterIctEndOfDay, listDatesInclusive } from './ictTime'
+import { resolveEmployeeEmploymentStartDate } from './payrollCycleClose/employmentPeriodGate'
 
 export const PAYROLL1_PERIOD_START = '2026-07-01'
 /** Ngày tham chiếu nội bộ (không dùng để khóa HĐ / không hiện popup). */
@@ -55,6 +56,10 @@ export function summarizeEmployeePayroll1Status({
   now = new Date(),
 }) {
   const { start, end, dates } = getPayroll1DateRange(now, employee?.branchId)
+  const { startDate: employmentStartDate } = resolveEmployeeEmploymentStartDate(employee)
+  const effectiveDates = employmentStartDate
+    ? dates.filter((date) => date >= employmentStartDate)
+    : dates
   const attendanceByDate = new Map(
     (attendanceRecords ?? [])
       .filter((row) => row?.date >= start && row?.date <= end)
@@ -65,7 +70,7 @@ export function summarizeEmployeePayroll1Status({
   void invoices
   void dayReviews
 
-  const missingAttendanceDates = dates.filter((date) => !attendanceByDate.has(date))
+  const missingAttendanceDates = effectiveDates.filter((date) => !attendanceByDate.has(date))
   const attendanceComplete = missingAttendanceDates.length === 0
 
   const profileComplete = isEmployeeProfileComplete(employee)
@@ -96,7 +101,9 @@ export function summarizeEmployeePayroll1Status({
       id: 'attendance',
       pageId: 'attendance',
       label: `Bổ sung chấm công (còn thiếu ${missingAttendanceDates.length} ngày)`,
-      detail: `Còn thiếu ${missingAttendanceDates.length} ngày từ ${formatVnDate(start)} đến nay`,
+      detail: `Còn thiếu ${missingAttendanceDates.length} ngày từ ${formatVnDate(
+        employmentStartDate && employmentStartDate > start ? employmentStartDate : start,
+      )} đến nay`,
       buttonLabel: 'Bổ sung chấm công',
     })
   }

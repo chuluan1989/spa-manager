@@ -94,7 +94,7 @@ console.log('\n=== UAT Phase 1 — close cycle attendance + confirmations ===\n'
 {
   const root = fileURLToPath(new URL('..', import.meta.url))
   const panel = readFileSync(`${root}/src/components/salary/PayrollCycleClosePanel.jsx`, 'utf8')
-  assert.match(panel, /Gửi bảng chốt lương/)
+  assert.match(panel, /Gửi chốt lương/)
   assert.match(panel, /CLOSE_CONFIRMATION_ITEMS/)
 
   const inbox = readFileSync(`${root}/src/utils/payrollCycleClose/pendingWorkInbox.js`, 'utf8')
@@ -110,8 +110,12 @@ console.log('\n=== UAT Phase 1 — close cycle attendance + confirmations ===\n'
   assert.match(sidebar, /ADMIN_HIDDEN_NAV_IDS = new Set\(\['payroll1-admin'\]\)/)
 
   const banner = readFileSync(`${root}/src/components/common/MissingAttendanceRemindBanner.jsx`, 'utf8')
-  assert.match(banner, /listDuePayrollCloseTargets/)
-  assert.match(banner, /isAttendanceOptionalForCloseCycle/)
+  assert.match(banner, /loadInProgressMissingAttendanceDates/)
+  assert.doesNotMatch(banner, /listDuePayrollCloseTargets/)
+
+  const closeRemind = readFileSync(`${root}/src/utils/payrollCycleClose/closeRemind.js`, 'utf8')
+  assert.match(closeRemind, /filterDueTargetsForEmployee/)
+  assert.match(closeRemind, /isAttendanceOptionalForCloseCycle/)
 
   const submit = readFileSync(`${root}/src/utils/payrollCycleClose/submitCloseCycle.js`, 'utf8')
   assert.match(submit, /areCloseConfirmationsComplete/)

@@ -424,6 +424,17 @@ function App() {
             })
             handleNavigate('salary')
           }}
+          onViewPendingPeriods={() => {
+            const older = payrollCloseRemindChecklist?.pendingOlderTargets ?? []
+            const first = older[0]
+            if (first?.billingMonth && first?.cycle) {
+              setPayrollClosePrefill({
+                billingMonth: first.billingMonth,
+                cycle: first.cycle,
+              })
+            }
+            handleNavigate('salary')
+          }}
         />
       )}
       {showRemind && (

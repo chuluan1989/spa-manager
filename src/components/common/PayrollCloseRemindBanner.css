@@ -99,6 +99,33 @@
   color: #b91c1c;
 }
 
+.payroll-close-remind__older {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed #f59e0b;
+  background: #fffbeb;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.payroll-close-remind__older p {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #92400e;
+}
+
+.payroll-close-remind__btn--older {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-color: #f59e0b;
+  color: #92400e;
+  background: #fff;
+}
+
 .payroll-close-remind__actions {
   display: flex;
   flex-direction: column;

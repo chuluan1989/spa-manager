@@ -8,6 +8,11 @@ import { checkUnsyncedLocalInvoices } from '../invoiceLegacyMigrate'
 import { loadCorrectionRequestsForEmployeeRange } from '../attendanceEditRequestService'
 import { buildEmployeeAttendancePeriodDays, isAttendanceOptionalForCloseCycle } from './attendancePeriodReview'
 import {
+  isClosePeriodOutsideEmployment,
+  resolveEmployeeEmploymentEndDate,
+  resolveEmployeeEmploymentStartDate,
+} from './employmentPeriodGate'
+import {
   SONG_KHOE_REMIND_PERIOD_START,
   SONG_KHOE_SPA_BRANCH_ID,
 } from '../payroll1Policy'
@@ -18,7 +23,8 @@ const DUE_LOOKBACK_MONTHS = 3
 /**
  * Các kỳ đã đến hạn nhắc (submitDate <= hôm nay), cũ → mới.
  * Kỳ 1: từ ngày 17 cùng tháng; Kỳ 2: từ ngày 02 tháng sau.
- * Banner/shouldShow lọc tiếp theo trạng thái gửi (ưu tiên kỳ cũ chưa gửi).
+ * Banner neo theo resolvePayrollCloseRemindTarget (kỳ đang đến hạn theo lịch);
+ * các kỳ cũ hơn chưa hoàn thành chỉ đếm để cảnh báo phụ — không đổi CTA.
  */
 export function listDuePayrollCloseTargets(todayDate) {
   if (!todayDate || todayDate.length < 10) return []
@@ -54,9 +60,10 @@ export function listDuePayrollCloseTargets(todayDate) {
 }
 
 /**
- * Kỳ đến hạn khớp “cửa sổ nhắc chính” của ngày hôm nay (mới nhất trong các kỳ đến hạn).
- * Ví dụ: 17–cuối tháng → Kỳ 1 tháng hiện tại; 02–16 → Kỳ 2 tháng trước.
- * shouldShowPayrollCloseRemind vẫn duyệt list cũ→mới để ưu tiên kỳ chưa gửi.
+ * Kỳ đang đến hạn theo lịch (cửa sổ nhắc chính):
+ * - Ngày 17 → cuối tháng → Kỳ 1 tháng hiện tại
+ * - Ngày 02 → 16 → Kỳ 2 tháng trước
+ * (= kỳ mới nhất trong danh sách đến hạn theo submitDate).
  */
 export function resolvePayrollCloseRemindTarget(todayDate) {
   const due = listDuePayrollCloseTargets(todayDate)
@@ -64,10 +71,57 @@ export function resolvePayrollCloseRemindTarget(todayDate) {
   return due[due.length - 1]
 }
 
+export function isSameCloseTarget(a, b) {
+  if (!a || !b) return false
+  return a.billingMonth === b.billingMonth && a.cycle === b.cycle
+}
+
+/** Kỳ chưa hoàn thành (còn thiếu): chưa có / draft / returned / submitted / resubmitted — trừ approved. */
+export function isCloseCycleIncomplete(status) {
+  if (!status) return true
+  return status !== CLOSE_CYCLE_STATUS.APPROVED
+}
+
+/** Copy cảnh báo kỳ cũ chưa hoàn thành (không đổi CTA chính). */
+export function formatPendingOlderCloseMessage(count) {
+  const n = Number(count) || 0
+  if (n <= 0) return ''
+  if (n === 1) return 'Bạn còn 1 kỳ lương trước chưa hoàn thành.'
+  return `Bạn còn ${n} kỳ lương trước chưa hoàn thành.`
+}
+
 function isSongKhoeBlocked(employee, target) {
   if (employee?.branchId !== SONG_KHOE_SPA_BRANCH_ID) return false
   const range = getCloseCycleRange(target.billingMonth, target.cycle)
   return Boolean(range.fromDate && range.fromDate < SONG_KHOE_REMIND_PERIOD_START)
+}
+
+/**
+ * Lọc kỳ đến hạn theo ngày bắt đầu làm việc.
+ * - Có startDate: bỏ kỳ toDate < startDate (toàn kỳ trước khi vào làm).
+ * - Thiếu startDate: chỉ giữ kỳ đến hạn mới nhất — không kéo nhiều tháng trước + warning Admin.
+ */
+export function filterDueTargetsForEmployee(dueTargets, employee) {
+  const resolved = resolveEmployeeEmploymentStartDate(employee)
+  const endDate = resolveEmployeeEmploymentEndDate(employee)
+  const list = Array.isArray(dueTargets) ? dueTargets : []
+
+  if (resolved.startDate) {
+    return {
+      targets: list.filter((target) => !isClosePeriodOutsideEmployment(target, resolved.startDate, endDate)),
+      employmentStartDate: resolved.startDate,
+      employmentStartSource: resolved.source,
+      employmentStartWarning: '',
+    }
+  }
+
+  const latest = list.length > 0 ? [list[list.length - 1]] : []
+  return {
+    targets: latest,
+    employmentStartDate: '',
+    employmentStartSource: 'missing',
+    employmentStartWarning: resolved.warning,
+  }
 }
 
 function submitStatusLabel(status) {
@@ -111,6 +165,9 @@ export async function buildPayrollCloseRemindChecklist({
   ])
 
   const employee = getEmployeeById(employeeId)
+  const { startDate: employmentStartDate, warning: employmentStartWarning } =
+    resolveEmployeeEmploymentStartDate(employee)
+  const employmentEndDate = resolveEmployeeEmploymentEndDate(employee)
   const attendanceReview = buildEmployeeAttendancePeriodDays({
     employeeId,
     records: attendanceRows ?? [],
@@ -118,8 +175,8 @@ export async function buildPayrollCloseRemindChecklist({
     toDate: target.toDate,
     todayDate,
     correctionRequests: corrections,
-    employmentStartDate: employee?.startDate || '',
-    employmentEndDate: employee?.endDate || employee?.daysOff || '',
+    employmentStartDate,
+    employmentEndDate,
   })
 
   const existing = await fetchPayrollCycleClose({
@@ -139,6 +196,8 @@ export async function buildPayrollCloseRemindChecklist({
   return {
     status,
     statusLabel: submitStatusLabel(status),
+    employmentStartDate,
+    employmentStartWarning,
     tour: {
       ok: tourOk,
       label: syncCheck.error
@@ -174,40 +233,101 @@ export async function buildPayrollCloseRemindChecklist({
 }
 
 /**
- * Hiện banner khi có ít nhất một kỳ đến hạn và chưa gửi (null/draft/returned).
- * Ưu tiên kỳ cũ nhất. Returned → hiện lại.
+ * Banner trang chủ: luôn neo “kỳ đang đến hạn theo lịch”.
+ * Kỳ cũ chưa hoàn thành → cảnh báo phụ + nút xem; không đổi CTA chính.
  */
 export async function shouldShowPayrollCloseRemind({ employeeId, todayDate, user = getCurrentUser() }) {
-  if (!employeeId || !todayDate) return { show: false, target: null, checklist: null }
-
-  const employee = getEmployeeById(employeeId)
-  const dueTargets = listDuePayrollCloseTargets(todayDate)
-
-  for (const target of dueTargets) {
-    if (isSongKhoeBlocked(employee, target)) continue
-
-    const existing = await fetchPayrollCycleClose({
-      employeeId,
-      billingMonth: target.billingMonth,
-      cycle: target.cycle,
-    })
-    const status = existing?.status ?? null
-    if (!canSubmitCloseCycle(status)) continue
-
-    const checklist = await buildPayrollCloseRemindChecklist({
-      employeeId,
-      target,
-      todayDate,
-      user,
-    })
-
+  if (!employeeId || !todayDate) {
     return {
-      show: true,
-      target,
-      status,
-      checklist,
+      show: false,
+      target: null,
+      checklist: null,
+      pendingOlderTargets: [],
+      pendingOlderCount: 0,
     }
   }
 
-  return { show: false, target: null, checklist: null, status: null }
+  const employee = getEmployeeById(employeeId)
+  const { targets: dueTargets, employmentStartWarning } = filterDueTargetsForEmployee(
+    listDuePayrollCloseTargets(todayDate),
+    employee,
+  )
+
+  const calendarTarget = resolvePayrollCloseRemindTarget(todayDate)
+  const targetApplicable = Boolean(
+    calendarTarget
+    && dueTargets.some((row) => isSameCloseTarget(row, calendarTarget))
+    && !isSongKhoeBlocked(employee, calendarTarget),
+  )
+  const target = targetApplicable
+    ? (dueTargets.find((row) => isSameCloseTarget(row, calendarTarget)) || calendarTarget)
+    : null
+
+  const pendingOlderTargets = []
+  for (const row of dueTargets) {
+    if (target && isSameCloseTarget(row, target)) continue
+    if (target && String(row.submitDate) >= String(target.submitDate)) continue
+    if (isSongKhoeBlocked(employee, row)) continue
+
+    const existingOlder = await fetchPayrollCycleClose({
+      employeeId,
+      billingMonth: row.billingMonth,
+      cycle: row.cycle,
+    })
+    // Kỳ còn thiếu: draft / returned / resubmitted / submitted / chưa có — trừ approved.
+    if (!isCloseCycleIncomplete(existingOlder?.status ?? null)) continue
+    pendingOlderTargets.push(row)
+  }
+
+  if (!target) {
+    return {
+      show: false,
+      target: null,
+      checklist: null,
+      status: null,
+      pendingOlderTargets,
+      pendingOlderCount: pendingOlderTargets.length,
+      employmentStartWarning,
+    }
+  }
+
+  const existing = await fetchPayrollCycleClose({
+    employeeId,
+    billingMonth: target.billingMonth,
+    cycle: target.cycle,
+  })
+  const status = existing?.status ?? null
+  if (!canSubmitCloseCycle(status)) {
+    return {
+      show: false,
+      target,
+      checklist: null,
+      status,
+      pendingOlderTargets,
+      pendingOlderCount: pendingOlderTargets.length,
+      employmentStartWarning,
+    }
+  }
+
+  const checklist = await buildPayrollCloseRemindChecklist({
+    employeeId,
+    target,
+    todayDate,
+    user,
+  })
+
+  return {
+    show: true,
+    target,
+    status,
+    checklist: {
+      ...checklist,
+      employmentStartWarning: checklist.employmentStartWarning || employmentStartWarning,
+      pendingOlderCount: pendingOlderTargets.length,
+      pendingOlderTargets,
+      pendingOlderMessage: formatPendingOlderCloseMessage(pendingOlderTargets.length),
+    },
+    pendingOlderTargets,
+    pendingOlderCount: pendingOlderTargets.length,
+  }
 }

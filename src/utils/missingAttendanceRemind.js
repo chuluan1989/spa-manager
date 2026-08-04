@@ -5,6 +5,11 @@
 import { CLOSE_CYCLES, getCloseCycleRange, formatCloseCycleRangeLabel } from './payrollCycleClose/payCycleCalendar'
 import { CLOSE_CYCLE_STATUS } from './payrollCycleClose/closeCycleStatus'
 import { buildEmployeeAttendancePeriodDays } from './payrollCycleClose/attendancePeriodReview'
+import {
+  isClosePeriodOutsideEmployment,
+  resolveEmployeeEmploymentEndDate,
+  resolveEmployeeEmploymentStartDate,
+} from './payrollCycleClose/employmentPeriodGate'
 import { fetchAttendanceFiltered } from '../repositories/attendanceRepository'
 import { fetchPayrollCycleClose } from '../repositories/payrollCycleCloseRepository'
 import { loadCorrectionRequestsForEmployeeRange } from './attendanceEditRequestService'
@@ -74,6 +79,21 @@ export async function loadInProgressMissingAttendanceDates({
     return { missingDates: [], target: null, skippedReason: 'no_target' }
   }
 
+  const employee = getEmployeeById(employeeId)
+  const { startDate: employmentStartDate, warning: employmentStartWarning } =
+    resolveEmployeeEmploymentStartDate(employee)
+  const employmentEndDate = resolveEmployeeEmploymentEndDate(employee)
+
+  // Toàn kỳ trước ngày bắt đầu làm → không tồn tại với NV này.
+  if (isClosePeriodOutsideEmployment(target, employmentStartDate, employmentEndDate)) {
+    return {
+      missingDates: [],
+      target,
+      skippedReason: 'before_employment_start',
+      employmentStartWarning,
+    }
+  }
+
   // Không nhắc kỳ đã Admin duyệt.
   const close = await fetchPayrollCycleClose({
     employeeId,
@@ -81,16 +101,15 @@ export async function loadInProgressMissingAttendanceDates({
     cycle: target.cycle,
   }).catch(() => null)
   if (close?.status === CLOSE_CYCLE_STATUS.APPROVED) {
-    return { missingDates: [], target, skippedReason: 'approved' }
+    return { missingDates: [], target, skippedReason: 'approved', employmentStartWarning }
   }
 
   // Chỉ quét đến hôm nay; buildEmployeeAttendancePeriodDays loại hôm nay khỏi isMissing.
   const scanTo = target.toDate > todayDate ? todayDate : target.toDate
   if (!target.fromDate || !scanTo || target.fromDate > scanTo) {
-    return { missingDates: [], target, skippedReason: 'empty_range' }
+    return { missingDates: [], target, skippedReason: 'empty_range', employmentStartWarning }
   }
 
-  const employee = getEmployeeById(employeeId)
   const [records, corrections] = await Promise.all([
     fetchAttendanceFiltered({
       fromDate: target.fromDate,
@@ -111,13 +130,14 @@ export async function loadInProgressMissingAttendanceDates({
     toDate: scanTo,
     todayDate,
     correctionRequests: corrections,
-    employmentStartDate: employee?.startDate || '',
-    employmentEndDate: employee?.endDate || employee?.daysOff || '',
+    employmentStartDate,
+    employmentEndDate,
   })
 
   return {
     missingDates: summary.missingDates ?? [],
     target,
     skippedReason: '',
+    employmentStartWarning,
   }
 }

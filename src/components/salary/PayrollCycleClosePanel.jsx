@@ -353,7 +353,7 @@ export default function PayrollCycleClosePanel({
                 }
                 onClick={handleSubmit}
               >
-                {submitting ? 'Đang gửi…' : 'Gửi bảng chốt lương'}
+                {submitting ? 'Đang gửi…' : `Gửi chốt lương ${cycleLabel}`}
               </button>
             </>
           )}

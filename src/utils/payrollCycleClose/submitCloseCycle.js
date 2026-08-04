@@ -70,6 +70,13 @@ export async function submitCloseCycle({
   assertValidPeriod(billingMonth, cycle, preview.fromDate, preview.toDate)
   if (!preview.branchId) throw new Error('Chi nhánh không hợp lệ.')
 
+  if (preview.periodBeforeEmployment) {
+    throw new Error(
+      preview.blockReasons.find((r) => /trước ngày bắt đầu/i.test(r))
+      || 'Kỳ lương này nằm trước ngày bắt đầu làm việc — không gửi chốt.',
+    )
+  }
+
   if (!preview.invoicesSynced) {
     throw new Error(
       preview.blockReasons.find((r) => /hóa đơn|Tour/i.test(r))
