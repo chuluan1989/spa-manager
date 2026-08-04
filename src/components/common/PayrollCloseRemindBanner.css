@@ -153,6 +153,71 @@
   color: #d4af37;
 }
 
+.payroll-close-remind--waiting {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.payroll-close-remind--waiting .payroll-close-remind__title,
+.payroll-close-remind--waiting .payroll-close-remind__subtitle,
+.payroll-close-remind--waiting .payroll-close-remind__range {
+  color: #1e3a8a;
+}
+
+.payroll-close-remind--approved {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.payroll-close-remind--approved .payroll-close-remind__title,
+.payroll-close-remind--approved .payroll-close-remind__subtitle,
+.payroll-close-remind--approved .payroll-close-remind__range {
+  color: #166534;
+}
+
+.payroll-close-remind--returned {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.payroll-close-remind--returned .payroll-close-remind__title,
+.payroll-close-remind--returned .payroll-close-remind__subtitle,
+.payroll-close-remind--returned .payroll-close-remind__range {
+  color: #991b1b;
+}
+
+.payroll-close-remind__status-box {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #bfdbfe;
+  background: #fff;
+  display: grid;
+  gap: 4px;
+}
+
+.payroll-close-remind__status-box p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #1e3a8a;
+}
+
+.payroll-close-remind__status-box--ok {
+  border-color: #86efac;
+}
+
+.payroll-close-remind__status-box--ok p {
+  color: #166534;
+}
+
+.payroll-close-remind__status-box--return {
+  border-color: #fca5a5;
+}
+
+.payroll-close-remind__status-box--return p {
+  color: #991b1b;
+}
+
 .payroll-close-remind__btn--alert {
   background: #9a3412;
   border-color: #9a3412;

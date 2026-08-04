@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { formatPayrollCloseSubmitCta } from '../../utils/payrollCycleClose/employmentPeriodGate'
+import {
+  PAYROLL_CLOSE_BANNER_MODE,
+} from '../../utils/payrollCycleClose/closeRemind'
 import './PayrollCloseRemindBanner.css'
 
 /**
- * Banner nhắc chốt kỳ — neo kỳ đang đến hạn theo lịch.
- * Kỳ cũ chưa hoàn thành: cảnh báo phụ (không đổi CTA chính).
+ * Banner chốt kỳ — neo kỳ đang đến hạn theo lịch.
+ * needs_action/returned → nhắc gửi; submitted → chờ duyệt (không nhắc); approved → đã duyệt.
  */
 export default function PayrollCloseRemindBanner({
   cycleLabel,
@@ -20,15 +23,30 @@ export default function PayrollCloseRemindBanner({
   onViewPendingPeriods,
 }) {
   const [localSyncError, setLocalSyncError] = useState('')
-  const submitCta = formatPayrollCloseSubmitCta(cycleLabel)
+  const bannerMode = checklist?.bannerMode || PAYROLL_CLOSE_BANNER_MODE.NEEDS_ACTION
+  const nagSubmit = checklist?.nagSubmit !== false
+    && (
+      bannerMode === PAYROLL_CLOSE_BANNER_MODE.NEEDS_ACTION
+      || bannerMode === PAYROLL_CLOSE_BANNER_MODE.RETURNED
+    )
   const pendingOlderCount = checklist?.pendingOlderCount ?? 0
   const pendingOlderMessage = checklist?.pendingOlderMessage || ''
+  const primaryCta = bannerMode === PAYROLL_CLOSE_BANNER_MODE.RETURNED
+    ? 'Gửi lại'
+    : formatPayrollCloseSubmitCta(cycleLabel)
 
   if (collapsed) {
+    const collapsedTitle = bannerMode === PAYROLL_CLOSE_BANNER_MODE.WAITING
+      ? `Đã gửi ${cycleLabel} — chờ duyệt`
+      : bannerMode === PAYROLL_CLOSE_BANNER_MODE.APPROVED
+        ? `Đã duyệt ${cycleLabel}`
+        : bannerMode === PAYROLL_CLOSE_BANNER_MODE.RETURNED
+          ? `Đã trả lại ${cycleLabel}`
+          : `Nhắc chốt ${cycleLabel}`
     return (
-      <div className="payroll-close-remind payroll-close-remind--collapsed" role="status">
+      <div className={`payroll-close-remind payroll-close-remind--collapsed payroll-close-remind--${bannerMode}`} role="status">
         <p className="payroll-close-remind__title">
-          Nhắc chốt {cycleLabel}
+          {collapsedTitle}
           {rangeLabel ? ` · ${rangeLabel}` : ''}
         </p>
         <button
@@ -36,24 +54,30 @@ export default function PayrollCloseRemindBanner({
           className="payroll-close-remind__btn payroll-close-remind__btn--primary"
           onClick={onExpand}
         >
-          Mở lại nhắc
+          Mở lại
         </button>
       </div>
     )
   }
 
-  const items = [
-    { key: 'tour', title: 'Tour/Hóa đơn', item: checklist?.tour },
-    { key: 'attendance', title: 'Chấm công', item: checklist?.attendance },
-    { key: 'salary', title: 'Bảng lương dự kiến', item: checklist?.salary },
-    { key: 'submit', title: 'Gửi chốt', item: checklist?.submit },
-  ]
+  const items = nagSubmit
+    ? [
+        { key: 'tour', title: 'Tour/Hóa đơn', item: checklist?.tour },
+        { key: 'attendance', title: 'Chấm công', item: checklist?.attendance },
+        { key: 'salary', title: 'Bảng lương dự kiến', item: checklist?.salary },
+        { key: 'submit', title: 'Gửi chốt', item: checklist?.submit },
+      ]
+    : []
 
   const needsSync = Boolean(checklist?.tour?.needsSync)
   const needsAttendance = Boolean(checklist?.attendance?.needsAttendance)
   const unsyncedCount = checklist?.tour?.unsyncedCount ?? 0
   const missingDays = checklist?.attendance?.missingDays ?? 0
   const employmentStartWarning = checklist?.employmentStartWarning || ''
+  const returnReason = checklist?.returnReason || ''
+  const submittedAtLabel = checklist?.submittedAtLabel || ''
+  const approvedAtLabel = checklist?.approvedAtLabel || ''
+  const recipients = checklist?.recipients || ['Quản lý', 'Admin']
 
   async function handleSyncClick() {
     if (!onSyncNow || syncing) return
@@ -65,25 +89,75 @@ export default function PayrollCloseRemindBanner({
     }
   }
 
+  let title = `Đã đến thời gian chốt ${cycleLabel}.`
+  let subtitle = 'Vui lòng kiểm tra Tour, chấm công và bảng lương dự kiến trước khi gửi Admin duyệt.'
+  if (bannerMode === PAYROLL_CLOSE_BANNER_MODE.WAITING) {
+    title = 'Đã gửi'
+    subtitle = 'Đang chờ Quản lý/Admin duyệt'
+  } else if (bannerMode === PAYROLL_CLOSE_BANNER_MODE.APPROVED) {
+    title = 'Đã duyệt'
+    subtitle = `${cycleLabel} đã được duyệt.`
+  } else if (bannerMode === PAYROLL_CLOSE_BANNER_MODE.RETURNED) {
+    title = 'Đã trả lại'
+    subtitle = 'Vui lòng bổ sung theo lý do trả và gửi lại.'
+  }
+
   return (
-    <div className="payroll-close-remind" role="status">
+    <div className={`payroll-close-remind payroll-close-remind--${bannerMode}`} role="status">
       <div className="payroll-close-remind__body">
-        <p className="payroll-close-remind__title">
-          Đã đến thời gian chốt {cycleLabel}.
-        </p>
-        <p className="payroll-close-remind__subtitle">
-          Vui lòng kiểm tra Tour, chấm công và bảng lương dự kiến trước khi gửi Admin duyệt.
-        </p>
+        <p className="payroll-close-remind__title">{title}</p>
+        <p className="payroll-close-remind__subtitle">{subtitle}</p>
         {rangeLabel ? <p className="payroll-close-remind__range">{rangeLabel}</p> : null}
 
-        {checklist ? (
+        {bannerMode === PAYROLL_CLOSE_BANNER_MODE.WAITING ? (
+          <div className="payroll-close-remind__status-box">
+            {submittedAtLabel ? (
+              <p>
+                Đã gửi lúc:
+                {' '}
+                <strong>{submittedAtLabel}</strong>
+              </p>
+            ) : null}
+            <p>
+              Người nhận:
+              {' '}
+              <strong>{recipients.join(', ')}</strong>
+            </p>
+          </div>
+        ) : null}
+
+        {bannerMode === PAYROLL_CLOSE_BANNER_MODE.APPROVED ? (
+          <div className="payroll-close-remind__status-box payroll-close-remind__status-box--ok">
+            {approvedAtLabel ? (
+              <p>
+                Duyệt lúc:
+                {' '}
+                <strong>{approvedAtLabel}</strong>
+              </p>
+            ) : (
+              <p><strong>Kỳ này đã được duyệt.</strong></p>
+            )}
+          </div>
+        ) : null}
+
+        {bannerMode === PAYROLL_CLOSE_BANNER_MODE.RETURNED && returnReason ? (
+          <div className="payroll-close-remind__status-box payroll-close-remind__status-box--return">
+            <p>
+              Lý do trả:
+              {' '}
+              <strong>{returnReason}</strong>
+            </p>
+          </div>
+        ) : null}
+
+        {nagSubmit && checklist ? (
           <ul className="payroll-close-remind__checklist">
-            {items.map(({ key, title, item }) => (
+            {items.map(({ key, title: itemTitle, item }) => (
               <li
                 key={key}
                 className={item?.ok ? 'is-ok' : 'is-warn'}
               >
-                <span>{title}</span>
+                <span>{itemTitle}</span>
                 <strong>{item?.label ?? '—'}</strong>
               </li>
             ))}
@@ -155,13 +229,23 @@ export default function PayrollCloseRemindBanner({
         ) : null}
       </div>
       <div className="payroll-close-remind__actions">
-        <button
-          type="button"
-          className="payroll-close-remind__btn payroll-close-remind__btn--primary"
-          onClick={onOpenSalary}
-        >
-          {submitCta}
-        </button>
+        {nagSubmit ? (
+          <button
+            type="button"
+            className="payroll-close-remind__btn payroll-close-remind__btn--primary"
+            onClick={onOpenSalary}
+          >
+            {primaryCta}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="payroll-close-remind__btn"
+            onClick={onOpenSalary}
+          >
+            Xem bảng chốt
+          </button>
+        )}
         <button type="button" className="payroll-close-remind__btn" onClick={onCollapse}>
           Thu gọn
         </button>

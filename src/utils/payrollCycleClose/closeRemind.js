@@ -16,9 +16,47 @@ import {
   SONG_KHOE_REMIND_PERIOD_START,
   SONG_KHOE_SPA_BRANCH_ID,
 } from '../payroll1Policy'
+import { getIctParts } from '../ictTime'
 
 /** Số tháng nhìn lại để tìm kỳ đã đến hạn chốt nhưng chưa gửi. */
 const DUE_LOOKBACK_MONTHS = 3
+
+export const PAYROLL_CLOSE_BANNER_MODE = {
+  NEEDS_ACTION: 'needs_action',
+  WAITING: 'waiting',
+  RETURNED: 'returned',
+  APPROVED: 'approved',
+}
+
+/**
+ * Mode banner trang chủ theo status phiếu.
+ * Reminder/nag chỉ khi needs_action hoặc returned (canSubmit).
+ */
+export function resolvePayrollCloseBannerMode(status) {
+  if (status === CLOSE_CYCLE_STATUS.RETURNED) return PAYROLL_CLOSE_BANNER_MODE.RETURNED
+  if (
+    status === CLOSE_CYCLE_STATUS.SUBMITTED
+    || status === CLOSE_CYCLE_STATUS.RESUBMITTED
+  ) {
+    return PAYROLL_CLOSE_BANNER_MODE.WAITING
+  }
+  if (status === CLOSE_CYCLE_STATUS.APPROVED) return PAYROLL_CLOSE_BANNER_MODE.APPROVED
+  return PAYROLL_CLOSE_BANNER_MODE.NEEDS_ACTION
+}
+
+/** Còn được nhắc gửi / gửi lại (null/draft/returned). Submitted → không nhắc. */
+export function shouldNagPayrollCloseSubmit(status) {
+  return canSubmitCloseCycle(status)
+}
+
+/** HH:mm dd/MM theo ICT. */
+export function formatCloseSubmittedAtLabel(iso) {
+  if (!iso) return ''
+  const parsed = new Date(iso)
+  if (Number.isNaN(parsed.getTime())) return ''
+  const parts = getIctParts(parsed)
+  return `${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')} ${parts.date.slice(8, 10)}/${parts.date.slice(5, 7)}`
+}
 
 /**
  * Các kỳ đã đến hạn nhắc (submitDate <= hôm nay), cũ → mới.
@@ -126,14 +164,14 @@ export function filterDueTargetsForEmployee(dueTargets, employee) {
 
 function submitStatusLabel(status) {
   if (!status || status === CLOSE_CYCLE_STATUS.DRAFT) return 'Chưa gửi'
-  if (status === CLOSE_CYCLE_STATUS.RETURNED) return 'Bị trả lại'
+  if (status === CLOSE_CYCLE_STATUS.RETURNED) return 'Đã trả lại'
   if (
     status === CLOSE_CYCLE_STATUS.SUBMITTED
     || status === CLOSE_CYCLE_STATUS.RESUBMITTED
   ) {
-    return 'Đã gửi'
+    return 'Đã gửi — đang chờ duyệt'
   }
-  if (status === CLOSE_CYCLE_STATUS.APPROVED) return 'Đã gửi'
+  if (status === CLOSE_CYCLE_STATUS.APPROVED) return 'Đã duyệt'
   return getCloseCycleStatusLabel(status)
 }
 
@@ -188,6 +226,11 @@ export async function buildPayrollCloseRemindChecklist({
   const attendanceWaiver = isAttendanceOptionalForCloseCycle(target.billingMonth, target.cycle)
   const missingDays = attendanceWaiver ? 0 : (attendanceReview.summary.missingDays ?? 0)
   const missingDates = attendanceWaiver ? [] : (attendanceReview.summary.missingDates ?? [])
+  const bannerMode = resolvePayrollCloseBannerMode(status)
+  const nagSubmit = shouldNagPayrollCloseSubmit(status)
+  const submittedAtRaw = status === CLOSE_CYCLE_STATUS.RESUBMITTED
+    ? (existing?.resubmittedAt || existing?.submittedAt || '')
+    : (existing?.submittedAt || existing?.resubmittedAt || '')
 
   const tourOk = !syncCheck.error && !syncCheck.hasUnsynced
   const attendanceOk = attendanceWaiver || attendanceReview.summary.isComplete
@@ -196,6 +239,14 @@ export async function buildPayrollCloseRemindChecklist({
   return {
     status,
     statusLabel: submitStatusLabel(status),
+    bannerMode,
+    nagSubmit,
+    submittedAt: submittedAtRaw,
+    submittedAtLabel: formatCloseSubmittedAtLabel(submittedAtRaw),
+    returnReason: existing?.returnReason || existing?.rejectReason || '',
+    approvedAt: existing?.approvedAt || '',
+    approvedAtLabel: formatCloseSubmittedAtLabel(existing?.approvedAt || ''),
+    recipients: ['Quản lý', 'Admin'],
     employmentStartDate,
     employmentStartWarning,
     tour: {
@@ -207,7 +258,7 @@ export async function buildPayrollCloseRemindChecklist({
           : 'Đã đồng bộ',
       unsyncedCount: syncCheck.count ?? 0,
       error: syncCheck.error || null,
-      needsSync: Boolean(syncCheck.hasUnsynced),
+      needsSync: Boolean(syncCheck.hasUnsynced) && nagSubmit,
     },
     attendance: {
       ok: attendanceOk,
@@ -218,23 +269,26 @@ export async function buildPayrollCloseRemindChecklist({
           : `Còn ${missingDays} ngày chưa chấm công.`,
       missingDays,
       missingDates,
-      needsAttendance: !attendanceOk && missingDays > 0,
+      needsAttendance: nagSubmit && !attendanceOk && missingDays > 0,
     },
     salary: {
       ok: salaryOk,
       label: 'Có thể xem',
     },
     submit: {
-      ok: !canSubmitCloseCycle(status),
+      ok: !nagSubmit,
       label: submitStatusLabel(status),
-      canSubmitStatus: canSubmitCloseCycle(status),
+      canSubmitStatus: nagSubmit,
     },
   }
 }
 
 /**
  * Banner trang chủ: luôn neo “kỳ đang đến hạn theo lịch”.
- * Kỳ cũ chưa hoàn thành → cảnh báo phụ + nút xem; không đổi CTA chính.
+ * - needs_action / returned → nhắc gửi (CTA)
+ * - submitted / resubmitted → trạng thái chờ duyệt (không nhắc gửi)
+ * - approved → Đã duyệt
+ * Kỳ cũ chưa hoàn thành → cảnh báo phụ; không đổi CTA chính.
  */
 export async function shouldShowPayrollCloseRemind({ employeeId, todayDate, user = getCurrentUser() }) {
   if (!employeeId || !todayDate) {
@@ -297,17 +351,7 @@ export async function shouldShowPayrollCloseRemind({ employeeId, todayDate, user
     cycle: target.cycle,
   })
   const status = existing?.status ?? null
-  if (!canSubmitCloseCycle(status)) {
-    return {
-      show: false,
-      target,
-      checklist: null,
-      status,
-      pendingOlderTargets,
-      pendingOlderCount: pendingOlderTargets.length,
-      employmentStartWarning,
-    }
-  }
+  const bannerMode = resolvePayrollCloseBannerMode(status)
 
   const checklist = await buildPayrollCloseRemindChecklist({
     employeeId,
@@ -320,6 +364,8 @@ export async function shouldShowPayrollCloseRemind({ employeeId, todayDate, user
     show: true,
     target,
     status,
+    bannerMode,
+    nagSubmit: shouldNagPayrollCloseSubmit(status),
     checklist: {
       ...checklist,
       employmentStartWarning: checklist.employmentStartWarning || employmentStartWarning,
