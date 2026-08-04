@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<title>B2 Preview — Hiệu quả chi nhánh</title>
+<style>
+  body { font-family: "Segoe UI", system-ui, sans-serif; margin: 0; background: #f3f4f6; color: #111; }
+  .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px 40px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .tabs span { border: 1px solid #e5e7eb; background: #fff; border-radius: 8px; padding: 8px 14px; font-size: 0.9rem; }
+  .tabs .is-active { background: #111; color: #d4af37; border-color: #111; }
+  .panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; }
+  h1 { margin: 0 0 4px; font-size: 1.4rem; }
+  .sub { margin: 0; color: #6b7280; font-size: 0.85rem; }
+  .period { margin: 8px 0 0; font-size: 0.9rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+  .filters label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: #4b5563; }
+  .filters span.fake { border: 1px solid #e5e7eb; border-radius: 8px; padding: 7px 10px; background: #fafafa; min-width: 120px; }
+  .note { font-size: 0.8rem; color: #6b7280; padding: 8px 10px; background: #f9fafb; border-radius: 8px; border: 1px solid #f3f4f6; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; text-align: left; white-space: nowrap; }
+  th { background: #fafafa; font-size: 0.8rem; }
+  .bep-num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.is-unknown { background: #fffbeb; }
+  tfoot tr { background: #111; color: #f9fafb; font-weight: 600; }
+  tfoot td { border-bottom: none; }
+  .is-loss { color: #b91c1c; font-weight: 700; }
+  tfoot .is-loss { color: #fca5a5; }
+  .bep-badge { display: inline-block; margin-left: 8px; padding: 2px 6px; border-radius: 4px; background: #fef3c7; color: #92400e; font-size: 0.7rem; font-weight: 600; }
+  .meta { margin-top: 12px; font-size: 0.75rem; color: #9ca3af; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="tabs">
+      <span>Quản trị CN / NV</span>
+      <span class="is-active">Hiệu quả chi nhánh</span>
+      <span>Tổng hợp drill-down</span>
+    </div>
+    <div class="panel">
+      <h1>Hiệu quả chi nhánh</h1>
+      <p class="sub">Lợi nhuận = Doanh thu dịch vụ − Chi phí vận hành − % hóa đơn thực trả − Thưởng + Phạt nhân viên</p>
+      <p class="period">Kỳ: <strong>2026-07-01</strong> → <strong>2026-07-31</strong></p>
+      <div class="filters">
+        <label>Tháng<span class="fake">2026-07</span></label>
+        <label>Kỳ lương<span class="fake">Cả tháng</span></label>
+        <label>Từ ngày<span class="fake">2026-07-01</span></label>
+        <label>Đến ngày<span class="fake">2026-07-31</span></label>
+        <label>Chi nhánh<span class="fake">Tất cả</span></label>
+      </div>
+      <div class="note">Không gồm tips trong doanh thu · Không gồm lương cơ bản · Không tính trùng mặt bằng / ứng lương.</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Chi nhánh</th>
+            <th class="bep-num">Doanh thu</th>
+            <th class="bep-num">Chi phí vận hành</th>
+            <th class="bep-num">% hóa đơn</th>
+            <th class="bep-num">Thưởng</th>
+            <th class="bep-num">Phạt</th>
+            <th class="bep-num">Lợi nhuận</th>
+            <th class="bep-num">Biên lợi nhuận</th>
+          </tr>
+        </thead>
+        <tbody>
+  <tr class="">
+    <td>Sóc Trăng</td>
+    <td class="bep-num">400.000 ₫</td>
+    <td class="bep-num">120.000 ₫</td>
+    <td class="bep-num">60.000 ₫</td>
+    <td class="bep-num">0 ₫</td>
+    <td class="bep-num">10.000 ₫</td>
+    <td class="bep-num">230.000 ₫</td>
+    <td class="bep-num">57,5%</td>
+  </tr>
+
+  <tr class="">
+    <td>Trạm Spa</td>
+    <td class="bep-num">1.000.000 ₫</td>
+    <td class="bep-num">350.000 ₫</td>
+    <td class="bep-num">200.000 ₫</td>
+    <td class="bep-num">25.000 ₫</td>
+    <td class="bep-num">0 ₫</td>
+    <td class="bep-num">425.000 ₫</td>
+    <td class="bep-num">42,5%</td>
+  </tr>
+
+  <tr class="is-unknown">
+    <td>Chưa xác định chi nhánh<span class="bep-badge">Thiếu CN</span></td>
+    <td class="bep-num">100.000 ₫</td>
+    <td class="bep-num">0 ₫</td>
+    <td class="bep-num">10.000 ₫</td>
+    <td class="bep-num">0 ₫</td>
+    <td class="bep-num">0 ₫</td>
+    <td class="bep-num">90.000 ₫</td>
+    <td class="bep-num">90%</td>
+  </tr>
+</tbody>
+        <tfoot>
+          <tr>
+            <td>Tổng hệ thống</td>
+            <td class="bep-num">1.500.000 ₫</td>
+            <td class="bep-num">470.000 ₫</td>
+            <td class="bep-num">270.000 ₫</td>
+            <td class="bep-num">25.000 ₫</td>
+            <td class="bep-num">10.000 ₫</td>
+            <td class="bep-num">745.000 ₫</td>
+            <td class="bep-num">49,67%</td>
+          </tr>
+        </tfoot>
+      </table>
+      <p class="meta">B2 Preview · unknownId=__unknown_branch__ · fixture UAT · no drill-down</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8" />
+<title>B3 Preview — Drill-down Hiệu quả chi nhánh</title>
+<style>
+body{font-family:"Segoe UI",system-ui,sans-serif;margin:0;background:#f3f4f6;color:#111}
+.wrap{max-width:1100px;margin:20px auto;padding:0 16px 40px;position:relative}
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tabs span{border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:8px 14px;font-size:.9rem}
+.tabs .on{background:#111;color:#d4af37;border-color:#111}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px}
+h1{margin:0 0 4px;font-size:1.35rem}
+.sub,.period{margin:0;color:#6b7280;font-size:.85rem}
+.period{margin-top:6px}
+.filters{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:#4b5563}
+.filters .fake{border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;background:#fafafa;min-width:110px}
+.note{font-size:.8rem;color:#6b7280;padding:8px 10px;background:#f9fafb;border-radius:8px;border:1px solid #f3f4f6;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{padding:9px 10px;border-bottom:1px solid #f3f4f6;text-align:left}
+th{background:#fafafa;font-size:.78rem}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.link{text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;color:#1d4ed8}
+tr.is-unknown{background:#fffbeb}
+.badge{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:4px;background:#fef3c7;color:#92400e;font-size:.7rem;font-weight:600}
+tfoot tr{background:#111;color:#f9fafb;font-weight:600}
+tfoot td{border:none}
+.loss{color:#b91c1c;font-weight:700}
+tfoot .loss{color:#fca5a5}
+.overlay{position:absolute;inset:0;background:rgba(17,24,39,.42);border-radius:12px;display:flex;align-items:flex-start;justify-content:center;padding:48px 20px 20px}
+.modal{width:min(920px,100%);background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden}
+.modal header{display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #e5e7eb}
+.modal header h3{margin:0 0 4px;font-size:1.05rem}
+.modal header p{margin:0;color:#6b7280;font-size:.82rem}
+.modal .close{border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:7px 12px}
+.modal .body{padding:12px 16px 16px;max-height:420px;overflow:auto}
+.modal .body h4{margin:12px 0 6px;font-size:.92rem}
+.pill{display:inline-block;padding:2px 6px;border-radius:4px;background:#f3f4f6;font-size:.75rem}
+.warn{margin:0 0 8px;padding:8px 10px;border-radius:8px;background:#fef2f2;color:#991b1b;font-size:.82rem}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.grid{grid-template-columns:1.2fr .8fr}}
+.card{border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;background:#fff}
+.card h4{margin:0 0 8px}
+.meta{margin-top:10px;font-size:.72rem;color:#9ca3af}
+</style></head><body>
+<div class="wrap">
+  <div class="tabs"><span>Quản trị CN / NV</span><span class="on">Hiệu quả chi nhánh</span><span>Tổng hợp drill-down</span></div>
+  <div class="panel" style="position:relative">
+    <h1>Hiệu quả chi nhánh</h1>
+    <p class="sub">Lợi nhuận = Doanh thu dịch vụ − Chi phí vận hành − % hóa đơn thực trả − Thưởng + Phạt nhân viên</p>
+    <p class="period">Kỳ: <strong>2026-07-01 → 2026-07-31</strong></p>
+    <div class="filters">
+      <label>Tháng<span class="fake">2026-07</span></label>
+      <label>Kỳ lương<span class="fake">Cả tháng</span></label>
+      <label>Từ ngày<span class="fake">2026-07-01</span></label>
+      <label>Đến ngày<span class="fake">2026-07-31</span></label>
+      <label>Chi nhánh<span class="fake">Tất cả</span></label>
+    </div>
+    <div class="note">Bấm số tiền để xem chi tiết · Không tips · Không lương CB · Không trùng MB/ứng</div>
+    <table>
+      <thead><tr>
+        <th>Chi nhánh</th><th class="num">Doanh thu</th><th class="num">Chi phí vận hành</th>
+        <th class="num">% hóa đơn</th><th class="num">Thưởng</th><th class="num">Phạt</th>
+        <th class="num">Lợi nhuận</th><th class="num">Biên lợi nhuận</th>
+      </tr></thead>
+      <tbody>
+  <tr class="">
+    <td>Sóc Trăng</td>
+    <td class="num link">400.000 ₫</td>
+    <td class="num link">120.000 ₫</td>
+    <td class="num link">60.000 ₫</td>
+    <td class="num link">0 ₫</td>
+    <td class="num link">10.000 ₫</td>
+    <td class="num link">230.000 ₫</td>
+    <td class="num">57,5%</td>
+  </tr>
+  <tr class="">
+    <td>Trạm Spa</td>
+    <td class="num link">1.000.000 ₫</td>
+    <td class="num link">350.000 ₫</td>
+    <td class="num link">200.000 ₫</td>
+    <td class="num link">25.000 ₫</td>
+    <td class="num link">0 ₫</td>
+    <td class="num link">425.000 ₫</td>
+    <td class="num">42,5%</td>
+  </tr>
+  <tr class="is-unknown">
+    <td>Chưa xác định chi nhánh<span class="badge">Thiếu CN</span></td>
+    <td class="num link">100.000 ₫</td>
+    <td class="num link">0 ₫</td>
+    <td class="num link">10.000 ₫</td>
+    <td class="num link">0 ₫</td>
+    <td class="num link">0 ₫</td>
+    <td class="num link">90.000 ₫</td>
+    <td class="num">90%</td>
+  </tr></tbody>
+      <tfoot><tr>
+        <td>Tổng hệ thống</td>
+        <td class="num">1.500.000 ₫</td>
+        <td class="num">470.000 ₫</td>
+        <td class="num">270.000 ₫</td>
+        <td class="num">25.000 ₫</td>
+        <td class="num">10.000 ₫</td>
+        <td class="num">745.000 ₫</td>
+        <td class="num">49,67%</td>
+      </tr></tfoot>
+    </table>
+
+    <div class="overlay">
+      <div class="modal">
+        <header>
+          <div>
+            <h3>Chi tiết doanh thu · Trạm Spa</h3>
+            <p>2026-07-01 → 2026-07-31 · filter giữ nguyên khi Đóng</p>
+          </div>
+          <span class="close">Đóng</span>
+        </header>
+        <div class="body">
+          <div class="grid">
+            <div class="card">
+              <h4>A. Doanh thu</h4>
+              <table>
+                <thead><tr><th>Ngày</th><th>Mã HĐ</th><th>NV</th><th>CN</th><th>Dịch vụ</th><th class="num">DT</th><th>PTTT</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>2026-07-10</td><td>inv-a</td><td>Lan</td>
+                    <td>Trạm Spa</td><td>Massage</td>
+                    <td class="num">1.000.000 ₫</td><td>Tiền mặt</td>
+                  </tr>
+                </tbody>
+                <tfoot><tr><td colspan="5">Tổng</td><td class="num">1.000.000 ₫</td><td></td></tr></tfoot>
+              </table>
+            </div>
+            <div>
+              <div class="card">
+                <h4>B. Chi phí vận hành (Trạm)</h4>
+                <p><strong>Mặt bằng cố định:</strong> 300.000 ₫</p>
+                <p><strong>Chi phí phát sinh:</strong> 50.000 ₫</p>
+                <p>Nguồn: expense, fixed cost</p>
+              </div>
+              <div class="card" style="margin-top:10px">
+                <h4>C. % HĐ · Sóc Trăng (hỗ trợ 50%)</h4>
+                <table>
+                  <thead><tr><th>NV</th><th>Vai trò</th><th>Tỷ lệ</th><th class="num">Thực trả</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>e2</td><td>Chính</td><td>100%</td>
+                      <td class="num">40.000 ₫</td>
+                    </tr><tr>
+                      <td>e3</td><td>Hỗ trợ</td><td>50%</td>
+                      <td class="num">20.000 ₫</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card" style="margin-top:10px">
+                <h4>F. Giải thích LN · Trạm</h4>
+                <div>+ Doanh thu: <strong>1.000.000 ₫</strong></div><div>− Chi phí vận hành: <strong>350.000 ₫</strong></div><div>− % hóa đơn: <strong>200.000 ₫</strong></div><div>− Thưởng: <strong>25.000 ₫</strong></div><div>+ Phạt: <strong>0 ₫</strong></div>
+                <div style="margin-top:6px;font-weight:700">= Lợi nhuận: 425.000 ₫</div>
+              </div>
+            </div>
+          </div>
+          <p class="meta">B3 Preview · drill A–F · no sidebar · engine B1 unchanged</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

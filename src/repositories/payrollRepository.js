@@ -26,15 +26,25 @@ async function fetchPayrollTableRows(table, buildQuery) {
   return rowsToCamel(data ?? [])
 }
 
-export async function fetchPayrollAdjustments({ month = '', branchId = '', employeeId = '' } = {}) {
+export async function fetchPayrollAdjustments({
+  month = '',
+  months = [],
+  branchId = '',
+  employeeId = '',
+  fromDate = '',
+  toDate = '',
+} = {}) {
   return fetchPayrollTableRows(ADJUSTMENTS_TABLE, (query) => {
     let next = query
       .select('*')
       .order('date', { ascending: true })
       .order('created_at', { ascending: true })
     if (month) next = next.eq('month', month)
+    if (Array.isArray(months) && months.length > 0) next = next.in('month', months)
     if (branchId) next = next.eq('branch_id', branchId)
     if (employeeId) next = next.eq('employee_id', employeeId)
+    if (fromDate) next = next.gte('date', fromDate)
+    if (toDate) next = next.lte('date', toDate)
     return next
   })
 }

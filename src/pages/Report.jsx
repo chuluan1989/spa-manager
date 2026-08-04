@@ -3,6 +3,7 @@ import EmployeeSalaryPanel from '../components/report/EmployeeSalaryPanel'
 import EmployeeCustomerRequestedPanel from '../components/report/EmployeeCustomerRequestedPanel'
 import ReportExplorer from '../components/report/ReportExplorer'
 import ManagementReports from '../components/report/ManagementReports'
+import BranchEfficiencyPanel from '../components/report/BranchEfficiencyPanel'
 import {
   canViewReport,
   isEmployee,
@@ -10,6 +11,7 @@ import {
 import { consumeDrillDownPrefill } from '../utils/navigationPrefill'
 import './Report.css'
 import '../components/report/ManagementReports.css'
+import '../components/report/BranchEfficiencyPanel.css'
 
 export default function Report({ onNavigate }) {
   const prefill = consumeDrillDownPrefill()
@@ -72,6 +74,13 @@ export default function Report({ onNavigate }) {
         </button>
         <button
           type="button"
+          className={mode === 'efficiency' ? 'is-active' : ''}
+          onClick={() => setMode('efficiency')}
+        >
+          Hiệu quả chi nhánh
+        </button>
+        <button
+          type="button"
           className={mode === 'explorer' ? 'is-active' : ''}
           onClick={() => setMode('explorer')}
         >
@@ -81,6 +90,8 @@ export default function Report({ onNavigate }) {
 
       {mode === 'management' ? (
         <ManagementReports onNavigate={onNavigate} />
+      ) : mode === 'efficiency' ? (
+        <BranchEfficiencyPanel />
       ) : (
         <ReportExplorer onNavigate={onNavigate} initialPrefill={prefill} />
       )}
