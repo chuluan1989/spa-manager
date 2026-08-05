@@ -1,0 +1,165 @@
+{
+  "startedAt": "2026-08-05T16:30:58.428Z",
+  "base": "https://www.khoespa.net.vn",
+  "migrationRerun": false,
+  "rollbackRun": false,
+  "smoke": {
+    "0_asset": {
+      "ok": true,
+      "asset": "assets/index-C1ePrMqc.js"
+    },
+    "1_thu_huong": {
+      "ok": true,
+      "bonus": "500.000 ₫",
+      "advance": "500.000 ₫",
+      "net": "-565.400 ₫",
+      "hasDieuChinhKhac": false,
+      "labels": [
+        "Doanh thu tiền vé",
+        "Hoa hồng",
+        "Tips",
+        "Thưởng",
+        "KPI",
+        "Phạt",
+        "Giảm lương",
+        "Ứng lương",
+        "Lương thực nhận"
+      ]
+    },
+    "2_popup_4fields": {
+      "ok": true,
+      "labels": [
+        "Thưởng",
+        "KPI",
+        "Phạt",
+        "Ứng lương"
+      ],
+      "hasForbidden": false
+    },
+    "3_thu_huong_popup_bind": {
+      "ok": true,
+      "currents": {
+        "Thưởng": "Hạng mục\nHiện tại\nMới\nThưởng\n500.000 ₫\nGiá trị mới Thưởng\nKPI\n0 ₫\nGiá trị mới KPI\nPhạt\n0 ₫\nGiá trị mới Phạt\nỨng lương\n500.000 ₫\nGiá trị mới Ứng lương",
+        "Thưởng__raw": [
+          "500.000",
+          "0",
+          "0",
+          "500.000"
+        ],
+        "KPI": "Hạng mục\nHiện tại\nMới\nThưởng\n500.000 ₫\nGiá trị mới Thưởng\nKPI\n0 ₫\nGiá trị mới KPI\nPhạt\n0 ₫\nGiá trị mới Phạt\nỨng lương\n500.000 ₫\nGiá trị mới Ứng lương",
+        "KPI__raw": [
+          "500.000",
+          "0",
+          "0",
+          "500.000"
+        ],
+        "Phạt": "Hạng mục\nHiện tại\nMới\nThưởng\n500.000 ₫\nGiá trị mới Thưởng\nKPI\n0 ₫\nGiá trị mới KPI\nPhạt\n0 ₫\nGiá trị mới Phạt\nỨng lương\n500.000 ₫\nGiá trị mới Ứng lương",
+        "Phạt__raw": [
+          "500.000",
+          "0",
+          "0",
+          "500.000"
+        ],
+        "Ứng lương": "Hạng mục\nHiện tại\nMới\nThưởng\n500.000 ₫\nGiá trị mới Thưởng\nKPI\n0 ₫\nGiá trị mới KPI\nPhạt\n0 ₫\nGiá trị mới Phạt\nỨng lương\n500.000 ₫\nGiá trị mới Ứng lương",
+        "Ứng lương__raw": [
+          "500.000",
+          "0",
+          "0",
+          "500.000"
+        ]
+      }
+    },
+    "4_audit_no_delete": {
+      "ok": true,
+      "deleteButtons": 0
+    },
+    "5_truc_ly": {
+      "ok": true,
+      "penalty": "0 ₫",
+      "advance": "2.000.000 ₫",
+      "popupLabels": [
+        "Thưởng",
+        "KPI",
+        "Phạt",
+        "Ứng lương"
+      ],
+      "tlBind": true
+    },
+    "6_five_samples": {
+      "ok": true,
+      "samples": [
+        {
+          "name": "Ly Ly",
+          "ok": true,
+          "net": "1.569.400 ₫",
+          "labels": [
+            "Thưởng",
+            "KPI",
+            "Phạt",
+            "Ứng lương"
+          ],
+          "hasForbidden": false
+        },
+        {
+          "name": "Bảo Trân",
+          "ok": true,
+          "net": "2.298.600 ₫",
+          "labels": [
+            "Thưởng",
+            "KPI",
+            "Phạt",
+            "Ứng lương"
+          ],
+          "hasForbidden": false
+        },
+        {
+          "name": "Kim Quyên",
+          "ok": true,
+          "net": "1.138.000 ₫",
+          "labels": [
+            "Thưởng",
+            "KPI",
+            "Phạt",
+            "Ứng lương"
+          ],
+          "hasForbidden": false
+        },
+        {
+          "name": "Thanh Thư",
+          "ok": true,
+          "net": "1.052.500 ₫",
+          "labels": [
+            "Thưởng",
+            "KPI",
+            "Phạt",
+            "Ứng lương"
+          ],
+          "hasForbidden": false
+        },
+        {
+          "name": "Thảo Cầm",
+          "ok": true,
+          "net": "1.659.900 ₫",
+          "labels": [
+            "Thưởng",
+            "KPI",
+            "Phạt",
+            "Ứng lương"
+          ],
+          "hasForbidden": false
+        }
+      ]
+    },
+    "7_manager_no_edit": {
+      "ok": true,
+      "buttons": 0
+    },
+    "8_employee_no_edit": {
+      "ok": true,
+      "buttons": 0
+    }
+  },
+  "ok": true,
+  "asset": "assets/index-C1ePrMqc.js",
+  "finishedAt": "2026-08-05T16:42:27.523Z"
+}

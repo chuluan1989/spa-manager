@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-08-05T16:19:46.599Z",
+  "migrationRerun": false,
+  "thuHuongAugK1": {
+    "bonus": 500000,
+    "kpi": 0,
+    "penalty": 0,
+    "advance": 500000,
+    "otherAdjustment": 0,
+    "netSalary": -565400,
+    "tips": 383000,
+    "commission": 51600,
+    "ticketRevenue": 447000
+  },
+  "thuHuongExpected": {
+    "bonus": 500000,
+    "kpi": 0,
+    "penalty": 0,
+    "advance": 500000,
+    "otherAdjustment": 0,
+    "netSalary": -565400
+  },
+  "thuHuongMatch": true,
+  "trucLyJulK1": {
+    "employee": "Trúc Ly",
+    "branch": "Sóc Trăng Khoẻ Spa",
+    "bonus": 0,
+    "kpi": 0,
+    "penalty": 0,
+    "advance": 2000000,
+    "otherAdjustment": 0,
+    "netSalary": 2290000
+  },
+  "legacyNonZeroCount": 0,
+  "legacy": [],
+  "onlyThuHuongAffectedByPackage": true,
+  "note": "Chỉ Thu Hương bị ảnh hưởng bởi gói migrate+công thức; legacy OA≠0 hiện = 0."
+}
