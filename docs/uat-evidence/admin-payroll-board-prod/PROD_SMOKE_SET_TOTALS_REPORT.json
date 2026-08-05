@@ -1,0 +1,114 @@
+{
+  "startedAt": "2026-08-05T11:14:26.294Z",
+  "base": "https://www.khoespa.net.vn",
+  "migration": "none",
+  "model": "set-totals",
+  "smoke": {
+    "1_toolbar": {
+      "ok": true,
+      "toolbar": [
+        "Sửa bảng lương",
+        "Đối soát Excel",
+        "Tóm tắt PDF"
+      ],
+      "kpiBtn": 0
+    },
+    "2_popup_set": {
+      "ok": true,
+      "head": "Hạng mục | Hiện tại | Mới",
+      "labels": [
+        "Thưởng",
+        "KPI",
+        "Phạt",
+        "Ứng lương",
+        "Điều chỉnh khác"
+      ],
+      "addLine": 0
+    },
+    "baseline": {
+      "ok": true,
+      "net": 1569400
+    },
+    "3_penalty": {
+      "ok": true,
+      "penalty": "200.000 ₫",
+      "net": 1369400
+    },
+    "4_bonus": {
+      "ok": true,
+      "bonus": "500.000 ₫",
+      "net": 1869400
+    },
+    "5_kpi_cycle": {
+      "ok": true,
+      "kpi": "0 ₫",
+      "net": 1869400,
+      "kpiPlusOk": true,
+      "kpiMinusOk": true,
+      "kpiZeroOk": true
+    },
+    "6_advance": {
+      "ok": true,
+      "advance": "700.000 ₫",
+      "net": 1169400
+    },
+    "7_adjustment": {
+      "ok": true,
+      "other": "-100.000 ₫",
+      "net": 1069400
+    },
+    "8_core_unchanged": {
+      "ok": true,
+      "revenue": "2.525.000 ₫",
+      "tips": "1.435.000 ₫",
+      "commission": "134.400 ₫"
+    },
+    "9_summary_detail": {
+      "ok": true,
+      "net": "1.069.400 ₫"
+    },
+    "10_audit": {
+      "ok": true,
+      "deleteButtons": 0,
+      "impactLabels": 231
+    },
+    "11_revert": {
+      "ok": true,
+      "net": "1.569.400 ₫"
+    },
+    "role_manager_no_edit": {
+      "ok": true,
+      "edit": 0,
+      "kpi": 0
+    },
+    "role_employee_no_edit": {
+      "ok": true,
+      "edit": 0,
+      "kpi": 0
+    }
+  },
+  "before": {
+    "net": 1569400,
+    "revenue": 2525000,
+    "tips": 1435000,
+    "commission": 134400
+  },
+  "afterTests": {
+    "net": 1069400,
+    "bonus": 500000,
+    "kpi": 0,
+    "penalty": 200000,
+    "advance": 700000,
+    "adjustment": -100000
+  },
+  "afterRevert": {
+    "net": 1569400,
+    "bonus": 0,
+    "kpi": 0,
+    "penalty": 0,
+    "advance": 0,
+    "adjustment": 0
+  },
+  "ok": true,
+  "finishedAt": "2026-08-05T11:18:08.096Z"
+}

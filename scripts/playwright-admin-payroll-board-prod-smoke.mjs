@@ -339,22 +339,10 @@ try {
 
   // 10. Manager / Employee no edit button
   await page.getByRole('button', { name: 'Đăng xuất' }).click()
-  await page.waitForTimeout(800)
+  await page.waitForTimeout(1000)
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.selectOption('select', 'manager')
-  await page.selectOption('select').nth(1).selectOption({ value: 'gia-lai-2' }).catch(async () => {
-    const selects = page.locator('select')
-    if (await selects.count() >= 2) await selects.nth(1).selectOption({ index: 1 })
-  })
-  // Manager login flow may vary — try password + branch
-  const managerSelects = page.locator('select')
-  const selCount = await managerSelects.count()
-  if (selCount >= 2) {
-    await managerSelects.nth(0).selectOption('manager')
-    const opts = await managerSelects.nth(1).locator('option').allTextContents()
-    const giaLai = opts.findIndex((t) => /Gia Lai 2/i.test(t))
-    if (giaLai >= 0) await managerSelects.nth(1).selectOption({ index: giaLai })
-  }
+  await page.selectOption('select', { label: 'Quản lý chi nhánh' })
+  await page.selectOption('select >> nth=1', 'gia-lai-2')
   await page.fill('input[type="password"]', MANAGER_PASSWORD)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await page.waitForTimeout(3000)
@@ -362,22 +350,25 @@ try {
   if (hasLuongMgr) {
     await page.getByRole('button', { name: /Lương/ }).first().click()
     await page.waitForTimeout(2000)
+    await page.getByRole('button', { name: 'Xem nhân viên' }).first().click().catch(() => {})
+    await page.waitForTimeout(800)
+    await page.getByRole('button', { name: /.+/ }).filter({ hasText: /./ }).first().click().catch(() => {})
   }
   await assertNoEditButton(page, 'manager')
   await page.screenshot({ path: path.join(SHOT, '10-manager.png') })
 
-  await page.getByRole('button', { name: 'Đăng xuất' }).click().catch(() => {})
-  await page.waitForTimeout(800)
+  await page.getByRole('button', { name: 'Đăng xuất' }).click()
+  await page.waitForTimeout(1000)
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })
-  await page.selectOption('select', 'employee')
+  await page.selectOption('select', { label: 'Nhân viên' })
+  await page.selectOption('select >> nth=1', 'soc-trang')
+  await page.waitForTimeout(600)
+  await page.locator('select').nth(2).selectOption({ label: EMP_NAME }).catch(async () => {
+    const opts = await page.locator('select').nth(2).locator('option').allTextContents()
+    const hit = opts.find((t) => /UAT Cong Tac/i.test(t))
+    if (hit) await page.locator('select').nth(2).selectOption({ label: hit.trim() })
+  })
   await page.fill('input[type="password"]', EMP_PASSWORD)
-  // employee name select if present
-  const empSelect = page.locator('select').nth(1)
-  if (await empSelect.count()) {
-    const opts = await empSelect.locator('option').allTextContents()
-    const idx = opts.findIndex((t) => t.includes(EMP_NAME) || /UAT Cong Tac/i.test(t))
-    if (idx >= 0) await empSelect.selectOption({ index: idx })
-  }
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
   await page.waitForTimeout(3000)
   const hasLuongEmp = await page.getByRole('button', { name: /Lương/ }).count()
