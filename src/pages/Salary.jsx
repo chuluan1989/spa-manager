@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import PayrollAdjustmentModal from '../components/salary/PayrollAdjustmentModal'
 import PayrollEditBoardModal from '../components/salary/PayrollEditBoardModal'
-import PayrollKpiModal from '../components/salary/PayrollKpiModal'
 import PayrollBranchGrid from '../components/salary/PayrollBranchGrid'
 import PayrollBreadcrumb from '../components/salary/PayrollBreadcrumb'
 import PayrollEmployeeList from '../components/salary/PayrollEmployeeList'
@@ -12,12 +11,15 @@ import {
   canLockPayroll,
   canManagePayroll,
   canSelectBranch,
+  getCurrentUser,
   getCurrentUserBranch,
   getCurrentUserEmployeeId,
+  getCurrentUserRole,
   getRecordFetchBranchFilter,
   isAdmin,
   isEmployee,
   isBranchManager,
+  ROLES,
 } from '../constants/auth'
 import { usePayrollData } from '../hooks/usePayrollData'
 import { sortBranchesForPayroll, getPayrollBranchDisplayTitle } from '../constants/branchPayrollDisplay'
@@ -30,7 +32,6 @@ import {
   addPayrollAdjustment,
   lockPayrollMonth,
   saveAdminPayrollBoardEdits,
-  setAdminKpiAmount,
   unlockPayrollMonth,
 } from '../utils/payrollService'
 import { aggregateBranchSummaries, mergeEmployeePayrollRows } from '../utils/payrollViewHelpers'
@@ -94,7 +95,6 @@ function SalaryPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [adjustmentOpen, setAdjustmentOpen] = useState(false)
-  const [kpiOpen, setKpiOpen] = useState(false)
   const [editBoardOpen, setEditBoardOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -216,6 +216,24 @@ function SalaryPage() {
   }, [selectedEmployeeId, selectedBranchId, invoices, attendance, adjustments])
 
   const isLocked = isPayrollMonthLocked(month, fetchBranchId, locks)
+  const payrollDebug = typeof window !== 'undefined' && (
+    new URLSearchParams(window.location.search).get('payrollDebug') === '1'
+    || window.localStorage?.getItem('spa-payroll-debug') === '1'
+  )
+  const adminActionsGate = {
+    role: getCurrentUserRole(),
+    rolesAdmin: ROLES.ADMIN,
+    isAdmin: isAdmin(),
+    level,
+    levelIsProfile: level === LEVEL.PROFILE,
+    profileRow: Boolean(profileRow),
+    profileEmployeeId: profileRow?.employeeId || null,
+    isLocked,
+    loading,
+    saving,
+    sessionUser: getCurrentUser(),
+    wouldRenderAdminActions: isAdmin() && level === LEVEL.PROFILE && Boolean(profileRow),
+  }
 
   const breadcrumbItems = useMemo(() => {
     if (isEmployee()) return []
@@ -278,19 +296,6 @@ function SalaryPage() {
       await reload()
     } catch (err) {
       window.alert(err?.message ?? 'Không thể lưu khoản phát sinh.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleSaveKpi = async (payload) => {
-    setSaving(true)
-    try {
-      await setAdminKpiAmount(payload, locks)
-      await reload()
-    } catch (err) {
-      window.alert(err?.message ?? 'Không thể lưu KPI.')
-      throw err
     } finally {
       setSaving(false)
     }
@@ -393,6 +398,22 @@ function SalaryPage() {
       )}
 
       <div className="salary-page__toolbar">
+        {payrollDebug && (
+          <pre
+            style={{
+              flex: '1 1 100%',
+              margin: 0,
+              padding: 10,
+              borderRadius: 10,
+              background: '#111',
+              color: '#fbbf24',
+              fontSize: 12,
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {`payrollDebug gate\n${JSON.stringify(adminActionsGate, null, 2)}`}
+          </pre>
+        )}
         <label>
           Tháng
           <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
@@ -480,26 +501,15 @@ function SalaryPage() {
               : (level === LEVEL.EMPLOYEES ? employeeRows : report.rows).length === 0)
           }
           adminActions={isAdmin() && level === LEVEL.PROFILE && profileRow ? (
-            <>
-              <button
-                type="button"
-                className="salary-page__btn salary-page__btn--admin"
-                disabled={loading || saving || isLocked}
-                title={isLocked ? 'Kỳ đã chốt — cần Mở khóa trước khi sửa' : 'Đặt KPI (+/- / 0)'}
-                onClick={() => setKpiOpen(true)}
-              >
-                KPI
-              </button>
-              <button
-                type="button"
-                className="salary-page__btn salary-page__btn--admin"
-                disabled={loading || saving || isLocked}
-                title={isLocked ? 'Kỳ đã chốt — cần Mở khóa trước khi sửa' : 'Sửa bảng lương Admin'}
-                onClick={() => setEditBoardOpen(true)}
-              >
-                Sửa bảng lương
-              </button>
-            </>
+            <button
+              type="button"
+              className="salary-page__btn salary-page__btn--admin"
+              disabled={loading || saving || isLocked}
+              title={isLocked ? 'Kỳ đã chốt — cần Mở khóa trước khi sửa' : 'Sửa bảng lương Admin'}
+              onClick={() => setEditBoardOpen(true)}
+            >
+              Sửa bảng lương
+            </button>
           ) : null}
         />
       </div>
@@ -585,40 +595,22 @@ function SalaryPage() {
       />
 
       {isAdmin() && profileRow && (
-        <>
-          <PayrollKpiModal
-            open={kpiOpen}
-            onClose={() => setKpiOpen(false)}
-            onSubmit={handleSaveKpi}
-            employee={employees.find((emp) => emp.id === profileRow.employeeId)}
-            payrollRow={profileRow}
-            month={month}
-            cycle={cycle}
-            fromDate={report.fromDate}
-            toDate={report.toDate}
-            invoices={invoices}
-            attendance={attendance}
-            adjustments={adjustments}
-            locks={locks}
-            saving={saving}
-          />
-          <PayrollEditBoardModal
-            open={editBoardOpen}
-            onClose={() => setEditBoardOpen(false)}
-            onSave={handleSaveEditBoard}
-            employee={employees.find((emp) => emp.id === profileRow.employeeId)}
-            payrollRow={profileRow}
-            month={month}
-            cycle={cycle}
-            fromDate={report.fromDate}
-            toDate={report.toDate}
-            invoices={invoices}
-            attendance={attendance}
-            adjustments={adjustments}
-            locks={locks}
-            saving={saving}
-          />
-        </>
+        <PayrollEditBoardModal
+          open={editBoardOpen}
+          onClose={() => setEditBoardOpen(false)}
+          onSave={handleSaveEditBoard}
+          employee={employees.find((emp) => emp.id === profileRow.employeeId)}
+          payrollRow={profileRow}
+          month={month}
+          cycle={cycle}
+          fromDate={report.fromDate}
+          toDate={report.toDate}
+          invoices={invoices}
+          attendance={attendance}
+          adjustments={adjustments}
+          locks={locks}
+          saving={saving}
+        />
       )}
     </div>
   )

@@ -1,7 +1,7 @@
 import { getCurrentUser, getCurrentUserEmployeeId, getCurrentUserName, isAdmin, isEmployee } from '../constants/auth'
 import { PAYROLL_ADJUSTMENT_TYPES, normalizePayrollAdjustmentAmount } from '../constants/payrollTypes'
 import { isPayrollMonthLocked } from './payrollEngine'
-import { buildPayrollFieldAuditValues } from './payrollFieldAudit'
+import { buildPayrollFieldAuditValues, netSalaryImpactForFieldSet } from './payrollFieldAudit'
 import { notifyDataSynced } from './dataSyncEvents'
 import { invalidateCloseAfterSourceChange } from './payrollCycleClose/approvedCloseLock'
 import {
@@ -172,19 +172,23 @@ export async function removePayrollAdjustment(record, reason = '', locks = null)
 }
 
 /**
- * Admin — lưu hàng loạt chỉnh sửa bảng lương (có lý do bắt buộc, audit từng khoản).
- * Không hard-delete: dòng bỏ / số 0 → cập nhật amount = 0 để giữ lịch sử.
+ * Admin — lưu sửa bảng lương theo GIÁ TRỊ TỔNG từng hạng mục (SET).
+ * Với mỗi type thay đổi: đưa các dòng cũ trong kỳ về 0 (giữ lịch sử), rồi thêm 1 dòng = target (nếu ≠ 0).
+ * Chỉ audit các hạng mục thực sự đổi. difference = tác động lên lương thực nhận.
  */
 export async function saveAdminPayrollBoardEdits({
   reason,
-  lines = [],
-  existing = [],
+  note = '',
+  totals = {},
   employeeId,
   employeeName,
   branchId,
   month,
   cycle = '',
+  fromDate = '',
+  toDate = '',
   locks = null,
+  existingAdjustments = null,
 }) {
   assertCanAdminEditPayroll()
   if (!String(reason || '').trim()) {
@@ -192,130 +196,101 @@ export async function saveAdminPayrollBoardEdits({
   }
   await assertMonthEditable(month, branchId, locks)
 
-  const keptIds = new Set(lines.filter((line) => line.id).map((line) => line.id))
+  const allRows = existingAdjustments ?? await fetchPayrollAdjustments({ month, employeeId })
+  const boardTypes = [
+    PAYROLL_ADJUSTMENT_TYPES.BONUS,
+    PAYROLL_ADJUSTMENT_TYPES.KPI,
+    PAYROLL_ADJUSTMENT_TYPES.PENALTY,
+    PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
+    PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT,
+  ]
   const results = []
+  const date = toDate || `${month}-15`
 
-  for (const record of existing) {
-    if (!record?.id || keptIds.has(record.id)) continue
-    const oldAmount = Number(record.amount ?? 0)
-    if (oldAmount === 0) {
-      results.push({ action: 'skip', id: record.id })
+  for (const type of boardTypes) {
+    if (!Object.prototype.hasOwnProperty.call(totals, type)) continue
+    const target = normalizePayrollAdjustmentAmount(type, totals[type])
+    const periodRows = (allRows ?? []).filter((row) => {
+      if (row.employeeId !== employeeId) return false
+      if (row.type !== type) return false
+      if (fromDate && row.date < fromDate) return false
+      if (toDate && row.date > toDate) return false
+      return true
+    })
+    const oldTotal = periodRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0)
+    if (oldTotal === target) {
+      results.push({ action: 'unchanged', type, oldTotal, newTotal: target })
       continue
     }
-    const saved = await editPayrollAdjustment(record, {
-      amount: 0,
-      note: record.note,
-      reason,
-    }, locks)
-    const field = buildPayrollFieldAuditValues({
-      employeeId,
-      employeeName,
-      branchId,
-      month,
-      cycle,
-      fieldChanged: record.type,
-      oldValue: oldAmount,
-      newValue: 0,
-      difference: -oldAmount,
-      extra: { adjustmentId: saved.id },
-    })
-    await writeAuditLog({
-      entityType: 'payroll_field',
-      entityId: employeeId,
-      action: 'zero_adjustment',
-      ...field,
-      reason,
-    })
-    results.push({ action: 'zero', id: saved.id })
-  }
 
-  for (const line of lines) {
-    if (line.id && line.original) {
-      const oldAmount = Number(line.original.amount ?? 0)
-      const nextAmount = Number(line.amount)
-      const nextNote = String(line.note ?? '')
-      const oldNote = String(line.original.note ?? '')
-      const typeChanged = line.type !== line.original.type
-      const amountChanged = oldAmount !== nextAmount
-      const noteChanged = nextNote !== oldNote
-      // Không ghi đè hàng loạt dòng không đổi (tránh race/chậm khi nhiều dòng KPI lịch sử).
-      if (!typeChanged && !amountChanged && !noteChanged) {
-        results.push({ action: 'unchanged', id: line.id })
-        continue
-      }
-      const saved = await editPayrollAdjustment(line.original, {
-        type: line.type,
-        amount: nextAmount,
-        note: line.note,
+    for (const record of periodRows) {
+      if (Number(record.amount ?? 0) === 0) continue
+      await editPayrollAdjustment(record, {
+        amount: 0,
+        note: record.note,
         reason,
       }, locks)
-      const field = buildPayrollFieldAuditValues({
-        employeeId,
-        employeeName,
-        branchId,
-        month,
-        cycle,
-        fieldChanged: line.type,
-        oldValue: oldAmount,
-        newValue: nextAmount,
-        difference: nextAmount - oldAmount,
-        extra: { adjustmentId: saved.id, note: line.note || '' },
-      })
-      await writeAuditLog({
-        entityType: 'payroll_field',
-        entityId: employeeId,
-        action: 'update_field',
-        ...field,
-        reason,
-      })
-      results.push({ action: 'update', id: saved.id })
-      continue
     }
 
-    // Dòng mới amount = 0: không tạo bản ghi rỗng.
-    if (Number(line.amount) === 0) continue
-    const saved = await addPayrollAdjustment({
-      type: line.type,
-      amount: line.amount,
-      note: line.note,
-      reason,
-      date: line.date,
-      month,
-      branchId,
-      employeeId,
-      employeeName,
-      payrollCycle: cycle,
-    }, locks)
+    let createdId = null
+    if (target !== 0) {
+      const saved = await addPayrollAdjustment({
+        type,
+        amount: target,
+        note: note || '',
+        reason,
+        date,
+        month,
+        branchId,
+        employeeId,
+        employeeName,
+        payrollCycle: cycle,
+      }, locks)
+      createdId = saved.id
+    }
+
+    const netImpact = netSalaryImpactForFieldSet(type, oldTotal, target)
+
     const field = buildPayrollFieldAuditValues({
       employeeId,
       employeeName,
       branchId,
       month,
       cycle,
-      fieldChanged: line.type,
-      oldValue: 0,
-      newValue: Number(line.amount),
-      difference: Number(line.amount),
-      extra: { adjustmentId: saved.id, note: line.note || '' },
+      fieldChanged: type,
+      oldValue: oldTotal,
+      newValue: target,
+      difference: netImpact,
+      extra: { adjustmentId: createdId, note: note || '', setTotal: true },
     })
     await writeAuditLog({
       entityType: 'payroll_field',
       entityId: employeeId,
-      action: 'create_field',
+      action: 'set_field_total',
       ...field,
       reason,
     })
-    results.push({ action: 'create', id: saved.id })
+    results.push({
+      action: 'set_total',
+      type,
+      oldTotal,
+      newTotal: target,
+      netImpact,
+      adjustmentId: createdId,
+    })
   }
 
-  await writeAuditLog({
-    entityType: 'payroll_board',
-    entityId: employeeId,
-    action: 'admin_edit_board',
-    oldValue: { existingIds: existing.map((row) => row.id) },
-    newValue: { results },
-    reason,
-  })
+  const changed = results.filter((row) => row.action === 'set_total')
+  if (changed.length) {
+    await writeAuditLog({
+      entityType: 'payroll_board',
+      entityId: employeeId,
+      action: 'admin_edit_board',
+      oldValue: { fields: changed.map((row) => ({ type: row.type, value: row.oldTotal })) },
+      newValue: { fields: changed.map((row) => ({ type: row.type, value: row.newTotal, netImpact: row.netImpact })) },
+      reason,
+    })
+  }
 
   return results
 }

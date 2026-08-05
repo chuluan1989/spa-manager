@@ -7,38 +7,44 @@ import {
 } from '../../constants/payrollTypes'
 import { formatCurrency } from '../../utils/invoice'
 import { computeEmployeePayrollRow } from '../../utils/payrollEngine'
+import { netSalaryImpactForFieldSet } from '../../utils/payrollFieldAudit'
 
-function parseAmountInput(type, raw) {
+const BOARD_FIELDS = [
+  PAYROLL_ADJUSTMENT_TYPES.BONUS,
+  PAYROLL_ADJUSTMENT_TYPES.KPI,
+  PAYROLL_ADJUSTMENT_TYPES.PENALTY,
+  PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
+  PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT,
+]
+
+function parseFieldInput(type, raw) {
   const cleaned = String(raw ?? '').replace(/[^\d+-]/g, '')
-  if (!cleaned || cleaned === '+' || cleaned === '-') return null
+  if (cleaned === '' || cleaned === '+' || cleaned === '-') return null
   const value = Number(cleaned)
   if (!Number.isFinite(value)) return null
   return normalizePayrollAdjustmentAmount(type, value)
 }
 
-function buildDraftLines(adjustments, employeeId, fromDate, toDate) {
-  return (adjustments ?? [])
-    .filter((row) => {
-      if (row.employeeId !== employeeId) return false
-      if (!ADMIN_EDITABLE_ADJUSTMENT_TYPES.includes(row.type)) return false
-      if (fromDate && row.date < fromDate) return false
-      if (toDate && row.date > toDate) return false
-      return true
-    })
-    .map((row) => ({
-      key: row.id,
-      id: row.id,
-      type: row.type,
-      amount: String(row.amount ?? 0),
-      note: row.note || '',
-      date: row.date,
-      _original: row,
-    }))
+function sumTypeInPeriod(adjustments, employeeId, type, fromDate, toDate) {
+  return (adjustments ?? []).reduce((sum, row) => {
+    if (row.employeeId !== employeeId) return sum
+    if (row.type !== type) return sum
+    if (fromDate && row.date < fromDate) return sum
+    if (toDate && row.date > toDate) return sum
+    return sum + Number(row.amount ?? 0)
+  }, 0)
+}
+
+function buildDraftTotals(adjustments, employeeId, fromDate, toDate) {
+  const totals = {}
+  for (const type of BOARD_FIELDS) {
+    totals[type] = sumTypeInPeriod(adjustments, employeeId, type, fromDate, toDate)
+  }
+  return totals
 }
 
 /**
- * Popup Admin — Sửa bảng lương (KPI / Thưởng / Phạt / Ứng / Điều chỉnh khác).
- * Bắt buộc lý do. Preview lương cũ → mới → chênh lệch trước khi lưu.
+ * Popup Admin — sửa GIÁ TRỊ TỔNG từng hạng mục (SET, không cộng dồn dòng).
  */
 export default function PayrollEditBoardModal({
   open,
@@ -56,16 +62,27 @@ export default function PayrollEditBoardModal({
   locks = null,
   saving = false,
 }) {
-  const [lines, setLines] = useState([])
+  const [draft, setDraft] = useState({})
+  const [note, setNote] = useState('')
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
 
+  const currentTotals = useMemo(() => {
+    if (!payrollRow) return null
+    return buildDraftTotals(adjustments, payrollRow.employeeId, fromDate, toDate)
+  }, [adjustments, payrollRow, fromDate, toDate])
+
   useEffect(() => {
-    if (!open || !payrollRow) return
-    setLines(buildDraftLines(adjustments, payrollRow.employeeId, fromDate, toDate))
+    if (!open || !payrollRow || !currentTotals) return
+    const next = {}
+    for (const type of BOARD_FIELDS) {
+      next[type] = String(currentTotals[type] ?? 0)
+    }
+    setDraft(next)
+    setNote('')
     setReason('')
     setError('')
-  }, [open, payrollRow, adjustments, fromDate, toDate])
+  }, [open, payrollRow, currentTotals])
 
   const employeeStub = useMemo(() => {
     if (!payrollRow) return null
@@ -79,32 +96,40 @@ export default function PayrollEditBoardModal({
     }
   }, [payrollRow, employee])
 
+  const parsedDraft = useMemo(() => {
+    const out = {}
+    for (const type of BOARD_FIELDS) {
+      out[type] = parseFieldInput(type, draft[type])
+    }
+    return out
+  }, [draft])
+
   const preview = useMemo(() => {
-    if (!open || !payrollRow || !employeeStub) return null
+    if (!open || !payrollRow || !employeeStub || !currentTotals) return null
     const keptOthers = (adjustments ?? []).filter((row) => {
       if (row.employeeId !== payrollRow.employeeId) return true
       if (!ADMIN_EDITABLE_ADJUSTMENT_TYPES.includes(row.type)) return true
       if (fromDate && row.date < fromDate) return true
       if (toDate && row.date > toDate) return true
-      // editable lines in period are replaced by draft lines below
       return false
     })
-    const draftRecords = lines.map((line, index) => {
-      const amount = parseAmountInput(line.type, line.amount)
+    const draftRecords = BOARD_FIELDS.map((type) => {
+      const amount = parsedDraft[type]
+      if (amount === null || amount === 0) return null
       return {
-        id: line.id || `__draft-${index}`,
-        date: line.date || toDate || `${month}-15`,
+        id: `__draft-total-${type}`,
+        date: toDate || `${month}-15`,
         month,
         branchId: payrollRow.branchId || '',
         employeeId: payrollRow.employeeId,
         employeeName: payrollRow.employeeName,
-        type: line.type,
-        amount: amount ?? 0,
+        type,
+        amount,
         reason: reason || 'Sửa bảng lương',
-        note: line.note || '',
+        note: note || '',
         payrollCycle: cycle || '',
       }
-    }).filter((row) => row.amount !== 0 || row.id && !String(row.id).startsWith('__draft'))
+    }).filter(Boolean)
 
     const nextRow = computeEmployeePayrollRow(
       employeeStub,
@@ -115,32 +140,12 @@ export default function PayrollEditBoardModal({
     const oldNet = Number(payrollRow.netSalary ?? 0)
     const newNet = Number(nextRow.netSalary ?? 0)
     return { oldNet, newNet, diff: newNet - oldNet }
-  }, [open, payrollRow, employeeStub, lines, reason, adjustments, fromDate, toDate, month, cycle, invoices, attendance])
+  }, [
+    open, payrollRow, employeeStub, currentTotals, parsedDraft, reason, note,
+    adjustments, fromDate, toDate, month, cycle, invoices, attendance,
+  ])
 
   if (!open) return null
-
-  const updateLine = (key, patch) => {
-    setLines((prev) => prev.map((line) => (line.key === key ? { ...line, ...patch } : line)))
-  }
-
-  const addLine = () => {
-    setLines((prev) => [
-      ...prev,
-      {
-        key: `new-${Date.now()}`,
-        id: '',
-        type: PAYROLL_ADJUSTMENT_TYPES.BONUS,
-        amount: '',
-        note: '',
-        date: toDate || `${month}-15`,
-        _original: null,
-      },
-    ])
-  }
-
-  const removeLine = (key) => {
-    setLines((prev) => prev.filter((line) => line.key !== key))
-  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -149,28 +154,20 @@ export default function PayrollEditBoardModal({
       setError('Lý do chỉnh sửa là bắt buộc.')
       return
     }
-
-    const parsed = []
-    for (const line of lines) {
-      const amount = parseAmountInput(line.type, line.amount)
+    const totals = {}
+    for (const type of BOARD_FIELDS) {
+      const amount = parsedDraft[type]
       if (amount === null) {
-        setError(`Số tiền không hợp lệ (${PAYROLL_ADJUSTMENT_LABELS[line.type]}).`)
+        setError(`Số tiền không hợp lệ (${PAYROLL_ADJUSTMENT_LABELS[type]}).`)
         return
       }
-      parsed.push({
-        id: line.id || '',
-        type: line.type,
-        amount,
-        note: line.note.trim(),
-        date: line.date || toDate || `${month}-15`,
-        original: line._original,
-      })
+      totals[type] = amount
     }
-
     try {
       await onSave({
         reason: reason.trim(),
-        lines: parsed,
+        note: note.trim(),
+        totals,
         employeeId: payrollRow.employeeId,
         employeeName: payrollRow.employeeName,
         branchId: payrollRow.branchId || employee?.branchId || '',
@@ -179,7 +176,7 @@ export default function PayrollEditBoardModal({
         fromDate,
         toDate,
         locks,
-        existing: buildDraftLines(adjustments, payrollRow.employeeId, fromDate, toDate).map((l) => l._original),
+        existingAdjustments: adjustments,
       })
       onClose()
     } catch (err) {
@@ -197,61 +194,61 @@ export default function PayrollEditBoardModal({
         </header>
 
         <p className="salary-modal__hint">
-          Chỉ Admin. Sửa KPI / Thưởng / Phạt / Ứng lương / Điều chỉnh khác.
-          Nhân viên: <strong>{payrollRow?.employeeName}</strong>
+          Chỉ Admin. Nhập <strong>giá trị tổng</strong> cuối cùng của từng hạng mục trong kỳ
+          (không cộng dồn thêm dòng). Nhân viên: <strong>{payrollRow?.employeeName}</strong>
         </p>
 
-        <div className="salary-edit-lines">
-          {lines.length === 0 && (
-            <p className="salary-page__empty">Chưa có khoản chỉnh trong kỳ — thêm dòng mới.</p>
-          )}
-          {lines.map((line) => (
-            <div key={line.key} className="salary-edit-lines__row">
-              <label>
-                Loại
-                <select
-                  value={line.type}
-                  onChange={(e) => updateLine(line.key, { type: e.target.value })}
-                >
-                  {ADMIN_EDITABLE_ADJUSTMENT_TYPES.map((type) => (
-                    <option key={type} value={type}>{PAYROLL_ADJUSTMENT_LABELS[type]}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Số tiền
-                <input
-                  required
-                  inputMode="text"
-                  value={line.amount}
-                  onChange={(e) => updateLine(line.key, { amount: e.target.value })}
-                  placeholder={line.type === PAYROLL_ADJUSTMENT_TYPES.KPI ? '+/-' : 'VD: 100000'}
-                />
-              </label>
-              <label>
-                Ghi chú
-                <input
-                  value={line.note}
-                  onChange={(e) => updateLine(line.key, { note: e.target.value })}
-                />
-              </label>
-              <button
-                type="button"
-                className="salary-edit-lines__remove"
-                onClick={() => {
-                  if (line.id) updateLine(line.key, { amount: '0' })
-                  else removeLine(line.key)
-                }}
-              >
-                {line.id ? 'Về 0' : 'Bỏ'}
-              </button>
-            </div>
-          ))}
+        <div className="salary-edit-totals" role="table" aria-label="Sửa giá trị tổng">
+          <div className="salary-edit-totals__head" role="row">
+            <span role="columnheader">Hạng mục</span>
+            <span role="columnheader">Hiện tại</span>
+            <span role="columnheader">Mới</span>
+          </div>
+          {BOARD_FIELDS.map((type) => {
+            const current = currentTotals?.[type] ?? 0
+            const next = parsedDraft[type]
+            const impact = next === null
+              ? null
+              : netSalaryImpactForFieldSet(type, current, next)
+            return (
+              <div key={type} className="salary-edit-totals__row" role="row">
+                <span role="cell">
+                  <strong>{PAYROLL_ADJUSTMENT_LABELS[type]}</strong>
+                  {impact !== null && impact !== 0 && (
+                    <small className={impact >= 0 ? 'is-plus' : 'is-minus'}>
+                      {impact >= 0 ? '+' : ''}{formatCurrency(impact)} thực nhận
+                    </small>
+                  )}
+                </span>
+                <span role="cell">{formatCurrency(current)}</span>
+                <label role="cell">
+                  <span className="salary-edit-totals__sr">Giá trị mới {PAYROLL_ADJUSTMENT_LABELS[type]}</span>
+                  <input
+                    required
+                    inputMode="text"
+                    value={draft[type] ?? ''}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, [type]: e.target.value }))}
+                    placeholder={
+                      type === PAYROLL_ADJUSTMENT_TYPES.KPI
+                      || type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT
+                        ? '+/- hoặc 0'
+                        : 'VD: 200000'
+                    }
+                  />
+                </label>
+              </div>
+            )
+          })}
         </div>
 
-        <button type="button" className="salary-page__btn" onClick={addLine}>
-          + Thêm dòng
-        </button>
+        <label>
+          Ghi chú
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Ghi chú thêm (không bắt buộc)"
+          />
+        </label>
 
         <label>
           Lý do chỉnh sửa (bắt buộc)
@@ -281,7 +278,7 @@ export default function PayrollEditBoardModal({
 
         <footer>
           <button type="button" onClick={onClose}>Huỷ</button>
-          <button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu chỉnh sửa'}</button>
+          <button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu thay đổi'}</button>
         </footer>
       </form>
     </div>

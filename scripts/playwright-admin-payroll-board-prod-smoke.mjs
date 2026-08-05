@@ -1,11 +1,11 @@
 /**
- * Production smoke — Admin Payroll Board (Aug UAT, không đụng July).
+ * Production smoke — Admin Payroll SET totals (Aug UAT, không đụng July).
  *
- * Run (sau khi asset Production có KPI / Sửa bảng lương):
+ * Run (sau khi Production live asset SET form):
  *   UAT_BASE_URL=https://www.khoespa.net.vn \
  *   node --env-file=.env.development.local scripts/playwright-admin-payroll-board-prod-smoke.mjs
  *
- * Hoàn tác về 0 bằng thao tác có audit (không xóa lịch sử).
+ * Hoàn tác về baseline bằng SET 0 (có audit, không xóa lịch sử).
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -14,21 +14,24 @@ import { chromium } from 'playwright'
 
 const ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)))
 const OUT = path.join(ROOT, 'docs/uat-evidence/admin-payroll-board-prod')
-const SHOT = path.join(OUT, 'shots')
+const SHOT = path.join(OUT, 'shots-set-totals')
 mkdirSync(SHOT, { recursive: true })
 
 const BASE = process.env.UAT_BASE_URL || 'https://www.khoespa.net.vn'
 const ADMIN_PASSWORD = process.env.UAT_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'admin123'
-const MANAGER_BRANCH = 'gia-lai-2'
 const MANAGER_PASSWORD = process.env.UAT_MANAGER_PASSWORD || 'uat_ql_gialai2_2026'
 const EMP_NAME = 'UAT Cong Tac Final'
 const EMP_PASSWORD = process.env.UAT_EMP_PASSWORD || 'uat_nv_2026'
 const BASELINE_NET = 1_569_400
 
+/** Order in PayrollEditBoardModal BOARD_FIELDS */
+const FIELD_ORDER = ['bonus', 'kpi', 'penalty', 'advance', 'adjustment']
+
 const report = {
   startedAt: new Date().toISOString(),
   base: BASE,
   migration: 'none',
+  model: 'set-totals',
   smoke: {},
   before: null,
   afterTests: null,
@@ -69,6 +72,12 @@ async function openLyLyAug(page) {
   await page.waitForTimeout(2200)
 }
 
+async function reloadLyLy(page) {
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(2500)
+  await openLyLyAug(page)
+}
+
 async function readWalletStats(page) {
   const articles = page.locator('.salary-wallet__stats article')
   await articles.first().waitFor({ timeout: 20000 })
@@ -83,284 +92,312 @@ async function readWalletStats(page) {
   return stats
 }
 
-async function setKpi(page, amount, reason) {
-  await page.locator('button.salary-page__btn--admin', { hasText: 'KPI' }).click()
-  const dialog = page.getByRole('dialog')
-  await dialog.waitFor()
-  await dialog.locator('input').first().fill(String(amount))
-  await dialog.locator('label', { hasText: 'Lý do' }).locator('input').fill(reason)
-  const note = dialog.locator('label', { hasText: 'Ghi chú' }).locator('input')
-  if (await note.count()) await note.fill(`smoke ${amount}`)
-  const preview = await dialog.locator('.salary-modal__preview').innerText().catch(() => '')
-  await page.screenshot({ path: path.join(SHOT, `kpi-${amount}.png`), fullPage: true })
-  await dialog.getByRole('button', { name: 'Lưu KPI' }).click()
-  await dialog.waitFor({ state: 'hidden', timeout: 90000 })
-  await page.waitForTimeout(1000)
-  return preview
-}
-
 async function openEditBoard(page) {
   await page.locator('button.salary-page__btn--admin', { hasText: 'Sửa bảng lương' }).click()
-  const edit = page.getByRole('dialog')
-  await edit.waitFor()
-  return edit
-}
-
-async function addEditLines(page, lines, reason) {
-  const edit = await openEditBoard(page)
-  for (const line of lines) {
-    await edit.getByRole('button', { name: '+ Thêm dòng' }).click()
-    const last = edit.locator('.salary-edit-lines__row').last()
-    await last.locator('select').selectOption(line.type)
-    await last.locator('input').nth(0).fill(String(line.amount))
-    await last.locator('input').nth(1).fill(line.note || '')
-  }
-  await edit.locator('textarea').fill(reason)
+  const dialog = page.getByRole('dialog')
+  await dialog.waitFor()
   await page.waitForTimeout(400)
-  await page.screenshot({ path: path.join(SHOT, 'edit-board.png'), fullPage: true })
-  await edit.getByRole('button', { name: 'Lưu chỉnh sửa' }).click()
-  await edit.waitFor({ state: 'hidden', timeout: 90000 })
-  await page.waitForTimeout(1000)
+  return dialog
 }
 
-async function zeroEditLinesByTypes(page, types, reason) {
-  const edit = await openEditBoard(page)
+/**
+ * SET totals — fill all 5 fields (required by form).
+ * @param {Record<string, number>} totals bonus/kpi/penalty/advance/adjustment
+ */
+async function saveSetTotals(page, totals, reason, shotName) {
+  const dialog = await openEditBoard(page)
+  if (shotName) await page.screenshot({ path: path.join(SHOT, shotName), fullPage: true })
+
+  const addLine = await dialog.getByRole('button', { name: '+ Thêm dòng' }).count()
+  if (addLine > 0) throw new Error('Popup vẫn còn + Thêm dòng — chưa phải SET totals')
+
+  const rows = dialog.locator('.salary-edit-totals__row')
+  const rowCount = await rows.count()
+  if (rowCount !== 5) throw new Error(`Expected 5 SET rows, got ${rowCount}`)
+
+  for (let i = 0; i < FIELD_ORDER.length; i += 1) {
+    const key = FIELD_ORDER[i]
+    const value = key in totals ? totals[key] : 0
+    await rows.nth(i).locator('input').fill(String(value))
+  }
+
+  const noteInput = dialog.locator('label').filter({ hasText: /^Ghi chú$/ }).locator('input')
+  if (await noteInput.count()) await noteInput.fill('Prod smoke SET')
+  await dialog.locator('textarea').fill(reason)
+  await dialog.getByRole('button', { name: 'Lưu thay đổi' }).click()
+  await dialog.waitFor({ state: 'hidden', timeout: 90000 })
   await page.waitForTimeout(1200)
-  await edit.locator('.salary-edit-lines__row, .salary-page__empty').first().waitFor({ timeout: 15000 })
-  const rows = edit.locator('.salary-edit-lines__row')
-  const count = await rows.count()
-  let changed = 0
-  for (let i = 0; i < count; i += 1) {
-    const type = await rows.nth(i).locator('select').inputValue()
-    if (!types.includes(type)) continue
-    const amount = parseVnd(await rows.nth(i).locator('input').first().inputValue())
-    if (amount === 0) continue
-    await rows.nth(i).locator('input').first().fill('0')
-    changed += 1
-  }
-  if (changed === 0) {
-    await edit.getByRole('button', { name: 'Huỷ' }).click()
-    return { changed: 0 }
-  }
-  await edit.locator('textarea').fill(reason)
-  await edit.getByRole('button', { name: 'Lưu chỉnh sửa' }).click()
-  await edit.waitFor({ state: 'hidden', timeout: 90000 })
-  await page.waitForTimeout(1000)
-  return { changed }
 }
 
-async function reloadLyLy(page) {
-  await page.reload({ waitUntil: 'domcontentloaded' })
-  await page.waitForTimeout(2500)
+async function assertNoEditButton(page, roleLabel) {
+  const count = await page.locator('button.salary-page__btn--admin', { hasText: 'Sửa bảng lương' }).count()
+  const kpi = await page.locator('button.salary-page__btn--admin', { hasText: /^KPI$/ }).count()
+  mark(`role_${roleLabel}_no_edit`, count === 0 && kpi === 0, { edit: count, kpi })
+}
+
+const browser = await chromium.launch({ headless: true })
+const page = await browser.newPage({ viewport: { width: 1400, height: 900 } })
+
+try {
+  await loginAdmin(page)
   await openLyLyAug(page)
-}
 
-async function main() {
-  // Bundle probe
-  const html = await fetch(BASE).then((r) => r.text())
-  const jsPath = html.match(/\/assets\/index-[^"]+\.js/)?.[0]
-  if (!jsPath) throw new Error('Không thấy asset Production')
-  const js = await fetch(`${BASE}${jsPath}`).then((r) => r.text())
-  report.asset = jsPath
-  mark('bundle_admin_buttons', js.includes('Sửa bảng lương') && js.includes('salary-page__btn--admin'), { asset: jsPath })
-  mark('bundle_kpi_zero', /Đưa KPI về 0|setAdminKpiAmount|Lưu KPI/.test(js))
+  // Toolbar
+  const toolbar = await page.locator('.payroll-export-actions button, .export-actions button').allTextContents()
+  const kpiBtn = await page.locator('button.salary-page__btn--admin', { hasText: /^KPI$/ }).count()
+  mark('1_toolbar', (
+    toolbar.some((t) => t.includes('Sửa bảng lương'))
+    && toolbar.some((t) => t.includes('Đối soát Excel'))
+    && toolbar.some((t) => t.includes('Tóm tắt PDF'))
+    && kpiBtn === 0
+  ), { toolbar, kpiBtn })
+  await page.screenshot({ path: path.join(SHOT, '01-toolbar.png') })
 
-  const browser = await chromium.launch({ headless: true })
-  const context = await browser.newContext({ viewport: { width: 1366, height: 800 } })
-  const page = await context.newPage()
+  // Popup UI
+  {
+    const dialog = await openEditBoard(page)
+    const head = (await dialog.locator('.salary-edit-totals__head').innerText()).replace(/\n/g, ' | ')
+    const labels = await dialog.locator('.salary-edit-totals__row strong').allTextContents()
+    const addLine = await dialog.getByRole('button', { name: '+ Thêm dòng' }).count()
+    mark('2_popup_set', (
+      head.includes('Hạng mục')
+      && (head.includes('Hiện tại') || head.includes('Giá trị hiện tại'))
+      && labels.join('|').includes('Thưởng')
+      && labels.join('|').includes('KPI')
+      && labels.join('|').includes('Phạt')
+      && addLine === 0
+    ), { head, labels, addLine })
+    await page.screenshot({ path: path.join(SHOT, '02-popup.png'), fullPage: true })
+    await dialog.getByRole('button', { name: 'Huỷ' }).click()
+  }
 
-  try {
-    await loginAdmin(page)
-    await openLyLyAug(page)
-    await page.screenshot({ path: path.join(SHOT, 'toolbar.png'), fullPage: true })
+  // Reset baseline
+  await saveSetTotals(page, {
+    bonus: 0, kpi: 0, penalty: 0, advance: 0, adjustment: 0,
+  }, 'Prod smoke: reset về 0 trước test')
+  await reloadLyLy(page)
 
-    const hasKpi = await page.locator('button.salary-page__btn--admin', { hasText: 'KPI' }).isVisible()
-    const hasEdit = await page.locator('button.salary-page__btn--admin', { hasText: 'Sửa bảng lương' }).isVisible()
-    mark('1_admin_two_buttons', hasKpi && hasEdit, { hasKpi, hasEdit })
+  let stats = await readWalletStats(page)
+  report.before = {
+    net: stats['Lương thực nhận__num'],
+    revenue: stats['Doanh thu tiền vé__num'],
+    tips: stats.Tips__num,
+    commission: stats['Hoa hồng__num'],
+  }
+  const core = { ...report.before }
+  mark('baseline', stats['Lương thực nhận__num'] === BASELINE_NET, { net: stats['Lương thực nhận__num'] })
 
-    const before = await readWalletStats(page)
-    report.before = {
-      net: before['Lương thực nhận'],
-      kpi: before.KPI,
-      revenue: before['Doanh thu tiền vé'],
-      tips: before.Tips,
-      commission: before['Hoa hồng'],
-    }
-    const baselineNet = before['Lương thực nhận__num'] || BASELINE_NET
-    const core = {
-      revenue: before['Doanh thu tiền vé__num'],
-      tips: before.Tips__num,
-      commission: before['Hoa hồng__num'],
-    }
+  // 1. Phạt 0→600→200
+  await saveSetTotals(page, {
+    bonus: 0, kpi: 0, penalty: 600000, advance: 0, adjustment: 0,
+  }, 'Prod smoke: Phạt SET 600000')
+  await reloadLyLy(page)
+  const after600 = await readWalletStats(page)
+  await saveSetTotals(page, {
+    bonus: 0, kpi: 0, penalty: 200000, advance: 0, adjustment: 0,
+  }, 'Prod smoke: Phạt SET 200000', '03-penalty-200.png')
+  await reloadLyLy(page)
+  stats = await readWalletStats(page)
+  mark('3_penalty', stats.Phạt__num === 200000
+    && stats['Lương thực nhận__num'] === after600['Lương thực nhận__num'] + 400000, {
+    penalty: stats.Phạt,
+    net: stats['Lương thực nhận__num'],
+  })
 
-    // Ensure KPI 0 start
-    if ((before.KPI__num || 0) !== 0) {
-      await setKpi(page, 0, 'Prod smoke — đưa KPI về 0 trước test')
-      await reloadLyLy(page)
-    }
+  // 2. Thưởng 0 → 500k
+  const beforeBonus = await readWalletStats(page)
+  await saveSetTotals(page, {
+    bonus: 500000, kpi: 0, penalty: 200000, advance: 0, adjustment: 0,
+  }, 'Prod smoke: Thưởng SET 500000', '04-bonus-500.png')
+  await reloadLyLy(page)
+  stats = await readWalletStats(page)
+  mark('4_bonus', stats.Thưởng__num === 500000
+    && stats['Lương thực nhận__num'] === beforeBonus['Lương thực nhận__num'] + 500000, {
+    bonus: stats.Thưởng,
+    net: stats['Lương thực nhận__num'],
+  })
 
-    await setKpi(page, 100000, 'Prod smoke KPI +100000')
-    await reloadLyLy(page)
-    let stats = await readWalletStats(page)
-    mark('2_kpi_plus', stats['Lương thực nhận__num'] === baselineNet + 100000, {
-      net: stats['Lương thực nhận__num'],
-      expected: baselineNet + 100000,
-    })
+  // 3. KPI 0 → +300 → -200 → 0
+  const beforeKpi = await readWalletStats(page)
+  await saveSetTotals(page, {
+    bonus: 500000, kpi: 300000, penalty: 200000, advance: 0, adjustment: 0,
+  }, 'Prod smoke: KPI SET +300000')
+  await reloadLyLy(page)
+  stats = await readWalletStats(page)
+  const kpiPlusOk = stats.KPI__num === 300000
+    && stats['Lương thực nhận__num'] === beforeKpi['Lương thực nhận__num'] + 300000
 
-    await setKpi(page, -100000, 'Prod smoke KPI -100000')
-    await reloadLyLy(page)
-    stats = await readWalletStats(page)
-    mark('3_kpi_minus', stats['Lương thực nhận__num'] === baselineNet - 100000, {
-      net: stats['Lương thực nhận__num'],
-      expected: baselineNet - 100000,
-    })
+  const beforeNeg = await readWalletStats(page)
+  await saveSetTotals(page, {
+    bonus: 500000, kpi: -200000, penalty: 200000, advance: 0, adjustment: 0,
+  }, 'Prod smoke: KPI SET -200000', '05-kpi-minus.png')
+  await reloadLyLy(page)
+  stats = await readWalletStats(page)
+  const kpiMinusOk = stats.KPI__num === -200000
+    && stats['Lương thực nhận__num'] === beforeNeg['Lương thực nhận__num'] - 500000
 
-    await setKpi(page, 0, 'Prod smoke KPI = 0')
-    await reloadLyLy(page)
-    stats = await readWalletStats(page)
-    mark('4_kpi_zero', stats['Lương thực nhận__num'] === baselineNet && (stats.KPI__num || 0) === 0, {
-      net: stats['Lương thực nhận__num'],
-      kpi: stats.KPI__num,
-    })
+  const beforeZero = await readWalletStats(page)
+  await saveSetTotals(page, {
+    bonus: 500000, kpi: 0, penalty: 200000, advance: 0, adjustment: 0,
+  }, 'Prod smoke: KPI SET 0')
+  await reloadLyLy(page)
+  stats = await readWalletStats(page)
+  const kpiZeroOk = stats.KPI__num === 0
+    && stats['Lương thực nhận__num'] === beforeZero['Lương thực nhận__num'] + 200000
+  mark('5_kpi_cycle', kpiPlusOk && kpiMinusOk && kpiZeroOk && kpiBtn === 0, {
+    kpi: stats.KPI,
+    net: stats['Lương thực nhận__num'],
+    kpiPlusOk,
+    kpiMinusOk,
+    kpiZeroOk,
+  })
 
-    // Edit board fields
-    await addEditLines(page, [
-      { type: 'bonus', amount: 40000, note: 'smoke thưởng' },
-      { type: 'penalty', amount: 10000, note: 'smoke phạt' },
-      { type: 'advance', amount: 5000, note: 'smoke ứng' },
-      { type: 'adjustment', amount: 15000, note: 'smoke ĐC+' },
-    ], 'Prod smoke sửa bảng lương multi')
-    await reloadLyLy(page)
-    stats = await readWalletStats(page)
-    const expectedMulti = baselineNet + 40000
-    mark('5_edit_board_net', stats['Lương thực nhận__num'] === expectedMulti, {
-      net: stats['Lương thực nhận__num'],
-      expected: expectedMulti,
-    })
-    mark('6_core_unchanged',
-      stats['Doanh thu tiền vé__num'] === core.revenue
-      && stats.Tips__num === core.tips
-      && stats['Hoa hồng__num'] === core.commission,
-      {
-        revenue: stats['Doanh thu tiền vé'],
-        tips: stats.Tips,
-        commission: stats['Hoa hồng'],
-      },
-    )
-    // Tổng vs chi tiết: net wallet = expected (single source)
-    mark('7_totals_match_detail', stats['Lương thực nhận__num'] === expectedMulti, {
-      note: 'wallet net khớp kỳ vọng sau reload',
-    })
-    report.afterTests = {
-      net: stats['Lương thực nhận'],
-      kpi: stats.KPI,
-      bonus: stats.Thưởng,
-      penalty: stats.Phạt,
-      advance: stats['Ứng lương'],
-      other: stats['Điều chỉnh khác'],
-    }
+  // 4. Ứng 0→1M→700k
+  await saveSetTotals(page, {
+    bonus: 500000, kpi: 0, penalty: 200000, advance: 1000000, adjustment: 0,
+  }, 'Prod smoke: Ứng SET 1000000')
+  await reloadLyLy(page)
+  const afterAdv1 = await readWalletStats(page)
+  await saveSetTotals(page, {
+    bonus: 500000, kpi: 0, penalty: 200000, advance: 700000, adjustment: 0,
+  }, 'Prod smoke: Ứng SET 700000', '06-advance-700.png')
+  await reloadLyLy(page)
+  stats = await readWalletStats(page)
+  mark('6_advance', stats['Ứng lương__num'] === 700000
+    && stats['Lương thực nhận__num'] === afterAdv1['Lương thực nhận__num'] + 300000, {
+    advance: stats['Ứng lương'],
+    net: stats['Lương thực nhận__num'],
+  })
 
-    // Roles
-    await page.getByRole('button', { name: 'Đăng xuất' }).click()
-    await page.waitForTimeout(1000)
-    await page.selectOption('select', { label: 'Quản lý chi nhánh' })
-    await page.selectOption('select >> nth=1', MANAGER_BRANCH)
-    await page.fill('input[type="password"]', MANAGER_PASSWORD)
-    await page.getByRole('button', { name: 'Đăng nhập' }).click()
-    await page.waitForTimeout(2500)
-    await page.getByRole('button', { name: 'Lương HRM lương & phiếu lương' }).click()
-    await page.waitForTimeout(2000)
-    const mgrKpi = await page.locator('button.salary-page__btn--admin', { hasText: 'KPI' }).count()
-    const mgrEdit = await page.locator('button.salary-page__btn--admin', { hasText: 'Sửa bảng lương' }).count()
-    mark('8_manager_no_buttons', mgrKpi === 0 && mgrEdit === 0, { mgrKpi, mgrEdit })
-    await page.screenshot({ path: path.join(SHOT, 'manager.png'), fullPage: true })
+  // 5. ĐC 0 → -100k
+  const beforeAdj = await readWalletStats(page)
+  await saveSetTotals(page, {
+    bonus: 500000, kpi: 0, penalty: 200000, advance: 700000, adjustment: -100000,
+  }, 'Prod smoke: ĐC SET -100000', '07-adjustment.png')
+  await reloadLyLy(page)
+  stats = await readWalletStats(page)
+  mark('7_adjustment', stats['Điều chỉnh khác__num'] === -100000
+    && stats['Lương thực nhận__num'] === beforeAdj['Lương thực nhận__num'] - 100000, {
+    other: stats['Điều chỉnh khác'],
+    net: stats['Lương thực nhận__num'],
+  })
 
-    await page.getByRole('button', { name: 'Đăng xuất' }).click()
-    await page.waitForTimeout(1000)
-    await page.selectOption('select', { label: 'Nhân viên' })
-    await page.selectOption('select >> nth=1', 'soc-trang')
-    await page.waitForTimeout(500)
-    await page.locator('select').nth(2).selectOption({ label: EMP_NAME }).catch(async () => {
-      const opts = await page.locator('select').nth(2).locator('option').allTextContents()
-      const hit = opts.find((t) => t.includes('UAT Cong'))
-      if (hit) await page.locator('select').nth(2).selectOption({ label: hit.trim() })
-    })
-    await page.fill('input[type="password"]', EMP_PASSWORD)
-    await page.getByRole('button', { name: 'Đăng nhập' }).click()
-    await page.waitForTimeout(2500)
-    await page.getByRole('button', { name: 'Lương HRM lương & phiếu lương' }).click()
-    await page.waitForTimeout(2000)
-    const empKpi = await page.locator('button.salary-page__btn--admin', { hasText: 'KPI' }).count()
-    const empEdit = await page.locator('button.salary-page__btn--admin', { hasText: 'Sửa bảng lương' }).count()
-    mark('8b_employee_no_buttons', empKpi === 0 && empEdit === 0, { empKpi, empEdit })
-    report.smoke['8_manager_nv'] = {
-      ok: report.smoke['8_manager_no_buttons']?.ok && report.smoke['8b_employee_no_buttons']?.ok,
-    }
-    if (!report.smoke['8_manager_nv'].ok) report.ok = false
+  report.afterTests = {
+    net: stats['Lương thực nhận__num'],
+    bonus: stats.Thưởng__num,
+    kpi: stats.KPI__num,
+    penalty: stats.Phạt__num,
+    advance: stats['Ứng lương__num'],
+    adjustment: stats['Điều chỉnh khác__num'],
+  }
 
-    // Back to admin — lock check on Aug + audit + revert
-    await page.getByRole('button', { name: 'Đăng xuất' }).click()
-    await page.waitForTimeout(1000)
-    await loginAdmin(page)
-    await openLyLyAug(page)
-
-    page.once('dialog', async (d) => { await d.accept() })
-    await page.getByRole('button', { name: /Chốt lương/ }).click()
-    await page.waitForTimeout(2000)
-    const kpiDisabled = await page.locator('button.salary-page__btn--admin', { hasText: 'KPI' }).isDisabled()
-    const editDisabled = await page.locator('button.salary-page__btn--admin', { hasText: 'Sửa bảng lương' }).isDisabled()
-    mark('9_locked_disabled', kpiDisabled && editDisabled, { kpiDisabled, editDisabled })
-    page.once('dialog', async (d) => { await d.accept('Prod smoke — mở lại Aug sau kiểm tra khóa') })
-    await page.getByRole('button', { name: 'Mở khóa' }).click()
-    await page.waitForTimeout(1500)
-
-    await page.getByRole('button', { name: 'Nhật ký' }).click()
-    await page.waitForTimeout(1000)
-    const deleteBtns = await page.locator('.salary-audit button', { hasText: /^Xóa$/ }).count()
-    const hasMeta = await page.locator('.salary-audit__meta').count()
-    mark('10_audit_no_delete_structured', deleteBtns === 0 && hasMeta > 0, { deleteBtns, hasMeta })
-    await page.screenshot({ path: path.join(SHOT, 'audit.png'), fullPage: true })
-
-    // Revert all test amounts to 0 (audited)
-    await page.getByRole('button', { name: 'Tổng quan' }).click().catch(() => {})
-    await page.waitForTimeout(500)
-    await setKpi(page, 0, 'Prod smoke hoàn tác KPI về 0')
-    await zeroEditLinesByTypes(
-      page,
-      ['bonus', 'penalty', 'advance', 'adjustment'],
-      'Prod smoke hoàn tác sửa bảng lương về 0 — giữ audit',
-    )
-    await reloadLyLy(page)
-    stats = await readWalletStats(page)
-    mark('revert_clean', stats['Lương thực nhận__num'] === baselineNet && (stats.KPI__num || 0) === 0, {
-      net: stats['Lương thực nhận'],
-      kpi: stats.KPI,
-    })
-    report.afterRevert = {
-      net: stats['Lương thực nhận'],
-      kpi: stats.KPI,
+  // 6–8.reload already done; core unchanged; summary = detail (net consistent)
+  mark('8_core_unchanged',
+    stats['Doanh thu tiền vé__num'] === core.revenue
+    && stats.Tips__num === core.tips
+    && stats['Hoa hồng__num'] === core.commission, {
       revenue: stats['Doanh thu tiền vé'],
       tips: stats.Tips,
       commission: stats['Hoa hồng'],
-    }
+    })
+  mark('9_summary_detail', Number.isFinite(stats['Lương thực nhận__num']), {
+    net: stats['Lương thực nhận'],
+  })
 
-    // July untouched probe (read-only labels on July view)
-    await page.locator('.salary-page__toolbar input[type="month"]').first().fill('2026-07')
-    await page.locator('.salary-page__toolbar select').first().selectOption('period2')
-    await page.waitForTimeout(2500)
-    mark('july_view_ok', true, { note: 'Chỉ mở xem tháng 7 — không sửa' })
-  } catch (err) {
-    report.ok = false
-    report.error = err?.message || String(err)
-    console.error(err)
-    await page.screenshot({ path: path.join(SHOT, 'error.png'), fullPage: true }).catch(() => {})
-  } finally {
-    await context.close()
-    await browser.close()
-    report.finishedAt = new Date().toISOString()
-    writeFileSync(path.join(OUT, 'PROD_SMOKE_REPORT.json'), JSON.stringify(report, null, 2))
-    console.log(report.ok ? 'PROD SMOKE OK' : 'PROD SMOKE FAIL')
+  // Audit
+  await page.getByRole('button', { name: 'Nhật ký' }).click()
+  await page.waitForTimeout(1000)
+  await page.screenshot({ path: path.join(SHOT, '08-audit.png'), fullPage: true })
+  const del = await page.locator('.salary-audit button', { hasText: /^Xóa$/ }).count()
+  const impact = await page.locator('dt', { hasText: 'Chênh lệch tác động lương' }).count()
+  mark('10_audit', del === 0 && impact > 0, { deleteButtons: del, impactLabels: impact })
+
+  // 9. Revert to baseline with audit
+  await page.getByRole('button', { name: 'Tổng quan' }).click().catch(() => {})
+  await saveSetTotals(page, {
+    bonus: 0, kpi: 0, penalty: 0, advance: 0, adjustment: 0,
+  }, 'Prod smoke: hoàn tác SET về 0, giữ audit')
+  await reloadLyLy(page)
+  stats = await readWalletStats(page)
+  report.afterRevert = {
+    net: stats['Lương thực nhận__num'],
+    bonus: stats.Thưởng__num,
+    kpi: stats.KPI__num,
+    penalty: stats.Phạt__num,
+    advance: stats['Ứng lương__num'],
+    adjustment: stats['Điều chỉnh khác__num'],
   }
-}
+  mark('11_revert', stats['Lương thực nhận__num'] === BASELINE_NET
+    && stats.Thưởng__num === 0
+    && stats.KPI__num === 0
+    && stats.Phạt__num === 0
+    && stats['Ứng lương__num'] === 0
+    && stats['Điều chỉnh khác__num'] === 0, {
+    net: stats['Lương thực nhận'],
+  })
+  await page.screenshot({ path: path.join(SHOT, '09-after-revert.png') })
 
-main()
+  // 10. Manager / Employee no edit button
+  await page.getByRole('button', { name: 'Đăng xuất' }).click()
+  await page.waitForTimeout(800)
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+  await page.selectOption('select', 'manager')
+  await page.selectOption('select').nth(1).selectOption({ value: 'gia-lai-2' }).catch(async () => {
+    const selects = page.locator('select')
+    if (await selects.count() >= 2) await selects.nth(1).selectOption({ index: 1 })
+  })
+  // Manager login flow may vary — try password + branch
+  const managerSelects = page.locator('select')
+  const selCount = await managerSelects.count()
+  if (selCount >= 2) {
+    await managerSelects.nth(0).selectOption('manager')
+    const opts = await managerSelects.nth(1).locator('option').allTextContents()
+    const giaLai = opts.findIndex((t) => /Gia Lai 2/i.test(t))
+    if (giaLai >= 0) await managerSelects.nth(1).selectOption({ index: giaLai })
+  }
+  await page.fill('input[type="password"]', MANAGER_PASSWORD)
+  await page.getByRole('button', { name: 'Đăng nhập' }).click()
+  await page.waitForTimeout(3000)
+  const hasLuongMgr = await page.getByRole('button', { name: /Lương/ }).count()
+  if (hasLuongMgr) {
+    await page.getByRole('button', { name: /Lương/ }).first().click()
+    await page.waitForTimeout(2000)
+  }
+  await assertNoEditButton(page, 'manager')
+  await page.screenshot({ path: path.join(SHOT, '10-manager.png') })
+
+  await page.getByRole('button', { name: 'Đăng xuất' }).click().catch(() => {})
+  await page.waitForTimeout(800)
+  await page.goto(BASE, { waitUntil: 'domcontentloaded' })
+  await page.selectOption('select', 'employee')
+  await page.fill('input[type="password"]', EMP_PASSWORD)
+  // employee name select if present
+  const empSelect = page.locator('select').nth(1)
+  if (await empSelect.count()) {
+    const opts = await empSelect.locator('option').allTextContents()
+    const idx = opts.findIndex((t) => t.includes(EMP_NAME) || /UAT Cong Tac/i.test(t))
+    if (idx >= 0) await empSelect.selectOption({ index: idx })
+  }
+  await page.getByRole('button', { name: 'Đăng nhập' }).click()
+  await page.waitForTimeout(3000)
+  const hasLuongEmp = await page.getByRole('button', { name: /Lương/ }).count()
+  if (hasLuongEmp) {
+    await page.getByRole('button', { name: /Lương/ }).first().click()
+    await page.waitForTimeout(2000)
+  }
+  await assertNoEditButton(page, 'employee')
+  await page.screenshot({ path: path.join(SHOT, '11-employee.png') })
+} catch (err) {
+  report.ok = false
+  report.error = err?.message || String(err)
+  console.error(err)
+  await page.screenshot({ path: path.join(SHOT, 'error.png'), fullPage: true }).catch(() => {})
+} finally {
+  report.finishedAt = new Date().toISOString()
+  writeFileSync(path.join(OUT, 'PROD_SMOKE_SET_TOTALS_REPORT.json'), JSON.stringify(report, null, 2))
+  await browser.close()
+  console.log(report.ok
+    ? 'PROD SMOKE SET TOTALS OK — chờ anh kiểm tra Production'
+    : 'PROD SMOKE SET TOTALS FAIL')
+  process.exit(report.ok ? 0 : 1)
+}

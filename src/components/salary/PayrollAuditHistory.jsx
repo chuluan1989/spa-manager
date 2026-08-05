@@ -74,7 +74,7 @@ export default function PayrollAuditHistory({ logs }) {
                   <div><dt>Giá trị cũ</dt><dd>{formatMoney(oldVal)}</dd></div>
                   <div><dt>Giá trị mới</dt><dd>{formatMoney(newVal)}</dd></div>
                   <div>
-                    <dt>Chênh lệch</dt>
+                    <dt>Chênh lệch tác động lương</dt>
                     <dd className={Number(diff) < 0 ? 'is-minus' : 'is-plus'}>
                       {diff === null || diff === undefined
                         ? '—'
