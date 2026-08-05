@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import PayrollAdjustmentModal from '../components/salary/PayrollAdjustmentModal'
+import PayrollEditBoardModal from '../components/salary/PayrollEditBoardModal'
+import PayrollKpiModal from '../components/salary/PayrollKpiModal'
 import PayrollBranchGrid from '../components/salary/PayrollBranchGrid'
 import PayrollBreadcrumb from '../components/salary/PayrollBreadcrumb'
 import PayrollEmployeeList from '../components/salary/PayrollEmployeeList'
@@ -27,6 +29,8 @@ import { buildWalletTimeline, isPayrollMonthLocked } from '../utils/payrollEngin
 import {
   addPayrollAdjustment,
   lockPayrollMonth,
+  saveAdminPayrollBoardEdits,
+  setAdminKpiAmount,
   unlockPayrollMonth,
 } from '../utils/payrollService'
 import { aggregateBranchSummaries, mergeEmployeePayrollRows } from '../utils/payrollViewHelpers'
@@ -90,6 +94,8 @@ function SalaryPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [adjustmentOpen, setAdjustmentOpen] = useState(false)
+  const [kpiOpen, setKpiOpen] = useState(false)
+  const [editBoardOpen, setEditBoardOpen] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const currentMonth = getVietnamCurrentMonthValue()
@@ -277,6 +283,32 @@ function SalaryPage() {
     }
   }
 
+  const handleSaveKpi = async (payload) => {
+    setSaving(true)
+    try {
+      await setAdminKpiAmount(payload, locks)
+      await reload()
+    } catch (err) {
+      window.alert(err?.message ?? 'Không thể lưu KPI.')
+      throw err
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSaveEditBoard = async (payload) => {
+    setSaving(true)
+    try {
+      await saveAdminPayrollBoardEdits(payload)
+      await reload()
+    } catch (err) {
+      window.alert(err?.message ?? 'Không thể sửa bảng lương.')
+      throw err
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleLock = async () => {
     if (!window.confirm(`Chốt lương tháng ${month}? Sau khi chốt không ai được sửa.`)) return
     setSaving(true)
@@ -447,6 +479,28 @@ function SalaryPage() {
               ? !profileRow
               : (level === LEVEL.EMPLOYEES ? employeeRows : report.rows).length === 0)
           }
+          adminActions={isAdmin() && level === LEVEL.PROFILE && profileRow ? (
+            <>
+              <button
+                type="button"
+                className="salary-page__btn salary-page__btn--admin"
+                disabled={loading || saving || isLocked}
+                title={isLocked ? 'Kỳ đã chốt — cần Mở khóa trước khi sửa' : 'Đặt KPI (+/- / 0)'}
+                onClick={() => setKpiOpen(true)}
+              >
+                KPI
+              </button>
+              <button
+                type="button"
+                className="salary-page__btn salary-page__btn--admin"
+                disabled={loading || saving || isLocked}
+                title={isLocked ? 'Kỳ đã chốt — cần Mở khóa trước khi sửa' : 'Sửa bảng lương Admin'}
+                onClick={() => setEditBoardOpen(true)}
+              >
+                Sửa bảng lương
+              </button>
+            </>
+          ) : null}
         />
       </div>
 
@@ -529,6 +583,43 @@ function SalaryPage() {
         defaultBranchId={fetchBranchId}
         saving={saving}
       />
+
+      {isAdmin() && profileRow && (
+        <>
+          <PayrollKpiModal
+            open={kpiOpen}
+            onClose={() => setKpiOpen(false)}
+            onSubmit={handleSaveKpi}
+            employee={employees.find((emp) => emp.id === profileRow.employeeId)}
+            payrollRow={profileRow}
+            month={month}
+            cycle={cycle}
+            fromDate={report.fromDate}
+            toDate={report.toDate}
+            invoices={invoices}
+            attendance={attendance}
+            adjustments={adjustments}
+            locks={locks}
+            saving={saving}
+          />
+          <PayrollEditBoardModal
+            open={editBoardOpen}
+            onClose={() => setEditBoardOpen(false)}
+            onSave={handleSaveEditBoard}
+            employee={employees.find((emp) => emp.id === profileRow.employeeId)}
+            payrollRow={profileRow}
+            month={month}
+            cycle={cycle}
+            fromDate={report.fromDate}
+            toDate={report.toDate}
+            invoices={invoices}
+            attendance={attendance}
+            adjustments={adjustments}
+            locks={locks}
+            saving={saving}
+          />
+        </>
+      )}
     </div>
   )
 }

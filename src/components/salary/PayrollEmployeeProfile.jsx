@@ -298,13 +298,17 @@ export default function PayrollEmployeeProfile({
 
       {view === 'audit' && (
         <PayrollAuditHistory
-          logs={auditLogs.filter(
-            (log) => log.entityType === 'payroll_adjustment'
-              && adjustments.some((adj) => adj.id === log.entityId && adj.employeeId === employeeId),
-          )}
-          adjustments={adjustments.filter((adj) => adj.employeeId === employeeId)}
-          locks={locks}
-          onReload={onReload}
+          logs={auditLogs.filter((log) => {
+            if (log.entityType === 'payroll_field' || log.entityType === 'payroll_board') {
+              return log.entityId === employeeId
+            }
+            if (log.entityType === 'payroll_adjustment') {
+              const empId = log.newValue?.employeeId || log.oldValue?.employeeId
+              if (empId) return empId === employeeId
+              return adjustments.some((adj) => adj.id === log.entityId && adj.employeeId === employeeId)
+            }
+            return false
+          })}
         />
       )}
 

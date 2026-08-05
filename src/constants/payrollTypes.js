@@ -4,6 +4,7 @@ export const PAYROLL_ADJUSTMENT_TYPES = {
   ADVANCE: 'advance',
   REDUCTION: 'reduction',
   ADJUSTMENT: 'adjustment',
+  KPI: 'kpi',
   PAYMENT: 'payment',
 }
 
@@ -13,6 +14,7 @@ export const PAYROLL_ADJUSTMENT_LABELS = {
   [PAYROLL_ADJUSTMENT_TYPES.ADVANCE]: 'Ứng lương',
   [PAYROLL_ADJUSTMENT_TYPES.REDUCTION]: 'Giảm lương',
   [PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT]: 'Điều chỉnh khác',
+  [PAYROLL_ADJUSTMENT_TYPES.KPI]: 'KPI',
   [PAYROLL_ADJUSTMENT_TYPES.PAYMENT]: 'Thanh toán lương',
 }
 
@@ -32,6 +34,7 @@ export const PAYROLL_DETAIL_CATEGORIES = {
   PENALTY: 'penalty',
   ADVANCE: 'advance',
   ADJUSTMENT: 'otherAdjustment',
+  KPI: 'kpi',
   NET: 'netSalary',
 }
 
@@ -45,6 +48,7 @@ export const PAYROLL_DETAIL_LABELS = {
   [PAYROLL_DETAIL_CATEGORIES.PENALTY]: 'Phạt',
   [PAYROLL_DETAIL_CATEGORIES.ADVANCE]: 'Ứng lương',
   [PAYROLL_DETAIL_CATEGORIES.ADJUSTMENT]: 'Điều chỉnh khác',
+  [PAYROLL_DETAIL_CATEGORIES.KPI]: 'KPI',
   [PAYROLL_DETAIL_CATEGORIES.NET]: 'Lương thực nhận',
   paidAmount: 'Đã thanh toán',
   remainingAmount: 'Còn phải trả',
@@ -53,10 +57,33 @@ export const PAYROLL_DETAIL_LABELS = {
   workDays: 'Ngày công',
 }
 
+/** Khoản Admin được sửa trên popup “Sửa bảng lương”. */
+export const ADMIN_EDITABLE_ADJUSTMENT_TYPES = [
+  PAYROLL_ADJUSTMENT_TYPES.KPI,
+  PAYROLL_ADJUSTMENT_TYPES.BONUS,
+  PAYROLL_ADJUSTMENT_TYPES.PENALTY,
+  PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
+  PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT,
+]
+
 export const MANUAL_ADJUSTMENT_OPTIONS = [
   PAYROLL_ADJUSTMENT_TYPES.BONUS,
   PAYROLL_ADJUSTMENT_TYPES.PENALTY,
   PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
   PAYROLL_ADJUSTMENT_TYPES.REDUCTION,
   PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT,
+  PAYROLL_ADJUSTMENT_TYPES.KPI,
 ]
+
+/** KPI và Điều chỉnh khác cho phép số âm/dương; các loại khác lưu số dương. */
+export function normalizePayrollAdjustmentAmount(type, amount) {
+  const value = Number(amount ?? 0)
+  if (!Number.isFinite(value)) return 0
+  if (
+    type === PAYROLL_ADJUSTMENT_TYPES.KPI
+    || type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT
+  ) {
+    return value
+  }
+  return Math.abs(value)
+}

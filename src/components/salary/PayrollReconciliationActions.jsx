@@ -26,6 +26,7 @@ export default function PayrollReconciliationActions({
   profileContext = null,
   disabled = false,
   className = '',
+  adminActions = null,
 }) {
   const [busy, setBusy] = useState(false)
 
@@ -58,11 +59,14 @@ export default function PayrollReconciliationActions({
     profileContext.payrollRow?.employeeId,
     profileContext.payrollRow?.branchId,
   )
+  const showAdmin = Boolean(adminActions)
 
-  if (!showLegacyPdf && !showBranch && !showEmployee) return null
+  if (!showLegacyPdf && !showBranch && !showEmployee && !showAdmin) return null
 
   return (
     <div className={`export-actions payroll-export-actions ${className}`.trim()}>
+      {showAdmin && adminActions}
+
       {showBranch && (
         <button
           type="button"

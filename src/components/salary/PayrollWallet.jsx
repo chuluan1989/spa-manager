@@ -106,6 +106,7 @@ export default function PayrollWallet({ entries, employee, stats, mode = 'full' 
             ['commission', stats.commission],
             ['tips', stats.tips],
             ['bonus', stats.bonus],
+            ['kpi', stats.kpi],
             ['penalty', stats.penalty],
             ['reduction', stats.reduction],
             ['advance', stats.advance],

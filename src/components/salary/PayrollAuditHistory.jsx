@@ -1,5 +1,4 @@
-import { canDeletePayroll, isAdmin } from '../../constants/auth'
-import { removePayrollAdjustment } from '../../utils/payrollService'
+import { formatCurrency } from '../../utils/invoice'
 
 function formatDateTime(value) {
   if (!value) return '—'
@@ -10,40 +9,37 @@ function formatDateTime(value) {
   }
 }
 
-export default function PayrollAuditHistory({ logs, adjustments, locks, onReload }) {
-  const items = [
-    ...logs.map((log) => ({
-      id: log.id,
-      kind: 'audit',
-      at: log.createdAt,
-      title: `${log.action} · ${log.entityType}`,
-      editor: log.editorName || log.editorId,
-      reason: log.reason,
-      detail: JSON.stringify(log.newValue ?? {}, null, 0).slice(0, 120),
-    })),
-    ...adjustments.map((row) => ({
-      id: `adj-${row.id}`,
-      kind: 'adjustment',
-      at: row.createdAt,
-      title: row.type,
-      editor: row.createdByName || row.createdBy,
-      reason: row.reason,
-      detail: `${row.employeeName}: ${row.amount?.toLocaleString('vi-VN')}đ`,
-    })),
-  ].sort((a, b) => String(b.at).localeCompare(String(a.at)))
+function formatMoney(value) {
+  if (value === null || value === undefined || value === '') return '—'
+  const num = Number(value)
+  if (!Number.isFinite(num)) return String(value)
+  return formatCurrency(num)
+}
 
-  const handleDelete = async (adjustmentId) => {
-    const record = adjustments.find((row) => row.id === adjustmentId)
-    if (!record || !canDeletePayroll()) return
-    const reason = window.prompt('Lý do xóa khoản lương:')
-    if (!reason?.trim()) return
-    try {
-      await removePayrollAdjustment(record, reason, locks)
-      onReload?.()
-    } catch (err) {
-      window.alert(err?.message ?? 'Không thể xóa.')
-    }
+function pickMeta(log) {
+  const src = log?.newValue && typeof log.newValue === 'object' && Object.keys(log.newValue).length
+    ? log.newValue
+    : (log?.oldValue && typeof log.oldValue === 'object' ? log.oldValue : {})
+  return src || {}
+}
+
+function fieldLabel(field) {
+  const map = {
+    kpi: 'KPI',
+    bonus: 'Thưởng',
+    penalty: 'Phạt',
+    advance: 'Ứng lương',
+    adjustment: 'Điều chỉnh khác',
+    note: 'Ghi chú',
   }
+  return map[field] || field || '—'
+}
+
+/**
+ * Lịch sử audit chỉ đọc — không có nút Xóa.
+ */
+export default function PayrollAuditHistory({ logs }) {
+  const items = [...(logs ?? [])].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
 
   if (!items.length) {
     return <p className="salary-page__empty">Chưa có lịch sử điều chỉnh.</p>
@@ -51,26 +47,56 @@ export default function PayrollAuditHistory({ logs, adjustments, locks, onReload
 
   return (
     <div className="salary-audit">
-      {items.map((item) => (
-        <article key={item.id} className="salary-audit__row">
-          <time>{formatDateTime(item.at)}</time>
-          <div>
-            <strong>{item.title}</strong>
-            <p>{item.detail}</p>
-            {item.reason && <p className="salary-audit__reason">{item.reason}</p>}
-            <small>{item.editor}</small>
-            {item.kind === 'adjustment' && isAdmin() && (
-              <button
-                type="button"
-                className="salary-audit__delete"
-                onClick={() => handleDelete(item.id.replace(/^adj-/, ''))}
-              >
-                Xóa
-              </button>
-            )}
-          </div>
-        </article>
-      ))}
+      {items.map((log) => {
+        const meta = pickMeta(log)
+        const oldMeta = log.oldValue && typeof log.oldValue === 'object' ? log.oldValue : {}
+        const newMeta = log.newValue && typeof log.newValue === 'object' ? log.newValue : {}
+        const oldVal = oldMeta.value !== undefined ? oldMeta.value : null
+        const newVal = newMeta.value !== undefined ? newMeta.value : null
+        const diff = newMeta.difference !== undefined
+          ? newMeta.difference
+          : (Number.isFinite(Number(newVal)) && Number.isFinite(Number(oldVal))
+            ? Number(newVal) - Number(oldVal)
+            : null)
+        const hasStructured = Boolean(meta.fieldChanged || meta.employeeId || meta.payrollPeriod)
+
+        return (
+          <article key={log.id} className="salary-audit__row">
+            <time>{formatDateTime(log.createdAt)}</time>
+            <div>
+              <strong>{log.action} · {log.entityType}</strong>
+              {hasStructured ? (
+                <dl className="salary-audit__meta">
+                  <div><dt>Nhân viên</dt><dd>{meta.employeeName || meta.employeeId || '—'}</dd></div>
+                  <div><dt>Kỳ lương</dt><dd>{meta.payrollPeriod || meta.month || '—'}</dd></div>
+                  <div><dt>Chi nhánh</dt><dd>{meta.branchId || '—'}</dd></div>
+                  <div><dt>Trường</dt><dd>{fieldLabel(meta.fieldChanged)}</dd></div>
+                  <div><dt>Giá trị cũ</dt><dd>{formatMoney(oldVal)}</dd></div>
+                  <div><dt>Giá trị mới</dt><dd>{formatMoney(newVal)}</dd></div>
+                  <div>
+                    <dt>Chênh lệch</dt>
+                    <dd className={Number(diff) < 0 ? 'is-minus' : 'is-plus'}>
+                      {diff === null || diff === undefined
+                        ? '—'
+                        : `${Number(diff) >= 0 ? '+' : ''}${formatMoney(diff)}`}
+                    </dd>
+                  </div>
+                </dl>
+              ) : (
+                <p className="salary-audit__detail">
+                  {JSON.stringify(log.newValue ?? log.oldValue ?? {}, null, 0).slice(0, 180)}
+                </p>
+              )}
+              {log.reason && <p className="salary-audit__reason">Lý do: {log.reason}</p>}
+              <small>
+                Người sửa: {log.editorName || log.editorId || '—'}
+                {' · '}
+                {formatDateTime(log.createdAt)}
+              </small>
+            </div>
+          </article>
+        )
+      })}
     </div>
   )
 }

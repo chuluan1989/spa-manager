@@ -75,6 +75,7 @@ export function computeNetSalary(parts) {
     + parts.commission
     + parts.tips
     + parts.bonus
+    + (parts.kpi ?? 0)
     - parts.reduction
     - parts.penalty
     - parts.advance
@@ -140,12 +141,14 @@ function computeEmployeePayrollBranchSection(employee, invoices, attendanceRecor
   const reduction = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.REDUCTION)
   const advance = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.ADVANCE)
   const otherAdjustment = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT)
+  const kpi = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.KPI)
   const parts = {
     baseSalary: 0,
     ticketRevenue: invoiceTotals.ticketRevenue,
     commission: invoiceTotals.commission,
     tips: invoiceTotals.tips,
     bonus,
+    kpi,
     reduction,
     penalty: attendancePenalty + manualPenalty,
     attendancePenalty,
@@ -209,6 +212,7 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
   const reduction = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.REDUCTION)
   const advance = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.ADVANCE)
   const otherAdjustment = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT)
+  const kpi = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.KPI)
   const baseSalary = parseBaseSalary(employee.salaryRate)
 
   const parts = {
@@ -217,6 +221,7 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     commission: invoiceTotals.commission,
     tips: invoiceTotals.tips,
     bonus,
+    kpi,
     reduction,
     penalty: attendancePenalty + manualPenalty,
     attendancePenalty,
@@ -227,7 +232,7 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
 
   const netSalary = computeNetSalary(parts)
   const grossBeforeDeduction = (
-    parts.baseSalary + parts.commission + parts.tips + parts.bonus
+    parts.baseSalary + parts.commission + parts.tips + parts.bonus + (parts.kpi ?? 0)
     - parts.reduction - parts.penalty
   )
   const paymentSummary = computePayrollPaymentSummary(adjustments, employeeId, netSalary)
@@ -310,6 +315,7 @@ export function computePayrollReport({
       acc.commission += row.commission
       acc.tips += row.tips
       acc.bonus += row.bonus
+      acc.kpi += row.kpi ?? 0
       acc.reduction += row.reduction
       acc.penalty += row.penalty
       acc.advance += row.advance
@@ -324,6 +330,7 @@ export function computePayrollReport({
       commission: 0,
       tips: 0,
       bonus: 0,
+      kpi: 0,
       reduction: 0,
       penalty: 0,
       advance: 0,
@@ -353,7 +360,10 @@ export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adj
       PAYROLL_ADJUSTMENT_TYPES.PAYMENT,
     ].includes(adjustment.type)
     let signedAmount
-    if (adjustment.type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT) {
+    if (
+      adjustment.type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT
+      || adjustment.type === PAYROLL_ADJUSTMENT_TYPES.KPI
+    ) {
       signedAmount = Number(adjustment.amount ?? 0)
     } else if (adjustment.type === PAYROLL_ADJUSTMENT_TYPES.PAYMENT) {
       signedAmount = -Math.abs(Number(adjustment.amount ?? 0))
@@ -476,6 +486,9 @@ export function filterWalletByCategory(entries, category) {
   }
   if (category === PAYROLL_DETAIL_CATEGORIES.ADJUSTMENT) {
     return entries.filter((entry) => entry.type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT)
+  }
+  if (category === PAYROLL_DETAIL_CATEGORIES.KPI) {
+    return entries.filter((entry) => entry.type === PAYROLL_ADJUSTMENT_TYPES.KPI)
   }
   return entries
 }

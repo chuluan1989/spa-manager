@@ -25,6 +25,7 @@ export default function PayrollAdjustmentModal({
 
   const adjustmentTypes = MANUAL_ADJUSTMENT_OPTIONS.filter((type) => {
     if (type === PAYROLL_ADJUSTMENT_TYPES.ADVANCE && !isAdmin()) return false
+    if (type === PAYROLL_ADJUSTMENT_TYPES.KPI && !isAdmin()) return false
     return true
   })
 
