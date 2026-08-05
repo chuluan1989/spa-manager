@@ -45,6 +45,51 @@ function filterAttendanceEntries(entries) {
   return entries.filter((entry) => entry.source === PAYROLL_WALLET_SOURCE.ATTENDANCE)
 }
 
+function EmployeeSwitcher({ peers, currentId, onSwitch }) {
+  const [query, setQuery] = useState('')
+  if (!Array.isArray(peers) || peers.length === 0 || typeof onSwitch !== 'function') return null
+
+  const filtered = peers.filter((peer) => {
+    if (!query.trim()) return true
+    return String(peer.employeeName ?? '').toLowerCase().includes(query.trim().toLowerCase())
+  })
+
+  return (
+    <aside className="salary-profile__switcher" aria-label="Chọn nhân viên cùng chi nhánh">
+      <div className="salary-profile__switcher-head">
+        <strong>Nhân viên cùng chi nhánh</strong>
+        <input
+          type="search"
+          className="salary-profile__switcher-search"
+          placeholder="Tìm tên…"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
+      <ul className="salary-profile__switcher-list">
+        {filtered.map((peer) => {
+          const active = peer.employeeId === currentId
+          return (
+            <li key={peer.employeeId}>
+              <button
+                type="button"
+                className={active ? 'is-active' : ''}
+                onClick={() => onSwitch(peer.employeeId)}
+              >
+                <span>{peer.employeeName}</span>
+                {active ? <em>Đang xem</em> : null}
+              </button>
+            </li>
+          )
+        })}
+        {filtered.length === 0 && (
+          <li className="salary-profile__switcher-empty">Không có nhân viên khớp.</li>
+        )}
+      </ul>
+    </aside>
+  )
+}
+
 export default function PayrollEmployeeProfile({
   employee,
   stats,
@@ -59,6 +104,8 @@ export default function PayrollEmployeeProfile({
   auditLogs,
   locks,
   onReload,
+  peerEmployees = [],
+  onSwitchEmployee,
 }) {
   const [view, setView] = useState('overview')
   const [historyTab, setHistoryTab] = useState('all')
@@ -179,7 +226,13 @@ export default function PayrollEmployeeProfile({
   const payslip = stats ? { ...stats, month, fromDate, toDate } : null
 
   return (
-    <section className="salary-profile">
+    <div className="salary-profile-layout">
+      <EmployeeSwitcher
+        peers={peerEmployees}
+        currentId={employeeId}
+        onSwitch={onSwitchEmployee}
+      />
+      <section className="salary-profile">
       <PayrollWallet entries={[]} employee={employee} stats={stats} mode="header" />
 
       <nav className="salary-profile__tabs">
@@ -260,6 +313,7 @@ export default function PayrollEmployeeProfile({
       {payslipOpen && payslip && (
         <PayrollPayslipPanel payslip={payslip} onClose={() => setPayslipOpen(false)} />
       )}
-    </section>
+      </section>
+    </div>
   )
 }

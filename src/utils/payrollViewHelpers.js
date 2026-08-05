@@ -37,7 +37,11 @@ function sumPayrollRows(rows) {
 export function aggregateBranchSummaries(branches, employees, payrollRows) {
   return branches
     .map((branch) => {
-      const merged = mergeEmployeePayrollRows(employees, payrollRows, { branchId: branch.id })
+      // Chỉ NV thuộc CN nhân sự — net employee-wide, không cộng trùng NV hỗ trợ.
+      const merged = mergeEmployeePayrollRows(employees, payrollRows, {
+        branchId: branch.id,
+        homeBranchOnly: true,
+      })
       const totals = sumPayrollRows(merged)
 
       return {
@@ -51,25 +55,41 @@ export function aggregateBranchSummaries(branches, employees, payrollRows) {
     .sort((a, b) => a.sortOrder - b.sortOrder || a.branchName.localeCompare(b.branchName, 'vi'))
 }
 
-export function mergeEmployeePayrollRows(employees, payrollRows, { branchId = '', search = '', status = '' } = {}) {
+/**
+ * @param {object} [options]
+ * @param {string} [options.branchId] Chi nhánh đang xem (danh sách)
+ * @param {boolean} [options.homeBranchOnly=false] Chỉ NV có chi nhánh nhân sự = branchId
+ *   (không liệt kê NV CN khác chỉ vì có phát sinh hỗ trợ tại đây)
+ */
+export function mergeEmployeePayrollRows(employees, payrollRows, {
+  branchId = '',
+  search = '',
+  status = '',
+  homeBranchOnly = false,
+} = {}) {
   const query = search.trim().toLowerCase()
   const employeeById = new Map(employees.map((emp) => [emp.id, emp]))
   const activityIds = new Set(payrollRows.map((row) => row.employeeId))
 
   const roster = branchId
     ? [
-        ...employees.filter((emp) => employeeCurrentlyAtBranch(emp, branchId) || activityIds.has(emp.id)),
-        ...payrollRows
-          .filter((row) => !employeeById.has(row.employeeId))
-          .map((row) => ({
-            id: row.employeeId,
-            name: row.employeeName,
-            branchId: row.branchId,
-            position: row.position ?? '',
-            avatar: row.avatar ?? '',
-            phone: '',
-            status: EMPLOYEE_STATUS.ACTIVE,
-          })),
+        ...employees.filter((emp) => {
+          if (homeBranchOnly) return employeeCurrentlyAtBranch(emp, branchId)
+          return employeeCurrentlyAtBranch(emp, branchId) || activityIds.has(emp.id)
+        }),
+        ...(homeBranchOnly
+          ? []
+          : payrollRows
+            .filter((row) => !employeeById.has(row.employeeId))
+            .map((row) => ({
+              id: row.employeeId,
+              name: row.employeeName,
+              branchId: row.branchId,
+              position: row.position ?? '',
+              avatar: row.avatar ?? '',
+              phone: '',
+              status: EMPLOYEE_STATUS.ACTIVE,
+            }))),
       ]
     : employees
 
@@ -90,6 +110,7 @@ export function mergeEmployeePayrollRows(employees, payrollRows, { branchId = ''
         employeeId: emp.id,
         employeeName: emp.name ?? '—',
         branchId: branchId || emp.branchId,
+        homeBranchId: emp.branchId ?? '',
         branchName: branchId
           ? getPayrollBranchDisplayTitle(branchId, getBranchName(branchId))
           : getPayrollBranchDisplayTitle(emp.branchId, getBranchName(emp.branchId)),
@@ -115,6 +136,33 @@ export function mergeEmployeePayrollRows(employees, payrollRows, { branchId = ''
       }
     })
     .sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'vi'))
+}
+
+/** Cộng dòng tổng cuối bảng — mỗi employeeId một lần. */
+export function sumEmployeePayrollTableTotals(rows) {
+  return (rows ?? []).reduce(
+    (acc, row) => {
+      acc.workDays += Number(row.workDays ?? 0)
+      acc.ticketRevenue += Number(row.ticketRevenue ?? 0)
+      acc.tips += Number(row.tips ?? 0)
+      acc.commission += Number(row.commission ?? 0)
+      acc.bonus += Number(row.bonus ?? 0)
+      acc.penalty += Number(row.penalty ?? 0)
+      acc.advance += Number(row.advance ?? 0)
+      acc.netSalary += Number(row.netSalary ?? 0)
+      return acc
+    },
+    {
+      workDays: 0,
+      ticketRevenue: 0,
+      tips: 0,
+      commission: 0,
+      bonus: 0,
+      penalty: 0,
+      advance: 0,
+      netSalary: 0,
+    },
+  )
 }
 
 export function formatWorkDays(value) {

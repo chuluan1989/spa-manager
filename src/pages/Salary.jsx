@@ -113,18 +113,20 @@ function SalaryPage() {
   }
 
   const fetchEmployeeId = useMemo(() => {
-    if (level === LEVEL.PROFILE) {
-      return isEmployee() ? getCurrentUserEmployeeId() : selectedEmployeeId
-    }
+    // Nhân viên chỉ xem chính mình.
+    if (isEmployee()) return getCurrentUserEmployeeId()
+    // Admin/QL: luôn tải theo kỳ (employee-wide) để bảng tổng + dropdown khớp chi tiết.
     return ''
-  }, [level, selectedEmployeeId])
+  }, [])
 
   const fetchBranchId = useMemo(() => {
-    if (fetchEmployeeId) return ''
     if (isEmployee()) return ''
     if (level === LEVEL.BRANCHES) return getRecordFetchBranchFilter('')
-    return getRecordFetchBranchFilter(selectedBranchId)
-  }, [level, selectedBranchId, fetchEmployeeId])
+    return selectedBranchId
+  }, [level, selectedBranchId])
+
+  const employeeWide = !isEmployee() && (level === LEVEL.EMPLOYEES || level === LEVEL.PROFILE)
+  const keepBranchRoster = !isEmployee() && level === LEVEL.PROFILE
 
   const {
     employees,
@@ -139,7 +141,15 @@ function SalaryPage() {
     error,
     liveUpdatedAt,
     reload,
-  } = usePayrollData({ month, branchId: fetchBranchId, employeeId: fetchEmployeeId, cycle })
+  } = usePayrollData({
+    month,
+    branchId: fetchBranchId,
+    employeeId: fetchEmployeeId,
+    cycle,
+    employeeWide,
+    keepBranchRoster,
+    rosterBranchId: selectedBranchId,
+  })
 
   const visibleBranches = useMemo(() => {
     const all = sortBranchesForPayroll(getCanonicalBranchesForDisplay())
@@ -165,8 +175,20 @@ function SalaryPage() {
       branchId: selectedBranchId,
       search,
       status: statusFilter,
+      // Chỉ NV thuộc chi nhánh nhân sự; net/HH/tips đã employee-wide từ report.
+      homeBranchOnly: true,
     }),
     [employees, report.rows, selectedBranchId, search, statusFilter],
+  )
+
+  /** Danh sách NV cùng CN để chuyển nhanh trong chi tiết (không phụ thuộc search). */
+  const branchPeerRows = useMemo(
+    () => mergeEmployeePayrollRows(employees, report.rows, {
+      branchId: selectedBranchId,
+      status: statusFilter,
+      homeBranchOnly: true,
+    }),
+    [employees, report.rows, selectedBranchId, statusFilter],
   )
 
   const profileRow = useMemo(() => {
@@ -230,8 +252,14 @@ function SalaryPage() {
 
   const handleSelectEmployee = (row) => {
     setSelectedEmployeeId(row.employeeId)
-    setSelectedBranchId(row.branchId)
+    setSelectedBranchId(row.branchId || selectedBranchId || row.homeBranchId)
     setLevel(LEVEL.PROFILE)
+  }
+
+  /** Đổi NV trong chi tiết — giữ tháng / kỳ / CN / filter. */
+  const handleSwitchEmployee = (employeeId) => {
+    if (!employeeId || employeeId === selectedEmployeeId) return
+    setSelectedEmployeeId(employeeId)
   }
 
   const handleAddAdjustment = async (payload) => {
@@ -449,6 +477,8 @@ function SalaryPage() {
             auditLogs={auditLogs}
             locks={locks}
             onReload={reload}
+            peerEmployees={isEmployee() ? [] : branchPeerRows}
+            onSwitchEmployee={isEmployee() ? undefined : handleSwitchEmployee}
           />
           <PayrollCycleClosePanel
             employeeId={profileRow.employeeId}

@@ -17,7 +17,23 @@ import { getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 import { getRecordFetchFilters, RECORD_FETCH_USE_CASES } from '../constants/auth'
 
-export function usePayrollData({ month, branchId = '', employeeId = '', cycle = PAY_CYCLES.PERIOD_1 }) {
+/**
+ * @param {object} params
+ * @param {boolean} [params.employeeWide=false]
+ *   true = tải phát sinh cả kỳ (mọi CN) để net/HH/tips khớp màn hình chi tiết.
+ * @param {boolean} [params.keepBranchRoster=false]
+ *   Khi xem 1 NV vẫn giữ roster CN cho dropdown chuyển NV.
+ * @param {string} [params.rosterBranchId='']
+ */
+export function usePayrollData({
+  month,
+  branchId = '',
+  employeeId = '',
+  cycle = PAY_CYCLES.PERIOD_1,
+  employeeWide = false,
+  keepBranchRoster = false,
+  rosterBranchId = '',
+}) {
   const [invoices, setInvoices] = useState([])
   const [attendance, setAttendance] = useState([])
   const [adjustments, setAdjustments] = useState([])
@@ -41,8 +57,14 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
         throw new Error('Supabase chưa cấu hình. Không thể tải dữ liệu lương.')
       }
 
-      const historyScope = getRecordFetchFilters(RECORD_FETCH_USE_CASES.VIEW_SINGLE_EMPLOYEE_HISTORY, {
-        selectedBranchId: branchId,
+      // Danh sách tổng: lấy cả kỳ mọi CN để net = chi tiết (gồm hỗ trợ).
+      // Profile 1 NV: vẫn BY_EMPLOYEE_ID (branchId rỗng) qua VIEW_SINGLE_EMPLOYEE_HISTORY.
+      const useCase = employeeWide && !employeeId
+        ? RECORD_FETCH_USE_CASES.VIEW_SYSTEM_HISTORY
+        : RECORD_FETCH_USE_CASES.VIEW_SINGLE_EMPLOYEE_HISTORY
+
+      const historyScope = getRecordFetchFilters(useCase, {
+        selectedBranchId: employeeWide && !employeeId ? '' : branchId,
         selectedEmployeeId: employeeId,
       })
       const { branchId: recordBranchFilter, employeeId: scopedEmployeeId } = historyScope.filters
@@ -54,39 +76,55 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
         employeeId: scopedEmployeeId || employeeId,
       }
 
-      // Attendance rules:
-      // - Kỳ 1: vẫn lấy attendance theo 01–15 để hiển thị thống kê/ngày công,
-      //         nhưng không trừ tiền chấm công => penaltyAmount = 0.
-      // - Kỳ 2: lấy attendance cả tháng để tổng hợp toàn bộ khoản bị trừ vào Kỳ 2.
       const attendanceCycle = cycle === PAY_CYCLES.PERIOD_2 ? PAY_CYCLES.FULL : PAY_CYCLES.PERIOD_1
       const attendanceRange = getPayPeriodRange(month, attendanceCycle)
       const attendanceScope = {
         fromDate: attendanceRange.fromDate,
         toDate: attendanceRange.toDate,
         branchId: recordBranchFilter,
-        employeeId,
+        employeeId: scopedEmployeeId || employeeId,
       }
       const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows, remoteEmployees] = await Promise.all([
         fetchInvoicesFiltered(scope),
         fetchAttendanceFiltered(attendanceScope),
-        fetchPayrollAdjustments({ month, branchId: recordBranchFilter, employeeId }),
+        fetchPayrollAdjustments({
+          month,
+          branchId: recordBranchFilter,
+          employeeId: scopedEmployeeId || employeeId,
+        }),
         fetchPayrollLocks({ month }),
         fetchPayrollAuditLogs({ limit: 300 }),
         fetchEmployeesFiltered({}),
       ])
       if (!mountedRef.current) return
 
-      const nextEmployees = filterEmployeesForBranchRoster({
+      const rosterFilterBranch = keepBranchRoster
+        ? (rosterBranchId || branchId)
+        : (employeeId ? '' : branchId)
+
+      let nextEmployees = filterEmployeesForBranchRoster({
         employees: (remoteEmployees ?? []).map((row) => normalizeEmployee(row)),
-        branchId: employeeId ? '' : branchId,
+        branchId: rosterFilterBranch,
         activityRecords: [
           ...(Array.isArray(remoteInvoices) ? remoteInvoices : []),
           ...(Array.isArray(attendanceRows) ? attendanceRows : []),
           ...(adjustmentRows ?? []),
         ],
-      }).filter((row) => !employeeId || row.id === employeeId)
+      })
 
-      setEmployees(nextEmployees)
+      if (employeeId && !keepBranchRoster) {
+        nextEmployees = nextEmployees.filter((row) => row.id === employeeId)
+      } else if (employeeId && keepBranchRoster) {
+        const exists = nextEmployees.some((row) => row.id === employeeId)
+        if (!exists) {
+          const self = (remoteEmployees ?? [])
+            .map((row) => normalizeEmployee(row))
+            .find((row) => row.id === employeeId)
+          if (self) nextEmployees = [...nextEmployees, self]
+        }
+      }
+
+      setEmployees(nextEmployees.filter((row) => isPayrollListEmployee(row, '') || row.id === employeeId))
       setInvoices(Array.isArray(remoteInvoices) ? remoteInvoices : [])
 
       const normalizedAttendance = Array.isArray(attendanceRows) ? attendanceRows : []
@@ -115,7 +153,7 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
       setLoading(false)
       setIsRefreshing(false)
     }
-  }, [month, branchId, employeeId, cycle])
+  }, [month, branchId, employeeId, cycle, employeeWide, keepBranchRoster, rosterBranchId])
 
   useEffect(() => {
     mountedRef.current = true
@@ -141,20 +179,21 @@ export function usePayrollData({ month, branchId = '', employeeId = '', cycle = 
     }
   }, [reload])
 
-  const reportBranchFilter = employeeId ? '' : branchId
+  const reportBranchFilter = (employeeId || employeeWide) ? '' : branchId
 
   const report = useMemo(
     () => computePayrollReport({
       month,
       cycle,
       branchId: reportBranchFilter,
-      employeeId,
+      // Roster + employee-wide rows: không cắt report còn 1 NV khi đang profile + switcher
+      employeeId: keepBranchRoster ? '' : employeeId,
       employees,
       invoices,
       attendanceRecords: attendance,
       adjustments,
     }),
-    [month, cycle, reportBranchFilter, employeeId, employees, invoices, attendance, adjustments],
+    [month, cycle, reportBranchFilter, employeeId, keepBranchRoster, employees, invoices, attendance, adjustments],
   )
 
   return {
