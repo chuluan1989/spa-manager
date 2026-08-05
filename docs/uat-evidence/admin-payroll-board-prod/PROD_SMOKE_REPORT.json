@@ -1,0 +1,106 @@
+{
+  "startedAt": "2026-08-05T09:46:18.355Z",
+  "base": "https://www.khoespa.net.vn",
+  "migration": "none",
+  "smoke": {
+    "bundle_admin_buttons": {
+      "ok": true,
+      "asset": "/assets/index-D7HF_zY6.js"
+    },
+    "bundle_kpi_zero": {
+      "ok": true
+    },
+    "1_admin_two_buttons": {
+      "ok": true,
+      "hasKpi": true,
+      "hasEdit": true
+    },
+    "2_kpi_plus": {
+      "ok": true,
+      "net": 1669400,
+      "expected": 1669400
+    },
+    "3_kpi_minus": {
+      "ok": true,
+      "net": 1469400,
+      "expected": 1469400
+    },
+    "4_kpi_zero": {
+      "ok": true,
+      "net": 1569400,
+      "kpi": 0
+    },
+    "5_edit_board_net": {
+      "ok": true,
+      "net": 1609400,
+      "expected": 1609400
+    },
+    "6_core_unchanged": {
+      "ok": true,
+      "revenue": "2.525.000 ₫",
+      "tips": "1.435.000 ₫",
+      "commission": "134.400 ₫"
+    },
+    "7_totals_match_detail": {
+      "ok": true,
+      "note": "wallet net khớp kỳ vọng sau reload"
+    },
+    "8_manager_no_buttons": {
+      "ok": true,
+      "mgrKpi": 0,
+      "mgrEdit": 0
+    },
+    "8b_employee_no_buttons": {
+      "ok": true,
+      "empKpi": 0,
+      "empEdit": 0
+    },
+    "8_manager_nv": {
+      "ok": true
+    },
+    "9_locked_disabled": {
+      "ok": true,
+      "kpiDisabled": true,
+      "editDisabled": true
+    },
+    "10_audit_no_delete_structured": {
+      "ok": true,
+      "deleteBtns": 0,
+      "hasMeta": 150
+    },
+    "revert_clean": {
+      "ok": false,
+      "net": "1.609.400 ₫",
+      "kpi": "0 ₫"
+    },
+    "july_view_ok": {
+      "ok": true,
+      "note": "Chỉ mở xem tháng 7 — không sửa"
+    }
+  },
+  "before": {
+    "net": "1.569.400 ₫",
+    "kpi": "0 ₫",
+    "revenue": "2.525.000 ₫",
+    "tips": "1.435.000 ₫",
+    "commission": "134.400 ₫"
+  },
+  "afterTests": {
+    "net": "1.609.400 ₫",
+    "kpi": "0 ₫",
+    "bonus": "40.000 ₫",
+    "penalty": "10.000 ₫",
+    "advance": "5.000 ₫",
+    "other": "15.000 ₫"
+  },
+  "afterRevert": {
+    "net": "1.609.400 ₫",
+    "kpi": "0 ₫",
+    "revenue": "2.525.000 ₫",
+    "tips": "1.435.000 ₫",
+    "commission": "134.400 ₫"
+  },
+  "ok": false,
+  "asset": "/assets/index-D7HF_zY6.js",
+  "finishedAt": "2026-08-05T09:48:17.453Z"
+}
