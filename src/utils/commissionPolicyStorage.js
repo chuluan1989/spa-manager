@@ -4,6 +4,9 @@ import { loadBranches } from './branchStorage'
 import { upsertCommissionPolicyMap } from '../repositories/commissionPolicyRepository'
 
 const STORAGE_KEY = 'spa-manager-commission-policies'
+const VERSION_KEY = 'spa-manager-commission-policies-version'
+/** v3: thêm body-75 vào 0%; Bạc Liêu 20% + Chuyên sâu 30%. */
+const POLICY_DATA_VERSION = 3
 
 function normalizeGroup(group = {}) {
   return {
@@ -35,18 +38,28 @@ export function normalizeCommissionPolicy(policy = {}) {
 
 export function loadCommissionPolicyMap() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
     const branchIds = loadBranches().map((branch) => branch.id)
     const defaults = buildDefaultCommissionPolicyMap(branchIds)
+    const storedVersion = Number(localStorage.getItem(VERSION_KEY) || 0)
 
+    // Reset về default khi nâng version công thức (tránh localStorage giữ flat BL / thiếu body-75).
+    if (storedVersion < POLICY_DATA_VERSION) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults))
+      localStorage.setItem(VERSION_KEY, String(POLICY_DATA_VERSION))
+      return defaults
+    }
+
+    const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults))
+      localStorage.setItem(VERSION_KEY, String(POLICY_DATA_VERSION))
       return defaults
     }
 
     const parsed = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults))
+      localStorage.setItem(VERSION_KEY, String(POLICY_DATA_VERSION))
       return defaults
     }
 
@@ -60,11 +73,13 @@ export function loadCommissionPolicyMap() {
     }
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+    localStorage.setItem(VERSION_KEY, String(POLICY_DATA_VERSION))
     return merged
   } catch {
     const branchIds = loadBranches().map((branch) => branch.id)
     const defaults = buildDefaultCommissionPolicyMap(branchIds)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults))
+    localStorage.setItem(VERSION_KEY, String(POLICY_DATA_VERSION))
     return defaults
   }
 }

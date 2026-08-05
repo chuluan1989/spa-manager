@@ -1,4 +1,9 @@
 import {
+  BAC_LIEU_BRANCH_IDS,
+  BAC_LIEU_DEFAULT_RATE,
+  BAC_LIEU_SPECIAL_RATE,
+  BAC_LIEU_SPECIAL_SERVICE_IDS,
+  BAC_LIEU_SPECIAL_SERVICE_NAMES,
   COMMISSION_POLICY_TYPE,
   FLAT_20_BRANCH_IDS,
   FLAT_40_BRANCH_IDS,
@@ -50,9 +55,32 @@ function buildTieredPolicy(branchId) {
   }
 }
 
+/** Bạc Liêu: mặc định 20%, riêng Chuyên sâu 30%. */
+function buildBacLieuPolicy(branchId) {
+  return {
+    branchId,
+    policyType: COMMISSION_POLICY_TYPE.TIERED,
+    flatRate: null,
+    defaultRate: BAC_LIEU_DEFAULT_RATE,
+    groups: [
+      {
+        id: 'rate-30-chuyen-sau',
+        label: '30% Chuyên sâu',
+        rate: BAC_LIEU_SPECIAL_RATE,
+        serviceIds: [...BAC_LIEU_SPECIAL_SERVICE_IDS],
+        serviceNames: [...BAC_LIEU_SPECIAL_SERVICE_NAMES],
+      },
+    ],
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 export function buildDefaultCommissionPolicy(branchId) {
   if (FLAT_40_BRANCH_IDS.includes(branchId)) {
     return buildFlatPolicy(branchId, 40)
+  }
+  if (BAC_LIEU_BRANCH_IDS.includes(branchId)) {
+    return buildBacLieuPolicy(branchId)
   }
   if (FLAT_20_BRANCH_IDS.includes(branchId)) {
     return buildFlatPolicy(branchId, 20)

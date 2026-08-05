@@ -40,16 +40,25 @@ export function parseDiscountInput(input) {
 }
 
 function resolveLineCommissionPercent(service, branchId = '') {
-  // Ưu tiên % từ bảng giá V2 (branch_service_prices / catalog) nếu có.
+  // Công thức HH theo nhóm chi nhánh (policy) là nguồn chuẩn khi có branchId.
+  // Không lấy % từ catalog/branch_service_prices: seed STANDARD mang % tiered
+  // (0/10/20) → sai với Trà Vinh/Vĩnh Long (flat 20%) và Bạc Liêu (CS 30%).
+  // Trạm/Sóc Trăng/Sống Khoẻ vẫn dùng policy tiered (không đồng bộ flat 20%).
+  if (branchId) {
+    return resolveCommissionPercent(branchId, {
+      id: service?.id || service?.serviceId,
+      name: service?.name || service?.serviceName,
+    })
+  }
   if (Number.isFinite(service?.commissionPercent)) {
     return Number(service.commissionPercent)
   }
-  // Fallback legacy: chính sách hoa hồng chi nhánh.
-  return resolveCommissionPercent(branchId, service)
+  return 0
 }
 
-function resolvePricingSource(service) {
+function resolvePricingSource(service, branchId = '') {
   if (service?.pricingSource) return service.pricingSource
+  if (branchId) return 'commission_policy'
   if (Number.isFinite(service?.commissionPercent)) return 'branch_service_prices'
   return 'commission_policy'
 }
@@ -95,7 +104,7 @@ function buildBaseServiceLine(service, branchId = '') {
     commissionPercent,
     commissionAmount: calculateCommissionAmount(originalPrice, commissionPercent),
     branchId: branchId || '',
-    pricingSource: resolvePricingSource(service),
+    pricingSource: resolvePricingSource(service, branchId),
     catalogVersion: Number.isFinite(service?.catalogVersion) ? service.catalogVersion : null,
   }
 }
