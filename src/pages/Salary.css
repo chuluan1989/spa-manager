@@ -23,6 +23,27 @@
   font-size: 14px;
 }
 
+.salary-page__scope {
+  margin-top: 10px;
+  max-width: 52rem;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.salary-page__scope strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.salary-page__scope--inline {
+  margin: 0 0 12px;
+}
+
 .salary-page__header-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1291,6 +1312,56 @@
   color: #9ca3af;
   font-size: 11px;
   margin-top: 2px;
+}
+
+.salary-wallet__timeline-hint {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.salary-wallet__invoice-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.salary-wallet__invoice-head strong {
+  margin-bottom: 0;
+}
+
+.salary-wallet__parts {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.salary-wallet__parts li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.salary-wallet__parts .is-plus { color: #059669; font-variant-numeric: tabular-nums; }
+.salary-wallet__parts .is-minus { color: #dc2626; font-variant-numeric: tabular-nums; }
+
+.salary-wallet__item--invoice .salary-wallet__body {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fafafa;
+  border: 1px solid #eef0f3;
 }
 
 .salary-profile__overview {

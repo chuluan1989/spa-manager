@@ -325,6 +325,12 @@ function SalaryPage() {
           <h1>Live Payroll</h1>
           <p>Lương tháng {formatMonthDisplay(month)} — {cycle === PAY_CYCLES.PERIOD_1 ? 'Kỳ 1' : 'Kỳ 2'}</p>
           <p>Lương cập nhật theo thời gian thực — Hóa đơn, Tips, Chấm công, Thưởng/Phạt.</p>
+          <p className="salary-page__scope" role="note">
+            <strong>Tổng thu nhập toàn kỳ của nhân viên.</strong>
+            {' '}Dữ liệu hiển thị là tổng thu nhập của nhân viên trong kỳ, bao gồm toàn bộ thu nhập
+            tại các chi nhánh mà nhân viên có phát sinh.
+            Kỳ lương tính theo <strong>ngày phục vụ (date)</strong> — không dùng ngày tạo (created_at).
+          </p>
         </div>
         <div className="salary-page__header-actions">
           <PayrollLiveIndicator updatedAt={liveUpdatedAt} isRefreshing={isRefreshing} />
@@ -457,12 +463,20 @@ function SalaryPage() {
             <h2>{getPayrollBranchDisplayTitle(selectedBranchId, getBranchName(selectedBranchId))}</h2>
             <span>{employeeRows.length} nhân viên</span>
           </div>
+          <p className="salary-page__scope salary-page__scope--inline" role="note">
+            Danh sách nhân viên vẫn lọc theo chi nhánh nhân sự.
+            Số liệu lương của mỗi NV là <strong>tổng thu nhập toàn kỳ</strong> (mọi chi nhánh có phát sinh).
+          </p>
           <PayrollEmployeeList rows={employeeRows} onSelectEmployee={handleSelectEmployee} />
         </>
       )}
 
       {!loading && !error && level === LEVEL.PROFILE && profileRow && (
         <>
+          <p className="salary-page__scope salary-page__scope--inline" role="note">
+            Hồ sơ / ví lương: <strong>tổng thu nhập toàn kỳ của nhân viên</strong>
+            {' '}(toàn bộ chi nhánh có phát sinh). Kỳ theo ngày phục vụ (date).
+          </p>
           <PayrollEmployeeProfile
             employee={profileRow}
             stats={profileRow}

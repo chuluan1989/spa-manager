@@ -100,6 +100,22 @@
   margin-top: 12px;
 }
 
+.invoice-filters__hint {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.invoice-filters__hint--scope strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
 .invoice-filters__reset {
   padding: 9px 14px;
   border: 1px solid #e5e7eb;

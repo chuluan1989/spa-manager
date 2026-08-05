@@ -20,6 +20,11 @@ export default function InvoiceFilters({
   const branchEmployees = filters.branchId
     ? getActiveEmployeesByBranch(filters.branchId)
     : getAllActiveEmployees()
+  const employeeSelected = Boolean(filters.employeeId)
+  const branchSelected = Boolean(filters.branchId)
+  const selectedBranchName = branchName
+    || loadBranches().find((b) => b.id === filters.branchId)?.name
+    || filters.branchId
 
   const update = (field, value) => {
     if (field === 'branchId') {
@@ -144,6 +149,26 @@ export default function InvoiceFilters({
           />
         </label>
       </div>
+
+      <p className="invoice-filters__hint invoice-filters__hint--scope" role="note">
+        {employeeSelected ? (
+          <>
+            Phạm vi bộ lọc đang áp dụng: <strong>Theo nhân viên</strong>
+            {' '}— danh sách hóa đơn theo NV đã chọn. Không mặc định bằng tổng thu nhập đa chi nhánh trên màn Lương.
+          </>
+        ) : branchSelected || lockedBranch ? (
+          <>
+            Phạm vi bộ lọc đang áp dụng: <strong>Chi nhánh hiện tại</strong>
+            {selectedBranchName ? ` (${selectedBranchName})` : ''}
+            {' '}— chỉ hóa đơn khớp chi nhánh này, không phải toàn bộ thu nhập trên màn Lương.
+          </>
+        ) : (
+          <>
+            Phạm vi bộ lọc đang áp dụng: <strong>Tất cả chi nhánh</strong>
+            {' '}— theo ngày / NV / dịch vụ đang chọn. Khác phạm vi “tổng thu nhập NV” trên màn Lương nếu chưa lọc cùng NV.
+          </>
+        )}
+      </p>
 
       <div className="invoice-filters__actions">
         <button type="button" className="invoice-filters__reset" onClick={onReset}>
