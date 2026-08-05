@@ -3,7 +3,7 @@ import { PAYROLL_ADJUSTMENT_TYPES, normalizePayrollAdjustmentAmount } from '../c
 import { isPayrollMonthLocked } from './payrollEngine'
 import { buildPayrollFieldAuditValues } from './payrollFieldAudit'
 import { notifyDataSynced } from './dataSyncEvents'
-import { notifyPayrollSourceChanged } from './payrollCycleClose/approvedCloseLock'
+import { invalidateCloseAfterSourceChange } from './payrollCycleClose/approvedCloseLock'
 import {
   createPayrollAdjustmentId,
   createPayrollAuditId,
@@ -21,19 +21,8 @@ import {
 async function afterPayrollAdjustmentSourceChanged(record) {
   if (!record?.employeeId) return
   const date = String(record.date || '').slice(0, 10)
-  const month = String(record.month || '').slice(0, 7)
   if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    await notifyPayrollSourceChanged({
-      employeeIds: [record.employeeId],
-      recordDates: [date],
-    }).catch((err) => {
-      console.warn('[payroll-adjustment] invalidate close:', err?.message)
-    })
-  } else if (month) {
-    await notifyPayrollSourceChanged({
-      employeeIds: [record.employeeId],
-      billingMonths: [month],
-    }).catch((err) => {
+    await invalidateCloseAfterSourceChange(record.employeeId, date).catch((err) => {
       console.warn('[payroll-adjustment] invalidate close:', err?.message)
     })
   }
