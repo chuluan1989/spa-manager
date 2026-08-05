@@ -263,7 +263,6 @@ export default function PayrollCycleClosePanel({
               <li><span>Thưởng</span><strong>{formatCurrency(salary.bonus)}</strong></li>
               <li><span>Phạt</span><strong>{formatCurrency(salary.penalty)}</strong></li>
               <li><span>Tạm ứng</span><strong>{formatCurrency(salary.advance)}</strong></li>
-              <li><span>Khoản cộng</span><strong>{formatCurrency(salary.otherAdjustment)}</strong></li>
               <li><span>Khoản trừ</span><strong>{formatCurrency(salary.reduction)}</strong></li>
               <li className="is-total">
                 <span>Tổng lương dự kiến</span>

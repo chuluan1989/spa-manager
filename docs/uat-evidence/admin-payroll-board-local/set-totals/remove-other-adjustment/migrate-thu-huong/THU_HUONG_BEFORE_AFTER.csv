@@ -1,0 +1,11 @@
+metric,before,after,delta
+bonus,500000,500000,0
+kpi,0,0,0
+penalty,0,0,0
+advance,0,500000,500000
+otherAdjustment,500000,0,-500000
+netSalary,-65400,-565400,-500000
+revenue,447000,447000,0
+tips,383000,383000,0
+commission,51600,51600,0
+legacySystemWideCount,1,0,-1

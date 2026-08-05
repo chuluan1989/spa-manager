@@ -12,7 +12,6 @@ const KPI_ROWS = [
   ['penalty', 'penalty'],
   ['reduction', 'reduction'],
   ['advance', 'advance'],
-  ['otherAdjustment', 'neutral'],
   ['paidAmount', 'paid'],
   ['remainingAmount', 'remaining'],
   ['provisionalNet', 'net'],

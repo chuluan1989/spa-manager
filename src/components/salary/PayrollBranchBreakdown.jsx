@@ -11,7 +11,6 @@ const SECTION_ROWS = [
   ['penalty', 'penalty'],
   ['reduction', 'reduction'],
   ['advance', 'advance'],
-  ['otherAdjustment', 'neutral'],
   ['netSalary', 'net'],
 ]
 

@@ -12,7 +12,6 @@ const COLUMNS = [
   { key: PAYROLL_DETAIL_CATEGORIES.REDUCTION, label: PAYROLL_DETAIL_LABELS.reduction, clickable: true },
   { key: PAYROLL_DETAIL_CATEGORIES.PENALTY, label: PAYROLL_DETAIL_LABELS.penalty, clickable: true },
   { key: PAYROLL_DETAIL_CATEGORIES.ADVANCE, label: PAYROLL_DETAIL_LABELS.advance, clickable: true },
-  { key: PAYROLL_DETAIL_CATEGORIES.ADJUSTMENT, label: PAYROLL_DETAIL_LABELS.otherAdjustment, clickable: true },
   { key: PAYROLL_DETAIL_CATEGORIES.NET, label: PAYROLL_DETAIL_LABELS.netSalary, clickable: true, variant: 'net' },
 ]
 

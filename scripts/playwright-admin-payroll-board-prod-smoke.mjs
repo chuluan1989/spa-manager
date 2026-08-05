@@ -25,7 +25,7 @@ const EMP_PASSWORD = process.env.UAT_EMP_PASSWORD || 'uat_nv_2026'
 const BASELINE_NET = 1_569_400
 
 /** Order in PayrollEditBoardModal BOARD_FIELDS */
-const FIELD_ORDER = ['bonus', 'kpi', 'penalty', 'advance', 'adjustment']
+const FIELD_ORDER = ['bonus', 'kpi', 'penalty', 'advance']
 
 const report = {
   startedAt: new Date().toISOString(),
@@ -113,7 +113,7 @@ async function saveSetTotals(page, totals, reason, shotName) {
 
   const rows = dialog.locator('.salary-edit-totals__row')
   const rowCount = await rows.count()
-  if (rowCount !== 5) throw new Error(`Expected 5 SET rows, got ${rowCount}`)
+  if (rowCount !== 4) throw new Error(`Expected 4 SET rows, got ${rowCount}`)
 
   for (let i = 0; i < FIELD_ORDER.length; i += 1) {
     const key = FIELD_ORDER[i]
@@ -173,7 +173,7 @@ try {
 
   // Reset baseline
   await saveSetTotals(page, {
-    bonus: 0, kpi: 0, penalty: 0, advance: 0, adjustment: 0,
+    bonus: 0, kpi: 0, penalty: 0, advance: 0,
   }, 'Prod smoke: reset về 0 trước test')
   await reloadLyLy(page)
 
@@ -189,12 +189,12 @@ try {
 
   // 1. Phạt 0→600→200
   await saveSetTotals(page, {
-    bonus: 0, kpi: 0, penalty: 600000, advance: 0, adjustment: 0,
+    bonus: 0, kpi: 0, penalty: 600000, advance: 0,
   }, 'Prod smoke: Phạt SET 600000')
   await reloadLyLy(page)
   const after600 = await readWalletStats(page)
   await saveSetTotals(page, {
-    bonus: 0, kpi: 0, penalty: 200000, advance: 0, adjustment: 0,
+    bonus: 0, kpi: 0, penalty: 200000, advance: 0,
   }, 'Prod smoke: Phạt SET 200000', '03-penalty-200.png')
   await reloadLyLy(page)
   stats = await readWalletStats(page)
@@ -207,7 +207,7 @@ try {
   // 2. Thưởng 0 → 500k
   const beforeBonus = await readWalletStats(page)
   await saveSetTotals(page, {
-    bonus: 500000, kpi: 0, penalty: 200000, advance: 0, adjustment: 0,
+    bonus: 500000, kpi: 0, penalty: 200000, advance: 0,
   }, 'Prod smoke: Thưởng SET 500000', '04-bonus-500.png')
   await reloadLyLy(page)
   stats = await readWalletStats(page)
@@ -220,7 +220,7 @@ try {
   // 3. KPI 0 → +300 → -200 → 0
   const beforeKpi = await readWalletStats(page)
   await saveSetTotals(page, {
-    bonus: 500000, kpi: 300000, penalty: 200000, advance: 0, adjustment: 0,
+    bonus: 500000, kpi: 300000, penalty: 200000, advance: 0,
   }, 'Prod smoke: KPI SET +300000')
   await reloadLyLy(page)
   stats = await readWalletStats(page)
@@ -229,7 +229,7 @@ try {
 
   const beforeNeg = await readWalletStats(page)
   await saveSetTotals(page, {
-    bonus: 500000, kpi: -200000, penalty: 200000, advance: 0, adjustment: 0,
+    bonus: 500000, kpi: -200000, penalty: 200000, advance: 0,
   }, 'Prod smoke: KPI SET -200000', '05-kpi-minus.png')
   await reloadLyLy(page)
   stats = await readWalletStats(page)
@@ -238,7 +238,7 @@ try {
 
   const beforeZero = await readWalletStats(page)
   await saveSetTotals(page, {
-    bonus: 500000, kpi: 0, penalty: 200000, advance: 0, adjustment: 0,
+    bonus: 500000, kpi: 0, penalty: 200000, advance: 0,
   }, 'Prod smoke: KPI SET 0')
   await reloadLyLy(page)
   stats = await readWalletStats(page)
@@ -254,12 +254,12 @@ try {
 
   // 4. Ứng 0→1M→700k
   await saveSetTotals(page, {
-    bonus: 500000, kpi: 0, penalty: 200000, advance: 1000000, adjustment: 0,
+    bonus: 500000, kpi: 0, penalty: 200000, advance: 1000000,
   }, 'Prod smoke: Ứng SET 1000000')
   await reloadLyLy(page)
   const afterAdv1 = await readWalletStats(page)
   await saveSetTotals(page, {
-    bonus: 500000, kpi: 0, penalty: 200000, advance: 700000, adjustment: 0,
+    bonus: 500000, kpi: 0, penalty: 200000, advance: 700000,
   }, 'Prod smoke: Ứng SET 700000', '06-advance-700.png')
   await reloadLyLy(page)
   stats = await readWalletStats(page)
@@ -269,29 +269,15 @@ try {
     net: stats['Lương thực nhận__num'],
   })
 
-  // 5. ĐC 0 → -100k
-  const beforeAdj = await readWalletStats(page)
-  await saveSetTotals(page, {
-    bonus: 500000, kpi: 0, penalty: 200000, advance: 700000, adjustment: -100000,
-  }, 'Prod smoke: ĐC SET -100000', '07-adjustment.png')
-  await reloadLyLy(page)
-  stats = await readWalletStats(page)
-  mark('7_adjustment', stats['Điều chỉnh khác__num'] === -100000
-    && stats['Lương thực nhận__num'] === beforeAdj['Lương thực nhận__num'] - 100000, {
-    other: stats['Điều chỉnh khác'],
-    net: stats['Lương thực nhận__num'],
-  })
-
   report.afterTests = {
     net: stats['Lương thực nhận__num'],
     bonus: stats.Thưởng__num,
     kpi: stats.KPI__num,
     penalty: stats.Phạt__num,
     advance: stats['Ứng lương__num'],
-    adjustment: stats['Điều chỉnh khác__num'],
   }
 
-  // 6–8.reload already done; core unchanged; summary = detail (net consistent)
+  // core unchanged; summary = detail
   mark('8_core_unchanged',
     stats['Doanh thu tiền vé__num'] === core.revenue
     && stats.Tips__num === core.tips
@@ -312,10 +298,10 @@ try {
   const impact = await page.locator('dt', { hasText: 'Chênh lệch tác động lương' }).count()
   mark('10_audit', del === 0 && impact > 0, { deleteButtons: del, impactLabels: impact })
 
-  // 9. Revert to baseline with audit
+  // Revert to baseline with audit
   await page.getByRole('button', { name: 'Tổng quan' }).click().catch(() => {})
   await saveSetTotals(page, {
-    bonus: 0, kpi: 0, penalty: 0, advance: 0, adjustment: 0,
+    bonus: 0, kpi: 0, penalty: 0, advance: 0,
   }, 'Prod smoke: hoàn tác SET về 0, giữ audit')
   await reloadLyLy(page)
   stats = await readWalletStats(page)
@@ -325,19 +311,17 @@ try {
     kpi: stats.KPI__num,
     penalty: stats.Phạt__num,
     advance: stats['Ứng lương__num'],
-    adjustment: stats['Điều chỉnh khác__num'],
   }
   mark('11_revert', stats['Lương thực nhận__num'] === BASELINE_NET
     && stats.Thưởng__num === 0
     && stats.KPI__num === 0
     && stats.Phạt__num === 0
-    && stats['Ứng lương__num'] === 0
-    && stats['Điều chỉnh khác__num'] === 0, {
+    && stats['Ứng lương__num'] === 0, {
     net: stats['Lương thực nhận'],
   })
   await page.screenshot({ path: path.join(SHOT, '09-after-revert.png') })
 
-  // 10. Manager / Employee no edit button
+  // Manager / Employee no edit button
   await page.getByRole('button', { name: 'Đăng xuất' }).click()
   await page.waitForTimeout(1000)
   await page.goto(BASE, { waitUntil: 'domcontentloaded' })

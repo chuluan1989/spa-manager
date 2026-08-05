@@ -110,7 +110,6 @@ export default function PayrollWallet({ entries, employee, stats, mode = 'full' 
             ['penalty', stats.penalty],
             ['reduction', stats.reduction],
             ['advance', stats.advance],
-            ['otherAdjustment', stats.otherAdjustment],
             ['netSalary', stats.netSalary],
           ].map(([key, value]) => (
             <article key={key}>

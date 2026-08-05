@@ -22,7 +22,6 @@ function buildPayslipHtml(payslip) {
     ['penalty', -payslip.penalty],
     ['reduction', -payslip.reduction],
     ['advance', -payslip.advance],
-    ['otherAdjustment', payslip.otherAdjustment],
   ]
 
   const lineItems = rows

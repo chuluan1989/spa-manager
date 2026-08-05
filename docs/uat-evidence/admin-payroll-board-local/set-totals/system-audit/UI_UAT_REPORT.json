@@ -1,0 +1,171 @@
+{
+  "ok": true,
+  "uiSamples": [
+    {
+      "name": "Bảo Trân",
+      "month": "2026-07",
+      "cycle": "period1",
+      "tag": "penalty",
+      "found": true,
+      "board": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "popup": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "match": true,
+      "mismatches": []
+    },
+    {
+      "name": "Thu Hương",
+      "month": "2026-08",
+      "cycle": "period1",
+      "tag": "bonus-adj",
+      "found": true,
+      "board": {
+        "Thưởng": "500.000 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "500.000 ₫"
+      },
+      "popup": {
+        "Thưởng": "500.000 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "500.000 ₫"
+      },
+      "match": true,
+      "mismatches": []
+    },
+    {
+      "name": "Trúc Ly",
+      "month": "2026-07",
+      "cycle": "period1",
+      "tag": "advance",
+      "found": true,
+      "board": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "2.000.000 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "popup": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "2.000.000 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "match": true,
+      "mismatches": []
+    },
+    {
+      "name": "Lan Anh",
+      "month": "2026-07",
+      "cycle": "period1",
+      "tag": "cross-branch",
+      "found": true,
+      "board": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "popup": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "match": true,
+      "mismatches": []
+    },
+    {
+      "name": "Ái Di",
+      "month": "2026-07",
+      "cycle": "period1",
+      "tag": "no-adj",
+      "found": true,
+      "board": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "popup": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "match": true,
+      "mismatches": []
+    },
+    {
+      "name": "Ly Ly",
+      "month": "2026-08",
+      "cycle": "period1",
+      "tag": "aug-ops-readonly",
+      "found": true,
+      "board": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "popup": {
+        "Thưởng": "0 ₫",
+        "KPI": "0 ₫",
+        "Phạt": "0 ₫",
+        "Ứng lương": "0 ₫",
+        "Điều chỉnh khác": "0 ₫"
+      },
+      "match": true,
+      "mismatches": []
+    }
+  ],
+  "uat": {
+    "baseline": {
+      "revenue": 0,
+      "tips": 0,
+      "commission": 0,
+      "net": 0
+    },
+    "kpiPlus": {
+      "ok": true,
+      "board": "300.000 ₫",
+      "popup": "300.000 ₫"
+    },
+    "kpiMinus": {
+      "ok": true,
+      "board": "-200.000 ₫",
+      "popup": "-200.000 ₫"
+    },
+    "penaltyCycle": {
+      "ok": true,
+      "board": "200.000 ₫",
+      "popup": "200.000 ₫"
+    },
+    "reverted": {
+      "ok": true,
+      "net": "0 ₫"
+    }
+  },
+  "notes": []
+}

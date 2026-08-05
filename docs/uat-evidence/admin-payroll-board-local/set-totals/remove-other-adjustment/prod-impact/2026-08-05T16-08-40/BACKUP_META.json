@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-08-05T16:08:41.467Z",
+  "supabaseHost": "ceyzjgpobfqyqoxtuixz.supabase.co",
+  "counts": {
+    "payroll_adjustments": 83,
+    "payroll_audit_logs": 428,
+    "payroll_locks": 5,
+    "payroll_cycle_closes": 1
+  },
+  "thuHuongRollback": {
+    "description": "Rollback riêng Thu Hương Aug K1: khôi phục ĐC amount=500000, xóa/zero dòng advance migrate, giữ audit.",
+    "employeeId": "bac-lieu-thu-huong",
+    "adjustmentIdToRestore": "payadj-1785867587565-martmn",
+    "advanceIdCreatedByMigrate": "payadj-1785945863671-q278fs",
+    "restore": {
+      "otherAdjustment": 500000,
+      "advance": 0
+    }
+  }
+}

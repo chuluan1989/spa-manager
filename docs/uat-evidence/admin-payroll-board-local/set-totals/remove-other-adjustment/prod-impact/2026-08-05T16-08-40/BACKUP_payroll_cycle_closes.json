@@ -1,0 +1,977 @@
+[
+  {
+    "id": "pcc_tram-spa-truc-ly_2026-07_period2",
+    "employee_id": "tram-spa-truc-ly",
+    "employee_name": "Trúc Ly",
+    "branch_id": "soc-trang",
+    "branch_name": "Sóc Trăng Khoẻ Spa",
+    "billing_month": "2026-07",
+    "cycle": "period2",
+    "from_date": "2026-07-16",
+    "to_date": "2026-07-31",
+    "status": "submitted",
+    "submission_version": 1,
+    "snapshot": {
+      "period": {
+        "cycle": "period2",
+        "toDate": "2026-07-31",
+        "fromDate": "2026-07-16",
+        "submitDate": "2026-08-02",
+        "billingMonth": "2026-07"
+      },
+      "salary": {
+        "tips": 3891000,
+        "bonus": 0,
+        "advance": 0,
+        "penalty": 600000,
+        "netSalary": 3426200,
+        "reduction": 0,
+        "baseSalary": 0,
+        "commission": 135200,
+        "invoiceCount": 26,
+        "ticketRevenue": 5195000,
+        "otherAdjustment": 0
+      },
+      "totals": {
+        "tips": 3891000,
+        "bonus": 0,
+        "advance": 0,
+        "penalty": 600000,
+        "netSalary": 3426200,
+        "reduction": 0,
+        "baseSalary": 0,
+        "commission": 135200,
+        "invoiceCount": 26,
+        "ticketRevenue": 5195000,
+        "otherAdjustment": 0
+      },
+      "details": {
+        "invoices": [
+          {
+            "id": "0e16dadc-e1d3-4116-9803-28acf69afc95",
+            "date": "2026-07-31",
+            "role": "primary",
+            "tips": 111000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "co-vai-gay",
+                "name": "Cổ vai gáy",
+                "price": 189000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 0,
+            "customerName": "tùng",
+            "ticketRevenue": 189000
+          },
+          {
+            "id": "574971c1-545a-48fb-85b3-6b3cdf7b042b",
+            "date": "2026-07-31",
+            "role": "primary",
+            "tips": 500000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "ti",
+            "ticketRevenue": 200000
+          },
+          {
+            "id": "36ca931b-a546-4d9d-9961-d301982ff557",
+            "date": "2026-07-30",
+            "role": "primary",
+            "tips": 102000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60 60'",
+                "price": 189000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 39000,
+                "commissionAmount": 7800,
+                "commissionPercent": 20
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 7800,
+            "customerName": "luân",
+            "ticketRevenue": 228000
+          },
+          {
+            "id": "4f0da1a4-e119-4e53-a06b-abb5a7aed30a",
+            "date": "2026-07-30",
+            "role": "primary",
+            "tips": 101000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90 90'",
+                "price": 249000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 0,
+            "customerName": "khánh",
+            "ticketRevenue": 249000
+          },
+          {
+            "id": "b3179bbe-a912-4968-b3ba-d67be3813148",
+            "date": "2026-07-30",
+            "role": "primary",
+            "tips": 211000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60 60'",
+                "price": 189000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 0,
+            "customerName": "hùng",
+            "ticketRevenue": 189000
+          },
+          {
+            "id": "19b57f68-6155-4060-ab34-fe2eb30c02a3",
+            "date": "2026-07-30",
+            "role": "primary",
+            "tips": 161000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60 60'",
+                "price": 189000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 0,
+            "customerName": "nhàn",
+            "ticketRevenue": 189000
+          },
+          {
+            "id": "05bf6a2c-1588-4f14-a06a-04a4a788d9cd",
+            "date": "2026-07-29",
+            "role": "primary",
+            "tips": 157000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "combo-2",
+                "name": "Combo 2 2'",
+                "price": 318000,
+                "commissionAmount": 31800,
+                "commissionPercent": 10
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 31800,
+            "customerName": "phương",
+            "ticketRevenue": 318000
+          },
+          {
+            "id": "093ce5f9-4e54-4682-9395-665734f194fc",
+            "date": "2026-07-29",
+            "role": "primary",
+            "tips": 202000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60 60'",
+                "price": 189000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 0,
+            "customerName": "ly",
+            "ticketRevenue": 189000
+          },
+          {
+            "id": "0170d939-77ad-402f-8f1e-5436a076251b",
+            "date": "2026-07-28",
+            "role": "primary",
+            "tips": 1000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "goi-duong-sinh",
+                "name": "Gội dưỡng sinh",
+                "price": 129000,
+                "commissionAmount": 25800,
+                "commissionPercent": 20
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 25800,
+            "customerName": "trân",
+            "ticketRevenue": 129000
+          },
+          {
+            "id": "a275bd1c-36ce-413f-aad6-1c42f3a037f5",
+            "date": "2026-07-28",
+            "role": "primary",
+            "tips": 102000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90 90'",
+                "price": 249000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "dap-thuoc",
+                "name": "Đắp thuốc",
+                "price": 39000,
+                "commissionAmount": 7800,
+                "commissionPercent": 20
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 7800,
+            "customerName": "trâm",
+            "ticketRevenue": 288000
+          },
+          {
+            "id": "5f4fc237-d8fa-4fa7-8138-f1578875d33b",
+            "date": "2026-07-28",
+            "role": "primary",
+            "tips": 151000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90 90'",
+                "price": 249000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 0,
+            "customerName": "an",
+            "ticketRevenue": 249000
+          },
+          {
+            "id": "97bbd0f1-54ca-4bb2-a9fd-6899e82ba929",
+            "date": "2026-07-27",
+            "role": "primary",
+            "tips": 150000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "lượm",
+            "ticketRevenue": 200000
+          },
+          {
+            "id": "67d3453f-3864-46db-9866-c57afd26a21e",
+            "date": "2026-07-27",
+            "role": "primary",
+            "tips": 201000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60 60'",
+                "price": 189000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 0,
+            "customerName": "tấn",
+            "ticketRevenue": 189000
+          },
+          {
+            "id": "d17234b7-4901-4c98-8d6e-dda3a1944b50",
+            "date": "2026-07-27",
+            "role": "primary",
+            "tips": 101000,
+            "branchId": "soc-trang",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60 60'",
+                "price": 189000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Sóc Trăng Khoẻ Spa",
+            "commission": 0,
+            "customerName": "bi",
+            "ticketRevenue": 189000
+          },
+          {
+            "id": "b3765b53-84dc-4f2f-9299-09497bbff072",
+            "date": "2026-07-30",
+            "role": "primary",
+            "tips": 102000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "giac-hoi",
+                "name": "Giác hơi",
+                "price": 30000,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 6000,
+            "customerName": "minh",
+            "ticketRevenue": 190000
+          },
+          {
+            "id": "7195cbc7-1810-4cbb-88aa-cfd6e397ae6d",
+            "date": "2026-07-30",
+            "role": "primary",
+            "tips": 101000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "lượm",
+            "ticketRevenue": 200000
+          },
+          {
+            "id": "fd9d64c9-b9e4-43fd-976b-336c3be19d92",
+            "date": "2026-07-30",
+            "role": "primary",
+            "tips": 211000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "nhàn",
+            "ticketRevenue": 160000
+          },
+          {
+            "id": "a6fc9e99-c7c6-47e5-80ab-21ab7b2a6eff",
+            "date": "2026-07-30",
+            "role": "primary",
+            "tips": 161000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "trân",
+            "ticketRevenue": 160000
+          },
+          {
+            "id": "5bbdd4d6-b316-4827-afc0-75dfc729b294",
+            "date": "2026-07-29",
+            "role": "primary",
+            "tips": 157000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "combo-2",
+                "name": "Combo 2 120'",
+                "price": 260000,
+                "commissionAmount": 26000,
+                "commissionPercent": 10
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 26000,
+            "customerName": "huy",
+            "ticketRevenue": 260000
+          },
+          {
+            "id": "f5721c17-967f-461e-bb4f-5cff804bb40e",
+            "date": "2026-07-29",
+            "role": "primary",
+            "tips": 202000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "luân",
+            "ticketRevenue": 160000
+          },
+          {
+            "id": "99ab13fd-aa17-4d4c-a293-a68cdb4ade74",
+            "date": "2026-07-28",
+            "role": "primary",
+            "tips": 1000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "goi-duong-sinh",
+                "name": "Gội dưỡng sinh 60'",
+                "price": 120000,
+                "commissionAmount": 24000,
+                "commissionPercent": 20
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 24000,
+            "customerName": "thuỷ",
+            "ticketRevenue": 120000
+          },
+          {
+            "id": "c3f1ad43-4fc4-4089-9f04-472f803684b4",
+            "date": "2026-07-28",
+            "role": "primary",
+            "tips": 102000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              },
+              {
+                "id": "dap-thuoc",
+                "name": "Đắp thuốc thảo dược",
+                "price": 30000,
+                "commissionAmount": 6000,
+                "commissionPercent": 20
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 6000,
+            "customerName": "nam",
+            "ticketRevenue": 230000
+          },
+          {
+            "id": "08f0bccb-bdf9-4378-8f5a-b4a108bd0412",
+            "date": "2026-07-28",
+            "role": "primary",
+            "tips": 151000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "cường",
+            "ticketRevenue": 200000
+          },
+          {
+            "id": "a135a542-9f96-43a9-9a22-2c689bddb385",
+            "date": "2026-07-27",
+            "role": "primary",
+            "tips": 201000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "tùng",
+            "ticketRevenue": 160000
+          },
+          {
+            "id": "8f2adeca-a069-4139-baac-630e539fac5d",
+            "date": "2026-07-27",
+            "role": "primary",
+            "tips": 101000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-60",
+                "name": "Body 60'",
+                "price": 160000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "bi",
+            "ticketRevenue": 160000
+          },
+          {
+            "id": "88af1226-ffa1-47e7-9897-320f76fda0da",
+            "date": "2026-07-27",
+            "role": "primary",
+            "tips": 150000,
+            "branchId": "tram-spa",
+            "services": [
+              {
+                "id": "body-90",
+                "name": "Body 90'",
+                "price": 200000,
+                "commissionAmount": 0,
+                "commissionPercent": 0
+              }
+            ],
+            "branchName": "Trạm Spa",
+            "commission": 0,
+            "customerName": "nam",
+            "ticketRevenue": 200000
+          }
+        ],
+        "adjustments": []
+      },
+      "version": 1,
+      "employee": {
+        "id": "tram-spa-truc-ly",
+        "name": "Trúc Ly",
+        "branchId": "soc-trang",
+        "branchName": "Sóc Trăng Khoẻ Spa"
+      },
+      "attendance": {
+        "days": [
+          {
+            "date": "2026-07-16",
+            "result": "recorded",
+            "status": "full_day_permitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-17",
+            "result": "recorded",
+            "status": "full_day_permitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-18",
+            "result": "recorded",
+            "status": "full_day_permitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-19",
+            "result": "recorded",
+            "status": "full_day_permitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-20",
+            "result": "recorded",
+            "status": "full_day_permitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-21",
+            "result": "recorded",
+            "status": "full_day_unpermitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Không phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-22",
+            "result": "recorded",
+            "status": "full_day_permitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-23",
+            "result": "recorded",
+            "status": "full_day_permitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-24",
+            "result": "recorded",
+            "status": "full_day_permitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-25",
+            "result": "recorded",
+            "status": "on_time",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Đi làm đúng giờ",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-26",
+            "result": "recorded",
+            "status": "on_time",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Đi làm đúng giờ",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-27",
+            "result": "recorded",
+            "status": "full_day_permitted",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-28",
+            "result": "recorded",
+            "status": "on_time",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Đi làm đúng giờ",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-29",
+            "result": "recorded",
+            "status": "on_time",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Đi làm đúng giờ",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-30",
+            "result": "recorded",
+            "status": "on_time",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Đi làm đúng giờ",
+            "isPendingCorrection": false
+          },
+          {
+            "date": "2026-07-31",
+            "result": "recorded",
+            "status": "on_time",
+            "isMissing": false,
+            "blocksClose": false,
+            "resultLabel": "Đi làm đúng giờ",
+            "isPendingCorrection": false
+          }
+        ],
+        "waiver": false,
+        "summary": {
+          "totalDays": 16,
+          "futureDays": 0,
+          "isComplete": true,
+          "missingDays": 0,
+          "missingDates": [],
+          "requiredDays": 16,
+          "completedDays": 16,
+          "unresolvedDays": 0,
+          "unresolvedDates": [],
+          "pendingCorrectionDays": 0,
+          "pendingCorrectionDates": []
+        }
+      },
+      "capturedAt": "2026-08-03T11:17:53.736Z",
+      "confirmations": {
+        "labels": [
+          {
+            "key": "attendanceChecked",
+            "label": "Tôi đã kiểm tra đúng các ngày chấm công và ngày đi làm trong kỳ.",
+            "checked": true
+          },
+          {
+            "key": "invoicesChecked",
+            "label": "Tôi đã kiểm tra đúng toàn bộ hóa đơn/Tour, dịch vụ, tips và doanh thu của mình trong kỳ.",
+            "checked": true
+          },
+          {
+            "key": "adjustmentsChecked",
+            "label": "Tôi đã kiểm tra đúng KPI, thưởng, phạt, tạm ứng, khoản cộng và khoản trừ.",
+            "checked": true
+          }
+        ],
+        "confirmedAt": "2026-08-03T11:17:53.736Z",
+        "invoicesChecked": true,
+        "attendanceChecked": true,
+        "adjustmentsChecked": true
+      }
+    },
+    "attendance_snapshot": [
+      {
+        "date": "2026-07-16",
+        "result": "recorded",
+        "status": "full_day_permitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-17",
+        "result": "recorded",
+        "status": "full_day_permitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-18",
+        "result": "recorded",
+        "status": "full_day_permitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-19",
+        "result": "recorded",
+        "status": "full_day_permitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-20",
+        "result": "recorded",
+        "status": "full_day_permitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-21",
+        "result": "recorded",
+        "status": "full_day_unpermitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Không phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-22",
+        "result": "recorded",
+        "status": "full_day_permitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-23",
+        "result": "recorded",
+        "status": "full_day_permitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-24",
+        "result": "recorded",
+        "status": "full_day_permitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-25",
+        "result": "recorded",
+        "status": "on_time",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Đi làm đúng giờ",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-26",
+        "result": "recorded",
+        "status": "on_time",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Đi làm đúng giờ",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-27",
+        "result": "recorded",
+        "status": "full_day_permitted",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Nghỉ nguyên ngày (Có phép)",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-28",
+        "result": "recorded",
+        "status": "on_time",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Đi làm đúng giờ",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-29",
+        "result": "recorded",
+        "status": "on_time",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Đi làm đúng giờ",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-30",
+        "result": "recorded",
+        "status": "on_time",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Đi làm đúng giờ",
+        "isPendingCorrection": false
+      },
+      {
+        "date": "2026-07-31",
+        "result": "recorded",
+        "status": "on_time",
+        "isMissing": false,
+        "blocksClose": false,
+        "resultLabel": "Đi làm đúng giờ",
+        "isPendingCorrection": false
+      }
+    ],
+    "submission_history": [],
+    "validation": {
+      "toDate": "2026-07-31",
+      "branchId": "soc-trang",
+      "fromDate": "2026-07-16",
+      "checkedAt": "2026-08-03T11:17:53.737Z",
+      "missingDays": 0,
+      "missingDates": [],
+      "attendanceComplete": true
+    },
+    "ticket_revenue": 5195000,
+    "commission": 135200,
+    "tips": 3891000,
+    "bonus": 0,
+    "penalty": 600000,
+    "advance": 0,
+    "reduction": 0,
+    "other_adjustment": 0,
+    "base_salary": 0,
+    "net_salary": 3426200,
+    "submitted_at": "2026-08-03T11:17:53.737+00:00",
+    "submitted_by": "tram-spa-truc-ly",
+    "submitted_by_name": "Trúc Ly",
+    "returned_at": null,
+    "returned_by": "",
+    "returned_by_name": "",
+    "return_reason": "",
+    "resubmitted_at": null,
+    "resubmitted_by": "",
+    "resubmitted_by_name": "",
+    "approved_at": null,
+    "approved_by": "",
+    "approved_by_name": "",
+    "created_at": "2026-08-03T11:17:53.738+00:00",
+    "updated_at": "2026-08-03T11:17:53.738+00:00"
+  }
+]

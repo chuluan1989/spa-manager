@@ -1,0 +1,65 @@
+{
+  "label": "after",
+  "at": "2026-08-05T16:04:25.959Z",
+  "thuHuong": {
+    "employee": "Thu Hương",
+    "employeeId": "bac-lieu-thu-huong",
+    "branch": "Bạc Liêu Khoẻ Spa",
+    "period": "2026-08 Kỳ 1",
+    "bonus": 500000,
+    "kpi": 0,
+    "penalty": 0,
+    "advance": 500000,
+    "otherAdjustment": 0,
+    "revenue": 447000,
+    "tips": 383000,
+    "commission": 51600,
+    "netSalary": -565400,
+    "workDays": 4
+  },
+  "adjustmentLines": [
+    {
+      "id": "payadj-1785867365667-3lu28d",
+      "type": "bonus",
+      "amount": 500000,
+      "date": "2026-08-04",
+      "note": "Ứng 500 ngày 4/8",
+      "reason": "Ứng"
+    },
+    {
+      "id": "payadj-1785867474731-unc6l3",
+      "type": "reduction",
+      "amount": 500000,
+      "date": "2026-08-04",
+      "note": "Ứng 500 ngày 4/8",
+      "reason": "Ứng"
+    },
+    {
+      "id": "payadj-1785867502437-cbasxg",
+      "type": "reduction",
+      "amount": 500000,
+      "date": "2026-08-04",
+      "note": "Ứng 500 ngày 4/8",
+      "reason": "Ứng"
+    },
+    {
+      "id": "payadj-1785867587565-martmn",
+      "type": "adjustment",
+      "amount": 0,
+      "date": "2026-08-04",
+      "note": "Ứng 500 ngày 4/8",
+      "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08."
+    },
+    {
+      "id": "payadj-1785945863671-q278fs",
+      "type": "advance",
+      "amount": 500000,
+      "date": "2026-08-15",
+      "note": "Ứng 500 ngày 4/8 — chuyển từ Điều chỉnh khác",
+      "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08."
+    }
+  ],
+  "legacyNonZeroSystemWide": [],
+  "legacyCount": 0,
+  "legacySum": 0
+}

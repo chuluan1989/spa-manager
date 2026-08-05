@@ -33,8 +33,9 @@ export function computeGrossIncome(row) {
     + (row.commission ?? 0)
     + (row.tips ?? 0)
     + (row.bonus ?? 0)
-    + (row.otherAdjustment ?? 0)
+    + (row.kpi ?? 0)
     - (row.reduction ?? 0)
+    // otherAdjustment legacy — không còn trong gross vận hành
   )
 }
 

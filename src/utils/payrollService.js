@@ -94,6 +94,12 @@ export async function addPayrollAdjustment(payload, locks = null) {
   await assertMonthEditable(payload.month, payload.branchId, locks)
 
   const { editorId, editorName } = currentEditor()
+  const rawAmount = Number(payload.amount ?? 0)
+  const amount = payload.allowSignedPenalty
+    && payload.type === PAYROLL_ADJUSTMENT_TYPES.PENALTY
+    && Number.isFinite(rawAmount)
+    ? rawAmount
+    : normalizePayrollAdjustmentAmount(payload.type, payload.amount)
   const record = {
     id: createPayrollAdjustmentId(),
     date: payload.date,
@@ -102,7 +108,7 @@ export async function addPayrollAdjustment(payload, locks = null) {
     employeeId: payload.employeeId,
     employeeName: payload.employeeName ?? '',
     type: payload.type,
-    amount: normalizePayrollAdjustmentAmount(payload.type, payload.amount),
+    amount,
     reason: payload.reason?.trim?.() ?? payload.reason ?? '',
     note: payload.note?.trim?.() ?? payload.note ?? '',
     expenseId: payload.expenseId ?? '',
@@ -173,13 +179,15 @@ export async function removePayrollAdjustment(record, reason = '', locks = null)
 
 /**
  * Admin — lưu sửa bảng lương theo GIÁ TRỊ TỔNG từng hạng mục (SET).
- * Với mỗi type thay đổi: đưa các dòng cũ trong kỳ về 0 (giữ lịch sử), rồi thêm 1 dòng = target (nếu ≠ 0).
- * Chỉ audit các hạng mục thực sự đổi. difference = tác động lên lương thực nhận.
+ * oldValue / so sánh đổi = đúng số đang hiển thị trên bảng (displayedTotals từ payrollRow).
+ * Phạt hiển thị = phạt chấm công + phạt tay → SET ghi dòng tay = target − attendancePenalty.
  */
 export async function saveAdminPayrollBoardEdits({
   reason,
   note = '',
   totals = {},
+  displayedTotals = null,
+  attendancePenalty = 0,
   employeeId,
   employeeName,
   branchId,
@@ -202,14 +210,14 @@ export async function saveAdminPayrollBoardEdits({
     PAYROLL_ADJUSTMENT_TYPES.KPI,
     PAYROLL_ADJUSTMENT_TYPES.PENALTY,
     PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
-    PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT,
   ]
   const results = []
   const date = toDate || `${month}-15`
+  const attendancePart = Math.max(0, Number(attendancePenalty) || 0)
 
   for (const type of boardTypes) {
     if (!Object.prototype.hasOwnProperty.call(totals, type)) continue
-    const target = normalizePayrollAdjustmentAmount(type, totals[type])
+    const targetDisplayed = normalizePayrollAdjustmentAmount(type, totals[type])
     const periodRows = (allRows ?? []).filter((row) => {
       if (row.employeeId !== employeeId) return false
       if (row.type !== type) return false
@@ -217,10 +225,20 @@ export async function saveAdminPayrollBoardEdits({
       if (toDate && row.date > toDate) return false
       return true
     })
-    const oldTotal = periodRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0)
-    if (oldTotal === target) {
-      results.push({ action: 'unchanged', type, oldTotal, newTotal: target })
+    const adjSum = periodRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0)
+    const oldDisplayed = displayedTotals && Object.prototype.hasOwnProperty.call(displayedTotals, type)
+      ? Number(displayedTotals[type] ?? 0)
+      : (type === PAYROLL_ADJUSTMENT_TYPES.PENALTY ? adjSum + attendancePart : adjSum)
+
+    if (oldDisplayed === targetDisplayed) {
+      results.push({ action: 'unchanged', type, oldTotal: oldDisplayed, newTotal: targetDisplayed })
       continue
+    }
+
+    // Số cần ghi vào dòng adjustment để bảng hiển thị = targetDisplayed.
+    let adjTarget = targetDisplayed
+    if (type === PAYROLL_ADJUSTMENT_TYPES.PENALTY) {
+      adjTarget = targetDisplayed - attendancePart
     }
 
     for (const record of periodRows) {
@@ -233,10 +251,13 @@ export async function saveAdminPayrollBoardEdits({
     }
 
     let createdId = null
-    if (target !== 0) {
+    if (adjTarget !== 0) {
       const saved = await addPayrollAdjustment({
         type,
-        amount: target,
+        // Phạt tay có thể âm khi SET tổng hiển thị thấp hơn phạt chấm công.
+        amount: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY
+          ? adjTarget
+          : normalizePayrollAdjustmentAmount(type, adjTarget),
         note: note || '',
         reason,
         date,
@@ -245,11 +266,12 @@ export async function saveAdminPayrollBoardEdits({
         employeeId,
         employeeName,
         payrollCycle: cycle,
+        allowSignedPenalty: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY,
       }, locks)
       createdId = saved.id
     }
 
-    const netImpact = netSalaryImpactForFieldSet(type, oldTotal, target)
+    const netImpact = netSalaryImpactForFieldSet(type, oldDisplayed, targetDisplayed)
 
     const field = buildPayrollFieldAuditValues({
       employeeId,
@@ -258,10 +280,16 @@ export async function saveAdminPayrollBoardEdits({
       month,
       cycle,
       fieldChanged: type,
-      oldValue: oldTotal,
-      newValue: target,
+      oldValue: oldDisplayed,
+      newValue: targetDisplayed,
       difference: netImpact,
-      extra: { adjustmentId: createdId, note: note || '', setTotal: true },
+      extra: {
+        adjustmentId: createdId,
+        note: note || '',
+        setTotal: true,
+        adjTarget,
+        attendancePenalty: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY ? attendancePart : undefined,
+      },
     })
     await writeAuditLog({
       entityType: 'payroll_field',
@@ -273,8 +301,8 @@ export async function saveAdminPayrollBoardEdits({
     results.push({
       action: 'set_total',
       type,
-      oldTotal,
-      newTotal: target,
+      oldTotal: oldDisplayed,
+      newTotal: targetDisplayed,
       netImpact,
       adjustmentId: createdId,
     })

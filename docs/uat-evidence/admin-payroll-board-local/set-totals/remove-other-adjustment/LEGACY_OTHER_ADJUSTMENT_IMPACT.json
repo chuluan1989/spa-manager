@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-08-05T16:06:00.000Z",
+  "readOnly": true,
+  "meaning": "Sau migrate hướng 2: không còn employee-period nào có otherAdjustment ≠ 0 trên Jul K1/K2 + Aug K1. Bản ghi ĐC cũ Thu Hương giữ amount=0 để audit.",
+  "employeePeriodsWithOtherAdjustment": 0,
+  "totalOtherAdjustmentAmount": 0,
+  "totalNetImpactIfRemovedFromFormula": 0,
+  "thuHuong": [],
+  "byPeriod": [
+    { "period": "2026-07 Kỳ 1", "count": 0, "sumOtherAdjustment": 0, "employees": [] },
+    { "period": "2026-07 Kỳ 2", "count": 0, "sumOtherAdjustment": 0, "employees": [] },
+    { "period": "2026-08 Kỳ 1", "count": 0, "sumOtherAdjustment": 0, "employees": [] }
+  ],
+  "rawNonZeroAdjustmentLines": [],
+  "zeroedLegacyKeptForAudit": [
+    {
+      "id": "payadj-1785867587565-martmn",
+      "employee": "Thu Hương",
+      "employeeId": "bac-lieu-thu-huong",
+      "branchId": "bac-lieu",
+      "month": "2026-08",
+      "date": "2026-08-04",
+      "amount": 0,
+      "note": "Ứng 500 ngày 4/8",
+      "status": "zeroed_kept"
+    }
+  ]
+}

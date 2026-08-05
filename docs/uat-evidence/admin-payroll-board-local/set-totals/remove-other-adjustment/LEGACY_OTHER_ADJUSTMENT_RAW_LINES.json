@@ -1,0 +1,13 @@
+[
+  {
+    "id": "payadj-1785867587565-martmn",
+    "employee": "Thu Hương",
+    "employeeId": "bac-lieu-thu-huong",
+    "branchId": "bac-lieu",
+    "month": "2026-08",
+    "date": "2026-08-04",
+    "amount": 500000,
+    "note": "Ứng 500 ngày 4/8",
+    "reason": "Ứng"
+  }
+]

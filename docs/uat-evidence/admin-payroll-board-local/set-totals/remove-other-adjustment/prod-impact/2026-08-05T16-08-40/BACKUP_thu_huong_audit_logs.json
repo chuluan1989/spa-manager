@@ -1,0 +1,267 @@
+[
+  {
+    "id": "payaudit-1785925651128-8qjgdu",
+    "entity_type": "payroll_field",
+    "entity_id": "bac-lieu-thu-huong",
+    "action": "update_field",
+    "editor_id": "admin",
+    "editor_name": "Admin",
+    "old_value": {
+      "note": "tm",
+      "cycle": "period2",
+      "month": "2026-07",
+      "value": 500000,
+      "branchId": "bac-lieu",
+      "employeeId": "bac-lieu-thu-huong",
+      "adjustmentId": "payadj-1785912507089-fvknre",
+      "employeeName": "Thu Hương",
+      "fieldChanged": "bonus",
+      "payrollPeriod": "2026-07/period2"
+    },
+    "new_value": {
+      "note": "tm",
+      "cycle": "period2",
+      "month": "2026-07",
+      "value": 0,
+      "branchId": "bac-lieu",
+      "difference": -500000,
+      "employeeId": "bac-lieu-thu-huong",
+      "adjustmentId": "payadj-1785912507089-fvknre",
+      "employeeName": "Thu Hương",
+      "fieldChanged": "bonus",
+      "payrollPeriod": "2026-07/period2"
+    },
+    "reason": "sai",
+    "created_at": "2026-08-05T10:27:31.128+00:00"
+  },
+  {
+    "id": "payaudit-1785925651268-yp69du",
+    "entity_type": "payroll_board",
+    "entity_id": "bac-lieu-thu-huong",
+    "action": "admin_edit_board",
+    "editor_id": "admin",
+    "editor_name": "Admin",
+    "old_value": {
+      "existingIds": [
+        "payadj-1785912507089-fvknre",
+        "payadj-1785912537706-zvvz1z"
+      ]
+    },
+    "new_value": {
+      "results": [
+        {
+          "id": "payadj-1785912507089-fvknre",
+          "action": "update"
+        },
+        {
+          "id": "payadj-1785912537706-zvvz1z",
+          "action": "unchanged"
+        }
+      ]
+    },
+    "reason": "sai",
+    "created_at": "2026-08-05T10:27:31.268+00:00"
+  },
+  {
+    "id": "payaudit-1785925706197-ktrx7c",
+    "entity_type": "payroll_field",
+    "entity_id": "bac-lieu-thu-huong",
+    "action": "update_field",
+    "editor_id": "admin",
+    "editor_name": "Admin",
+    "old_value": {
+      "note": "tm",
+      "cycle": "period2",
+      "month": "2026-07",
+      "value": 500000,
+      "branchId": "bac-lieu",
+      "employeeId": "bac-lieu-thu-huong",
+      "adjustmentId": "payadj-1785912537706-zvvz1z",
+      "employeeName": "Thu Hương",
+      "fieldChanged": "advance",
+      "payrollPeriod": "2026-07/period2"
+    },
+    "new_value": {
+      "note": "tm",
+      "cycle": "period2",
+      "month": "2026-07",
+      "value": 0,
+      "branchId": "bac-lieu",
+      "difference": -500000,
+      "employeeId": "bac-lieu-thu-huong",
+      "adjustmentId": "payadj-1785912537706-zvvz1z",
+      "employeeName": "Thu Hương",
+      "fieldChanged": "advance",
+      "payrollPeriod": "2026-07/period2"
+    },
+    "reason": "phạt do bệnh",
+    "created_at": "2026-08-05T10:28:26.197+00:00"
+  },
+  {
+    "id": "payaudit-1785925706567-bwa5mv",
+    "entity_type": "payroll_board",
+    "entity_id": "bac-lieu-thu-huong",
+    "action": "admin_edit_board",
+    "editor_id": "admin",
+    "editor_name": "Admin",
+    "old_value": {
+      "existingIds": [
+        "payadj-1785912507089-fvknre",
+        "payadj-1785912537706-zvvz1z"
+      ]
+    },
+    "new_value": {
+      "results": [
+        {
+          "id": "payadj-1785912507089-fvknre",
+          "action": "unchanged"
+        },
+        {
+          "id": "payadj-1785912537706-zvvz1z",
+          "action": "update"
+        }
+      ]
+    },
+    "reason": "phạt do bệnh",
+    "created_at": "2026-08-05T10:28:26.567+00:00"
+  },
+  {
+    "id": "payaudit-1785945863076-wyugyn",
+    "entity_type": "payroll_field",
+    "entity_id": "bac-lieu-thu-huong",
+    "action": "set_field_total",
+    "editor_id": "admin",
+    "editor_name": "Admin",
+    "old_value": {
+      "note": "Ứng 500 ngày 4/8 — chuyển từ Điều chỉnh khác",
+      "cycle": "period1",
+      "month": "2026-08",
+      "value": 500000,
+      "branchId": "bac-lieu",
+      "migration": "other_to_advance",
+      "zeroedIds": [
+        "payadj-1785867587565-martmn"
+      ],
+      "employeeId": "bac-lieu-thu-huong",
+      "legacyOnly": true,
+      "employeeName": "Thu Hương",
+      "fieldChanged": "adjustment",
+      "payrollPeriod": "2026-08/period1"
+    },
+    "new_value": {
+      "note": "Ứng 500 ngày 4/8 — chuyển từ Điều chỉnh khác",
+      "cycle": "period1",
+      "month": "2026-08",
+      "value": 0,
+      "branchId": "bac-lieu",
+      "migration": "other_to_advance",
+      "zeroedIds": [
+        "payadj-1785867587565-martmn"
+      ],
+      "difference": -500000,
+      "employeeId": "bac-lieu-thu-huong",
+      "legacyOnly": true,
+      "employeeName": "Thu Hương",
+      "fieldChanged": "adjustment",
+      "payrollPeriod": "2026-08/period1"
+    },
+    "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+    "created_at": "2026-08-05T16:04:23.076+00:00"
+  },
+  {
+    "id": "payaudit-1785945864102-0ggua5",
+    "entity_type": "payroll_field",
+    "entity_id": "bac-lieu-thu-huong",
+    "action": "set_field_total",
+    "editor_id": "admin",
+    "editor_name": "Admin",
+    "old_value": {
+      "note": "Ứng 500 ngày 4/8 — chuyển từ Điều chỉnh khác",
+      "cycle": "period1",
+      "month": "2026-08",
+      "value": 0,
+      "branchId": "bac-lieu",
+      "setTotal": true,
+      "adjTarget": 500000,
+      "employeeId": "bac-lieu-thu-huong",
+      "adjustmentId": "payadj-1785945863671-q278fs",
+      "employeeName": "Thu Hương",
+      "fieldChanged": "advance",
+      "payrollPeriod": "2026-08/period1"
+    },
+    "new_value": {
+      "note": "Ứng 500 ngày 4/8 — chuyển từ Điều chỉnh khác",
+      "cycle": "period1",
+      "month": "2026-08",
+      "value": 500000,
+      "branchId": "bac-lieu",
+      "setTotal": true,
+      "adjTarget": 500000,
+      "difference": -500000,
+      "employeeId": "bac-lieu-thu-huong",
+      "adjustmentId": "payadj-1785945863671-q278fs",
+      "employeeName": "Thu Hương",
+      "fieldChanged": "advance",
+      "payrollPeriod": "2026-08/period1"
+    },
+    "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+    "created_at": "2026-08-05T16:04:24.102+00:00"
+  },
+  {
+    "id": "payaudit-1785945864347-njj2db",
+    "entity_type": "payroll_board",
+    "entity_id": "bac-lieu-thu-huong",
+    "action": "admin_edit_board",
+    "editor_id": "admin",
+    "editor_name": "Admin",
+    "old_value": {
+      "fields": [
+        {
+          "type": "advance",
+          "value": 0
+        }
+      ]
+    },
+    "new_value": {
+      "fields": [
+        {
+          "type": "advance",
+          "value": 500000,
+          "netImpact": -500000
+        }
+      ]
+    },
+    "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+    "created_at": "2026-08-05T16:04:24.347+00:00"
+  },
+  {
+    "id": "payaudit-1785945864493-g2nee6",
+    "entity_type": "payroll_board",
+    "entity_id": "bac-lieu-thu-huong",
+    "action": "migrate_other_to_advance",
+    "editor_id": "admin",
+    "editor_name": "Admin",
+    "old_value": {
+      "advance": 0,
+      "netSalary": -65400,
+      "otherAdjustment": 500000
+    },
+    "new_value": {
+      "advance": 500000,
+      "boardResults": [
+        {
+          "type": "advance",
+          "action": "set_total",
+          "newTotal": 500000,
+          "oldTotal": 0,
+          "netImpact": -500000,
+          "adjustmentId": "payadj-1785945863671-q278fs"
+        }
+      ],
+      "transferAmount": 500000,
+      "otherAdjustment": 0
+    },
+    "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+    "created_at": "2026-08-05T16:04:24.493+00:00"
+  }
+]

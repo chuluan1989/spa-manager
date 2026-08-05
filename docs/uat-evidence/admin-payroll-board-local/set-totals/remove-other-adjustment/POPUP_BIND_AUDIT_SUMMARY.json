@@ -1,0 +1,252 @@
+{
+  "generatedAt": "2026-08-05T15:49:43.954Z",
+  "readOnly": true,
+  "periods": [
+    "2026-07 Kỳ 1",
+    "2026-07 Kỳ 2",
+    "2026-08 Kỳ 1"
+  ],
+  "employeePeriodsChecked": 105,
+  "uniqueEmployees": 35,
+  "mismatchEmployeePeriodsBefore": 22,
+  "mismatchEmployeePeriodsAfter": 0,
+  "mismatchedFieldCountBefore": 22,
+  "mismatchedFieldCountAfter": 0,
+  "passLocalBind": true,
+  "mismatchedFieldsBefore": [
+    {
+      "employee": "Bảo Trân",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "field": "Phạt",
+      "outside": 100000,
+      "popup": 0,
+      "delta": -100000
+    },
+    {
+      "employee": "Chị 7",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "field": "Phạt",
+      "outside": 100000,
+      "popup": 0,
+      "delta": -100000
+    },
+    {
+      "employee": "Huỳnh Anh",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "field": "Phạt",
+      "outside": 700000,
+      "popup": 0,
+      "delta": -700000
+    },
+    {
+      "employee": "Kim Quyên",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "field": "Phạt",
+      "outside": 100000,
+      "popup": 0,
+      "delta": -100000
+    },
+    {
+      "employee": "Ly Ly",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "field": "Phạt",
+      "outside": 100000,
+      "popup": 0,
+      "delta": -100000
+    },
+    {
+      "employee": "Thu Thảo",
+      "branch": "Vĩnh Long Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "field": "Phạt",
+      "outside": 200000,
+      "popup": 0,
+      "delta": -200000
+    },
+    {
+      "employee": "Thuý An",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "field": "Phạt",
+      "outside": 50000,
+      "popup": 0,
+      "delta": -50000
+    },
+    {
+      "employee": "Trà My",
+      "branch": "Trà Vinh Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "field": "Phạt",
+      "outside": 500000,
+      "popup": 0,
+      "delta": -500000
+    },
+    {
+      "employee": "Bảo Trân",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 650000,
+      "popup": 0,
+      "delta": -650000
+    },
+    {
+      "employee": "Chị 7",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 100000,
+      "popup": 0,
+      "delta": -100000
+    },
+    {
+      "employee": "Hồng Thảo",
+      "branch": "Vĩnh Long Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 50000,
+      "popup": 0,
+      "delta": -50000
+    },
+    {
+      "employee": "Hồng Thương",
+      "branch": "Vĩnh Long Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 50000,
+      "popup": 0,
+      "delta": -50000
+    },
+    {
+      "employee": "Huỳnh Anh",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 1100000,
+      "popup": 0,
+      "delta": -1100000
+    },
+    {
+      "employee": "Kim Quyên",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 300000,
+      "popup": 0,
+      "delta": -300000
+    },
+    {
+      "employee": "Ly Ly",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 150000,
+      "popup": 0,
+      "delta": -150000
+    },
+    {
+      "employee": "Thanh Thư",
+      "branch": "Bạc Liêu Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 200000,
+      "popup": 0,
+      "delta": -200000
+    },
+    {
+      "employee": "Thu Hương",
+      "branch": "Bạc Liêu Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 400000,
+      "popup": 0,
+      "delta": -400000
+    },
+    {
+      "employee": "Thu Thảo",
+      "branch": "Vĩnh Long Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 200000,
+      "popup": 0,
+      "delta": -200000
+    },
+    {
+      "employee": "Thuý An",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 100000,
+      "popup": 0,
+      "delta": -100000
+    },
+    {
+      "employee": "Trà My",
+      "branch": "Trà Vinh Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 550000,
+      "popup": 0,
+      "delta": -550000
+    },
+    {
+      "employee": "Trúc Ly",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 600000,
+      "popup": 0,
+      "delta": -600000
+    },
+    {
+      "employee": "Trúc Trinh",
+      "branch": "Trà Vinh Khoẻ Spa",
+      "period": "2026-07 Kỳ 2",
+      "field": "Phạt",
+      "outside": 50000,
+      "popup": 0,
+      "delta": -50000
+    }
+  ],
+  "mismatchedFieldsAfter": [],
+  "sampleCoverage": {
+    "withPenalty": {
+      "employee": "Bảo Trân",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "khớp_sau_sửa": "KHỚP"
+    },
+    "withBonus": {
+      "employee": "Thu Hương",
+      "branch": "Bạc Liêu Khoẻ Spa",
+      "period": "2026-08 Kỳ 1",
+      "khớp_sau_sửa": "KHỚP"
+    },
+    "withAdvance": {
+      "employee": "Trúc Ly",
+      "branch": "Sóc Trăng Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "khớp_sau_sửa": "KHỚP"
+    },
+    "withKpiPlus": null,
+    "withKpiMinus": null,
+    "crossBranch": {
+      "employee": "Lan Anh",
+      "branch": "Trạm Spa",
+      "period": "2026-07 Kỳ 1",
+      "khớp_sau_sửa": "KHỚP"
+    },
+    "noAdj": {
+      "employee": "Ái Di",
+      "branch": "Sống Khoẻ Spa",
+      "period": "2026-07 Kỳ 1",
+      "khớp_sau_sửa": "KHỚP"
+    }
+  },
+  "csv": "docs/uat-evidence/admin-payroll-board-local/set-totals/remove-other-adjustment/POPUP_BIND_AUDIT_4FIELDS.csv"
+}

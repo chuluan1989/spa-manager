@@ -605,8 +605,6 @@ function SalaryPage() {
           cycle={cycle}
           fromDate={report.fromDate}
           toDate={report.toDate}
-          invoices={invoices}
-          attendance={attendance}
           adjustments={adjustments}
           locks={locks}
           saving={saving}

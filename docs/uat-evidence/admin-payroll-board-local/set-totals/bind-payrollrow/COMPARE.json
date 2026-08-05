@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "before": {
+    "board": {
+      "Thưởng": "0 ₫",
+      "KPI": "0 ₫",
+      "Phạt": "600.000 ₫",
+      "Ứng lương": "1.000.000 ₫",
+      "Điều chỉnh khác": "0 ₫"
+    },
+    "popup": {
+      "Thưởng": "0 ₫",
+      "KPI": "0 ₫",
+      "Phạt": "600.000 ₫",
+      "Ứng lương": "1.000.000 ₫",
+      "Điều chỉnh khác": "0 ₫"
+    }
+  },
+  "matchBefore": true,
+  "after": {
+    "boardPhat": "200.000 ₫",
+    "popupPhat": "200.000 ₫",
+    "ok": true
+  },
+  "restored": {
+    "penalty": 0,
+    "advance": 0,
+    "ok": true
+  }
+}

@@ -11,7 +11,6 @@ export default function PayrollPayslipPanel({ payslip, onClose }) {
       - (payslip.reduction ?? 0) - (payslip.penalty ?? 0)
     )],
     ['advance', payslip.advance],
-    ['otherAdjustment', payslip.otherAdjustment],
   ]
 
   const detailLines = [

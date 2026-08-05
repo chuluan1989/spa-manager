@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-08-05T16:08:42.787Z",
+  "deployed": false,
+  "backupDir": "/Users/chuluan/Spa-manager/docs/uat-evidence/admin-payroll-board-local/set-totals/remove-other-adjustment/prod-impact/2026-08-05T16-08-40",
+  "backupCounts": {
+    "payroll_adjustments": 83,
+    "payroll_audit_logs": 428,
+    "payroll_locks": 5,
+    "payroll_cycle_closes": 1
+  },
+  "thuHuong": {
+    "A_productionTruocThayDoi": {
+      "source": "DB trước migrate (BEFORE.json) + công thức Production cũ (+ otherAdjustment)",
+      "bonus": 500000,
+      "kpi": 0,
+      "penalty": 0,
+      "advance": 0,
+      "otherAdjustment": 500000,
+      "netSalary": 434600
+    },
+    "A2_productionCodeHienTaiTrenDbDaMigrate": {
+      "source": "DB hiện tại + công thức Production cũ vẫn đang chạy (nếu chưa deploy code)",
+      "bonus": 500000,
+      "kpi": 0,
+      "penalty": 0,
+      "advance": 500000,
+      "otherAdjustment": 0,
+      "netSalary": -565400
+    },
+    "B_sauDeploy": {
+      "source": "DB hiện tại (đã migrate) + công thức mới (không cộng otherAdjustment)",
+      "bonus": 500000,
+      "kpi": 0,
+      "penalty": 0,
+      "advance": 500000,
+      "otherAdjustment": 0,
+      "netSalary": -565400
+    },
+    "C_chenhLechGoiThayDoi": {
+      "bonus": 0,
+      "kpi": 0,
+      "penalty": 0,
+      "advance": 500000,
+      "otherAdjustment": -500000,
+      "netSalary": -1000000
+    },
+    "formulaExplain": {
+      "productionOldNet": 434600,
+      "afterDeployNet": -565400,
+      "totalDelta": -1000000,
+      "part1_boCongDieuChinhKhac": {
+        "amount": -500000,
+        "meaning": "Bỏ cộng Điều chỉnh khác 500.000 khỏi net → Δ -500.000"
+      },
+      "part2_congUngLuong": {
+        "amount": -500000,
+        "meaning": "Ứng lương tăng từ 0 → 500.000 (trừ net) → Δ -500.000"
+      },
+      "identityCheck": true,
+      "equation": "Δnet = −otherAdjustment_cũ + (−Δadvance) = -500000 + (-500000) = -1000000"
+    },
+    "note": "Dữ liệu migrate ĐC→Ứng đã ghi vào DB shared trước báo cáo này. “Production trước thay đổi” = baseline nghiệp vụ trước migrate. Deploy code trên DB hiện tại: ĐC đã = 0 nên công thức cũ/mới cho ra cùng net Thu Hương."
+  },
+  "systemWide": {
+    "periodsChecked": [
+      "2026-07 Kỳ 1",
+      "2026-07 Kỳ 2",
+      "2026-08 Kỳ 1"
+    ],
+    "employeePeriodsChecked": 105,
+    "formulaOnlyDeployImpactCount": 0,
+    "formulaOnlyDeployImpacted": [],
+    "fullPackageImpactCount": 1,
+    "fullPackageImpacted": [
+      {
+        "employee": "Thu Hương",
+        "employeeId": "bac-lieu-thu-huong",
+        "branch": "Bạc Liêu Khoẻ Spa",
+        "period": "2026-08 Kỳ 1",
+        "netBefore": 434600,
+        "netAfter": -565400,
+        "delta": -1000000,
+        "otherAdjustmentNow": 0,
+        "advanceNow": 500000
+      }
+    ],
+    "conclusion": "Chỉ duy nhất Thu Hương bị ảnh hưởng."
+  }
+}

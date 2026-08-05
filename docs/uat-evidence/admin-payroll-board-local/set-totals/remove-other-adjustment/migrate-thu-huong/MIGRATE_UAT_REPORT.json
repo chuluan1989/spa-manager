@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-08-05T16:04:26.106Z",
+  "status": "PASS",
+  "deployed": false,
+  "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+  "transferAmount": 500000,
+  "before": {
+    "employee": "Thu Hương",
+    "employeeId": "bac-lieu-thu-huong",
+    "branch": "Bạc Liêu Khoẻ Spa",
+    "period": "2026-08 Kỳ 1",
+    "bonus": 500000,
+    "kpi": 0,
+    "penalty": 0,
+    "advance": 0,
+    "otherAdjustment": 500000,
+    "revenue": 447000,
+    "tips": 383000,
+    "commission": 51600,
+    "netSalary": -65400,
+    "workDays": 4
+  },
+  "after": {
+    "employee": "Thu Hương",
+    "employeeId": "bac-lieu-thu-huong",
+    "branch": "Bạc Liêu Khoẻ Spa",
+    "period": "2026-08 Kỳ 1",
+    "bonus": 500000,
+    "kpi": 0,
+    "penalty": 0,
+    "advance": 500000,
+    "otherAdjustment": 0,
+    "revenue": 447000,
+    "tips": 383000,
+    "commission": 51600,
+    "netSalary": -565400,
+    "workDays": 4
+  },
+  "deltas": {
+    "otherAdjustment": -500000,
+    "advance": 500000,
+    "netSalary": -500000
+  },
+  "zeroedAdjustmentIds": [
+    {
+      "id": "payadj-1785867587565-martmn",
+      "oldAmount": 500000,
+      "newAmount": 0
+    }
+  ],
+  "boardResults": [
+    {
+      "action": "set_total",
+      "type": "advance",
+      "oldTotal": 0,
+      "newTotal": 500000,
+      "netImpact": -500000,
+      "adjustmentId": "payadj-1785945863671-q278fs"
+    }
+  ],
+  "checks": {
+    "otherAdjustmentZero": true,
+    "advanceIncreasedBy500k": true,
+    "bonusUnchanged": true,
+    "kpiUnchanged": true,
+    "penaltyUnchanged": true,
+    "revenueUnchanged": true,
+    "tipsUnchanged": true,
+    "commissionUnchanged": true,
+    "netDecreasedBy500k": true,
+    "legacySystemWideZero": true,
+    "oldDcRowsKeptAtZero": true,
+    "auditPresent": true
+  },
+  "recentAudits": [
+    {
+      "id": "payaudit-1785945864493-g2nee6",
+      "action": "migrate_other_to_advance",
+      "entityType": "payroll_board",
+      "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+      "createdAt": "2026-08-05T16:04:24.493+00:00"
+    },
+    {
+      "id": "payaudit-1785945864347-njj2db",
+      "action": "admin_edit_board",
+      "entityType": "payroll_board",
+      "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+      "createdAt": "2026-08-05T16:04:24.347+00:00"
+    },
+    {
+      "id": "payaudit-1785945864102-0ggua5",
+      "action": "set_field_total",
+      "entityType": "payroll_field",
+      "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+      "createdAt": "2026-08-05T16:04:24.102+00:00"
+    },
+    {
+      "id": "payaudit-1785945863076-wyugyn",
+      "action": "set_field_total",
+      "entityType": "payroll_field",
+      "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+      "createdAt": "2026-08-05T16:04:23.076+00:00"
+    }
+  ],
+  "legacyAfter": [],
+  "noteAboutNet": "Công thức local đã bỏ ĐC khỏi net. Chuyển ĐC→Ứng: zero ĐC (không đổi net) + tăng Ứng (−500k net) → net giảm đúng 500k so với trước chuyển. So với Production cũ (còn cộng ĐC vào net): tổng Δ ≈ −1.000.000 (mất +ĐC và thêm −Ứng)."
+}

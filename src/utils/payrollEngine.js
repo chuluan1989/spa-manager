@@ -79,7 +79,8 @@ export function computeNetSalary(parts) {
     - parts.reduction
     - parts.penalty
     - parts.advance
-    + parts.otherAdjustment
+    // otherAdjustment (Điều chỉnh khác) — legacy: vẫn tính trên payrollRow để audit,
+    // KHÔNG còn cộng vào lương thực nhận vận hành.
   )
 }
 
@@ -353,6 +354,8 @@ export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adj
   const invoiceBranchId = options.invoiceBranchId || ''
 
   for (const adjustment of adjustments.filter((row) => row.employeeId === employeeId)) {
+    // Điều chỉnh khác — legacy: không đưa vào timeline vận hành (chỉ còn trong audit/DB).
+    if (adjustment.type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT) continue
     const isDebit = [
       PAYROLL_ADJUSTMENT_TYPES.PENALTY,
       PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
@@ -360,10 +363,7 @@ export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adj
       PAYROLL_ADJUSTMENT_TYPES.PAYMENT,
     ].includes(adjustment.type)
     let signedAmount
-    if (
-      adjustment.type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT
-      || adjustment.type === PAYROLL_ADJUSTMENT_TYPES.KPI
-    ) {
+    if (adjustment.type === PAYROLL_ADJUSTMENT_TYPES.KPI) {
       signedAmount = Number(adjustment.amount ?? 0)
     } else if (adjustment.type === PAYROLL_ADJUSTMENT_TYPES.PAYMENT) {
       signedAmount = -Math.abs(Number(adjustment.amount ?? 0))

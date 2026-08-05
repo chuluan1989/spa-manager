@@ -57,32 +57,28 @@ export const PAYROLL_DETAIL_LABELS = {
   workDays: 'Ngày công',
 }
 
-/** Khoản Admin được sửa trên popup “Sửa bảng lương”. */
+/** Khoản Admin được sửa trên popup “Sửa bảng lương” (không gồm Điều chỉnh khác — legacy). */
 export const ADMIN_EDITABLE_ADJUSTMENT_TYPES = [
   PAYROLL_ADJUSTMENT_TYPES.KPI,
   PAYROLL_ADJUSTMENT_TYPES.BONUS,
   PAYROLL_ADJUSTMENT_TYPES.PENALTY,
   PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
-  PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT,
 ]
 
+/** Loại được nhập mới qua “+ Thêm phát sinh”. Điều chỉnh khác không còn nhập mới. */
 export const MANUAL_ADJUSTMENT_OPTIONS = [
   PAYROLL_ADJUSTMENT_TYPES.BONUS,
   PAYROLL_ADJUSTMENT_TYPES.PENALTY,
   PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
   PAYROLL_ADJUSTMENT_TYPES.REDUCTION,
-  PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT,
   PAYROLL_ADJUSTMENT_TYPES.KPI,
 ]
 
-/** KPI và Điều chỉnh khác cho phép số âm/dương; các loại khác lưu số dương. */
+/** KPI cho phép số âm/dương; các loại khác lưu số dương. */
 export function normalizePayrollAdjustmentAmount(type, amount) {
   const value = Number(amount ?? 0)
   if (!Number.isFinite(value)) return 0
-  if (
-    type === PAYROLL_ADJUSTMENT_TYPES.KPI
-    || type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT
-  ) {
+  if (type === PAYROLL_ADJUSTMENT_TYPES.KPI) {
     return value
   }
   return Math.abs(value)

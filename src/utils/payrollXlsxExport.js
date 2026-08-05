@@ -199,7 +199,6 @@ export async function writeEmployeePayrollWorkbook(data) {
     ['Thưởng', data.summary.bonus],
     ['Phạt', data.summary.penalty],
     ['Ứng', data.summary.advance],
-    ['Điều chỉnh', data.summary.otherAdjustment],
     ['Thực nhận', data.summary.netSalary],
     ['Đã trả', data.summary.paidAmount],
     ['Còn lại', data.summary.remainingAmount],

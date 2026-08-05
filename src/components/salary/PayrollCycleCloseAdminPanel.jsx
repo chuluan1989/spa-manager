@@ -275,7 +275,6 @@ export default function PayrollCycleCloseAdminPanel() {
               <li><span>Thưởng</span><strong>{formatCurrency(snapshot?.totals?.bonus ?? selected.bonus)}</strong></li>
               <li><span>Phạt</span><strong>{formatCurrency(snapshot?.totals?.penalty ?? selected.penalty)}</strong></li>
               <li><span>Tạm ứng</span><strong>{formatCurrency(snapshot?.totals?.advance ?? selected.advance)}</strong></li>
-              <li><span>Khoản cộng</span><strong>{formatCurrency(snapshot?.totals?.otherAdjustment ?? selected.otherAdjustment)}</strong></li>
               <li><span>Khoản trừ</span><strong>{formatCurrency(snapshot?.totals?.reduction ?? selected.reduction)}</strong></li>
               <li className="is-total"><span>Tổng</span><strong>{formatCurrency(snapshot?.totals?.netSalary ?? selected.netSalary)}</strong></li>
             </ul>

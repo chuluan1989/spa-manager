@@ -1,0 +1,66 @@
+{
+  "label": "before",
+  "at": "2026-08-05T16:04:22.363Z",
+  "thuHuong": {
+    "employee": "Thu Hương",
+    "employeeId": "bac-lieu-thu-huong",
+    "branch": "Bạc Liêu Khoẻ Spa",
+    "period": "2026-08 Kỳ 1",
+    "bonus": 500000,
+    "kpi": 0,
+    "penalty": 0,
+    "advance": 0,
+    "otherAdjustment": 500000,
+    "revenue": 447000,
+    "tips": 383000,
+    "commission": 51600,
+    "netSalary": -65400,
+    "workDays": 4
+  },
+  "adjustmentLines": [
+    {
+      "id": "payadj-1785867365667-3lu28d",
+      "type": "bonus",
+      "amount": 500000,
+      "date": "2026-08-04",
+      "note": "Ứng 500 ngày 4/8",
+      "reason": "Ứng"
+    },
+    {
+      "id": "payadj-1785867474731-unc6l3",
+      "type": "reduction",
+      "amount": 500000,
+      "date": "2026-08-04",
+      "note": "Ứng 500 ngày 4/8",
+      "reason": "Ứng"
+    },
+    {
+      "id": "payadj-1785867502437-cbasxg",
+      "type": "reduction",
+      "amount": 500000,
+      "date": "2026-08-04",
+      "note": "Ứng 500 ngày 4/8",
+      "reason": "Ứng"
+    },
+    {
+      "id": "payadj-1785867587565-martmn",
+      "type": "adjustment",
+      "amount": 500000,
+      "date": "2026-08-04",
+      "note": "Ứng 500 ngày 4/8",
+      "reason": "Ứng"
+    }
+  ],
+  "legacyNonZeroSystemWide": [
+    {
+      "period": "2026-08 Kỳ 1",
+      "employee": "Thu Hương",
+      "employeeId": "bac-lieu-thu-huong",
+      "branch": "Bạc Liêu Khoẻ Spa",
+      "otherAdjustment": 500000,
+      "net": -65400
+    }
+  ],
+  "legacyCount": 1,
+  "legacySum": 500000
+}

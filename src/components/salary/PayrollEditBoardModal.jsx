@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  ADMIN_EDITABLE_ADJUSTMENT_TYPES,
   PAYROLL_ADJUSTMENT_LABELS,
   PAYROLL_ADJUSTMENT_TYPES,
   normalizePayrollAdjustmentAmount,
 } from '../../constants/payrollTypes'
 import { formatCurrency } from '../../utils/invoice'
-import { computeEmployeePayrollRow } from '../../utils/payrollEngine'
 import { netSalaryImpactForFieldSet } from '../../utils/payrollFieldAudit'
 
 const BOARD_FIELDS = [
@@ -14,8 +12,15 @@ const BOARD_FIELDS = [
   PAYROLL_ADJUSTMENT_TYPES.KPI,
   PAYROLL_ADJUSTMENT_TYPES.PENALTY,
   PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
-  PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT,
 ]
+
+/** Map type chỉnh sửa → đúng field đang render trên bảng lương (payrollRow). */
+const BOARD_FIELD_TO_ROW_KEY = {
+  [PAYROLL_ADJUSTMENT_TYPES.BONUS]: 'bonus',
+  [PAYROLL_ADJUSTMENT_TYPES.KPI]: 'kpi',
+  [PAYROLL_ADJUSTMENT_TYPES.PENALTY]: 'penalty',
+  [PAYROLL_ADJUSTMENT_TYPES.ADVANCE]: 'advance',
+}
 
 function parseFieldInput(type, raw) {
   const cleaned = String(raw ?? '').replace(/[^\d+-]/g, '')
@@ -25,26 +30,22 @@ function parseFieldInput(type, raw) {
   return normalizePayrollAdjustmentAmount(type, value)
 }
 
-function sumTypeInPeriod(adjustments, employeeId, type, fromDate, toDate) {
-  return (adjustments ?? []).reduce((sum, row) => {
-    if (row.employeeId !== employeeId) return sum
-    if (row.type !== type) return sum
-    if (fromDate && row.date < fromDate) return sum
-    if (toDate && row.date > toDate) return sum
-    return sum + Number(row.amount ?? 0)
-  }, 0)
-}
-
-function buildDraftTotals(adjustments, employeeId, fromDate, toDate) {
+/**
+ * Bind 100% từ object payrollRow đang hiển thị — không cộng adjustments, không snapshot khác.
+ */
+export function currentTotalsFromPayrollRow(payrollRow) {
+  if (!payrollRow) return null
   const totals = {}
   for (const type of BOARD_FIELDS) {
-    totals[type] = sumTypeInPeriod(adjustments, employeeId, type, fromDate, toDate)
+    const key = BOARD_FIELD_TO_ROW_KEY[type]
+    totals[type] = Number(payrollRow[key] ?? 0)
   }
   return totals
 }
 
 /**
  * Popup Admin — sửa GIÁ TRỊ TỔNG từng hạng mục (SET, không cộng dồn dòng).
+ * Cột "Hiện tại" = đúng số đang render trên bảng lương (payrollRow).
  */
 export default function PayrollEditBoardModal({
   open,
@@ -56,8 +57,6 @@ export default function PayrollEditBoardModal({
   cycle,
   fromDate,
   toDate,
-  invoices = [],
-  attendance = [],
   adjustments = [],
   locks = null,
   saving = false,
@@ -67,10 +66,10 @@ export default function PayrollEditBoardModal({
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
 
-  const currentTotals = useMemo(() => {
-    if (!payrollRow) return null
-    return buildDraftTotals(adjustments, payrollRow.employeeId, fromDate, toDate)
-  }, [adjustments, payrollRow, fromDate, toDate])
+  const currentTotals = useMemo(
+    () => currentTotalsFromPayrollRow(payrollRow),
+    [payrollRow],
+  )
 
   useEffect(() => {
     if (!open || !payrollRow || !currentTotals) return
@@ -84,18 +83,6 @@ export default function PayrollEditBoardModal({
     setError('')
   }, [open, payrollRow, currentTotals])
 
-  const employeeStub = useMemo(() => {
-    if (!payrollRow) return null
-    return {
-      id: payrollRow.employeeId,
-      name: payrollRow.employeeName,
-      branchId: payrollRow.branchId,
-      salaryRate: employee?.salaryRate,
-      position: employee?.position,
-      avatar: employee?.avatar,
-    }
-  }, [payrollRow, employee])
-
   const parsedDraft = useMemo(() => {
     const out = {}
     for (const type of BOARD_FIELDS) {
@@ -105,45 +92,16 @@ export default function PayrollEditBoardModal({
   }, [draft])
 
   const preview = useMemo(() => {
-    if (!open || !payrollRow || !employeeStub || !currentTotals) return null
-    const keptOthers = (adjustments ?? []).filter((row) => {
-      if (row.employeeId !== payrollRow.employeeId) return true
-      if (!ADMIN_EDITABLE_ADJUSTMENT_TYPES.includes(row.type)) return true
-      if (fromDate && row.date < fromDate) return true
-      if (toDate && row.date > toDate) return true
-      return false
-    })
-    const draftRecords = BOARD_FIELDS.map((type) => {
-      const amount = parsedDraft[type]
-      if (amount === null || amount === 0) return null
-      return {
-        id: `__draft-total-${type}`,
-        date: toDate || `${month}-15`,
-        month,
-        branchId: payrollRow.branchId || '',
-        employeeId: payrollRow.employeeId,
-        employeeName: payrollRow.employeeName,
-        type,
-        amount,
-        reason: reason || 'Sửa bảng lương',
-        note: note || '',
-        payrollCycle: cycle || '',
-      }
-    }).filter(Boolean)
-
-    const nextRow = computeEmployeePayrollRow(
-      employeeStub,
-      invoices,
-      attendance,
-      [...keptOthers, ...draftRecords],
-    )
+    if (!open || !payrollRow || !currentTotals) return null
     const oldNet = Number(payrollRow.netSalary ?? 0)
-    const newNet = Number(nextRow.netSalary ?? 0)
-    return { oldNet, newNet, diff: newNet - oldNet }
-  }, [
-    open, payrollRow, employeeStub, currentTotals, parsedDraft, reason, note,
-    adjustments, fromDate, toDate, month, cycle, invoices, attendance,
-  ])
+    let diff = 0
+    for (const type of BOARD_FIELDS) {
+      const next = parsedDraft[type]
+      if (next === null) continue
+      diff += netSalaryImpactForFieldSet(type, currentTotals[type] ?? 0, next)
+    }
+    return { oldNet, newNet: oldNet + diff, diff }
+  }, [open, payrollRow, currentTotals, parsedDraft])
 
   if (!open) return null
 
@@ -168,6 +126,8 @@ export default function PayrollEditBoardModal({
         reason: reason.trim(),
         note: note.trim(),
         totals,
+        displayedTotals: currentTotals,
+        attendancePenalty: Number(payrollRow.attendancePenalty ?? 0),
         employeeId: payrollRow.employeeId,
         employeeName: payrollRow.employeeName,
         branchId: payrollRow.branchId || employee?.branchId || '',
@@ -220,7 +180,7 @@ export default function PayrollEditBoardModal({
                     </small>
                   )}
                 </span>
-                <span role="cell">{formatCurrency(current)}</span>
+                <span role="cell" data-testid={`edit-current-${type}`}>{formatCurrency(current)}</span>
                 <label role="cell">
                   <span className="salary-edit-totals__sr">Giá trị mới {PAYROLL_ADJUSTMENT_LABELS[type]}</span>
                   <input
@@ -230,7 +190,6 @@ export default function PayrollEditBoardModal({
                     onChange={(e) => setDraft((prev) => ({ ...prev, [type]: e.target.value }))}
                     placeholder={
                       type === PAYROLL_ADJUSTMENT_TYPES.KPI
-                      || type === PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT
                         ? '+/- hoặc 0'
                         : 'VD: 200000'
                     }

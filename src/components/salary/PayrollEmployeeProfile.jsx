@@ -37,7 +37,6 @@ const HISTORY_TABS = [
   { id: 'penalty', label: 'Phạt', category: PAYROLL_ADJUSTMENT_TYPES.PENALTY },
   { id: 'advance', label: 'Ứng lương', category: PAYROLL_ADJUSTMENT_TYPES.ADVANCE },
   { id: 'reduction', label: 'Giảm lương', category: PAYROLL_ADJUSTMENT_TYPES.REDUCTION },
-  { id: 'adjustment', label: 'Điều chỉnh', category: PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT },
   { id: 'attendance', label: 'Chấm công', category: 'attendance' },
 ]
 
@@ -218,6 +217,11 @@ export default function PayrollEmployeeProfile({
     [adjustments, employeeId],
   )
 
+  const legacyOtherAdjustmentRows = useMemo(
+    () => buildAdjustmentHistory(adjustments ?? [], employeeId, PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT),
+    [adjustments, employeeId],
+  )
+
   const filteredHistory = useMemo(() => {
     if (historyTab === 'attendance') return filterAttendanceEntries(walletEntries)
     const tab = HISTORY_TABS.find((item) => item.id === historyTab)
@@ -281,6 +285,13 @@ export default function PayrollEmployeeProfile({
           <PayrollAdjustmentHistory title="Phạt (nhập tay)" rows={penaltyRows} />
           <PayrollAdjustmentHistory title="Giảm lương" rows={reductionRows} showCreator={false} />
           <PayrollAdjustmentHistory title="ỨNG LƯƠNG" rows={advanceRows} contentLabel="Nội dung" />
+          {legacyOtherAdjustmentRows.length > 0 && (
+            <PayrollAdjustmentHistory
+              title="Điều chỉnh khác (legacy — không còn tính vào lương)"
+              rows={legacyOtherAdjustmentRows}
+              showCreator={false}
+            />
+          )}
         </div>
       )}
 

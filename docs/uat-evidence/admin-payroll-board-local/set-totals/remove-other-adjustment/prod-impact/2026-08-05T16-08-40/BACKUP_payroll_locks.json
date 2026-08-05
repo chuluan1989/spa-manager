@@ -1,0 +1,67 @@
+[
+  {
+    "id": "paylock-2026-07-tram-spa",
+    "month": "2026-07",
+    "branch_id": "tram-spa",
+    "is_locked": false,
+    "locked_at": "2026-07-20T09:40:58.66+00:00",
+    "locked_by": "admin",
+    "locked_by_name": "Admin",
+    "unlocked_at": "2026-07-20T09:41:06.984+00:00",
+    "unlocked_by": "admin",
+    "unlocked_by_name": "Admin",
+    "note": "chưa"
+  },
+  {
+    "id": "paylock-2026-05-all",
+    "month": "2026-05",
+    "branch_id": "",
+    "is_locked": true,
+    "locked_at": "2026-07-30T13:40:10.331+00:00",
+    "locked_by": "admin",
+    "locked_by_name": "Admin",
+    "unlocked_at": null,
+    "unlocked_by": "",
+    "unlocked_by_name": "",
+    "note": ""
+  },
+  {
+    "id": "paylock-2026-08-all",
+    "month": "2026-08",
+    "branch_id": "",
+    "is_locked": false,
+    "locked_at": "2026-08-04T05:29:17.823+00:00",
+    "locked_by": "admin",
+    "locked_by_name": "Admin",
+    "unlocked_at": "2026-08-04T16:23:16.049+00:00",
+    "unlocked_by": "admin",
+    "unlocked_by_name": "Admin",
+    "note": "1"
+  },
+  {
+    "id": "paylock-2026-08-soc-trang",
+    "month": "2026-08",
+    "branch_id": "soc-trang",
+    "is_locked": false,
+    "locked_at": "2026-08-05T09:47:54.673+00:00",
+    "locked_by": "admin",
+    "locked_by_name": "Admin",
+    "unlocked_at": "2026-08-05T09:47:56.722+00:00",
+    "unlocked_by": "admin",
+    "unlocked_by_name": "Admin",
+    "note": "Prod smoke — mở lại Aug sau kiểm tra khóa"
+  },
+  {
+    "id": "paylock-2026-07-soc-trang",
+    "month": "2026-07",
+    "branch_id": "soc-trang",
+    "is_locked": false,
+    "locked_at": "2026-08-05T08:13:52.936+00:00",
+    "locked_by": "admin",
+    "locked_by_name": "Admin",
+    "unlocked_at": "2026-08-05T10:07:34.751+00:00",
+    "unlocked_by": "admin",
+    "unlocked_by_name": "Admin",
+    "note": "q"
+  }
+]
