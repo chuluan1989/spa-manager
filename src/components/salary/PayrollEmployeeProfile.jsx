@@ -104,6 +104,7 @@ export default function PayrollEmployeeProfile({
   auditLogs,
   locks,
   onReload,
+  viewBranchId = '',
   peerEmployees = [],
   onSwitchEmployee,
 }) {
@@ -188,13 +189,13 @@ export default function PayrollEmployeeProfile({
   }, [attendance, employeeId, cycle])
 
   const revenueRows = useMemo(
-    () => buildInvoiceRevenueList(invoices ?? [], employeeId),
-    [invoices, employeeId],
+    () => buildInvoiceRevenueList(invoices ?? [], employeeId, viewBranchId),
+    [invoices, employeeId, viewBranchId],
   )
 
   const tipsRows = useMemo(
-    () => buildTipsBreakdown(invoices ?? [], employeeId),
-    [invoices, employeeId],
+    () => buildTipsBreakdown(invoices ?? [], employeeId, viewBranchId),
+    [invoices, employeeId, viewBranchId],
   )
 
   const bonusRows = useMemo(
@@ -253,7 +254,12 @@ export default function PayrollEmployeeProfile({
 
       {view === 'overview' && (
         <div className="salary-profile__overview">
-          <PayrollBranchBreakdown sections={stats?.branchSections} totalStats={stats} />
+          <PayrollBranchBreakdown
+            sections={stats?.branchSections}
+            totalStats={stats}
+            viewBranchId={viewBranchId}
+            listInvoiceCount={revenueRows.length}
+          />
           <PayrollLiveDashboard stats={stats} attendanceStats={attendanceStats} />
           <PayrollAttendanceStats stats={attendanceStats} cycle={cycle} breakdown={attendanceUnitBreakdown} />
           <div className="salary-profile__history">

@@ -1,6 +1,7 @@
 import { getAttendanceStatusConfig, isVoidAttendanceStatus } from '../constants/attendanceTypes'
 import { PAYROLL_ADJUSTMENT_TYPES } from '../constants/payrollTypes'
 import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
+import { recordBelongsToBranch } from './branchEmployeeMatch'
 import { getInvoiceServiceDetails, getInvoiceServiceCommission, getInvoiceServiceTotal, getServiceLineCommissionAmount } from './invoice'
 
 function getSalaryRole(invoice, employeeId) {
@@ -90,9 +91,20 @@ export function computePayrollPaymentSummary(adjustments, employeeId, netSalary)
   }
 }
 
-export function buildInvoiceRevenueList(invoices, employeeId) {
-  return invoices
-    .filter((invoice) => invoice.employeeId === employeeId || invoice.supportEmployeeId === employeeId)
+/**
+ * Danh sách HĐ trên chi tiết lương theo chi nhánh đang xem.
+ * Lương thực nhận vẫn tính employee-wide ở engine — không dùng hàm này để tính net.
+ */
+export function filterPayrollDisplayInvoices(invoices, employeeId, viewBranchId = '') {
+  return (invoices ?? []).filter((invoice) => {
+    if (invoice.employeeId !== employeeId && invoice.supportEmployeeId !== employeeId) return false
+    if (viewBranchId && !recordBelongsToBranch(invoice, viewBranchId)) return false
+    return true
+  })
+}
+
+export function buildInvoiceRevenueList(invoices, employeeId, viewBranchId = '') {
+  return filterPayrollDisplayInvoices(invoices, employeeId, viewBranchId)
     .map((invoice) => {
       const role = getSalaryRole(invoice, employeeId)
       const services = getInvoiceServiceDetails(invoice).map((service) => service.name).join(', ')
@@ -116,8 +128,8 @@ export function buildInvoiceRevenueList(invoices, employeeId) {
     })
 }
 
-export function buildTipsBreakdown(invoices, employeeId) {
-  return buildInvoiceRevenueList(invoices, employeeId)
+export function buildTipsBreakdown(invoices, employeeId, viewBranchId = '') {
+  return buildInvoiceRevenueList(invoices, employeeId, viewBranchId)
     .filter((row) => row.tips > 0)
     .map((row) => ({
       id: `${row.id}-tips`,

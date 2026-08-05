@@ -341,8 +341,9 @@ export function computePayrollReport({
   }
 }
 
-export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adjustments) {
+export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adjustments, options = {}) {
   const entries = []
+  const invoiceBranchId = options.invoiceBranchId || ''
 
   for (const adjustment of adjustments.filter((row) => row.employeeId === employeeId)) {
     const isDebit = [
@@ -392,7 +393,12 @@ export function buildWalletTimeline(employeeId, invoices, attendanceRecords, adj
   }
 
   for (const invoice of invoices.filter(
-    (row) => row.employeeId === employeeId || row.supportEmployeeId === employeeId,
+    (row) => {
+      if (row.employeeId !== employeeId && row.supportEmployeeId !== employeeId) return false
+      // Danh sách HĐ ví theo CN đang xem; tiền CN khác chỉ nằm trong net (stats).
+      if (invoiceBranchId && !recordBelongsToBranch(row, invoiceBranchId)) return false
+      return true
+    },
   )) {
     const role = getSalaryRole(invoice, employeeId)
     const services = getInvoiceServiceDetails(invoice).map((service) => service.name).join(', ') || 'Dịch vụ'

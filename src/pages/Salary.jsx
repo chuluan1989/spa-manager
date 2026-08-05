@@ -203,8 +203,11 @@ function SalaryPage() {
   const walletEntries = useMemo(() => {
     const targetId = isEmployee() ? getCurrentUserEmployeeId() : selectedEmployeeId
     if (!targetId) return []
-    return buildWalletTimeline(targetId, invoices, attendance, adjustments)
-  }, [selectedEmployeeId, invoices, attendance, adjustments])
+    const viewBranchId = isEmployee() ? getCurrentUserBranch() : selectedBranchId
+    return buildWalletTimeline(targetId, invoices, attendance, adjustments, {
+      invoiceBranchId: viewBranchId || '',
+    })
+  }, [selectedEmployeeId, selectedBranchId, invoices, attendance, adjustments])
 
   const isLocked = isPayrollMonthLocked(month, fetchBranchId, locks)
 
@@ -327,9 +330,9 @@ function SalaryPage() {
           <p>Lương cập nhật theo thời gian thực — Hóa đơn, Tips, Chấm công, Thưởng/Phạt.</p>
           <p className="salary-page__scope" role="note">
             <strong>Tổng thu nhập toàn kỳ của nhân viên.</strong>
-            {' '}Dữ liệu hiển thị là tổng thu nhập của nhân viên trong kỳ, bao gồm toàn bộ thu nhập
-            tại các chi nhánh mà nhân viên có phát sinh.
-            Kỳ lương tính theo <strong>ngày phục vụ (date)</strong> — không dùng ngày tạo (created_at).
+            {' '}Lương thực nhận cộng đủ mọi chi nhánh có phát sinh.
+            Danh sách / số hóa đơn trên chi tiết chỉ theo <strong>chi nhánh đang xem</strong>
+            (khớp màn Hóa đơn). Kỳ theo <strong>ngày phục vụ (date)</strong> — không dùng created_at.
           </p>
         </div>
         <div className="salary-page__header-actions">
@@ -464,8 +467,8 @@ function SalaryPage() {
             <span>{employeeRows.length} nhân viên</span>
           </div>
           <p className="salary-page__scope salary-page__scope--inline" role="note">
-            Danh sách nhân viên vẫn lọc theo chi nhánh nhân sự.
-            Số liệu lương của mỗi NV là <strong>tổng thu nhập toàn kỳ</strong> (mọi chi nhánh có phát sinh).
+            Danh sách nhân viên theo chi nhánh nhân sự. Cột lương thực nhận = tổng mọi chi nhánh;
+            vào chi tiết thì danh sách hóa đơn chỉ của chi nhánh đang xem.
           </p>
           <PayrollEmployeeList rows={employeeRows} onSelectEmployee={handleSelectEmployee} />
         </>
@@ -474,8 +477,8 @@ function SalaryPage() {
       {!loading && !error && level === LEVEL.PROFILE && profileRow && (
         <>
           <p className="salary-page__scope salary-page__scope--inline" role="note">
-            Hồ sơ / ví lương: <strong>tổng thu nhập toàn kỳ của nhân viên</strong>
-            {' '}(toàn bộ chi nhánh có phát sinh). Kỳ theo ngày phục vụ (date).
+            Danh sách hóa đơn / ví theo <strong>chi nhánh đang xem</strong>.
+            Lương thực nhận vẫn cộng đủ thu nhập mọi chi nhánh (kể cả hỗ trợ liên CN).
           </p>
           <PayrollEmployeeProfile
             employee={profileRow}
@@ -491,6 +494,7 @@ function SalaryPage() {
             auditLogs={auditLogs}
             locks={locks}
             onReload={reload}
+            viewBranchId={isEmployee() ? getCurrentUserBranch() : selectedBranchId}
             peerEmployees={isEmployee() ? [] : branchPeerRows}
             onSwitchEmployee={isEmployee() ? undefined : handleSwitchEmployee}
           />
