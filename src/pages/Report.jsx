@@ -1,22 +1,43 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import EmployeeSalaryPanel from '../components/report/EmployeeSalaryPanel'
 import EmployeeCustomerRequestedPanel from '../components/report/EmployeeCustomerRequestedPanel'
+import EmployeeRequestsPanel from '../components/report/EmployeeRequestsPanel'
 import ReportExplorer from '../components/report/ReportExplorer'
 import ManagementReports from '../components/report/ManagementReports'
 import BranchEfficiencyPanel from '../components/report/BranchEfficiencyPanel'
 import {
   canViewReport,
+  isAdmin,
+  isBranchManager,
   isEmployee,
 } from '../constants/auth'
-import { consumeDrillDownPrefill } from '../utils/navigationPrefill'
+import {
+  consumeDrillDownPrefill,
+  consumeReportsRequestFocus,
+  consumeReportsTabPrefill,
+} from '../utils/navigationPrefill'
 import './Report.css'
 import '../components/report/ManagementReports.css'
 import '../components/report/BranchEfficiencyPanel.css'
 
 export default function Report({ onNavigate }) {
   const prefill = consumeDrillDownPrefill()
-  const [mode, setMode] = useState('management')
+  const tabPrefill = consumeReportsTabPrefill()
+  const requestFocus = consumeReportsRequestFocus()
+  const canHandleRequests = isAdmin() || isBranchManager()
+  const [mode, setMode] = useState(() => {
+    if (tabPrefill === 'employee-requests' && canHandleRequests) return 'employee-requests'
+    return 'management'
+  })
   const [employeeTab, setEmployeeTab] = useState('salary')
+  const [focusRequestId, setFocusRequestId] = useState(requestFocus || '')
+
+  useEffect(() => {
+    if (tabPrefill === 'employee-requests' && canHandleRequests) {
+      setMode('employee-requests')
+    }
+    if (requestFocus) setFocusRequestId(requestFocus)
+  }, [tabPrefill, requestFocus, canHandleRequests])
 
   if (!canViewReport()) {
     return (
@@ -61,7 +82,7 @@ export default function Report({ onNavigate }) {
     <div className="report">
       <header className="report__hero">
         <h1 className="report__hero-title">Báo cáo</h1>
-        <p className="report__hero-desc">Đánh giá hiệu quả chi nhánh và nhân viên theo dữ liệu thật.</p>
+        <p className="report__hero-desc">Đánh giá hiệu quả chi nhánh và xử lý yêu cầu nhân viên.</p>
       </header>
 
       <div className="report-mode-tabs" role="tablist" aria-label="Chế độ báo cáo">
@@ -86,12 +107,23 @@ export default function Report({ onNavigate }) {
         >
           Tổng hợp drill-down
         </button>
+        {canHandleRequests && (
+          <button
+            type="button"
+            className={mode === 'employee-requests' ? 'is-active' : ''}
+            onClick={() => setMode('employee-requests')}
+          >
+            Yêu cầu nhân viên
+          </button>
+        )}
       </div>
 
       {mode === 'management' ? (
         <ManagementReports onNavigate={onNavigate} />
       ) : mode === 'efficiency' ? (
         <BranchEfficiencyPanel />
+      ) : mode === 'employee-requests' ? (
+        <EmployeeRequestsPanel focusRequestId={focusRequestId} />
       ) : (
         <ReportExplorer onNavigate={onNavigate} initialPrefill={prefill} />
       )}

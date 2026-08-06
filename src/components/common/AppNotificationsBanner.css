@@ -1,0 +1,66 @@
+.app-ntf {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a5f;
+}
+
+.app-ntf__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.app-ntf__head button,
+.app-ntf__list button {
+  border: 1px solid #93c5fd;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  color: #1e40af;
+}
+
+.app-ntf__head button:disabled,
+.app-ntf__list button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.app-ntf__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-ntf__list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.app-ntf__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-ntf__body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.92;
+}

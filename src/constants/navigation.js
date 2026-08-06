@@ -1,7 +1,6 @@
 export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Tổng quan', icon: 'dashboard', description: 'Tổng quan' },
-  { id: 'operation-workflow', label: 'Công việc', icon: 'attendance', description: 'Task · KPI ngày · Timeline · Audit' },
-  { id: 'reports', label: 'Báo cáo', icon: 'report', description: 'Doanh thu • Lương • Thống kê' },
+  { id: 'reports', label: 'Báo cáo', icon: 'report', description: 'Doanh thu • Lương • Yêu cầu NV' },
   { id: 'invoices', label: 'Hóa đơn', icon: 'invoice', description: 'Quản lý hóa đơn khách' },
   { id: 'customers', label: 'Khách hàng', icon: 'customer', description: 'CRM & tăng trưởng khách hàng' },
   { id: 'admin-employees', label: 'Nhân viên', icon: 'employee', description: 'Nhân sự & hồ sơ' },
@@ -22,7 +21,6 @@ export const NAV_ITEMS = [
 /** Menu Admin — thứ tự ERP chuẩn. */
 export const ADMIN_NAV_ORDER = [
   'dashboard',
-  'operation-workflow',
   'reports',
   'invoices',
   'customers',
@@ -39,7 +37,6 @@ export const ADMIN_NAV_ORDER = [
 /** Menu quản lý chi nhánh. */
 export const BRANCH_MANAGER_NAV_ORDER = [
   'dashboard',
-  'operation-workflow',
   'reports',
   'invoices',
   'customers',
@@ -55,7 +52,6 @@ export const BRANCH_MANAGER_NAV_ORDER = [
 /** Menu nhân viên. */
 export const EMPLOYEE_NAV_ORDER = [
   'dashboard',
-  'operation-workflow',
   'reports',
   'invoices',
   'customers',

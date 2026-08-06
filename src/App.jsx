@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Layout from './components/layout/Layout'
 import UnsyncedInvoicesBanner from './components/invoice/UnsyncedInvoicesBanner'
+import AppNotificationsBanner from './components/common/AppNotificationsBanner'
 import CompletionRemindBanner, {
   useCompletionRemindDismissed,
 } from './components/common/CompletionRemindBanner'
@@ -58,7 +59,6 @@ import Payroll1Admin from './pages/Payroll1Admin'
 import OperationsCenter from './pages/OperationsCenter'
 import OperationWorkflow from './pages/OperationWorkflow'
 import { canAccessOpsCenter } from './utils/opsCenter/opsCenterAccess'
-import { canAccessOperationWorkflow } from './utils/operationWorkflow/operationWorkflowAccess'
 import './components/employees/employee-profile-ui.css'
 import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser } from './utils/authStorage'
 import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials, repairEmployeeCredentials } from './utils/credentialsStorage'
@@ -118,7 +118,7 @@ function canAccessPage(pageId) {
   if (pageId === 'payroll1-check') return canAccessPayroll1CheckPage()
   if (pageId === 'payroll1-admin') return canAccessPayroll1AdminPage()
   if (pageId === 'ops-center') return canAccessOpsCenter()
-  if (pageId === 'operation-workflow') return canAccessOperationWorkflow()
+  if (pageId === 'operation-workflow') return true // redirect stub → Báo cáo
   return true
 }
 
@@ -448,6 +448,7 @@ function App() {
         user={currentUser}
         onSyncComplete={() => notifyDataSynced(['invoices'])}
       />
+      <AppNotificationsBanner />
       <Page key={activePage} onNavigate={handleNavigate} />
     </Layout>
   )

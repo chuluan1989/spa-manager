@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DrillDownExplorer from '../components/drilldown/DrillDownExplorer'
 import BusinessCopilot from '../components/copilot/BusinessCopilot'
-import OperationWorkflowDashStrip from '../components/operationWorkflow/OperationWorkflowDashStrip'
 import CrmGrowthDashStrip from '../components/crmGrowth/CrmGrowthDashStrip'
 import { useBusinessCopilotData } from '../hooks/useBusinessCopilotData'
 import { consumeDrillDownPrefill, setDrillDownPrefill } from '../utils/navigationPrefill'
@@ -511,7 +510,6 @@ function ManagerDashboard({ onNavigate }) {
 
   return (
     <div className="erp-page">
-      <OperationWorkflowDashStrip onNavigate={onNavigate} />
       <CrmGrowthDashStrip onNavigate={onNavigate} />
 
       <BusinessCopilot

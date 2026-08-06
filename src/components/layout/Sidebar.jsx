@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { LogOut } from 'lucide-react'
 import KhoeSpaLogo from '../brand/KhoeSpaLogo'
 import {
@@ -16,14 +16,16 @@ import {
 import { getEmployeeById } from '../../utils/employeeStorage'
 import { loadAdminProfile } from '../../utils/adminProfileStorage'
 import { canAccessOpsCenter } from '../../utils/opsCenter/opsCenterAccess'
+import { loadPendingWorkInbox } from '../../utils/payrollCycleClose/pendingWorkInbox'
+import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import ChangePasswordForm from '../account/ChangePasswordForm'
 import NavIcon from './NavIcon'
 import './Sidebar.css'
 
 const APP_VERSION = 'v1.4.0'
 
-/** Ẩn khỏi sidebar Admin — không xóa khỏi navigation config. */
-const ADMIN_HIDDEN_NAV_IDS = new Set(['payroll1-admin'])
+/** Ẩn khỏi sidebar — không xóa khỏi navigation config / route redirect. */
+const HIDDEN_NAV_IDS = new Set(['payroll1-admin', 'operation-workflow'])
 
 function getSidebarUserName() {
   const user = getCurrentUser()
@@ -55,8 +57,9 @@ function getSidebarAvatar() {
 }
 
 export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout }) {
+  const syncVersion = useDataSyncVersion()
   const navItems = getVisibleNavItems().filter((item) => {
-    if (isAdmin() && ADMIN_HIDDEN_NAV_IDS.has(item.id)) return false
+    if (HIDDEN_NAV_IDS.has(item.id)) return false
     if (item.id === 'ops-center') return canAccessOpsCenter()
     return true
   })
@@ -66,6 +69,24 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
   const avatarInitial = userName.charAt(0).toUpperCase() || 'K'
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [toast, setToast] = useState('')
+  const [reportsBadge, setReportsBadge] = useState(0)
+
+  const reloadBadge = useCallback(async () => {
+    if (!isAdmin() && !isBranchManager()) {
+      setReportsBadge(0)
+      return
+    }
+    try {
+      const inbox = await loadPendingWorkInbox()
+      setReportsBadge(Number(inbox?.counts?.total || 0))
+    } catch {
+      setReportsBadge(0)
+    }
+  }, [])
+
+  useEffect(() => {
+    reloadBadge()
+  }, [reloadBadge, syncVersion])
 
   const showToast = (message) => {
     setToast(message)
@@ -77,8 +98,8 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
   const passwordFormProps = isAdmin()
     ? { mode: 'admin' }
     : isBranchManager()
-      ? { mode: 'branch', branchId: getCurrentUserBranch() }
-      : { mode: 'employee', employeeId: getCurrentUserEmployeeId() }
+    ? { mode: 'branch', branchId: getCurrentUserBranch() }
+    : { mode: 'employee', employeeId: getCurrentUserEmployeeId() }
 
   return (
     <aside className="sidebar" aria-label="Menu chính">
@@ -100,7 +121,14 @@ export default function Sidebar({ activeItem = 'dashboard', onNavigate, onLogout
               <NavIcon name={item.icon} />
             </span>
             <span className="sidebar__link-text">
-              <span className="sidebar__link-label">{item.label}</span>
+              <span className="sidebar__link-label">
+                {item.label}
+                {item.id === 'reports' && reportsBadge > 0 ? (
+                  <span className="sidebar__nav-badge" aria-label={`${reportsBadge} yêu cầu chờ xử lý`}>
+                    {reportsBadge > 99 ? '99+' : reportsBadge}
+                  </span>
+                ) : null}
+              </span>
               {item.description && (
                 <span className="sidebar__link-desc">{item.description}</span>
               )}
