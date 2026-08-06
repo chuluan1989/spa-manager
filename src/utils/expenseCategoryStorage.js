@@ -60,6 +60,7 @@ export function normalizeExpenseCategory(row) {
     sortOrder: Number(row.sortOrder ?? 0),
     isSystem: Boolean(row.isSystem),
     isFixed: Boolean(row.isFixed),
+    isHidden: Boolean(row.isHidden),
     createdAt: row.createdAt ?? '',
     updatedAt: row.updatedAt ?? '',
   }
@@ -183,7 +184,7 @@ export async function removeExpenseCategory(id) {
     return { success: false, error: 'Không thể xóa nhóm chi phí cố định.' }
   }
   if (current.isSystem) {
-    return { success: false, error: 'Không thể xóa nhóm chi phí hệ thống mặc định.' }
+    return { success: false, error: 'Không thể xóa nhóm chi phí hệ thống mặc định. Hãy ẩn nhóm nếu không dùng.' }
   }
 
   try {
@@ -203,5 +204,87 @@ export async function removeExpenseCategory(id) {
     return { success: true }
   } catch (error) {
     return { success: false, error: error?.message ?? 'Không thể xóa nhóm chi phí.' }
+  }
+}
+
+/** Ẩn/hiện nhóm — nhóm hệ thống không xóa được nhưng được ẩn. */
+export async function setExpenseCategoryHidden(id, isHidden) {
+  if (!isAdmin()) {
+    return { success: false, error: 'Chỉ Admin được ẩn/hiện nhóm chi phí.' }
+  }
+  const existing = await loadExpenseCategories()
+  const current = existing.find((item) => item.id === id)
+  if (!current) {
+    return { success: false, error: 'Không tìm thấy nhóm chi phí.' }
+  }
+  if (current.isFixed) {
+    return { success: false, error: 'Không thể ẩn nhóm chi phí cố định.' }
+  }
+  const updated = {
+    ...current,
+    isHidden: Boolean(isHidden),
+    updatedAt: new Date().toISOString(),
+  }
+  try {
+    await upsertExpenseCategory(updated)
+    await insertExpenseChangeLog({
+      id: createId('ecl'),
+      entityType: 'category',
+      entityId: id,
+      branchId: '',
+      action: 'update',
+      changedBy: getCurrentUserName(),
+      changedByRole: getCurrentUserRole() ?? '',
+      oldValues: { isHidden: current.isHidden },
+      newValues: { isHidden: updated.isHidden, label: current.label },
+    })
+    notifyDataSynced('expense_categories')
+    return { success: true, data: updated }
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể cập nhật trạng thái nhóm.' }
+  }
+}
+
+/** Đổi thứ tự nhóm (±1 trong danh sách phát sinh). */
+export async function moveExpenseCategory(id, direction) {
+  if (!isAdmin()) {
+    return { success: false, error: 'Chỉ Admin được sắp xếp nhóm chi phí.' }
+  }
+  const existing = await loadExpenseCategories()
+  const variable = existing
+    .filter((item) => !item.isFixed)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+  const index = variable.findIndex((item) => item.id === id)
+  if (index < 0) {
+    return { success: false, error: 'Không tìm thấy nhóm chi phí.' }
+  }
+  const swapWith = direction < 0 ? index - 1 : index + 1
+  if (swapWith < 0 || swapWith >= variable.length) {
+    return { success: true, data: existing }
+  }
+
+  const a = variable[index]
+  const b = variable[swapWith]
+  const nextA = { ...a, sortOrder: b.sortOrder, updatedAt: new Date().toISOString() }
+  const nextB = { ...b, sortOrder: a.sortOrder, updatedAt: new Date().toISOString() }
+
+  try {
+    await upsertExpenseCategory(nextA)
+    await upsertExpenseCategory(nextB)
+    await insertExpenseChangeLog({
+      id: createId('ecl'),
+      entityType: 'category',
+      entityId: id,
+      branchId: '',
+      action: 'update',
+      changedBy: getCurrentUserName(),
+      changedByRole: getCurrentUserRole() ?? '',
+      oldValues: { sortOrder: a.sortOrder, label: a.label },
+      newValues: { sortOrder: nextA.sortOrder, label: a.label },
+    })
+    notifyDataSynced('expense_categories')
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể sắp xếp nhóm chi phí.' }
   }
 }

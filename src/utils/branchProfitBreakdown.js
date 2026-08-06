@@ -8,10 +8,11 @@ import { filterExpenses, sumExpenseAmount } from './expenseStorage'
 import { computeFixedCostTotals } from './fixedCostStorage'
 
 /**
- * Chi phí phát sinh = expenses trừ mặt bằng và ứng lương (tránh double-count với payroll net).
+ * Chi phí phát sinh = expenses trừ mặt bằng, ứng lương, và khoản đã void.
  */
 export function filterVariableExpenses(expenses = []) {
   return expenses.filter((exp) => {
+    if (exp?.status === 'void' || exp?.status === 'cancelled') return false
     const typeId = normalizeExpenseTypeId(exp.expenseType)
     if (typeId === FIXED_EXPENSE_TYPE_ID) return false
     if (typeId === SALARY_ADVANCE_EXPENSE_TYPE) return false

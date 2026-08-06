@@ -1,0 +1,9 @@
+# Vercel CLI upload — exclude bulky local evidence / videos
+docs/uat-evidence
+*.webm
+*.mp4
+ceo-dashboard-preview*.png
+node_modules
+.git
+.env*
+*.local

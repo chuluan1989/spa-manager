@@ -1,0 +1,43 @@
+{
+  "startedAt": "2026-08-06T06:30:21.218Z",
+  "base": "https://www.khoespa.net.vn",
+  "tag": "UAT-VOID-1785997821218",
+  "steps": {
+    "baseline_total": {
+      "ok": true,
+      "beforeTotal": 87792000,
+      "beforeVariable": 4792000
+    },
+    "total_includes_new": {
+      "ok": true,
+      "beforeTotal": 87792000,
+      "afterCreate": 87847000,
+      "expected": 87847000
+    },
+    "edit_totals": {
+      "ok": true,
+      "afterEdit": 87858000,
+      "expected": 87858000
+    },
+    "audit_history": {
+      "ok": true,
+      "snippet": "Lịch sử · UAT-VOID-1785997821218\n×\nupdate\nAdmin · admin\n13:30:39 6/8/2026\n\nLý do: Điều chỉnh theo chứng từ\n\nTrước\ndate: 2026-08-06\nnote: —\namount: 55.000 ₫\npaidBy: —\nstatus: active\ncontent: UAT-VOID-1785997821218\nbranchId: soc-trang\nenteredBy: Admin\nemployeeId: —\nexpenseType: taxi\npayrollCycle: —\npayrollMonth: —\nreceiptImage: —\npayrollAdjustmentId:"
+    },
+    "void_excluded_from_total": {
+      "ok": true,
+      "afterVoid": 87792000,
+      "expected": 87792000
+    },
+    "show_voided_visible": {
+      "ok": true,
+      "voidBadge": "2026-08-06\tSóc Trăng Khoẻ Spa\tTaxi\tĐã hủyUAT-VOID-1785997821218\t66.000 ₫\tAdmin\t\nXem\nLịch sử"
+    },
+    "no_void_marker_in_ui": {
+      "ok": true,
+      "voidBadge": "2026-08-06\tSóc Trăng Khoẻ Spa\tTaxi\tĐã hủyUAT-VOID-1785997821218\t66.000 ₫\tAdmin\t\nXem\nLịch sử"
+    }
+  },
+  "ok": true,
+  "video": "/Users/chuluan/Spa-manager/docs/uat-evidence/expenses-void-migration-prod/uat-video/video/expenses-void-status-uat-1785997854947.webm",
+  "finishedAt": "2026-08-06T06:30:54.947Z"
+}

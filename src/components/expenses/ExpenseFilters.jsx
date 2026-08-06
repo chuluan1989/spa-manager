@@ -1,41 +1,27 @@
 import { getActiveBranches } from '../../constants/branches'
-import { EXPENSE_TYPES } from '../../constants/expenseTypes'
 import { canSelectBranch } from '../../constants/auth'
 import './ExpenseModules.css'
 
-const EMPTY_FILTERS = {
-  fromDate: '',
-  toDate: '',
-  branchId: '',
-  expenseType: '',
-}
-
 export default function ExpenseFilters({
   draftFilters,
-  appliedFilters,
   onChange,
   onSearch,
   onReset,
   onExport,
-  expenseTypes = EXPENSE_TYPES,
+  expenseTypes = [],
+  enteredByOptions = [],
+  monthValue = '',
+  onMonthChange,
 }) {
   return (
-    <section className="exp-mod__filters">
+    <section className="exp-mod__filters exp-mod__filters--unified">
       <div className="exp-mod__filters-grid">
         <label className="exp-mod__filter-field">
-          <span>Từ ngày</span>
+          <span>Tháng</span>
           <input
-            type="date"
-            value={draftFilters.fromDate}
-            onChange={(e) => onChange({ ...draftFilters, fromDate: e.target.value })}
-          />
-        </label>
-        <label className="exp-mod__filter-field">
-          <span>Đến ngày</span>
-          <input
-            type="date"
-            value={draftFilters.toDate}
-            onChange={(e) => onChange({ ...draftFilters, toDate: e.target.value })}
+            type="month"
+            value={monthValue}
+            onChange={(e) => onMonthChange?.(e.target.value)}
           />
         </label>
         {canSelectBranch() && (
@@ -64,27 +50,34 @@ export default function ExpenseFilters({
             ))}
           </select>
         </label>
+        <label className="exp-mod__filter-field">
+          <span>Người nhập</span>
+          <select
+            value={draftFilters.enteredBy || ''}
+            onChange={(e) => onChange({ ...draftFilters, enteredBy: e.target.value })}
+          >
+            <option value="">Tất cả</option>
+            {enteredByOptions.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </label>
+        <label className="exp-mod__filter-field exp-mod__filter-field--search">
+          <span>Tìm kiếm</span>
+          <input
+            type="search"
+            placeholder="Nội dung, ghi chú…"
+            value={draftFilters.search || ''}
+            onChange={(e) => onChange({ ...draftFilters, search: e.target.value })}
+            onKeyDown={(e) => { if (e.key === 'Enter') onSearch?.() }}
+          />
+        </label>
       </div>
       <div className="exp-mod__filter-actions">
-        <button type="button" className="exp-mod__btn exp-mod__btn--primary" onClick={onSearch}>
-          Tìm
-        </button>
-        <button type="button" className="exp-mod__btn" onClick={onReset}>
-          Làm mới
-        </button>
-        <button type="button" className="exp-mod__btn exp-mod__btn--export" onClick={onExport}>
-          Xuất Excel
-        </button>
+        <button type="button" className="exp-mod__btn exp-mod__btn--primary" onClick={onSearch}>Lọc</button>
+        <button type="button" className="exp-mod__btn" onClick={onReset}>Làm mới</button>
+        <button type="button" className="exp-mod__btn exp-mod__btn--export" onClick={onExport}>Xuất Excel</button>
       </div>
-      {appliedFilters && (
-        <p className="exp-mod__filter-meta">
-          Đang lọc: {appliedFilters.fromDate || '—'} → {appliedFilters.toDate || '—'}
-          {appliedFilters.branchId ? ` · Chi nhánh đã chọn` : ''}
-          {appliedFilters.expenseType ? ` · Nhóm đã chọn` : ''}
-        </p>
-      )}
     </section>
   )
 }
-
-export { EMPTY_FILTERS }

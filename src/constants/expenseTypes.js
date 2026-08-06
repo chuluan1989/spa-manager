@@ -136,11 +136,11 @@ export function getCategoryCardForType(typeId) {
   return match?.id ?? 'other'
 }
 
-/** Nhóm chi phí phát sinh cho form nhập (không gồm mặt bằng cố định). */
+/** Nhóm chi phí phát sinh cho form nhập (không gồm mặt bằng cố định / nhóm đang ẩn). */
 export function getVariableExpenseTypes(categories = null) {
   if (Array.isArray(categories) && categories.length > 0) {
     return categories
-      .filter((item) => !item.isFixed)
+      .filter((item) => !item.isFixed && !item.isHidden)
       .map((item) => ({ id: item.id, label: item.label }))
   }
   return DEFAULT_VARIABLE_EXPENSE_TYPES

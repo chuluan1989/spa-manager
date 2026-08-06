@@ -101,6 +101,38 @@
   color: #6b7280;
 }
 
+.expenses__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.expenses__card-head-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.expenses__void-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.expenses__side-panel {
+  width: min(920px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+}
+
 @media (max-width: 768px) {
   .expenses__header {
     flex-direction: column;
@@ -109,5 +141,9 @@
   .expenses__add-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .expenses__header-actions {
+    width: 100%;
   }
 }

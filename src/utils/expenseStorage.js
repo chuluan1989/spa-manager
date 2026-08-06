@@ -4,6 +4,7 @@ import {
   isFixedExpenseType,
   normalizeExpenseTypeId,
 } from '../constants/expenseTypes'
+import { EXPENSE_STATUS } from '../repositories/expenseSchema'
 import { deriveExpenseTimeFromTimestamp } from '../repositories/expenseSchema'
 import { IMAGE_CATEGORIES, uploadImageFile } from './imageStorage'
 import { getMonthStartDate, getTodayDate } from './invoiceStorage'
@@ -98,9 +99,19 @@ export function saveExpenses(expenses) {
   return expenses
 }
 
+export function isExpenseVoided(expense) {
+  if (!expense) return false
+  return expense.status === EXPENSE_STATUS.VOID || expense.status === 'cancelled'
+}
+
+export function isExpenseActive(expense) {
+  return !isExpenseVoided(expense)
+}
+
 export function normalizeExpense(expense) {
   const expenseType = normalizeExpenseTypeId(expense.expenseType)
   const updatedAt = expense.updatedAt ?? ''
+  const statusRaw = expense.status || EXPENSE_STATUS.ACTIVE
   return {
     id: expense.id,
     date: expense.date ?? '',
@@ -123,6 +134,10 @@ export function normalizeExpense(expense) {
     payrollMonth: expense.payrollMonth ?? '',
     payrollCycle: expense.payrollCycle ?? '',
     payrollPeriod: expense.payrollPeriod ?? '',
+    status: statusRaw === EXPENSE_STATUS.VOID || statusRaw === 'cancelled' ? EXPENSE_STATUS.VOID : EXPENSE_STATUS.ACTIVE,
+    voidedAt: expense.voidedAt ?? '',
+    voidedBy: expense.voidedBy ?? '',
+    voidReason: expense.voidReason ?? '',
     updatedAt: expense.updatedAt ?? '',
   }
 }
@@ -224,7 +239,7 @@ function createChangeLogId() {
   return `ecl-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
 }
 
-async function logExpenseChange({ action, entityId, branchId, oldValues, newValues }) {
+async function logExpenseChange({ action, entityId, branchId, oldValues, newValues, reason = '' }) {
   try {
     await insertExpenseChangeLog({
       id: createChangeLogId(),
@@ -235,7 +250,10 @@ async function logExpenseChange({ action, entityId, branchId, oldValues, newValu
       changedBy: getCurrentUserName(),
       changedByRole: getCurrentUserRole() ?? '',
       oldValues: oldValues ?? {},
-      newValues: newValues ?? {},
+      newValues: {
+        ...(newValues ?? {}),
+        ...(reason ? { changeReason: reason } : {}),
+      },
     })
   } catch {
     // Không chặn thao tác chính nếu audit log lỗi tạm thời.
@@ -252,6 +270,9 @@ function expenseAuditSnapshot(expense) {
     amount: expense.amount,
     note: expense.note,
     enteredBy: expense.enteredBy,
+    paidBy: expense.paidBy,
+    receiptImage: expense.receiptImage ? '(có ảnh)' : '',
+    status: expense.status ?? EXPENSE_STATUS.ACTIVE,
     employeeId: expense.employeeId,
     payrollAdjustmentId: expense.payrollAdjustmentId,
     payrollMonth: expense.payrollMonth,
@@ -316,6 +337,19 @@ export async function updateExpense(id, data, options = {}) {
     return denyAccess(editCheck.reason)
   }
 
+  if (isExpenseVoided(expenses[index])) {
+    return denyAccess('Khoản chi đã hủy — không thể sửa. Xem lịch sử để đối chiếu.')
+  }
+
+  const reason = String(options.reason ?? data.changeReason ?? '').trim()
+  if (isSessionAdmin() && !reason) {
+    return {
+      success: false,
+      needsReason: true,
+      error: 'Admin phải nhập lý do khi sửa khoản chi.',
+    }
+  }
+
   const merged = sanitizeExpenseData({ ...expenses[index], ...data })
   if (isFixedExpenseType(merged.expenseType)) {
     return {
@@ -330,6 +364,7 @@ export async function updateExpense(id, data, options = {}) {
   expenses[index] = normalizeExpense({
     ...expenses[index],
     ...merged,
+    status: EXPENSE_STATUS.ACTIVE,
     updatedAt: new Date().toISOString(),
   })
 
@@ -345,6 +380,7 @@ export async function updateExpense(id, data, options = {}) {
     branchId: expenses[index].branchId,
     oldValues: expenseAuditSnapshot(previous),
     newValues: expenseAuditSnapshot(expenses[index]),
+    reason,
   })
 
   saveExpenses(expenses)
@@ -352,45 +388,100 @@ export async function updateExpense(id, data, options = {}) {
   return { success: true, expense: expenses[index] }
 }
 
-export async function deleteExpense(id) {
+/**
+ * Soft void — không hard delete.
+ * Bắt buộc lý do. Không còn tính vào tổng; vẫn xem được trong lịch sử (includeVoided).
+ */
+export async function voidExpense(id, reason) {
   const expenses = loadExpenses()
-  const current = expenses.find((exp) => exp.id === id)
-  if (!current) {
+  const index = expenses.findIndex((exp) => exp.id === id)
+  if (index === -1) {
     return denyAccess('Không tìm thấy khoản chi.')
   }
 
+  const current = expenses[index]
   if (isSalaryAdvanceExpense(current)) {
-    return deleteSalaryAdvance(id)
+    return denyAccess('Hủy ứng lương qua module Ứng lương / Payroll.')
   }
 
   const deleteCheck = canDeleteExpenseRecord(current)
   if (!deleteCheck.allowed) {
-    return denyAccess(deleteCheck.reason)
+    // Admin luôn void được; manager dùng quyền delete
+    if (!isSessionAdmin()) return denyAccess(deleteCheck.reason)
   }
 
-  const next = expenses.filter((exp) => exp.id !== id)
-
-  try {
-    await pushExpenseDeletionToSupabase(id)
-  } catch (error) {
-    return { success: false, error: error?.message ?? 'Không thể xoá chi phí trên máy chủ.' }
+  const voidReason = String(reason ?? '').trim()
+  if (!voidReason) {
+    return { success: false, needsReason: true, error: 'Bắt buộc nhập lý do hủy khoản chi.' }
+  }
+  if (isExpenseVoided(current)) {
+    return { success: true, expense: current }
   }
 
-  await logExpenseChange({
-    action: 'delete',
-    entityId: id,
-    branchId: current.branchId,
-    oldValues: expenseAuditSnapshot(current),
-    newValues: {},
+  const previous = current
+  const next = normalizeExpense({
+    ...current,
+    status: EXPENSE_STATUS.VOID,
+    voidedAt: new Date().toISOString(),
+    voidedBy: getCurrentUserName(),
+    voidReason,
+    // Giữ note gốc — lý do hủy nằm ở voidReason / audit log, không nhét marker vào nội dung.
+    note: current.note ?? '',
+    updatedAt: new Date().toISOString(),
   })
 
-  saveExpenses(next)
+  try {
+    await pushExpenseToSupabase(next)
+  } catch (error) {
+    return { success: false, error: error?.message ?? 'Không thể hủy khoản chi trên máy chủ.' }
+  }
+
+  expenses[index] = next
+  await logExpenseChange({
+    action: 'void',
+    entityId: id,
+    branchId: next.branchId,
+    oldValues: expenseAuditSnapshot(previous),
+    newValues: expenseAuditSnapshot(next),
+    reason: voidReason,
+  })
+
+  saveExpenses(expenses)
   notifyDataSynced(['expenses'])
-  return { success: true, expenses: next }
+  return { success: true, expense: next }
 }
 
-export function filterExpenses(expenses, { fromDate, toDate, branchId, expenseType } = {}) {
+/** @deprecated Hard delete — giữ cho script cũ; UI dùng voidExpense. */
+export async function deleteExpense(id, options = {}) {
+  if (options.hardDelete === true && isSessionAdmin()) {
+    const expenses = loadExpenses()
+    const current = expenses.find((exp) => exp.id === id)
+    if (!current) return denyAccess('Không tìm thấy khoản chi.')
+    if (isSalaryAdvanceExpense(current)) return deleteSalaryAdvance(id)
+    const next = expenses.filter((exp) => exp.id !== id)
+    try {
+      await pushExpenseDeletionToSupabase(id)
+    } catch (error) {
+      return { success: false, error: error?.message ?? 'Không thể xoá chi phí trên máy chủ.' }
+    }
+    await logExpenseChange({
+      action: 'delete',
+      entityId: id,
+      branchId: current.branchId,
+      oldValues: expenseAuditSnapshot(current),
+      newValues: {},
+      reason: options.reason || 'hard delete',
+    })
+    saveExpenses(next)
+    notifyDataSynced(['expenses'])
+    return { success: true, expenses: next }
+  }
+  return voidExpense(id, options.reason)
+}
+
+export function filterExpenses(expenses, { fromDate, toDate, branchId, expenseType, includeVoided = false } = {}) {
   return expenses.filter((exp) => {
+    if (!includeVoided && isExpenseVoided(exp)) return false
     if (fromDate && exp.date < fromDate) return false
     if (toDate && exp.date > toDate) return false
     if (branchId && exp.branchId !== branchId) return false

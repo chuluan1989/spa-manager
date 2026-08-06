@@ -21,11 +21,21 @@ export async function upsertExpenseCategory(category) {
     sortOrder: Number(category.sortOrder ?? 0),
     isSystem: Boolean(category.isSystem),
     isFixed: Boolean(category.isFixed),
+    isHidden: Boolean(category.isHidden),
     createdAt: category.createdAt ?? new Date().toISOString(),
     updatedAt: category.updatedAt ?? new Date().toISOString(),
   })
   const { error } = await supabase.from(TABLE).upsert(dbRow, { onConflict: 'id' })
-  if (error) throw error
+  if (error) {
+    // Migration 0045 chưa chạy — bỏ is_hidden
+    if (String(error.message || '').toLowerCase().includes('is_hidden')) {
+      delete dbRow.is_hidden
+      const retry = await supabase.from(TABLE).upsert(dbRow, { onConflict: 'id' })
+      if (retry.error) throw retry.error
+      return
+    }
+    throw error
+  }
 }
 
 export async function deleteExpenseCategoryRow(id) {

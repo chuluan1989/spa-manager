@@ -1,0 +1,71 @@
+{
+  "startedAt": "2026-08-06T06:22:40.799Z",
+  "outDir": "/Users/chuluan/Spa-manager/docs/uat-evidence/expenses-void-migration-prod/2026-08-06T06-22-40",
+  "backup": {
+    "expenses": {
+      "count": 119,
+      "file": "/Users/chuluan/Spa-manager/docs/uat-evidence/expenses-void-migration-prod/2026-08-06T06-22-40/backup_expenses.json"
+    },
+    "expense_categories": {
+      "count": 10,
+      "file": "/Users/chuluan/Spa-manager/docs/uat-evidence/expenses-void-migration-prod/2026-08-06T06-22-40/backup_expense_categories.json"
+    },
+    "branch_fixed_costs": {
+      "count": 6,
+      "file": "/Users/chuluan/Spa-manager/docs/uat-evidence/expenses-void-migration-prod/2026-08-06T06-22-40/backup_branch_fixed_costs.json"
+    },
+    "expense_change_logs": {
+      "count": 121,
+      "file": "/Users/chuluan/Spa-manager/docs/uat-evidence/expenses-void-migration-prod/2026-08-06T06-22-40/backup_expense_change_logs.json"
+    }
+  },
+  "migration": {
+    "applied": true,
+    "file": "0045_expense_soft_void_and_category_hide.sql",
+    "columns": [
+      {
+        "table_name": "branch_fixed_costs",
+        "column_name": "start_date"
+      },
+      {
+        "table_name": "branch_fixed_costs",
+        "column_name": "status"
+      },
+      {
+        "table_name": "expense_categories",
+        "column_name": "is_hidden"
+      },
+      {
+        "table_name": "expenses",
+        "column_name": "status"
+      },
+      {
+        "table_name": "expenses",
+        "column_name": "void_reason"
+      },
+      {
+        "table_name": "expenses",
+        "column_name": "voided_at"
+      },
+      {
+        "table_name": "expenses",
+        "column_name": "voided_by"
+      }
+    ]
+  },
+  "backfill": {
+    "candidatesWithMarker": 2,
+    "alreadyVoid": 0,
+    "updatedCount": 2
+  },
+  "cleanup": {
+    "cleanedCount": 2
+  },
+  "verify": {
+    "remainingMarker": 0,
+    "voidStatusCount": 2,
+    "activeCount": 117
+  },
+  "ok": true,
+  "finishedAt": "2026-08-06T06:22:44.086Z"
+}

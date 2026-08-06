@@ -13,7 +13,7 @@ export const EXPENSE_CORE_DB_COLUMNS = [
   'updated_at',
 ]
 
-/** Cột ERP bổ sung (0008/0009) — có thể chưa migrate trên production cũ. */
+/** Cột ERP bổ sung (0008/0009/0033/0045) — có thể chưa migrate trên production cũ. */
 export const EXPENSE_EXTENDED_DB_COLUMNS = [
   'expense_time',
   'paid_by',
@@ -23,7 +23,16 @@ export const EXPENSE_EXTENDED_DB_COLUMNS = [
   'payroll_adjustment_id',
   'payroll_month',
   'payroll_cycle',
+  'status',
+  'voided_at',
+  'voided_by',
+  'void_reason',
 ]
+
+export const EXPENSE_STATUS = {
+  ACTIVE: 'active',
+  VOID: 'void',
+}
 
 export function deriveExpenseTimeFromTimestamp(iso) {
   if (!iso) return ''
@@ -72,6 +81,12 @@ export function expenseToDbRow(expense, { includeExtended = true } = {}) {
     if (expense.payrollCycle != null && expense.payrollCycle !== '') {
       row.payroll_cycle = expense.payrollCycle
     }
+    if (expense.status != null && expense.status !== '') {
+      row.status = expense.status
+    }
+    if (expense.voidedAt) row.voided_at = expense.voidedAt
+    if (expense.voidedBy != null) row.voided_by = expense.voidedBy
+    if (expense.voidReason != null) row.void_reason = expense.voidReason
   }
 
   return row

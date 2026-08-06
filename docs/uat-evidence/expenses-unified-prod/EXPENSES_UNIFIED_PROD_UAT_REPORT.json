@@ -1,0 +1,63 @@
+{
+  "startedAt": "2026-08-06T06:18:31.359Z",
+  "base": "https://www.khoespa.net.vn",
+  "tag": "UAT-EXP-1785997111359",
+  "steps": {
+    "unified_ui_manager": {
+      "ok": true,
+      "kpiBlocks": 1
+    },
+    "manager_create_expense": {
+      "ok": true,
+      "tag": "UAT-EXP-1785997111359",
+      "amount": 111000
+    },
+    "unified_ui_admin": {
+      "ok": true
+    },
+    "no_branch_grid_gate": {
+      "ok": true
+    },
+    "admin_sees_row": {
+      "ok": true,
+      "beforeTotal": 83111000
+    },
+    "admin_edit_amount_totals": {
+      "ok": true,
+      "beforeTotal": 83111000,
+      "afterEditTotal": 83222000,
+      "expected": 83222000
+    },
+    "audit_history_before_after": {
+      "ok": true,
+      "historyOk": true,
+      "historyNewOk": true,
+      "reasonOk": true,
+      "snippet": "Lịch sử · UAT-EXP-1785997111359\n×\nupdate\nAdmin · admin\n13:18:55 6/8/2026\n\nLý do: Quản lý nhập sai số tiền\n\nTrước\ndate: 2026-08-06\nnote: —\namount: 111.000 ₫\npaidBy: —\nstatus: active\ncontent: UAT-EXP-1785997111359\nbranchId: soc-trang\nenteredBy: QL Sóc Trăng Khoẻ Spa\nemployeeId: —\nexpenseType: taxi\npayrollCycle: —\npayrollMonth: —\nreceiptImage: —\npayrollAdjustmentId: —\nSau\ndate: 2026-08-06\nnote: —\namo"
+    },
+    "admin_change_group": {
+      "ok": true,
+      "row": "2026-08-06\tSóc Trăng Khoẻ Spa\tĐiện\tUAT-EXP-1785997111359\t222.000 ₫\tQL Sóc Trăng Khoẻ Spa\t\nXem\nSửa\nXóa\nLịch sử"
+    },
+    "admin_void_totals": {
+      "ok": true,
+      "beforeVoidTotal": 83222000,
+      "afterVoidTotal": 83000000,
+      "expectedDrop": 222000
+    },
+    "filters_month_branch_group": {
+      "ok": true,
+      "note": "filters applied without navigation error"
+    },
+    "drilldown_chip": {
+      "ok": true,
+      "skipped": "no chip visible after void/filter"
+    }
+  },
+  "ok": true,
+  "video": "/Users/chuluan/Spa-manager/docs/uat-evidence/expenses-unified-prod/video/expenses-unified-uat-1785997149633.webm",
+  "notes": [
+    "manager_password_ok"
+  ],
+  "finishedAt": "2026-08-06T06:19:09.633Z"
+}

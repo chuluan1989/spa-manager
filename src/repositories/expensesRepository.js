@@ -7,6 +7,18 @@ import {
 
 const TABLE = 'expenses'
 
+/** Cột extended có thể thiếu trên DB cũ — KHÔNG gồm status/void_* (migration 0045 bắt buộc). */
+const OPTIONAL_LEGACY_COLUMNS = [
+  'expense_time',
+  'paid_by',
+  'receipt_image',
+  'entered_by_id',
+  'employee_id',
+  'payroll_adjustment_id',
+  'payroll_month',
+  'payroll_cycle',
+]
+
 function sortExpensesDesc(rows) {
   return [...rows].sort((a, b) => {
     const dateCmp = (b.date ?? '').localeCompare(a.date ?? '')
@@ -60,25 +72,17 @@ async function upsertExpenseRow(row) {
 export async function upsertExpense(expense) {
   if (!isSupabaseConfigured || !expense?.id) return
 
-  const fullRow = expenseToDbRow(expense, { includeExtended: true })
-  try {
-    await upsertExpenseRow(fullRow)
-    return
-  } catch (error) {
-    if (!isMissingColumnError(error, 'expense_time')
-      && !isMissingColumnError(error, 'paid_by')
-      && !isMissingColumnError(error, 'receipt_image')
-      && !isMissingColumnError(error, 'entered_by_id')
-      && !isMissingColumnError(error, 'employee_id')
-      && !isMissingColumnError(error, 'payroll_adjustment_id')
-      && !isMissingColumnError(error, 'payroll_month')
-      && !isMissingColumnError(error, 'payroll_cycle')) {
-      throw error
+  const row = expenseToDbRow(expense, { includeExtended: true })
+  for (let attempt = 0; attempt < OPTIONAL_LEGACY_COLUMNS.length + 1; attempt += 1) {
+    try {
+      await upsertExpenseRow(row)
+      return
+    } catch (error) {
+      const missing = OPTIONAL_LEGACY_COLUMNS.find((col) => isMissingColumnError(error, col) && col in row)
+      if (!missing) throw error
+      delete row[missing]
     }
   }
-
-  const coreRow = expenseToDbRow(expense, { includeExtended: false })
-  await upsertExpenseRow(coreRow)
 }
 
 export async function upsertExpenses(expenses) {

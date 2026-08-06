@@ -20,11 +20,23 @@ export async function upsertBranchFixedCost(row) {
     expenseType: row.expenseType ?? 'mat-bang',
     expenseTypeLabel: row.expenseTypeLabel ?? 'Mặt bằng',
     amount: Number(row.amount ?? 0),
+    status: row.status === 'paused' ? 'paused' : 'active',
+    startDate: row.startDate || null,
     updatedBy: row.updatedBy ?? '',
     updatedAt: row.updatedAt ?? new Date().toISOString(),
   })
   const { error } = await supabase.from(TABLE).upsert(dbRow, { onConflict: 'id' })
-  if (error) throw error
+  if (error) {
+    const msg = String(error.message || '').toLowerCase()
+    if (msg.includes('status') || msg.includes('start_date')) {
+      delete dbRow.status
+      delete dbRow.start_date
+      const retry = await supabase.from(TABLE).upsert(dbRow, { onConflict: 'id' })
+      if (retry.error) throw retry.error
+      return
+    }
+    throw error
+  }
 }
 
 export async function upsertBranchFixedCosts(rows) {

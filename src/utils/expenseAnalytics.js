@@ -10,20 +10,29 @@ import { getInvoicePayment } from './invoice'
 
 export function filterExpensesAdvanced(
   expenses,
-  { fromDate, toDate, branchId, expenseType, categoryId } = {},
+  { fromDate, toDate, branchId, expenseType, categoryId, enteredBy, search, includeVoided = false } = {},
 ) {
+  const q = String(search ?? '').trim().toLowerCase()
   return expenses.filter((exp) => {
+    if (!includeVoided && (exp.status === 'void' || exp.status === 'cancelled')) {
+      return false
+    }
     if (fromDate && exp.date < fromDate) return false
     if (toDate && exp.date > toDate) return false
     if (branchId && exp.branchId !== branchId) return false
     if (expenseType && normalizeExpenseTypeId(exp.expenseType) !== normalizeExpenseTypeId(expenseType)) {
       return false
     }
+    if (enteredBy && String(exp.enteredBy ?? '') !== enteredBy) return false
     if (categoryId && categoryId !== 'total') {
       const card = EXPENSE_CATEGORY_CARDS.find((item) => item.id === categoryId)
       if (card?.typeIds && !card.typeIds.includes(normalizeExpenseTypeId(exp.expenseType))) {
         return false
       }
+    }
+    if (q) {
+      const hay = `${exp.content} ${exp.note} ${exp.enteredBy} ${exp.expenseTypeLabel} ${exp.branchName}`.toLowerCase()
+      if (!hay.includes(q)) return false
     }
     return true
   })
