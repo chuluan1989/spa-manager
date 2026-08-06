@@ -61,6 +61,7 @@ export function useOpsCenterData(periodMode = 'month') {
     invoices,
     expenses,
     fixedCosts,
+    payrollByBranch,
     loading: financeLoading,
     error: financeError,
     reload: reloadFinance,
@@ -68,8 +69,8 @@ export function useOpsCenterData(periodMode = 'month') {
   } = useDrillDownData(filters)
 
   const liveFinanceSummary = useMemo(
-    () => buildDrillDownSummary(invoices, expenses, scopedFilters, null, fixedCosts),
-    [invoices, expenses, scopedFilters, fixedCosts],
+    () => buildDrillDownSummary(invoices, expenses, scopedFilters, payrollByBranch, fixedCosts),
+    [invoices, expenses, scopedFilters, payrollByBranch, fixedCosts],
   )
 
   const [financeSummary, setFinanceSummary] = useState(null)

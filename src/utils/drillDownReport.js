@@ -77,12 +77,7 @@ export function buildDrillDownSummary(
     fixedCosts,
     filters,
   })
-  const totalSalary = resolveTotalSalary({
-    ticketRevenue: metrics.ticketRevenue,
-    tips: metrics.tips,
-    commission: metrics.commission,
-    payrollByBranch,
-  })
+  const totalSalary = resolveTotalSalary({ payrollByBranch })
   const payments = aggregatePaymentMethodTotals(filtered)
 
   return enrichProfitMetrics({

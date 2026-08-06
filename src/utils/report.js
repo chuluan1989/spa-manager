@@ -265,12 +265,7 @@ export function computeReportData(invoices, expenses, filters, payrollByBranch =
   const filteredExpenses = filterVariableExpenses(filterExpenses(expenses, filters))
   const summary = computeReportSummary(filtered)
   const periodCosts = computePeriodExpenseTotals({ expenses, fixedCosts, filters })
-  const totalSalary = resolveTotalSalary({
-    ticketRevenue: summary.ticketRevenue,
-    tips: summary.tips,
-    commission: summary.commission,
-    payrollByBranch,
-  })
+  const totalSalary = resolveTotalSalary({ payrollByBranch })
   const profitSummary = enrichProfitMetrics({
     ...summary,
     fixedExpenses: periodCosts.fixedTotal,

@@ -1,4 +1,4 @@
-import { computeEmployeePayrollRow, computeEmployeePayrollBranchSections } from './payrollEngine'
+import { computeEmployeePayrollRow, computeEmployeePayrollBranchSections, computePayrollReport } from './payrollEngine'
 import { collectEmployeeIdsWithRecordBranchActivity } from './employeeBranchTimeline'
 import { isPayrollListEmployee, recordBelongsToBranch } from './branchEmployeeMatch'
 
@@ -23,9 +23,15 @@ export function computeProfitMarginPercent(actualRevenue, profit) {
 }
 
 function filterAdjustmentsForRange(adjustments, { fromDate, toDate, branchId }) {
+  const monthFrom = fromDate ? String(fromDate).slice(0, 7) : ''
+  const monthTo = toDate ? String(toDate).slice(0, 7) : ''
   return adjustments.filter((row) => {
-    if (fromDate && row.date < fromDate) return false
-    if (toDate && row.date > toDate) return false
+    if (row.month) {
+      if (monthFrom && row.month < monthFrom) return false
+      if (monthTo && row.month > monthTo) return false
+    }
+    if (fromDate && row.date && row.date < fromDate) return false
+    if (toDate && row.date && row.date > toDate) return false
     if (branchId && !recordBelongsToBranch(row, branchId)) return false
     return true
   })
@@ -55,8 +61,23 @@ function filterInvoicesForRange(invoices, { fromDate, toDate, branchId, employee
   })
 }
 
+/** Σ net từ cùng report.rows — nguồn duy nhất với Live Payroll / Salary UI. */
+export function aggregatePayrollCostFromReport(report, { branchId = '' } = {}) {
+  const byBranch = new Map()
+  let total = 0
+  for (const row of report?.rows ?? []) {
+    const key = row.branchId || 'unknown'
+    if (branchId && key !== branchId) continue
+    const net = Number(row.netSalary ?? 0)
+    total += net
+    byBranch.set(key, (byBranch.get(key) ?? 0) + net)
+  }
+  return { total, byBranch }
+}
+
 /**
  * Tổng lương nhân viên theo chi nhánh trong kỳ (net salary từ payroll engine).
+ * Nếu có month+cycle → ủy quyền computePayrollReport (cùng Salary UI).
  * Trả về Map<branchId, totalSalary> và tổng toàn hệ thống.
  */
 export function computePayrollCostByBranch({
@@ -67,7 +88,23 @@ export function computePayrollCostByBranch({
   invoices = [],
   attendanceRecords = [],
   adjustments = [],
+  month = '',
+  cycle = '',
 }) {
+  if (month && cycle) {
+    const report = computePayrollReport({
+      month,
+      cycle,
+      branchId: '',
+      employeeId: '',
+      employees,
+      invoices,
+      attendanceRecords,
+      adjustments,
+    })
+    return aggregatePayrollCostFromReport(report, { branchId })
+  }
+
   const scopedInvoices = filterInvoicesForRange(invoices, { fromDate, toDate, branchId })
   const scopedAttendance = filterAttendanceForRange(attendanceRecords, { fromDate, toDate, branchId })
   const scopedAdjustments = filterAdjustmentsForRange(adjustments, { fromDate, toDate, branchId })
@@ -134,18 +171,17 @@ export function computePayrollCostByBranch({
   return { total, byBranch }
 }
 
+/**
+ * Chi phí nhân sự = Σ netSalary từ payroll engine.
+ * Không fallback commission+tips (đó không phải bảng lương chính thức).
+ */
 export function resolveTotalSalary({
-  ticketRevenue = 0,
-  tips = 0,
-  commission = 0,
   payrollByBranch,
   branchId = '',
 }) {
-  if (payrollByBranch?.byBranch?.size) {
-    if (branchId) return payrollByBranch.byBranch.get(branchId) ?? 0
-    return payrollByBranch.total ?? 0
-  }
-  return commission + tips
+  if (!payrollByBranch) return 0
+  if (branchId) return payrollByBranch.byBranch?.get(branchId) ?? 0
+  return Number(payrollByBranch.total ?? 0)
 }
 
 export function enrichProfitMetrics(row, payrollByBranch = null) {
@@ -162,13 +198,7 @@ export function enrichProfitMetrics(row, payrollByBranch = null) {
   const branchId = row.branchId ?? ''
 
   const actualRevenue = computeActualRevenue(ticketRevenue, tips)
-  const totalSalary = resolveTotalSalary({
-    ticketRevenue,
-    tips,
-    commission,
-    payrollByBranch,
-    branchId,
-  })
+  const totalSalary = resolveTotalSalary({ payrollByBranch, branchId })
   const profit = computeProfitAmount(actualRevenue, totalSalary, expenses)
 
   return {

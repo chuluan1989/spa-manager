@@ -1,20 +1,21 @@
 import { formatCurrency } from '../../utils/invoice'
 import { PAYROLL_DETAIL_LABELS } from '../../constants/payrollTypes'
 
+/** Chỉ hiển thị field từ payrollRow — không tự cộng lại net. */
 const KPI_ROWS = [
-  ['grossBeforeDeduction', 'neutral'],
   ['baseSalary', 'neutral'],
   ['workDays', 'neutral'],
   ['ticketRevenue', 'revenue'],
   ['commission', 'commission'],
   ['tips', 'tips'],
   ['bonus', 'bonus'],
+  ['kpi', 'bonus'],
   ['penalty', 'penalty'],
   ['reduction', 'reduction'],
   ['advance', 'advance'],
   ['paidAmount', 'paid'],
   ['remainingAmount', 'remaining'],
-  ['provisionalNet', 'net'],
+  ['netSalary', 'net'],
 ]
 
 function formatWorkDays(value) {
@@ -27,14 +28,9 @@ export default function PayrollLiveDashboard({ stats, attendanceStats }) {
 
   const displayStats = {
     ...stats,
-    grossBeforeDeduction: stats.grossBeforeDeduction ?? (
-      (stats.baseSalary ?? 0) + (stats.commission ?? 0) + (stats.tips ?? 0) + (stats.bonus ?? 0)
-      - (stats.reduction ?? 0) - (stats.penalty ?? 0)
-    ),
     workDays: attendanceStats?.workDays ?? 0,
     paidAmount: stats.paidAmount ?? 0,
     remainingAmount: stats.remainingAmount ?? stats.netSalary ?? 0,
-    provisionalNet: stats.provisionalNet ?? stats.netSalary ?? 0,
   }
 
   return (

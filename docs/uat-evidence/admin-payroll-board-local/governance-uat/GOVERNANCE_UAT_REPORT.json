@@ -1,0 +1,1181 @@
+{
+  "startedAt": "2026-08-06T01:38:10.030Z",
+  "deploy": false,
+  "passClaim": false,
+  "employeeId": "soc-trang-ly-ly",
+  "month": "2026-08",
+  "cycle": "period1",
+  "modulesChecked": [
+    "1. Chi tiết nhân viên — computePayrollReport → payrollRow / wallet",
+    "2. Danh sách bảng lương — mergeEmployeePayrollRows(report.rows)",
+    "3. Tổng lương chi nhánh — aggregateBranchSummaries(report.rows)",
+    "4. Chi phí nhân sự — loadPayrollCostForFilters → computePayrollCostByBranch (Σ net)",
+    "5. Lợi nhuận Spa — actualRevenue − laborCost − expenses (cùng labor trên)",
+    "6. Dashboard Live Payroll — đọc field từ payrollRow (không tự cộng lại)",
+    "7. Excel — mapPayrollRowForExport(payrollRow)",
+    "8. PDF/phiếu — payslip từ payrollRow (+ KPI)",
+    "9. Audit — payroll_audit_logs ghi lúc SET"
+  ],
+  "oneSourceStatement": "Sau Admin SET Thưởng/KPI/Phạt/Ứng: mọi module đọc cùng nguồn payroll_adjustments → computeEmployeePayrollRow / computePayrollReport / computePayrollCostByBranch. Không fallback commission+tips.",
+  "cases": [
+    {
+      "id": "case1_penalty_400_to_1000",
+      "label": "Phạt 400.000 → 1.000.000",
+      "setup": {
+        "bonus": 0,
+        "kpi": 0,
+        "penalty": 400000,
+        "advance": 0
+      },
+      "after": {
+        "bonus": 0,
+        "kpi": 0,
+        "penalty": 1000000,
+        "advance": 0
+      },
+      "expectedNetDelta": -600000,
+      "expectedLaborCostDelta": -600000,
+      "expectedProfitDelta": 600000,
+      "diff": {
+        "employeeNet": -600000,
+        "employeePenalty": 600000,
+        "employeeAdvance": 0,
+        "employeeKpi": 0,
+        "employeeBonus": 0,
+        "branchNet": -600000,
+        "systemNet": -600000,
+        "laborCost": -600000,
+        "actualRevenue": 0,
+        "expensesTotal": 0,
+        "spaProfit": 600000,
+        "spaProfitExpectedFromLabor": 600000,
+        "concurrentOtherNet": 0,
+        "excelNet": -600000,
+        "pdfNet": -600000
+      },
+      "sourceCheck": {
+        "ok": true,
+        "concurrentOtherNet": 0,
+        "checks": [
+          {
+            "name": "employeeNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -600000,
+            "expected": -600000
+          },
+          {
+            "name": "excelNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -600000,
+            "expected": -600000
+          },
+          {
+            "name": "pdfNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -600000,
+            "expected": -600000
+          },
+          {
+            "name": "branchNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -600000,
+            "expected": -600000
+          },
+          {
+            "name": "laborCost_delta_equals_systemNet",
+            "ok": true,
+            "hard": true,
+            "actual": -600000,
+            "expected": -600000
+          },
+          {
+            "name": "spaProfit_formula_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 600000,
+            "expected": 600000
+          },
+          {
+            "name": "laborCost_delta_equals_employee_when_isolated",
+            "ok": true,
+            "hard": false,
+            "actual": -600000,
+            "expected": -600000
+          }
+        ]
+      },
+      "uiNetDelta": -600000,
+      "uiMatch": true,
+      "detailMatchEngine": true,
+      "identityOk": true,
+      "beforeEngine": {
+        "label": "case1_penalty_400_to_1000-before",
+        "at": "2026-08-06T01:38:54.246Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 400000,
+          "advance": 0,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 1169400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 10631700,
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 400000,
+          "advance": 0,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 41339379,
+          "bonus": 500000,
+          "kpi": 0,
+          "penalty": 400000,
+          "advance": 500000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 41339379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 40680621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 400000,
+          "advance": 0,
+          "netSalary": 1169400
+        },
+        "pdf": {
+          "bonus": 0,
+          "penalty": 400000,
+          "advance": 0,
+          "netSalary": 1169400,
+          "kpiInNet": 0
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT setup — Phạt 400.000 → 1.000.000",
+          "createdAt": "2026-08-06T01:38:39.698+00:00",
+          "netDelta": -400000,
+          "laborCostDelta": -400000,
+          "profitDelta": 400000
+        }
+      },
+      "afterEngine": {
+        "label": "case1_penalty_400_to_1000-after",
+        "at": "2026-08-06T01:39:44.690Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 0,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 569400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 10031700,
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 0,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 40739379,
+          "bonus": 500000,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 500000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 40739379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 41280621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 0,
+          "netSalary": 569400
+        },
+        "pdf": {
+          "bonus": 0,
+          "penalty": 1000000,
+          "advance": 0,
+          "netSalary": 569400,
+          "kpiInNet": 0
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT — Phạt 400.000 → 1.000.000",
+          "createdAt": "2026-08-06T01:39:29.018+00:00",
+          "netDelta": -600000,
+          "laborCostDelta": -600000,
+          "profitDelta": 600000
+        }
+      },
+      "previewText": "Lương hiện tại\n1.169.400 ₫\nLương sau chỉnh sửa\n569.400 ₫\nChênh lệch\n-600.000 ₫\nChi phí nhân sự thay đổi\n-600.000 ₫\nLợi nhuận Spa thay đổi\n+600.000 ₫",
+      "branchBeforeText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n400.000 ₫\nTổng ứng lương\n0 ₫\nTổng lương thực nhận\n10.631.700 ₫\nXem nhân viên",
+      "branchAfterText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n1.000.000 ₫\nTổng ứng lương\n0 ₫\nTổng lương thực nhận\n10.031.700 ₫\nXem nhân viên",
+      "ok": true
+    },
+    {
+      "id": "case2_advance_500_to_200",
+      "label": "Ứng 500.000 → 200.000",
+      "setup": {
+        "bonus": 0,
+        "kpi": 0,
+        "penalty": 1000000,
+        "advance": 500000
+      },
+      "after": {
+        "bonus": 0,
+        "kpi": 0,
+        "penalty": 1000000,
+        "advance": 200000
+      },
+      "expectedNetDelta": 300000,
+      "expectedLaborCostDelta": 300000,
+      "expectedProfitDelta": -300000,
+      "diff": {
+        "employeeNet": 300000,
+        "employeePenalty": 0,
+        "employeeAdvance": -300000,
+        "employeeKpi": 0,
+        "employeeBonus": 0,
+        "branchNet": 300000,
+        "systemNet": 300000,
+        "laborCost": 300000,
+        "actualRevenue": 0,
+        "expensesTotal": 0,
+        "spaProfit": -300000,
+        "spaProfitExpectedFromLabor": -300000,
+        "concurrentOtherNet": 0,
+        "excelNet": 300000,
+        "pdfNet": 300000
+      },
+      "sourceCheck": {
+        "ok": true,
+        "concurrentOtherNet": 0,
+        "checks": [
+          {
+            "name": "employeeNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 300000,
+            "expected": 300000
+          },
+          {
+            "name": "excelNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 300000,
+            "expected": 300000
+          },
+          {
+            "name": "pdfNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 300000,
+            "expected": 300000
+          },
+          {
+            "name": "branchNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 300000,
+            "expected": 300000
+          },
+          {
+            "name": "laborCost_delta_equals_systemNet",
+            "ok": true,
+            "hard": true,
+            "actual": 300000,
+            "expected": 300000
+          },
+          {
+            "name": "spaProfit_formula_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -300000,
+            "expected": -300000
+          },
+          {
+            "name": "laborCost_delta_equals_employee_when_isolated",
+            "ok": true,
+            "hard": false,
+            "actual": 300000,
+            "expected": 300000
+          }
+        ]
+      },
+      "uiNetDelta": 300000,
+      "uiMatch": true,
+      "detailMatchEngine": true,
+      "identityOk": true,
+      "beforeEngine": {
+        "label": "case2_advance_500_to_200-before",
+        "at": "2026-08-06T01:40:32.118Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 500000,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 69400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 9531700,
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 500000,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 40239379,
+          "bonus": 500000,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 1000000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 40239379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 41780621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 500000,
+          "netSalary": 69400
+        },
+        "pdf": {
+          "bonus": 0,
+          "penalty": 1000000,
+          "advance": 500000,
+          "netSalary": 69400,
+          "kpiInNet": 0
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT setup — Ứng 500.000 → 200.000",
+          "createdAt": "2026-08-06T01:40:18.198+00:00",
+          "netDelta": -500000,
+          "laborCostDelta": -500000,
+          "profitDelta": 500000
+        }
+      },
+      "afterEngine": {
+        "label": "case2_advance_500_to_200-after",
+        "at": "2026-08-06T01:41:23.888Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 369400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 9831700,
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 40539379,
+          "bonus": 500000,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 700000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 40539379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 41480621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 369400
+        },
+        "pdf": {
+          "bonus": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 369400,
+          "kpiInNet": 0
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT — Ứng 500.000 → 200.000",
+          "createdAt": "2026-08-06T01:41:07.883+00:00",
+          "netDelta": 300000,
+          "laborCostDelta": 300000,
+          "profitDelta": -300000
+        }
+      },
+      "previewText": "Lương hiện tại\n69.400 ₫\nLương sau chỉnh sửa\n369.400 ₫\nChênh lệch\n+300.000 ₫\nChi phí nhân sự thay đổi\n+300.000 ₫\nLợi nhuận Spa thay đổi\n-300.000 ₫",
+      "branchBeforeText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n1.000.000 ₫\nTổng ứng lương\n500.000 ₫\nTổng lương thực nhận\n9.531.700 ₫\nXem nhân viên",
+      "branchAfterText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n1.000.000 ₫\nTổng ứng lương\n200.000 ₫\nTổng lương thực nhận\n9.831.700 ₫\nXem nhân viên",
+      "ok": true
+    },
+    {
+      "id": "case3_kpi_0_to_minus300",
+      "label": "KPI 0 → -300.000",
+      "setup": {
+        "bonus": 0,
+        "kpi": 0,
+        "penalty": 1000000,
+        "advance": 200000
+      },
+      "after": {
+        "bonus": 0,
+        "kpi": -300000,
+        "penalty": 1000000,
+        "advance": 200000
+      },
+      "expectedNetDelta": -300000,
+      "expectedLaborCostDelta": -300000,
+      "expectedProfitDelta": 300000,
+      "diff": {
+        "employeeNet": -300000,
+        "employeePenalty": 0,
+        "employeeAdvance": 0,
+        "employeeKpi": -300000,
+        "employeeBonus": 0,
+        "branchNet": -300000,
+        "systemNet": -300000,
+        "laborCost": -300000,
+        "actualRevenue": 0,
+        "expensesTotal": 0,
+        "spaProfit": 300000,
+        "spaProfitExpectedFromLabor": 300000,
+        "concurrentOtherNet": 0,
+        "excelNet": -300000,
+        "pdfNet": -300000
+      },
+      "sourceCheck": {
+        "ok": true,
+        "concurrentOtherNet": 0,
+        "checks": [
+          {
+            "name": "employeeNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -300000,
+            "expected": -300000
+          },
+          {
+            "name": "excelNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -300000,
+            "expected": -300000
+          },
+          {
+            "name": "pdfNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -300000,
+            "expected": -300000
+          },
+          {
+            "name": "branchNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -300000,
+            "expected": -300000
+          },
+          {
+            "name": "laborCost_delta_equals_systemNet",
+            "ok": true,
+            "hard": true,
+            "actual": -300000,
+            "expected": -300000
+          },
+          {
+            "name": "spaProfit_formula_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 300000,
+            "expected": 300000
+          },
+          {
+            "name": "laborCost_delta_equals_employee_when_isolated",
+            "ok": true,
+            "hard": false,
+            "actual": -300000,
+            "expected": -300000
+          }
+        ]
+      },
+      "uiNetDelta": -300000,
+      "uiMatch": true,
+      "detailMatchEngine": true,
+      "identityOk": true,
+      "beforeEngine": {
+        "label": "case3_kpi_0_to_minus300-before",
+        "at": "2026-08-06T01:42:10.809Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 369400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 9831700,
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 40539379,
+          "bonus": 500000,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 700000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 40539379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 41480621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 0,
+          "kpi": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 369400
+        },
+        "pdf": {
+          "bonus": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 369400,
+          "kpiInNet": 0
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT — Ứng 500.000 → 200.000",
+          "createdAt": "2026-08-06T01:41:07.883+00:00",
+          "netDelta": 300000,
+          "laborCostDelta": 300000,
+          "profitDelta": -300000
+        }
+      },
+      "afterEngine": {
+        "label": "case3_kpi_0_to_minus300-after",
+        "at": "2026-08-06T01:43:00.757Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 0,
+          "kpi": -300000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 69400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 9531700,
+          "bonus": 0,
+          "kpi": -300000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 40239379,
+          "bonus": 500000,
+          "kpi": -300000,
+          "penalty": 1000000,
+          "advance": 700000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 40239379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 41780621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 0,
+          "kpi": -300000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 69400
+        },
+        "pdf": {
+          "bonus": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 69400,
+          "kpiInNet": -300000
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT — KPI 0 → -300.000",
+          "createdAt": "2026-08-06T01:42:45.266+00:00",
+          "netDelta": -300000,
+          "laborCostDelta": -300000,
+          "profitDelta": 300000
+        }
+      },
+      "previewText": "Lương hiện tại\n369.400 ₫\nLương sau chỉnh sửa\n69.400 ₫\nChênh lệch\n-300.000 ₫\nChi phí nhân sự thay đổi\n-300.000 ₫\nLợi nhuận Spa thay đổi\n+300.000 ₫",
+      "branchBeforeText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n1.000.000 ₫\nTổng ứng lương\n200.000 ₫\nTổng lương thực nhận\n9.831.700 ₫\nXem nhân viên",
+      "branchAfterText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n1.000.000 ₫\nTổng ứng lương\n200.000 ₫\nTổng lương thực nhận\n9.531.700 ₫\nXem nhân viên",
+      "ok": true
+    },
+    {
+      "id": "case4_kpi_minus300_to_500",
+      "label": "KPI -300.000 → 500.000",
+      "setup": {
+        "bonus": 0,
+        "kpi": -300000,
+        "penalty": 1000000,
+        "advance": 200000
+      },
+      "after": {
+        "bonus": 0,
+        "kpi": 500000,
+        "penalty": 1000000,
+        "advance": 200000
+      },
+      "expectedNetDelta": 800000,
+      "expectedLaborCostDelta": 800000,
+      "expectedProfitDelta": -800000,
+      "diff": {
+        "employeeNet": 800000,
+        "employeePenalty": 0,
+        "employeeAdvance": 0,
+        "employeeKpi": 800000,
+        "employeeBonus": 0,
+        "branchNet": 800000,
+        "systemNet": 800000,
+        "laborCost": 800000,
+        "actualRevenue": 0,
+        "expensesTotal": 0,
+        "spaProfit": -800000,
+        "spaProfitExpectedFromLabor": -800000,
+        "concurrentOtherNet": 0,
+        "excelNet": 800000,
+        "pdfNet": 800000
+      },
+      "sourceCheck": {
+        "ok": true,
+        "concurrentOtherNet": 0,
+        "checks": [
+          {
+            "name": "employeeNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 800000,
+            "expected": 800000
+          },
+          {
+            "name": "excelNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 800000,
+            "expected": 800000
+          },
+          {
+            "name": "pdfNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 800000,
+            "expected": 800000
+          },
+          {
+            "name": "branchNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 800000,
+            "expected": 800000
+          },
+          {
+            "name": "laborCost_delta_equals_systemNet",
+            "ok": true,
+            "hard": true,
+            "actual": 800000,
+            "expected": 800000
+          },
+          {
+            "name": "spaProfit_formula_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -800000,
+            "expected": -800000
+          },
+          {
+            "name": "laborCost_delta_equals_employee_when_isolated",
+            "ok": true,
+            "hard": false,
+            "actual": 800000,
+            "expected": 800000
+          }
+        ]
+      },
+      "uiNetDelta": 800000,
+      "uiMatch": true,
+      "detailMatchEngine": true,
+      "identityOk": true,
+      "beforeEngine": {
+        "label": "case4_kpi_minus300_to_500-before",
+        "at": "2026-08-06T01:43:47.190Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 0,
+          "kpi": -300000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 69400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 9531700,
+          "bonus": 0,
+          "kpi": -300000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 40239379,
+          "bonus": 500000,
+          "kpi": -300000,
+          "penalty": 1000000,
+          "advance": 700000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 40239379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 41780621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 0,
+          "kpi": -300000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 69400
+        },
+        "pdf": {
+          "bonus": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 69400,
+          "kpiInNet": -300000
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT — KPI 0 → -300.000",
+          "createdAt": "2026-08-06T01:42:45.266+00:00",
+          "netDelta": -300000,
+          "laborCostDelta": -300000,
+          "profitDelta": 300000
+        }
+      },
+      "afterEngine": {
+        "label": "case4_kpi_minus300_to_500-after",
+        "at": "2026-08-06T01:44:37.839Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 0,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 869400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 10331700,
+          "bonus": 0,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 41039379,
+          "bonus": 500000,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 700000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 41039379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 40980621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 0,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 869400
+        },
+        "pdf": {
+          "bonus": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 869400,
+          "kpiInNet": 500000
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT — KPI -300.000 → 500.000",
+          "createdAt": "2026-08-06T01:44:21.982+00:00",
+          "netDelta": 800000,
+          "laborCostDelta": 800000,
+          "profitDelta": -800000
+        }
+      },
+      "previewText": "Lương hiện tại\n69.400 ₫\nLương sau chỉnh sửa\n869.400 ₫\nChênh lệch\n+800.000 ₫\nChi phí nhân sự thay đổi\n+800.000 ₫\nLợi nhuận Spa thay đổi\n-800.000 ₫",
+      "branchBeforeText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n1.000.000 ₫\nTổng ứng lương\n200.000 ₫\nTổng lương thực nhận\n9.531.700 ₫\nXem nhân viên",
+      "branchAfterText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n1.000.000 ₫\nTổng ứng lương\n200.000 ₫\nTổng lương thực nhận\n10.331.700 ₫\nXem nhân viên",
+      "ok": true
+    },
+    {
+      "id": "case5_bonus_0_to_500",
+      "label": "Thưởng 0 → 500.000",
+      "setup": {
+        "bonus": 0,
+        "kpi": 500000,
+        "penalty": 1000000,
+        "advance": 200000
+      },
+      "after": {
+        "bonus": 500000,
+        "kpi": 500000,
+        "penalty": 1000000,
+        "advance": 200000
+      },
+      "expectedNetDelta": 500000,
+      "expectedLaborCostDelta": 500000,
+      "expectedProfitDelta": -500000,
+      "diff": {
+        "employeeNet": 500000,
+        "employeePenalty": 0,
+        "employeeAdvance": 0,
+        "employeeKpi": 0,
+        "employeeBonus": 500000,
+        "branchNet": 500000,
+        "systemNet": 500000,
+        "laborCost": 500000,
+        "actualRevenue": 0,
+        "expensesTotal": 0,
+        "spaProfit": -500000,
+        "spaProfitExpectedFromLabor": -500000,
+        "concurrentOtherNet": 0,
+        "excelNet": 500000,
+        "pdfNet": 500000
+      },
+      "sourceCheck": {
+        "ok": true,
+        "concurrentOtherNet": 0,
+        "checks": [
+          {
+            "name": "employeeNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 500000,
+            "expected": 500000
+          },
+          {
+            "name": "excelNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 500000,
+            "expected": 500000
+          },
+          {
+            "name": "pdfNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 500000,
+            "expected": 500000
+          },
+          {
+            "name": "branchNet_delta",
+            "ok": true,
+            "hard": true,
+            "actual": 500000,
+            "expected": 500000
+          },
+          {
+            "name": "laborCost_delta_equals_systemNet",
+            "ok": true,
+            "hard": true,
+            "actual": 500000,
+            "expected": 500000
+          },
+          {
+            "name": "spaProfit_formula_delta",
+            "ok": true,
+            "hard": true,
+            "actual": -500000,
+            "expected": -500000
+          },
+          {
+            "name": "laborCost_delta_equals_employee_when_isolated",
+            "ok": true,
+            "hard": false,
+            "actual": 500000,
+            "expected": 500000
+          }
+        ]
+      },
+      "uiNetDelta": 500000,
+      "uiMatch": true,
+      "detailMatchEngine": true,
+      "identityOk": true,
+      "beforeEngine": {
+        "label": "case5_bonus_0_to_500-before",
+        "at": "2026-08-06T01:45:26.108Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 0,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 869400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 10331700,
+          "bonus": 0,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 41039379,
+          "bonus": 500000,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 700000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 41039379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 40980621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 0,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 869400
+        },
+        "pdf": {
+          "bonus": 0,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 869400,
+          "kpiInNet": 500000
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT — KPI -300.000 → 500.000",
+          "createdAt": "2026-08-06T01:44:21.982+00:00",
+          "netDelta": 800000,
+          "laborCostDelta": 800000,
+          "profitDelta": -800000
+        }
+      },
+      "afterEngine": {
+        "label": "case5_bonus_0_to_500-after",
+        "at": "2026-08-06T01:46:17.431Z",
+        "source": "computePayrollReport + computePayrollCostByBranch (cùng adjustments đã fetch)",
+        "employeeDetail": {
+          "bonus": 500000,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "tips": 1435000,
+          "commission": 134400,
+          "netSalary": 1369400,
+          "otherAdjustment": 0
+        },
+        "branchTotals": {
+          "branchId": "soc-trang",
+          "netSalary": 10831700,
+          "bonus": 500000,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "employeeCount": 8
+        },
+        "systemDashboard": {
+          "netSalary": 41539379,
+          "bonus": 1000000,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 700000,
+          "ticketRevenue": 49774500,
+          "tips": 36815500,
+          "commission": 5923879
+        },
+        "laborCost": 41539379,
+        "actualRevenue": 86590000,
+        "expensesTotal": 4570000,
+        "spaProfit": 40480621,
+        "identity": {
+          "laborEqualsSystemNet": true,
+          "profitFormulaOk": true
+        },
+        "excel": {
+          "bonus": 500000,
+          "kpi": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 1369400
+        },
+        "pdf": {
+          "bonus": 500000,
+          "penalty": 1000000,
+          "advance": 200000,
+          "netSalary": 1369400,
+          "kpiInNet": 500000
+        },
+        "audit": {
+          "action": "admin_edit_board",
+          "reason": "GOVERNANCE UAT — Thưởng 0 → 500.000",
+          "createdAt": "2026-08-06T01:46:01.323+00:00",
+          "netDelta": 500000,
+          "laborCostDelta": 500000,
+          "profitDelta": -500000
+        }
+      },
+      "previewText": "Lương hiện tại\n869.400 ₫\nLương sau chỉnh sửa\n1.369.400 ₫\nChênh lệch\n+500.000 ₫\nChi phí nhân sự thay đổi\n+500.000 ₫\nLợi nhuận Spa thay đổi\n-500.000 ₫",
+      "branchBeforeText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n1.000.000 ₫\nTổng ứng lương\n200.000 ₫\nTổng lương thực nhận\n10.331.700 ₫\nXem nhân viên",
+      "branchAfterText": "CN1 Sóc Trăng Khoẻ Spa\n\n8 nhân viên\n\nTổng nhân viên\n8\nTổng doanh thu tiền vé\n13.069.000 ₫\nTổng hoa hồng\n982.700 ₫\nTổng tips\n10.049.000 ₫\nTổng phạt\n1.000.000 ₫\nTổng ứng lương\n200.000 ₫\nTổng lương thực nhận\n10.831.700 ₫\nXem nhân viên",
+      "ok": true
+    }
+  ],
+  "finalWallet": {
+    "Doanh thu tiền vé": "2.525.000 ₫",
+    "Doanh thu tiền vé__num": 2525000,
+    "Hoa hồng": "134.400 ₫",
+    "Hoa hồng__num": 134400,
+    "Tips": "1.435.000 ₫",
+    "Tips__num": 1435000,
+    "Thưởng": "0 ₫",
+    "Thưởng__num": 0,
+    "KPI": "0 ₫",
+    "KPI__num": 0,
+    "Phạt": "0 ₫",
+    "Phạt__num": 0,
+    "Giảm lương": "0 ₫",
+    "Giảm lương__num": 0,
+    "Ứng lương": "0 ₫",
+    "Ứng lương__num": 0,
+    "Lương thực nhận": "1.569.400 ₫",
+    "Lương thực nhận__num": 1569400
+  },
+  "finishedAt": "2026-08-06T01:47:05.639Z",
+  "allOk": true,
+  "oneSourceOfTruth": "PASS",
+  "status": "ONE SOURCE OF TRUTH = PASS — CHỜ ANH DUYỆT DEPLOY (chưa deploy)"
+}

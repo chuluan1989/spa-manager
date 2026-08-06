@@ -50,6 +50,7 @@ export function mapPayrollRowForExport(row, month = '') {
     tips: row.tips ?? 0,
     baseSalary: row.baseSalary ?? 0,
     bonus: row.bonus ?? 0,
+    kpi: row.kpi ?? 0,
     penalty: row.penalty ?? 0,
     attendancePenalty: row.attendancePenalty ?? 0,
     manualPenalty: row.manualPenalty ?? 0,
@@ -247,10 +248,10 @@ export function reconcilePayrollExport({ payrollRow, invoiceLines }) {
     commission: payrollRow.commission ?? 0,
     tips: payrollRow.tips ?? 0,
     bonus: payrollRow.bonus ?? 0,
+    kpi: payrollRow.kpi ?? 0,
     reduction: payrollRow.reduction ?? 0,
     penalty: payrollRow.penalty ?? 0,
     advance: payrollRow.advance ?? 0,
-    otherAdjustment: payrollRow.otherAdjustment ?? 0,
   })
 
   if (expectedNet !== (payrollRow.netSalary ?? 0)) {

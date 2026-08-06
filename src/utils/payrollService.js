@@ -197,6 +197,7 @@ export async function saveAdminPayrollBoardEdits({
   toDate = '',
   locks = null,
   existingAdjustments = null,
+  previewImpact = null,
 }) {
   assertCanAdminEditPayroll()
   if (!String(reason || '').trim()) {
@@ -284,10 +285,8 @@ export async function saveAdminPayrollBoardEdits({
       newValue: targetDisplayed,
       difference: netImpact,
       extra: {
-        adjustmentId: createdId,
         note: note || '',
-        setTotal: true,
-        adjTarget,
+        setOfficialTotal: true,
         attendancePenalty: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY ? attendancePart : undefined,
       },
     })
@@ -304,18 +303,40 @@ export async function saveAdminPayrollBoardEdits({
       oldTotal: oldDisplayed,
       newTotal: targetDisplayed,
       netImpact,
+      laborCostDelta: netImpact,
+      profitDelta: -netImpact,
       adjustmentId: createdId,
     })
   }
 
   const changed = results.filter((row) => row.action === 'set_total')
   if (changed.length) {
+    const totalNetImpact = previewImpact?.netDelta
+      ?? changed.reduce((sum, row) => sum + Number(row.netImpact || 0), 0)
+    const laborCostDelta = previewImpact?.laborCostDelta ?? totalNetImpact
+    const profitDelta = previewImpact?.profitDelta ?? -totalNetImpact
     await writeAuditLog({
       entityType: 'payroll_board',
       entityId: employeeId,
       action: 'admin_edit_board',
-      oldValue: { fields: changed.map((row) => ({ type: row.type, value: row.oldTotal })) },
-      newValue: { fields: changed.map((row) => ({ type: row.type, value: row.newTotal, netImpact: row.netImpact })) },
+      oldValue: {
+        fields: changed.map((row) => ({ type: row.type, value: row.oldTotal })),
+        netSalary: previewImpact?.currentNet,
+      },
+      newValue: {
+        fields: changed.map((row) => ({
+          type: row.type,
+          value: row.newTotal,
+          netImpact: row.netImpact,
+          laborCostDelta: row.laborCostDelta,
+          profitDelta: row.profitDelta,
+        })),
+        netSalary: previewImpact?.nextNet,
+        netDelta: totalNetImpact,
+        laborCostDelta,
+        profitDelta,
+        difference: totalNetImpact,
+      },
       reason,
     })
   }

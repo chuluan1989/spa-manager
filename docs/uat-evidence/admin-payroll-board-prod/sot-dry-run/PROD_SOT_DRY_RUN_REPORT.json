@@ -1,0 +1,147 @@
+{
+  "generatedAt": "2026-08-06T02:01:40.766Z",
+  "mode": "READ_ONLY",
+  "deploy": false,
+  "write": false,
+  "migration": false,
+  "backfill": false,
+  "localUat": "PASS (owner approved)",
+  "requirements": {
+    "minEmployees": 10,
+    "minBranches": 5,
+    "minPeriods": 2
+  },
+  "coverage": {
+    "employees": 21,
+    "branches": 6,
+    "periods": 2,
+    "employeeIds": [
+      "tram-spa-truc-ly",
+      "soc-trang-chi-7",
+      "soc-trang-bao-tran",
+      "tra-vinh-truc-trinh",
+      "tra-vinh-mai-nhi",
+      "tra-vinh-diem-trinh",
+      "vinh-long-thao",
+      "vinh-long-dieu",
+      "vinh-long-tram",
+      "song-khoe-spa-ngan",
+      "song-khoe-spa-uc",
+      "song-khoe-spa-anh",
+      "tram-spa-nhu-ha",
+      "tram-spa-lan-anh",
+      "tram-spa-thanh",
+      "tra-vinh-nhat-ha",
+      "vinh-long-bo",
+      "soc-trang-ly-ly",
+      "bac-lieu-thao-cam",
+      "bac-lieu-yen",
+      "bac-lieu-thanh-thu"
+    ],
+    "branchIds": [
+      "soc-trang",
+      "tra-vinh",
+      "vinh-long",
+      "song-khoe-spa",
+      "tram-spa",
+      "bac-lieu"
+    ]
+  },
+  "periods": [
+    {
+      "period": "2026-08 Kỳ 1",
+      "month": "2026-08",
+      "cycle": "period1",
+      "fromDate": "2026-08-01",
+      "toDate": "2026-08-15",
+      "employeeRows": 47,
+      "dashboardNet": 41739379,
+      "laborCost": 41739379,
+      "actualRevenue": 86590000,
+      "expensesTotal": 4570000,
+      "branchesChecked": [
+        {
+          "branchId": "soc-trang",
+          "branchName": "CN1 Sóc Trăng Khoẻ Spa",
+          "netSalary": 11031700,
+          "employeeCount": 8
+        },
+        {
+          "branchId": "tra-vinh",
+          "branchName": "CN4 Trà Vinh Khoẻ Spa",
+          "netSalary": 8163179,
+          "employeeCount": 5
+        },
+        {
+          "branchId": "vinh-long",
+          "branchName": "CN6 Vĩnh Long Khoẻ Spa",
+          "netSalary": 7127300,
+          "employeeCount": 6
+        },
+        {
+          "branchId": "song-khoe-spa",
+          "branchName": "CN2 Sống Khoẻ Spa",
+          "netSalary": 5390000,
+          "employeeCount": 5
+        },
+        {
+          "branchId": "tram-spa",
+          "branchName": "CN8 Trạm Spa",
+          "netSalary": 5380800,
+          "employeeCount": 5
+        }
+      ],
+      "auditReadable": 10
+    },
+    {
+      "period": "2026-07 Kỳ 2",
+      "month": "2026-07",
+      "cycle": "period2",
+      "fromDate": "2026-07-16",
+      "toDate": "2026-07-31",
+      "employeeRows": 47,
+      "dashboardNet": 137016700,
+      "laborCost": 137016700,
+      "actualRevenue": 291229000,
+      "expensesTotal": 54721000,
+      "branchesChecked": [
+        {
+          "branchId": "tra-vinh",
+          "branchName": "CN4 Trà Vinh Khoẻ Spa",
+          "netSalary": 41720600,
+          "employeeCount": 5
+        },
+        {
+          "branchId": "vinh-long",
+          "branchName": "CN6 Vĩnh Long Khoẻ Spa",
+          "netSalary": 28464800,
+          "employeeCount": 6
+        },
+        {
+          "branchId": "soc-trang",
+          "branchName": "CN1 Sóc Trăng Khoẻ Spa",
+          "netSalary": 24707100,
+          "employeeCount": 8
+        },
+        {
+          "branchId": "bac-lieu",
+          "branchName": "CN5 Bạc Liêu Khoẻ Spa",
+          "netSalary": 22514800,
+          "employeeCount": 5
+        },
+        {
+          "branchId": "tram-spa",
+          "branchName": "CN8 Trạm Spa",
+          "netSalary": 19599400,
+          "employeeCount": 5
+        }
+      ],
+      "auditReadable": 10
+    }
+  ],
+  "mismatchCount": 0,
+  "mismatches": [],
+  "notes": [],
+  "oneSourceOfTruth": "PASS",
+  "status": "PRODUCTION READ-ONLY = PASS — được phép xin deploy (chưa deploy)"
+}

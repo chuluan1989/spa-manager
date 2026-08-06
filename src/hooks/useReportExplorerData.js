@@ -1,16 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { fetchAttendanceFiltered } from '../repositories/attendanceRepository'
-import { fetchEmployeesFiltered } from '../repositories/employeesRepository'
-import { fetchPayrollAdjustments } from '../repositories/payrollRepository'
 import { filterEmployeeReportInvoices } from '../utils/employeeInvoiceReport'
 import {
   buildBranchDrillRows,
   buildDrillDownSummary,
   buildEmployeeDrillRows,
 } from '../utils/drillDownReport'
-import { normalizeEmployee } from '../utils/employeeStorage'
-import { computePayrollCostByBranch } from '../utils/profitReport'
+import { loadPayrollCostForFilters } from '../utils/payrollCostLoader'
 import { fetchReportPeriodData } from '../utils/reportDataFetcher'
 import { subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import { subscribeToDataSync } from '../utils/supabaseSync'
@@ -65,20 +60,6 @@ async function fetchPeriodData(filters) {
   }
 }
 
-async function fetchAttendanceForPeriod(filters) {
-  if (!isSupabaseConfigured) return []
-  try {
-    return await fetchAttendanceFiltered({
-      fromDate: filters.fromDate || '',
-      toDate: filters.toDate || '',
-      branchId: filters.branchId || '',
-      employeeId: filters.employeeId || '',
-    })
-  } catch {
-    return []
-  }
-}
-
 export function useReportExplorerData(filters, { enabled = true } = {}) {
   const [invoices, setInvoices] = useState([])
   const [expenses, setExpenses] = useState([])
@@ -104,59 +85,39 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
 
       try {
         const prevPeriod = getPreviousPeriod(filters.fromDate, filters.toDate)
-        const payrollMonth = String(filters.fromDate ?? '').slice(0, 7)
-        const [current, previous, attendanceRows, employeeRows, adjustmentRows] = await Promise.all([
+        const [current, previous] = await Promise.all([
           fetchPeriodData(filters),
           prevPeriod.fromDate && prevPeriod.toDate
             ? fetchPeriodData({ ...filters, ...prevPeriod })
             : Promise.resolve({ invoices: [], expenses: [], fixedCosts: [], source: 'cloud' }),
-          fetchAttendanceForPeriod(filters),
-          isSupabaseConfigured ? fetchEmployeesFiltered({}) : Promise.resolve([]),
-          isSupabaseConfigured && payrollMonth
-            ? fetchPayrollAdjustments({ month: payrollMonth, branchId: filters.branchId || '' })
-            : Promise.resolve([]),
         ])
 
         if (cancelled) return
 
-        const normalizedEmployees = (employeeRows ?? []).map((row) => normalizeEmployee(row))
-        const payrollByBranch = computePayrollCostByBranch({
-          fromDate: filters.fromDate,
-          toDate: filters.toDate,
-          branchId: filters.branchId || '',
-          employees: normalizedEmployees,
-          invoices: current.invoices,
-          attendanceRecords: attendanceRows ?? [],
-          adjustments: adjustmentRows ?? [],
-        })
-        const prevPayrollByBranch = prevPeriod.fromDate && prevPeriod.toDate
-          ? computePayrollCostByBranch({
-            fromDate: prevPeriod.fromDate,
-            toDate: prevPeriod.toDate,
-            branchId: filters.branchId || '',
-            employees: normalizedEmployees,
-            invoices: previous.invoices,
-            attendanceRecords: attendanceRows ?? [],
-            adjustments: adjustmentRows ?? [],
-          })
-          : null
+        const [payroll, prevPayroll] = await Promise.all([
+          loadPayrollCostForFilters(filters, current.invoices),
+          prevPeriod.fromDate && prevPeriod.toDate
+            ? loadPayrollCostForFilters({ ...filters, ...prevPeriod }, previous.invoices)
+            : Promise.resolve({ payrollByBranch: null, attendance: [], employees: [], adjustments: [] }),
+        ])
+        if (cancelled) return
 
         setInvoices(current.invoices)
         setExpenses(current.expenses)
         setFixedCosts(current.fixedCosts ?? [])
-        setAttendance(attendanceRows ?? [])
-        setEmployees(normalizedEmployees)
-        setAdjustments(adjustmentRows ?? [])
+        setAttendance(payroll.attendance ?? [])
+        setEmployees(payroll.employees ?? [])
+        setAdjustments(payroll.adjustments ?? [])
+        setPayrollByBranch(payroll.payrollByBranch)
         setPrevSummary(
           buildDrillDownSummary(
             previous.invoices,
             previous.expenses,
             { ...filters, ...prevPeriod },
-            prevPayrollByBranch,
+            prevPayroll.payrollByBranch,
             previous.fixedCosts ?? [],
           ),
         )
-        setPayrollByBranch(payrollByBranch)
 
         setError('')
       } catch (err) {
@@ -245,6 +206,8 @@ export function useReportExplorerData(filters, { enabled = true } = {}) {
     expenses,
     fixedCosts,
     attendance,
+    employees,
+    adjustments,
     summary,
     branchRows,
     employeeRows,

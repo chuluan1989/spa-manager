@@ -10,6 +10,7 @@ import {
 import { filterEmployeeReportInvoices } from '../utils/employeeInvoiceReport'
 import { getMonthStartDate, getTodayDate } from '../utils/invoiceStorage'
 import { fetchReportPeriodData } from '../utils/reportDataFetcher'
+import { loadPayrollCostForFilters } from '../utils/payrollCostLoader'
 import { subscribeInvoicesChanges } from '../repositories/invoicesRepository'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 import { useDataSyncVersion } from './useDataSyncVersion'
@@ -32,6 +33,7 @@ export function useDrillDownData(filters) {
   const [invoices, setInvoices] = useState([])
   const [expenses, setExpenses] = useState([])
   const [fixedCosts, setFixedCosts] = useState([])
+  const [payrollByBranch, setPayrollByBranch] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshKey, setRefreshKey] = useState(0)
@@ -65,9 +67,14 @@ export function useDrillDownData(filters) {
         const result = await fetchReportPeriodData(scopedFilters)
         if (cancelled) return
 
-        setInvoices(filterEmployeeReportInvoices(result.invoices, scopedFilters))
+        const invoicesScoped = filterEmployeeReportInvoices(result.invoices, scopedFilters)
+        const payroll = await loadPayrollCostForFilters(scopedFilters, invoicesScoped)
+        if (cancelled) return
+
+        setInvoices(invoicesScoped)
         setExpenses(result.expenses)
         setFixedCosts(result.fixedCosts ?? [])
+        setPayrollByBranch(payroll.payrollByBranch)
         setError('')
       } catch (err) {
         if (!cancelled) {
@@ -75,6 +82,7 @@ export function useDrillDownData(filters) {
           setInvoices([])
           setExpenses([])
           setFixedCosts([])
+          setPayrollByBranch(null)
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -93,5 +101,5 @@ export function useDrillDownData(filters) {
     return subscribeInvoicesChanges(() => reload())
   }, [reload])
 
-  return { invoices, expenses, fixedCosts, loading, error, reload, scopedFilters }
+  return { invoices, expenses, fixedCosts, payrollByBranch, loading, error, reload, scopedFilters }
 }

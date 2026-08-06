@@ -42,7 +42,7 @@ export default function PayrollAuditHistory({ logs }) {
   const items = [...(logs ?? [])].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
 
   if (!items.length) {
-    return <p className="salary-page__empty">Chưa có lịch sử điều chỉnh.</p>
+    return <p className="salary-page__empty">Chưa có lịch sử sửa bảng lương.</p>
   }
 
   return (
@@ -81,6 +81,22 @@ export default function PayrollAuditHistory({ logs }) {
                         : `${Number(diff) >= 0 ? '+' : ''}${formatMoney(diff)}`}
                     </dd>
                   </div>
+                  {(newMeta.laborCostDelta !== undefined || meta.laborCostDelta !== undefined) && (
+                    <div>
+                      <dt>Ảnh hưởng chi phí nhân sự</dt>
+                      <dd className={Number(newMeta.laborCostDelta ?? meta.laborCostDelta) < 0 ? 'is-minus' : 'is-plus'}>
+                        {`${Number(newMeta.laborCostDelta ?? meta.laborCostDelta) >= 0 ? '+' : ''}${formatMoney(newMeta.laborCostDelta ?? meta.laborCostDelta)}`}
+                      </dd>
+                    </div>
+                  )}
+                  {(newMeta.profitDelta !== undefined || meta.profitDelta !== undefined) && (
+                    <div>
+                      <dt>Ảnh hưởng lợi nhuận Spa</dt>
+                      <dd className={Number(newMeta.profitDelta ?? meta.profitDelta) < 0 ? 'is-minus' : 'is-plus'}>
+                        {`${Number(newMeta.profitDelta ?? meta.profitDelta) >= 0 ? '+' : ''}${formatMoney(newMeta.profitDelta ?? meta.profitDelta)}`}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
               ) : (
                 <p className="salary-audit__detail">

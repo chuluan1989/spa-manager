@@ -5,21 +5,15 @@ import { formatCurrency } from '../../utils/invoice'
 export default function PayrollPayslipPanel({ payslip, onClose }) {
   if (!payslip) return null
 
-  const lines = [
-    ['grossBeforeDeduction', payslip.grossBeforeDeduction ?? (
-      (payslip.baseSalary ?? 0) + (payslip.commission ?? 0) + (payslip.tips ?? 0) + (payslip.bonus ?? 0)
-      - (payslip.reduction ?? 0) - (payslip.penalty ?? 0)
-    )],
-    ['advance', payslip.advance],
-  ]
-
   const detailLines = [
     ['baseSalary', payslip.baseSalary],
     ['commission', payslip.commission],
     ['tips', payslip.tips],
     ['bonus', payslip.bonus],
+    ['kpi', payslip.kpi],
     ['penalty', payslip.penalty],
     ['reduction', payslip.reduction],
+    ['advance', payslip.advance],
   ]
 
   return (
@@ -45,19 +39,10 @@ export default function PayrollPayslipPanel({ payslip, onClose }) {
           {detailLines.map(([key, amount]) => (
             <li key={key}>
               <span>{PAYROLL_DETAIL_LABELS[key]}</span>
-              <strong>{formatCurrency(amount)}</strong>
+              <strong>{formatCurrency(amount ?? 0)}</strong>
             </li>
           ))}
         </ul>
-
-        <div className="salary-payslip__summary">
-          {lines.map(([key, amount]) => (
-            <div key={key} className="salary-payslip__summary-row">
-              <span>{PAYROLL_DETAIL_LABELS[key] ?? key}</span>
-              <strong>{formatCurrency(amount)}</strong>
-            </div>
-          ))}
-        </div>
 
         <div className="salary-payslip__net">
           <span>Lương thực nhận</span>

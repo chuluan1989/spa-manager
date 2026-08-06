@@ -5,8 +5,13 @@ import {
   normalizePayrollAdjustmentAmount,
 } from '../../constants/payrollTypes'
 import { formatCurrency } from '../../utils/invoice'
-import { netSalaryImpactForFieldSet } from '../../utils/payrollFieldAudit'
+import {
+  laborCostImpactForNetDelta,
+  netSalaryImpactForFieldSet,
+  spaProfitImpactForNetDelta,
+} from '../../utils/payrollFieldAudit'
 
+/** Bốn hạng mục chính thức trên bảng lương kỳ — giá trị CUỐI, không phải dòng phát sinh. */
 const BOARD_FIELDS = [
   PAYROLL_ADJUSTMENT_TYPES.BONUS,
   PAYROLL_ADJUSTMENT_TYPES.KPI,
@@ -14,7 +19,6 @@ const BOARD_FIELDS = [
   PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
 ]
 
-/** Map type chỉnh sửa → đúng field đang render trên bảng lương (payrollRow). */
 const BOARD_FIELD_TO_ROW_KEY = {
   [PAYROLL_ADJUSTMENT_TYPES.BONUS]: 'bonus',
   [PAYROLL_ADJUSTMENT_TYPES.KPI]: 'kpi',
@@ -31,7 +35,8 @@ function parseFieldInput(type, raw) {
 }
 
 /**
- * Bind 100% từ object payrollRow đang hiển thị — không cộng adjustments, không snapshot khác.
+ * Nguồn duy nhất cho cột “Dữ liệu hiện tại”: payrollRow đang render trên màn hình.
+ * Không query lại, không cộng dòng, không snapshot.
  */
 export function currentTotalsFromPayrollRow(payrollRow) {
   if (!payrollRow) return null
@@ -44,8 +49,8 @@ export function currentTotalsFromPayrollRow(payrollRow) {
 }
 
 /**
- * Popup Admin — sửa GIÁ TRỊ TỔNG từng hạng mục (SET, không cộng dồn dòng).
- * Cột "Hiện tại" = đúng số đang render trên bảng lương (payrollRow).
+ * Popup Admin — Sửa bảng lương (Excel SET giá trị cuối kỳ).
+ * Không phải “Thêm phát sinh” / không cộng dòng / không delta.
  */
 export default function PayrollEditBoardModal({
   open,
@@ -62,7 +67,6 @@ export default function PayrollEditBoardModal({
   saving = false,
 }) {
   const [draft, setDraft] = useState({})
-  const [note, setNote] = useState('')
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
 
@@ -78,7 +82,6 @@ export default function PayrollEditBoardModal({
       next[type] = String(currentTotals[type] ?? 0)
     }
     setDraft(next)
-    setNote('')
     setReason('')
     setError('')
   }, [open, payrollRow, currentTotals])
@@ -93,14 +96,23 @@ export default function PayrollEditBoardModal({
 
   const preview = useMemo(() => {
     if (!open || !payrollRow || !currentTotals) return null
-    const oldNet = Number(payrollRow.netSalary ?? 0)
-    let diff = 0
+    const currentNet = Number(payrollRow.netSalary ?? 0)
+    let netDelta = 0
     for (const type of BOARD_FIELDS) {
       const next = parsedDraft[type]
-      if (next === null) continue
-      diff += netSalaryImpactForFieldSet(type, currentTotals[type] ?? 0, next)
+      if (next === null) return null
+      netDelta += netSalaryImpactForFieldSet(type, currentTotals[type] ?? 0, next)
     }
-    return { oldNet, newNet: oldNet + diff, diff }
+    const nextNet = currentNet + netDelta
+    const laborCostDelta = laborCostImpactForNetDelta(netDelta)
+    const profitDelta = spaProfitImpactForNetDelta(netDelta)
+    return {
+      currentNet,
+      nextNet,
+      netDelta,
+      laborCostDelta,
+      profitDelta,
+    }
   }, [open, payrollRow, currentTotals, parsedDraft])
 
   if (!open) return null
@@ -110,6 +122,10 @@ export default function PayrollEditBoardModal({
     setError('')
     if (!reason.trim()) {
       setError('Lý do chỉnh sửa là bắt buộc.')
+      return
+    }
+    if (!preview) {
+      setError('Giá trị mới không hợp lệ.')
       return
     }
     const totals = {}
@@ -124,7 +140,7 @@ export default function PayrollEditBoardModal({
     try {
       await onSave({
         reason: reason.trim(),
-        note: note.trim(),
+        note: '',
         totals,
         displayedTotals: currentTotals,
         attendancePenalty: Number(payrollRow.attendancePenalty ?? 0),
@@ -137,52 +153,65 @@ export default function PayrollEditBoardModal({
         toDate,
         locks,
         existingAdjustments: adjustments,
+        previewImpact: {
+          netDelta: preview.netDelta,
+          laborCostDelta: preview.laborCostDelta,
+          profitDelta: preview.profitDelta,
+          currentNet: preview.currentNet,
+          nextNet: preview.nextNet,
+        },
       })
       onClose()
     } catch (err) {
-      setError(err?.message || 'Không thể lưu chỉnh sửa.')
+      setError(err?.message || 'Không thể lưu bảng lương.')
     }
   }
+
+  const periodLabel = [month, cycle === 'period2' ? 'Kỳ 2' : 'Kỳ 1'].filter(Boolean).join(' · ')
 
   return (
     <div className="salary-modal" role="dialog" aria-modal="true" aria-labelledby="payroll-edit-title">
       <div className="salary-modal__backdrop" onClick={onClose} />
-      <form className="salary-modal__panel salary-modal__panel--wide" onSubmit={handleSubmit}>
+      <form className="salary-modal__panel salary-modal__panel--wide salary-board-edit" onSubmit={handleSubmit}>
         <header>
           <h3 id="payroll-edit-title">Sửa bảng lương</h3>
           <button type="button" onClick={onClose} aria-label="Đóng">×</button>
         </header>
 
-        <p className="salary-modal__hint">
-          Chỉ Admin. Nhập <strong>giá trị tổng</strong> cuối cùng của từng hạng mục trong kỳ
-          (không cộng dồn thêm dòng). Nhân viên: <strong>{payrollRow?.employeeName}</strong>
+        <p className="salary-board-edit__eyebrow">
+          Bảng lương chính thức · {payrollRow?.employeeName}
+          {periodLabel ? ` · ${periodLabel}` : ''}
+        </p>
+        <h4 className="salary-board-edit__title">BẢNG LƯƠNG HIỆN TẠI</h4>
+        <p className="salary-board-edit__hint">
+          Nhập <strong>giá trị cuối cùng</strong> của kỳ. Số bên phải thay thế hoàn toàn số hiện tại
+          — không cộng thêm, không thêm dòng.
         </p>
 
-        <div className="salary-edit-totals" role="table" aria-label="Sửa giá trị tổng">
+        <div className="salary-edit-totals salary-edit-totals--board" role="table" aria-label="Bảng lương hiện tại">
           <div className="salary-edit-totals__head" role="row">
             <span role="columnheader">Hạng mục</span>
-            <span role="columnheader">Hiện tại</span>
-            <span role="columnheader">Mới</span>
+            <span role="columnheader">Dữ liệu hiện tại</span>
+            <span role="columnheader">Giá trị mới</span>
           </div>
           {BOARD_FIELDS.map((type) => {
             const current = currentTotals?.[type] ?? 0
-            const next = parsedDraft[type]
-            const impact = next === null
-              ? null
-              : netSalaryImpactForFieldSet(type, current, next)
             return (
               <div key={type} className="salary-edit-totals__row" role="row">
                 <span role="cell">
                   <strong>{PAYROLL_ADJUSTMENT_LABELS[type]}</strong>
-                  {impact !== null && impact !== 0 && (
-                    <small className={impact >= 0 ? 'is-plus' : 'is-minus'}>
-                      {impact >= 0 ? '+' : ''}{formatCurrency(impact)} thực nhận
-                    </small>
-                  )}
                 </span>
-                <span role="cell" data-testid={`edit-current-${type}`}>{formatCurrency(current)}</span>
+                <span
+                  role="cell"
+                  className="salary-edit-totals__current"
+                  data-testid={`edit-current-${type}`}
+                >
+                  {formatCurrency(current)}
+                </span>
                 <label role="cell">
-                  <span className="salary-edit-totals__sr">Giá trị mới {PAYROLL_ADJUSTMENT_LABELS[type]}</span>
+                  <span className="salary-edit-totals__sr">
+                    Giá trị mới {PAYROLL_ADJUSTMENT_LABELS[type]}
+                  </span>
                   <input
                     required
                     inputMode="text"
@@ -190,8 +219,8 @@ export default function PayrollEditBoardModal({
                     onChange={(e) => setDraft((prev) => ({ ...prev, [type]: e.target.value }))}
                     placeholder={
                       type === PAYROLL_ADJUSTMENT_TYPES.KPI
-                        ? '+/- hoặc 0'
-                        : 'VD: 200000'
+                        ? 'VD: 0 / 200000 / -200000'
+                        : 'VD: 100000'
                     }
                   />
                 </label>
@@ -200,44 +229,55 @@ export default function PayrollEditBoardModal({
           })}
         </div>
 
-        <label>
-          Ghi chú
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Ghi chú thêm (không bắt buộc)"
-          />
-        </label>
-
-        <label>
-          Lý do chỉnh sửa (bắt buộc)
-          <textarea
-            required
-            rows={2}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Ghi rõ lý do — bắt buộc để audit"
-          />
-        </label>
-
         {preview && (
-          <div className="salary-modal__preview" role="status">
-            <div><span>Lương cũ</span><strong>{formatCurrency(preview.oldNet)}</strong></div>
-            <div><span>Lương mới</span><strong>{formatCurrency(preview.newNet)}</strong></div>
+          <div className="salary-board-edit__preview" role="status">
+            <div>
+              <span>Lương hiện tại</span>
+              <strong>{formatCurrency(preview.currentNet)}</strong>
+            </div>
+            <div>
+              <span>Lương sau chỉnh sửa</span>
+              <strong>{formatCurrency(preview.nextNet)}</strong>
+            </div>
             <div>
               <span>Chênh lệch</span>
-              <strong className={preview.diff >= 0 ? 'is-plus' : 'is-minus'}>
-                {preview.diff >= 0 ? '+' : ''}{formatCurrency(preview.diff)}
+              <strong className={preview.netDelta >= 0 ? 'is-plus' : 'is-minus'}>
+                {preview.netDelta >= 0 ? '+' : ''}{formatCurrency(preview.netDelta)}
+              </strong>
+            </div>
+            <div>
+              <span>Chi phí nhân sự thay đổi</span>
+              <strong className={preview.laborCostDelta >= 0 ? 'is-plus' : 'is-minus'}>
+                {preview.laborCostDelta >= 0 ? '+' : ''}{formatCurrency(preview.laborCostDelta)}
+              </strong>
+            </div>
+            <div>
+              <span>Lợi nhuận Spa thay đổi</span>
+              <strong className={preview.profitDelta >= 0 ? 'is-plus' : 'is-minus'}>
+                {preview.profitDelta >= 0 ? '+' : ''}{formatCurrency(preview.profitDelta)}
               </strong>
             </div>
           </div>
         )}
 
+        <label className="salary-board-edit__reason">
+          Lý do chỉnh sửa
+          <textarea
+            required
+            rows={3}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Bắt buộc — ghi rõ lý do để audit"
+          />
+        </label>
+
         {error && <p className="salary-page__error">{error}</p>}
 
         <footer>
-          <button type="button" onClick={onClose}>Huỷ</button>
-          <button type="submit" disabled={saving}>{saving ? 'Đang lưu…' : 'Lưu thay đổi'}</button>
+          <button type="button" onClick={onClose}>Hủy</button>
+          <button type="submit" disabled={saving || !preview}>
+            {saving ? 'Đang lưu…' : 'Lưu'}
+          </button>
         </footer>
       </form>
     </div>

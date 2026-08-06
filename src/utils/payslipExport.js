@@ -19,9 +19,10 @@ function buildPayslipHtml(payslip) {
     ['commission', payslip.commission],
     ['tips', payslip.tips],
     ['bonus', payslip.bonus],
-    ['penalty', -payslip.penalty],
-    ['reduction', -payslip.reduction],
-    ['advance', -payslip.advance],
+    ['kpi', payslip.kpi],
+    ['penalty', -(payslip.penalty ?? 0)],
+    ['reduction', -(payslip.reduction ?? 0)],
+    ['advance', -(payslip.advance ?? 0)],
   ]
 
   const lineItems = rows

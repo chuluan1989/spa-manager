@@ -102,16 +102,16 @@ export default function DrillDownExplorer({
   const [activeMetric, setActiveMetric] = useState('')
   const [selectedInvoice, setSelectedInvoice] = useState(null)
 
-  const { invoices, expenses, fixedCosts, loading, error, scopedFilters } = useDrillDownData(filters)
+  const { invoices, expenses, fixedCosts, payrollByBranch, loading, error, scopedFilters } = useDrillDownData(filters)
 
   const summary = useMemo(
-    () => buildDrillDownSummary(invoices, expenses, scopedFilters, null, fixedCosts),
-    [invoices, expenses, scopedFilters, fixedCosts],
+    () => buildDrillDownSummary(invoices, expenses, scopedFilters, payrollByBranch, fixedCosts),
+    [invoices, expenses, scopedFilters, payrollByBranch, fixedCosts],
   )
 
   const branchRows = useMemo(
-    () => buildBranchDrillRows(invoices, expenses, scopedFilters, null, fixedCosts),
-    [invoices, expenses, scopedFilters, fixedCosts],
+    () => buildBranchDrillRows(invoices, expenses, scopedFilters, payrollByBranch, fixedCosts),
+    [invoices, expenses, scopedFilters, payrollByBranch, fixedCosts],
   )
 
   const employeeRows = useMemo(
