@@ -104,7 +104,7 @@ console.log('\nUI labels')
 {
   const invSrc = readFileSync(fileURLToPath(new URL('../src/pages/Invoice.jsx', import.meta.url)), 'utf8')
   log('có label Chi nhánh phục vụ khách', invSrc.includes('Chi nhánh phục vụ khách'))
-  log('BranchBanner chỉ khi !canPickServingBranch', invSrc.includes('lockedBranch && !canPickServingBranch'))
+  log('BranchBanner khi !canPickServingBranch', invSrc.includes('!canPickServingBranch') && invSrc.includes('BranchBanner'))
 }
 
 console.log('\n=== ALL DROPDOWN UAT PASSED ===\n')

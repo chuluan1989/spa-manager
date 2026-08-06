@@ -1,0 +1,59 @@
+{
+  "milestone": "PAYROLL_GOVERNANCE_V1",
+  "generatedAt": "2026-08-06T02:07:26.849Z",
+  "includeProd": false,
+  "write": false,
+  "cases": [
+    {
+      "id": "commission-body75-baclieu",
+      "title": "Hoa hồng Body 75 = 0% (tiered) + Chuyên sâu Bạc Liêu 30%",
+      "ok": true,
+      "skipped": false,
+      "status": 0,
+      "ms": 40,
+      "stdoutTail": "✓ combo-2: 20% (expected 20%)\n✓ combo-3: 20% (expected 20%)\n✓ chuyen-sau: 30% (expected 30%)\n✓ goi-sach: 20% (expected 20%)\n✓ dap-thuoc: 20% (expected 20%)\n✓ variant soc-trang Body 75p: 0% (expected 0%)\n✓ variant soc-trang Massage body 60 phút: 0% (expected 0%)\n✓ variant bac-lieu Chuyên sâu: 30% (expected 30%)\n✓ variant tra-vinh Chuyên sâu: 20% (expected 20%)\n\nAll matrix checks passed (6 branches × 11 services).\n",
+      "stderrTail": ""
+    },
+    {
+      "id": "cross-branch-support",
+      "title": "Hỗ trợ liên chi nhánh (serving branch / không phụ thuộc supportEnabled)",
+      "ok": true,
+      "skipped": false,
+      "status": 0,
+      "ms": 461,
+      "stdoutTail": "D. CN ngoài nhóm\n  [PASS] Bạc Liêu không dropdown\n  [PASS] options rỗng\n  [PASS] không serve Sóc Trăng\n\nUI labels\n  [PASS] có label Chi nhánh phục vụ khách\n  [PASS] BranchBanner khi !canPickServingBranch\n\n=== ALL DROPDOWN UAT PASSED ===\n\n",
+      "stderrTail": "npm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.\n"
+    },
+    {
+      "id": "salary-summary",
+      "title": "Payroll Summary (home-branch, không trùng net hỗ trợ)",
+      "ok": true,
+      "skipped": false,
+      "status": 0,
+      "ms": 38,
+      "stdoutTail": "✓ Case 1: không hỗ trợ — tổng = chi tiết 600000\n✓ Case 2: hỗ trợ 1 CN — thực nhận gồm hỗ trợ 6250000\n✓ Case 3: nhiều CN — chỉ 1 dòng tại CN nhân sự, không trùng\n✓ Case 4: trừ phạt + ứng một lần 1600\n✓ Case 4b: KPI âm vào net -300000\n✓ Case 5: chuyển A→C giữ tháng/kỳ/CN/status\n✓ Case 6: cột UI — bỏ 4 cột, net cuối, Tips trước HH\n\nSalary summary UAT logic passed.\n",
+      "stderrTail": ""
+    },
+    {
+      "id": "offline-core",
+      "title": "Chu kỳ lương · Popup SET · KPI · Excel/PDF · Dashboard · SoT · Audit fields",
+      "ok": true,
+      "skipped": false,
+      "status": 0,
+      "ms": 551,
+      "stdoutTail": "✓ Popup: currentTotalsFromPayrollRow binds 4 fields from payrollRow\n✓ Popup: null payrollRow → null totals\n✓ Excel: mapPayrollRowForExport preserves bonus/kpi/penalty/advance/net\n✓ PDF/Dashboard: net + KPI fields come from same payrollRow (no recompute)\n✓ Summary: home-branch list sum === branch card net (same report.rows)\n✓ SoT: resolveTotalSalary never falls back to commission+tips\n✓ SoT: aggregatePayrollCostFromReport === dashboard net\n✓ SoT: profit = actualRevenue − labor − expenses\n✓ Audit: board fields only (bonus/kpi/penalty/advance)\n\nOffline regression: 14/14 passed\n",
+      "stderrTail": "npm warn Unknown env config \"devdir\". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.\n"
+    },
+    {
+      "id": "prod-sot-readonly",
+      "title": "ONE SOURCE OF TRUTH — Production READ ONLY dry-run",
+      "ok": true,
+      "skipped": true,
+      "reason": "Set REGRESSION_INCLUDE_PROD=1 to run"
+    }
+  ],
+  "passed": 5,
+  "failed": 0,
+  "skipped": 1,
+  "allOk": true
+}

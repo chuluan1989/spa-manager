@@ -10,10 +10,11 @@ function computeNet(parts) {
     + (parts.commission || 0)
     + (parts.tips || 0)
     + (parts.bonus || 0)
+    + (parts.kpi || 0)
     - (parts.reduction || 0)
     - (parts.penalty || 0)
     - (parts.advance || 0)
-    + (parts.otherAdjustment || 0)
+    // otherAdjustment legacy — không vào net vận hành
   )
 }
 
@@ -93,6 +94,15 @@ function sumTotals(rows) {
   })
   assert.equal(net, 1600)
   console.log('✓ Case 4: trừ phạt + ứng một lần', net)
+}
+
+// Case 4b: KPI signed
+{
+  const net = computeNet({
+    baseSalary: 0, commission: 0, tips: 0, bonus: 0, kpi: -300000, reduction: 0, penalty: 0, advance: 0,
+  })
+  assert.equal(net, -300000)
+  console.log('✓ Case 4b: KPI âm vào net', net)
 }
 
 // Case 5: switch employee keeps filters

@@ -31,6 +31,7 @@
     "verify:salary-advance": "vite-node scripts/verify-salary-advance.mjs",
     "verify:schema": "npx vite-node scripts/verify-schema.mjs",
     "verify:storage": "node --env-file=.env.local scripts/verify-storage.mjs",
+    "regression:payroll": "node scripts/regression-payroll-governance-v1.mjs",
     "preview": "vite preview",
     "sync:exceljs-vendor": "mkdir -p public/vendor && cp node_modules/exceljs/dist/exceljs.min.js public/vendor/exceljs.min.js"
   },
