@@ -3,6 +3,7 @@
 | Mục | Giá trị |
 |-----|---------|
 | Production | https://www.khoespa.net.vn |
+| Commit | `061df775c2cfdfa82f5dceef8d09193214f2285b` |
 | Migration | `0045_expense_soft_void_and_category_hide.sql` |
 | Backup dir | `docs/uat-evidence/expenses-void-migration-prod/2026-08-06T06-22-40/` |
 | Backfill `[[VOID]]` → `status=void` | **2** bản ghi |
