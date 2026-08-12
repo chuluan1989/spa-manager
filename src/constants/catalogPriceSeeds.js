@@ -63,16 +63,24 @@ const TRAM_SPA_FLAT_MAP = {
 }
 
 const SONG_KHOE_FLAT_MAP = {
-  'gl-foot-30': { flatId: 'foot', priceRatio: 0.55 },
+  'gl-foot-30': 'foot',
   'gl-foot-60': 'foot',
   'gl-body-tinh-dau-60': 'body-60',
   'gl-body-tinh-dau-90': 'body-90',
+  'gl-body-da-nong-60': 'body-60',
+  'gl-body-da-nong-90': 'body-90',
   'gl-body-chuyen-sau-90': 'chuyen-sau',
+  'gl-bau-75': 'body-75',
   'gl-co-vai-gay-60': 'co-vai-gay',
   'gl-goi-thu-gian-30': 'goi-sach',
   'gl-goi-duong-sinh-60': 'goi-duong-sinh',
   'gl-cao-gio-giac-hoi': 'giac-hoi',
   'gl-book-phong-don': 'phong-don',
+  'gl-combo-relax-90': 'combo-1',
+  'gl-combo-fresh-90': 'combo-2',
+  'gl-combo-lung-vai-gay-90': 'combo-3',
+  'gl-dap-cao-vung': 'dap-thuoc',
+  'gl-da-nong-addon': 'dap-thuoc',
 }
 
 const PRICE_GROUP_CATALOG_MAP = {

@@ -1,0 +1,787 @@
+{
+  "readOnly": true,
+  "generatedAt": "2026-08-12T04:49:23.837Z",
+  "credentialSource": "production_bundle",
+  "branchId": "song-khoe-spa",
+  "branchRow": {
+    "id": "song-khoe-spa",
+    "name": "Sống Khoẻ Spa",
+    "price_group_id": "song-khoe-spa"
+  },
+  "effectiveFrom": "2026-08-01",
+  "architectureNote": {
+    "hasEffectiveFrom": false,
+    "limitation": "Hệ thống không có version giá theo ngày (effective_from). Cập nhật catalog = giá hiện tại cho HĐ mới. HĐ cũ giữ snapshot trên từng line."
+  },
+  "newPriceList": {
+    "body-60": 190000,
+    "body-75": 230000,
+    "body-90": 250000,
+    "goi-sach": 70000,
+    "goi-duong-sinh": 130000,
+    "cao-mat": 50000,
+    "chuyen-sau": 350000,
+    "combo-1": 260000,
+    "combo-2": 280000,
+    "combo-3": 370000,
+    "foot": 100000,
+    "co-vai-gay": 150000,
+    "giac-hoi": 50000,
+    "dap-thuoc": 30000,
+    "phong-don": 40000
+  },
+  "catalog": {
+    "rowCount": 15,
+    "byDuration": {
+      "combo-1": {
+        "price": 260000,
+        "commissionPercent": 10
+      },
+      "combo-2": {
+        "price": 280000,
+        "commissionPercent": 10
+      },
+      "combo-3": {
+        "price": 370000,
+        "commissionPercent": 10
+      },
+      "dap-thuoc": {
+        "price": 30000,
+        "commissionPercent": 20
+      },
+      "body-60": {
+        "price": 190000,
+        "commissionPercent": 0
+      },
+      "body-75": {
+        "price": 230000,
+        "commissionPercent": 0
+      },
+      "body-90": {
+        "price": 250000,
+        "commissionPercent": 0
+      },
+      "goi-sach": {
+        "price": 70000,
+        "commissionPercent": 20
+      },
+      "goi-duong-sinh": {
+        "price": 130000,
+        "commissionPercent": 20
+      },
+      "cao-mat": {
+        "price": 50000,
+        "commissionPercent": 20
+      },
+      "chuyen-sau": {
+        "price": 350000,
+        "commissionPercent": 10
+      },
+      "foot": {
+        "price": 100000,
+        "commissionPercent": 0
+      },
+      "co-vai-gay": {
+        "price": 150000,
+        "commissionPercent": 0
+      },
+      "giac-hoi": {
+        "price": 50000,
+        "commissionPercent": 20
+      },
+      "phong-don": {
+        "price": 40000,
+        "commissionPercent": 20
+      }
+    },
+    "vsNew": [
+      {
+        "id": "body-60",
+        "status": "MATCH",
+        "current": 190000,
+        "newPrice": 190000,
+        "commissionPercent": 0,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "body-75",
+        "status": "MATCH",
+        "current": 230000,
+        "newPrice": 230000,
+        "commissionPercent": 0,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "body-90",
+        "status": "MATCH",
+        "current": 250000,
+        "newPrice": 250000,
+        "commissionPercent": 0,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "goi-sach",
+        "status": "MATCH",
+        "current": 70000,
+        "newPrice": 70000,
+        "commissionPercent": 20,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "goi-duong-sinh",
+        "status": "MATCH",
+        "current": 130000,
+        "newPrice": 130000,
+        "commissionPercent": 20,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "cao-mat",
+        "status": "MATCH",
+        "current": 50000,
+        "newPrice": 50000,
+        "commissionPercent": 20,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "chuyen-sau",
+        "status": "MATCH",
+        "current": 350000,
+        "newPrice": 350000,
+        "commissionPercent": 10,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "combo-1",
+        "status": "MATCH",
+        "current": 260000,
+        "newPrice": 260000,
+        "commissionPercent": 10,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "combo-2",
+        "status": "MATCH",
+        "current": 280000,
+        "newPrice": 280000,
+        "commissionPercent": 10,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "combo-3",
+        "status": "MATCH",
+        "current": 370000,
+        "newPrice": 370000,
+        "commissionPercent": 10,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "foot",
+        "status": "MATCH",
+        "current": 100000,
+        "newPrice": 100000,
+        "commissionPercent": 0,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "co-vai-gay",
+        "status": "MATCH",
+        "current": 150000,
+        "newPrice": 150000,
+        "commissionPercent": 0,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "giac-hoi",
+        "status": "MATCH",
+        "current": 50000,
+        "newPrice": 50000,
+        "commissionPercent": 20,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "dap-thuoc",
+        "status": "MATCH",
+        "current": 30000,
+        "newPrice": 30000,
+        "commissionPercent": 20,
+        "source": "branch_service_prices"
+      },
+      {
+        "id": "phong-don",
+        "status": "MATCH",
+        "current": 40000,
+        "newPrice": 40000,
+        "commissionPercent": 20,
+        "source": "branch_service_prices"
+      }
+    ],
+    "legacyPricingPresent": false,
+    "legacyOverrideKeys": [],
+    "branchCatalogMeta": {
+      "updatedAt": "2026-08-12T04:48:46.343+00:00",
+      "durationIds": [
+        "body-60",
+        "body-75",
+        "body-90",
+        "goi-sach",
+        "goi-duong-sinh",
+        "cao-mat",
+        "chuyen-sau",
+        "combo-1",
+        "combo-2",
+        "combo-3",
+        "foot",
+        "co-vai-gay",
+        "giac-hoi",
+        "dap-thuoc",
+        "phong-don"
+      ],
+      "serviceNames": [
+        "Massage Body 60 phút – không đá nóng",
+        "Massage Body 75 phút – đá nóng lưng",
+        "Massage Body 90 phút – đá nóng lưng + chân",
+        "Gội đầu thư giãn 30 phút",
+        "Gội đầu dưỡng sinh 60 phút",
+        "Cạo mặt + lột mụn + đắp mặt nạ 30 phút",
+        "Chuyên sâu 90 phút",
+        "Combo 1 – Massage 60P + Gội đầu 30P",
+        "Combo 2 – Massage 75P + Giác hơi",
+        "Combo 3 – Massage 90P + Gội đầu 30P + Giác hơi",
+        "Massage chân 30 phút",
+        "Trị liệu Cổ, Vai gáy 60 phút",
+        "Giác hơi / Cạo gió 30 phút",
+        "Đắp thuốc thảo dược / Xông ngải cứu",
+        "Phụ thu phòng đơn"
+      ]
+    }
+  },
+  "invoices": {
+    "total": 38,
+    "allLinesMatchNew": 38,
+    "hasOldPriceLines": 0,
+    "noMappedLines": 0,
+    "revenueDeltaIfAllEditableFixed": 0
+  },
+  "linePriceFrequency": [
+    {
+      "serviceKey": "body-60",
+      "name": "Body 60 60'",
+      "snapPrice": 190000,
+      "count": 18
+    },
+    {
+      "serviceKey": "phong-don",
+      "name": "Phòng đơn",
+      "snapPrice": 40000,
+      "count": 17
+    },
+    {
+      "serviceKey": "giac-hoi",
+      "name": "Giác hơi",
+      "snapPrice": 50000,
+      "count": 12
+    },
+    {
+      "serviceKey": "co-vai-gay",
+      "name": "Cổ vai gáy",
+      "snapPrice": 150000,
+      "count": 6
+    },
+    {
+      "serviceKey": "body-75",
+      "name": "Body 75 75'",
+      "snapPrice": 230000,
+      "count": 6
+    },
+    {
+      "serviceKey": "body-90",
+      "name": "Body 90 90'",
+      "snapPrice": 250000,
+      "count": 5
+    },
+    {
+      "serviceKey": "chuyen-sau",
+      "name": "Chuyên sâu",
+      "snapPrice": 350000,
+      "count": 2
+    },
+    {
+      "serviceKey": "foot",
+      "name": "Foot",
+      "snapPrice": 100000,
+      "count": 2
+    },
+    {
+      "serviceKey": "goi-sach",
+      "name": "Gội sạch",
+      "snapPrice": 70000,
+      "count": 2
+    }
+  ],
+  "mismatchesByService": [],
+  "mismatchedLineCount": 0,
+  "unmatchedLineSample": [],
+  "approvedLockedInvoiceCount": 0,
+  "approvedLockedInvoices": [],
+  "editableMismatchInvoiceCount": 0,
+  "editableMismatchInvoices": [],
+  "invoiceSummaries": [
+    {
+      "id": "45077318-0315-42eb-92f1-b88bde06e4b2",
+      "date": "2026-08-01",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 240000,
+      "total": 490000,
+      "tips": 250000,
+      "approvedCloses": []
+    },
+    {
+      "id": "db0d15a7-e6ae-4e2c-af29-e578196a7b5f",
+      "date": "2026-08-01",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 390000,
+      "total": 1000000,
+      "tips": 610000,
+      "approvedCloses": []
+    },
+    {
+      "id": "f02a0e71-e3af-4b20-ae23-a6477f984d28",
+      "date": "2026-08-01",
+      "employeeId": "tram-spa-thanh",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 230000,
+      "total": 330000,
+      "tips": 100000,
+      "approvedCloses": []
+    },
+    {
+      "id": "9fedf561-5cee-429e-849d-b6d71934bc39",
+      "date": "2026-08-01",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 150000,
+      "total": 300000,
+      "tips": 150000,
+      "approvedCloses": []
+    },
+    {
+      "id": "5704c0e3-bce2-4216-9d3b-0756198ca525",
+      "date": "2026-08-01",
+      "employeeId": "song-khoe-spa-anh",
+      "mappedLines": 3,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 320000,
+      "total": 800000,
+      "tips": 480000,
+      "approvedCloses": []
+    },
+    {
+      "id": "60b8f14b-284b-491f-a36c-c24f8464db0b",
+      "date": "2026-08-01",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 240000,
+      "total": 490000,
+      "tips": 250000,
+      "approvedCloses": []
+    },
+    {
+      "id": "53611b35-9008-4a77-b2d2-cfc4bf2891d8",
+      "date": "2026-08-02",
+      "employeeId": "song-khoe-spa-anh",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 690000,
+      "tips": 500000,
+      "approvedCloses": []
+    },
+    {
+      "id": "a303ca77-1c82-4c44-a550-e65363269237",
+      "date": "2026-08-02",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 200000,
+      "total": 700000,
+      "tips": 500000,
+      "approvedCloses": []
+    },
+    {
+      "id": "3985e2bb-41e6-4966-8997-0805eafcbf3d",
+      "date": "2026-08-02",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 690000,
+      "tips": 500000,
+      "approvedCloses": []
+    },
+    {
+      "id": "0f8165b0-4f91-4fc1-9bac-a6da116f115a",
+      "date": "2026-08-02",
+      "employeeId": "tram-spa-thanh",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 250000,
+      "total": 350000,
+      "tips": 100000,
+      "approvedCloses": []
+    },
+    {
+      "id": "0e8782e4-1932-4a99-858d-48b3d6cf6e4c",
+      "date": "2026-08-02",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 230000,
+      "total": 430000,
+      "tips": 200000,
+      "approvedCloses": []
+    },
+    {
+      "id": "7d8e9853-c4e0-4f8d-9bc5-b618a8917f8e",
+      "date": "2026-08-04",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 230000,
+      "total": 450000,
+      "tips": 220000,
+      "approvedCloses": []
+    },
+    {
+      "id": "1db3d4a3-2d54-42fc-9218-0552abcd3079",
+      "date": "2026-08-04",
+      "employeeId": "song-khoe-spa-hai-anh",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 390000,
+      "total": 890000,
+      "tips": 500000,
+      "approvedCloses": []
+    },
+    {
+      "id": "431c7068-e06a-49b4-a9f8-ab8f322d5537",
+      "date": "2026-08-05",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 230000,
+      "total": 500000,
+      "tips": 270000,
+      "approvedCloses": []
+    },
+    {
+      "id": "c522c750-8fb9-48f1-b61b-94b5652adc50",
+      "date": "2026-08-05",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 250000,
+      "total": 500000,
+      "tips": 250000,
+      "approvedCloses": []
+    },
+    {
+      "id": "365f6c62-2dcd-4765-a003-8640507da7fd",
+      "date": "2026-08-05",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 250000,
+      "total": 500000,
+      "tips": 250000,
+      "approvedCloses": []
+    },
+    {
+      "id": "3d61e08e-0d71-4dbb-acc4-a456d3d478f1",
+      "date": "2026-08-06",
+      "employeeId": "tram-spa-thanh",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 350000,
+      "tips": 160000,
+      "approvedCloses": []
+    },
+    {
+      "id": "1ffdd02a-5360-4a57-8d9e-c34760577dd3",
+      "date": "2026-08-06",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 3,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 240000,
+      "total": 700000,
+      "tips": 460000,
+      "approvedCloses": []
+    },
+    {
+      "id": "e856c57e-91ca-4b43-8847-85fd0dc0b216",
+      "date": "2026-08-06",
+      "employeeId": "song-khoe-spa-anh",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 390000,
+      "tips": 200000,
+      "approvedCloses": []
+    },
+    {
+      "id": "8921e557-25f0-459a-a8e8-b9ccd147cb57",
+      "date": "2026-08-07",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 900000,
+      "tips": 710000,
+      "approvedCloses": []
+    },
+    {
+      "id": "93950eed-6a22-4234-9535-aa3d24159dac",
+      "date": "2026-08-07",
+      "employeeId": "tram-spa-thanh",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 290000,
+      "tips": 100000,
+      "approvedCloses": []
+    },
+    {
+      "id": "fb553504-aefc-4c28-b5d2-b6d3e70ed095",
+      "date": "2026-08-07",
+      "employeeId": "song-khoe-spa-hai-anh",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 340000,
+      "tips": 150000,
+      "approvedCloses": []
+    },
+    {
+      "id": "7098c8ef-10a3-406b-80f2-0c6e34e52490",
+      "date": "2026-08-07",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 400000,
+      "tips": 210000,
+      "approvedCloses": []
+    },
+    {
+      "id": "9b778a47-97f6-43b2-b0de-d69fe349a074",
+      "date": "2026-08-08",
+      "employeeId": "song-khoe-spa-di-di",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 260000,
+      "total": 560000,
+      "tips": 300000,
+      "approvedCloses": []
+    },
+    {
+      "id": "f54bf234-c0fd-4cf6-b2be-d90ef86f8a9d",
+      "date": "2026-08-08",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 230000,
+      "total": 500000,
+      "tips": 270000,
+      "approvedCloses": []
+    },
+    {
+      "id": "c5369b60-40e5-418d-a445-141517e64368",
+      "date": "2026-08-09",
+      "employeeId": "song-khoe-spa-anh",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 250000,
+      "tips": 60000,
+      "approvedCloses": []
+    },
+    {
+      "id": "5bc848b9-4034-43c9-a747-ab8fbb245a16",
+      "date": "2026-08-09",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 250000,
+      "tips": 60000,
+      "approvedCloses": []
+    },
+    {
+      "id": "6225c576-255c-4917-9f05-e18c8d1dce83",
+      "date": "2026-08-09",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 1,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 250000,
+      "total": 350000,
+      "tips": 100000,
+      "approvedCloses": []
+    },
+    {
+      "id": "0785a01b-b985-434e-9720-42f5d213785a",
+      "date": "2026-08-10",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 3,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 320000,
+      "total": 700000,
+      "tips": 380000,
+      "approvedCloses": []
+    },
+    {
+      "id": "053c038b-6d61-49d2-9fad-629b7dd78628",
+      "date": "2026-08-10",
+      "employeeId": "song-khoe-spa-hai-anh",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 280000,
+      "total": 280200,
+      "tips": 200,
+      "approvedCloses": []
+    },
+    {
+      "id": "a95e4517-b8fe-4f46-aa02-95f88ba07764",
+      "date": "2026-08-10",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 4,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 350000,
+      "total": 550000,
+      "tips": 200000,
+      "approvedCloses": []
+    },
+    {
+      "id": "a89bb9fa-1cb2-4418-9457-b7dc8fffd572",
+      "date": "2026-08-10",
+      "employeeId": "song-khoe-spa-uc",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 190000,
+      "total": 400000,
+      "tips": 210000,
+      "approvedCloses": []
+    },
+    {
+      "id": "2083c227-1e62-41b2-969b-76f8cd8acece",
+      "date": "2026-08-10",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 3,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 320000,
+      "total": 500000,
+      "tips": 180000,
+      "approvedCloses": []
+    },
+    {
+      "id": "d38c2665-4e53-4405-bba9-e2114aef3747",
+      "date": "2026-08-10",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 280000,
+      "total": 480000,
+      "tips": 200000,
+      "approvedCloses": []
+    },
+    {
+      "id": "cb281d2a-d8c5-4de6-83d6-c4051b2710bd",
+      "date": "2026-08-10",
+      "employeeId": "song-khoe-spa-hai-anh",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 280000,
+      "total": 280200,
+      "tips": 200,
+      "approvedCloses": []
+    },
+    {
+      "id": "a4bf1caa-d33f-4b38-bf54-e1580ca81942",
+      "date": "2026-08-11",
+      "employeeId": "song-khoe-spa-di-di",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 240000,
+      "total": 350000,
+      "tips": 110000,
+      "approvedCloses": []
+    },
+    {
+      "id": "0bd2802c-88ba-43d8-a7e4-70e37348c948",
+      "date": "2026-08-11",
+      "employeeId": "song-khoe-spa-di-di",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 290000,
+      "total": 800000,
+      "tips": 510000,
+      "approvedCloses": []
+    },
+    {
+      "id": "74419d29-104d-4b88-9ff1-ac6bdea44949",
+      "date": "2026-08-11",
+      "employeeId": "song-khoe-spa-ngan",
+      "mappedLines": 2,
+      "hasMismatch": false,
+      "deltaIfFixed": 0,
+      "serviceTotal": 240000,
+      "total": 390000,
+      "tips": 150000,
+      "approvedCloses": []
+    }
+  ]
+}

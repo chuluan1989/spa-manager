@@ -1,0 +1,1032 @@
+{
+  "startedAt": "2026-08-12T04:48:44.924Z",
+  "base": "http://127.0.0.1:5173",
+  "mode": "preview-local-skipRemote",
+  "productionWrite": false,
+  "steps": {
+    "catalog_has_15_durations": {
+      "ok": true,
+      "durationCount": 15,
+      "missingIds": [],
+      "dupNames": []
+    },
+    "catalog_prices_and_commission": {
+      "ok": true,
+      "priceChecks": [
+        {
+          "id": "body-60",
+          "ok": true,
+          "price": 190000,
+          "pct": 0,
+          "expectPrice": 190000,
+          "expectPct": 0
+        },
+        {
+          "id": "body-75",
+          "ok": true,
+          "price": 230000,
+          "pct": 0,
+          "expectPrice": 230000,
+          "expectPct": 0
+        },
+        {
+          "id": "body-90",
+          "ok": true,
+          "price": 250000,
+          "pct": 0,
+          "expectPrice": 250000,
+          "expectPct": 0
+        },
+        {
+          "id": "goi-sach",
+          "ok": true,
+          "price": 70000,
+          "pct": 20,
+          "expectPrice": 70000,
+          "expectPct": 20
+        },
+        {
+          "id": "goi-duong-sinh",
+          "ok": true,
+          "price": 130000,
+          "pct": 20,
+          "expectPrice": 130000,
+          "expectPct": 20
+        },
+        {
+          "id": "cao-mat",
+          "ok": true,
+          "price": 50000,
+          "pct": 20,
+          "expectPrice": 50000,
+          "expectPct": 20
+        },
+        {
+          "id": "chuyen-sau",
+          "ok": true,
+          "price": 350000,
+          "pct": 10,
+          "expectPrice": 350000,
+          "expectPct": 10
+        },
+        {
+          "id": "combo-1",
+          "ok": true,
+          "price": 260000,
+          "pct": 10,
+          "expectPrice": 260000,
+          "expectPct": 10
+        },
+        {
+          "id": "combo-2",
+          "ok": true,
+          "price": 280000,
+          "pct": 10,
+          "expectPrice": 280000,
+          "expectPct": 10
+        },
+        {
+          "id": "combo-3",
+          "ok": true,
+          "price": 370000,
+          "pct": 10,
+          "expectPrice": 370000,
+          "expectPct": 10
+        },
+        {
+          "id": "foot",
+          "ok": true,
+          "price": 100000,
+          "pct": 0,
+          "expectPrice": 100000,
+          "expectPct": 0
+        },
+        {
+          "id": "co-vai-gay",
+          "ok": true,
+          "price": 150000,
+          "pct": 0,
+          "expectPrice": 150000,
+          "expectPct": 0
+        },
+        {
+          "id": "giac-hoi",
+          "ok": true,
+          "price": 50000,
+          "pct": 20,
+          "expectPrice": 50000,
+          "expectPct": 20
+        },
+        {
+          "id": "dap-thuoc",
+          "ok": true,
+          "price": 30000,
+          "pct": 20,
+          "expectPrice": 30000,
+          "expectPct": 20
+        },
+        {
+          "id": "phong-don",
+          "ok": true,
+          "price": 40000,
+          "pct": 20,
+          "expectPrice": 40000,
+          "expectPct": 20
+        }
+      ]
+    },
+    "form_select_song_khoe": {
+      "ok": true,
+      "employee": {
+        "value": "song-khoe-spa-di-di",
+        "label": "Ái Di"
+      },
+      "branchOpts": [
+        {
+          "value": "soc-trang",
+          "label": "Sóc Trăng Khoẻ Spa"
+        },
+        {
+          "value": "tram-spa",
+          "label": "Trạm Spa"
+        },
+        {
+          "value": "song-khoe-spa",
+          "label": "Sống Khoẻ Spa"
+        }
+      ],
+      "selectedBranch": {
+        "value": "song-khoe-spa",
+        "label": "Sống Khoẻ Spa"
+      }
+    },
+    "form_shows_15_and_new_services": {
+      "ok": true,
+      "visibleCount": 15,
+      "hasCombos": true,
+      "hasDapThuoc": true,
+      "hasNewBody60Price": true,
+      "hasOldStandardBody60": false,
+      "hasNewLabels": true,
+      "sample": [
+        "Cạo mặt + lột mụn + đắp mặt nạ 30 phút 50.000 ₫",
+        "Chuyên sâu 90 phút 350.000 ₫",
+        "Combo 1 – Massage 60P + Gội đầu 30P 1' 260.000 ₫",
+        "Combo 2 – Massage 75P + Giác hơi 2' 280.000 ₫",
+        "Combo 3 – Massage 90P + Gội đầu 30P + Giác hơi 3' 370.000 ₫",
+        "Đắp thuốc thảo dược / Xông ngải cứu 30.000 ₫",
+        "Giác hơi / Cạo gió 30 phút 50.000 ₫",
+        "Gội đầu dưỡng sinh 60 phút 130.000 ₫",
+        "Gội đầu thư giãn 30 phút 70.000 ₫",
+        "Massage Body 60 phút – không đá nóng 60' 190.000 ₫",
+        "Massage Body 75 phút – đá nóng lưng 75' 230.000 ₫",
+        "Massage Body 90 phút – đá nóng lưng + chân 90' 250.000 ₫",
+        "Massage chân 30 phút 100.000 ₫",
+        "Phụ thu phòng đơn 40.000 ₫",
+        "Trị liệu Cổ, Vai gáy 60 phút 150.000 ₫"
+      ]
+    },
+    "combo_and_dap_selected_in_form": {
+      "ok": true,
+      "comboSnapshots": [
+        {
+          "id": "combo-1",
+          "clicked": true
+        },
+        {
+          "id": "combo-2",
+          "clicked": true
+        },
+        {
+          "id": "combo-3",
+          "clicked": true
+        },
+        {
+          "id": "dap-thuoc",
+          "clicked": true
+        }
+      ],
+      "detailOk": true,
+      "detailSnippet": "Chi tiết dịch vụ đã chọn\nSTT\tTên dịch vụ\tGiá vé\tDoanh thu tiền vé\t% HH\tHoa hồng\n1\tCombo 1 – Massage 60P + Gội đầu 30P 1'\t260.000 ₫\t260.000 ₫\t10%\t26.000 ₫\n2\tCombo 2 – Massage 75P + Giác hơi 2'\t280.000 ₫\t280.000 ₫\t10%\t28.000 ₫\n3\tCombo 3 – Massage 90P + Gội đầu 30P + Giác hơi 3'\t370.000 ₫\t370.000 ₫\t10%\t37.000 ₫\n4\tĐắp thuốc thảo dược / Xông ngải cứu\t30.000 ₫\t30.000 ₫\t20%\t6.000 ₫\nGiá vé\t940.000 ₫\nKhuyến mãi\t0 ₫\nDoanh thu tiền vé\t940.000 ₫\nTips\t0 ₫\nTổng khách thanh toán\t940.000 ₫\nHoa hồng nhân viên\t97.000 ₫\nGiảm giá / Khuyến mãi\nTips\nPhương thức thanh toán\nTiền mặt\nChuyển khoản\nGiá vé\n940.000 ₫\nKhuy"
+    },
+    "form_shows_commission_hints": {
+      "ok": true,
+      "has10pct": true,
+      "has20pct": true,
+      "hasCommissionMoney": true
+    },
+    "cross_branch_reload": {
+      "ok": true,
+      "tram": true,
+      "socTrang": true,
+      "noSongKhoeLeak": true
+    },
+    "other_branches_unchanged_local": {
+      "ok": true,
+      "before": {
+        "tra-vinh": {
+          "durationCount": 16,
+          "priceIds": [
+            "body-60",
+            "body-75",
+            "body-90",
+            "cao-mat",
+            "chuyen-sau",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "combo-3",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don",
+            "xong-hoi"
+          ]
+        },
+        "soc-trang": {
+          "durationCount": 16,
+          "priceIds": [
+            "body-60",
+            "body-75",
+            "body-90",
+            "cao-mat",
+            "chuyen-sau",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "combo-3",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don",
+            "xong-hoi"
+          ]
+        },
+        "gia-lai-1": {
+          "durationCount": 34,
+          "priceIds": [
+            "gl-bau-60",
+            "gl-bau-75",
+            "gl-body-chuyen-sau-120",
+            "gl-body-chuyen-sau-90",
+            "gl-body-da-nong-60",
+            "gl-body-da-nong-90",
+            "gl-body-nen-60",
+            "gl-body-nen-90",
+            "gl-body-tinh-dau-60",
+            "gl-body-tinh-dau-90",
+            "gl-book-phong-don",
+            "gl-cao-gio-giac-hoi",
+            "gl-co-vai-gay-60",
+            "gl-co-vai-gay-90",
+            "gl-combo-body-chan-90",
+            "gl-combo-fresh-90",
+            "gl-combo-lung-vai-gay-90",
+            "gl-combo-phuc-hoi-90",
+            "gl-combo-relax-90",
+            "gl-combo-vip-120",
+            "gl-da-nong-addon",
+            "gl-dap-cao-vung",
+            "gl-foot-30",
+            "gl-foot-60",
+            "gl-goi-duong-sinh-60",
+            "gl-goi-duong-sinh-90",
+            "gl-goi-giam-stress-45",
+            "gl-goi-thao-duoc-60",
+            "gl-goi-thao-duoc-90",
+            "gl-goi-thu-gian-30",
+            "gl-thai-doc-ong-truc",
+            "gl-them-gio-15",
+            "gl-them-gio-30",
+            "gl-xong-hoi-da-muoi"
+          ]
+        },
+        "gia-lai-2": {
+          "durationCount": 34,
+          "priceIds": [
+            "gl-bau-60",
+            "gl-bau-75",
+            "gl-body-chuyen-sau-120",
+            "gl-body-chuyen-sau-90",
+            "gl-body-da-nong-60",
+            "gl-body-da-nong-90",
+            "gl-body-nen-60",
+            "gl-body-nen-90",
+            "gl-body-tinh-dau-60",
+            "gl-body-tinh-dau-90",
+            "gl-book-phong-don",
+            "gl-cao-gio-giac-hoi",
+            "gl-co-vai-gay-60",
+            "gl-co-vai-gay-90",
+            "gl-combo-body-chan-90",
+            "gl-combo-fresh-90",
+            "gl-combo-lung-vai-gay-90",
+            "gl-combo-phuc-hoi-90",
+            "gl-combo-relax-90",
+            "gl-combo-vip-120",
+            "gl-da-nong-addon",
+            "gl-dap-cao-vung",
+            "gl-foot-30",
+            "gl-foot-60",
+            "gl-goi-duong-sinh-60",
+            "gl-goi-duong-sinh-90",
+            "gl-goi-giam-stress-45",
+            "gl-goi-thao-duoc-60",
+            "gl-goi-thao-duoc-90",
+            "gl-goi-thu-gian-30",
+            "gl-thai-doc-ong-truc",
+            "gl-them-gio-15",
+            "gl-them-gio-30",
+            "gl-xong-hoi-da-muoi"
+          ]
+        },
+        "tram-spa": {
+          "durationCount": 12,
+          "priceIds": [
+            "body-60",
+            "body-90",
+            "cao-mat",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don"
+          ]
+        },
+        "bac-lieu": {
+          "durationCount": 16,
+          "priceIds": [
+            "body-60",
+            "body-75",
+            "body-90",
+            "cao-mat",
+            "chuyen-sau",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "combo-3",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don",
+            "xong-hoi"
+          ]
+        },
+        "vinh-long": {
+          "durationCount": 16,
+          "priceIds": [
+            "body-60",
+            "body-75",
+            "body-90",
+            "cao-mat",
+            "chuyen-sau",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "combo-3",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don",
+            "xong-hoi"
+          ]
+        }
+      },
+      "after": {
+        "tra-vinh": {
+          "durationCount": 16,
+          "priceIds": [
+            "body-60",
+            "body-75",
+            "body-90",
+            "cao-mat",
+            "chuyen-sau",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "combo-3",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don",
+            "xong-hoi"
+          ]
+        },
+        "soc-trang": {
+          "durationCount": 16,
+          "priceIds": [
+            "body-60",
+            "body-75",
+            "body-90",
+            "cao-mat",
+            "chuyen-sau",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "combo-3",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don",
+            "xong-hoi"
+          ]
+        },
+        "gia-lai-1": {
+          "durationCount": 34,
+          "priceIds": [
+            "gl-bau-60",
+            "gl-bau-75",
+            "gl-body-chuyen-sau-120",
+            "gl-body-chuyen-sau-90",
+            "gl-body-da-nong-60",
+            "gl-body-da-nong-90",
+            "gl-body-nen-60",
+            "gl-body-nen-90",
+            "gl-body-tinh-dau-60",
+            "gl-body-tinh-dau-90",
+            "gl-book-phong-don",
+            "gl-cao-gio-giac-hoi",
+            "gl-co-vai-gay-60",
+            "gl-co-vai-gay-90",
+            "gl-combo-body-chan-90",
+            "gl-combo-fresh-90",
+            "gl-combo-lung-vai-gay-90",
+            "gl-combo-phuc-hoi-90",
+            "gl-combo-relax-90",
+            "gl-combo-vip-120",
+            "gl-da-nong-addon",
+            "gl-dap-cao-vung",
+            "gl-foot-30",
+            "gl-foot-60",
+            "gl-goi-duong-sinh-60",
+            "gl-goi-duong-sinh-90",
+            "gl-goi-giam-stress-45",
+            "gl-goi-thao-duoc-60",
+            "gl-goi-thao-duoc-90",
+            "gl-goi-thu-gian-30",
+            "gl-thai-doc-ong-truc",
+            "gl-them-gio-15",
+            "gl-them-gio-30",
+            "gl-xong-hoi-da-muoi"
+          ]
+        },
+        "gia-lai-2": {
+          "durationCount": 34,
+          "priceIds": [
+            "gl-bau-60",
+            "gl-bau-75",
+            "gl-body-chuyen-sau-120",
+            "gl-body-chuyen-sau-90",
+            "gl-body-da-nong-60",
+            "gl-body-da-nong-90",
+            "gl-body-nen-60",
+            "gl-body-nen-90",
+            "gl-body-tinh-dau-60",
+            "gl-body-tinh-dau-90",
+            "gl-book-phong-don",
+            "gl-cao-gio-giac-hoi",
+            "gl-co-vai-gay-60",
+            "gl-co-vai-gay-90",
+            "gl-combo-body-chan-90",
+            "gl-combo-fresh-90",
+            "gl-combo-lung-vai-gay-90",
+            "gl-combo-phuc-hoi-90",
+            "gl-combo-relax-90",
+            "gl-combo-vip-120",
+            "gl-da-nong-addon",
+            "gl-dap-cao-vung",
+            "gl-foot-30",
+            "gl-foot-60",
+            "gl-goi-duong-sinh-60",
+            "gl-goi-duong-sinh-90",
+            "gl-goi-giam-stress-45",
+            "gl-goi-thao-duoc-60",
+            "gl-goi-thao-duoc-90",
+            "gl-goi-thu-gian-30",
+            "gl-thai-doc-ong-truc",
+            "gl-them-gio-15",
+            "gl-them-gio-30",
+            "gl-xong-hoi-da-muoi"
+          ]
+        },
+        "tram-spa": {
+          "durationCount": 12,
+          "priceIds": [
+            "body-60",
+            "body-90",
+            "cao-mat",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don"
+          ]
+        },
+        "bac-lieu": {
+          "durationCount": 16,
+          "priceIds": [
+            "body-60",
+            "body-75",
+            "body-90",
+            "cao-mat",
+            "chuyen-sau",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "combo-3",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don",
+            "xong-hoi"
+          ]
+        },
+        "vinh-long": {
+          "durationCount": 16,
+          "priceIds": [
+            "body-60",
+            "body-75",
+            "body-90",
+            "cao-mat",
+            "chuyen-sau",
+            "co-vai-gay",
+            "combo-1",
+            "combo-2",
+            "combo-3",
+            "dap-thuoc",
+            "foot",
+            "giac-hoi",
+            "goi-duong-sinh",
+            "goi-sach",
+            "phong-don",
+            "xong-hoi"
+          ]
+        }
+      }
+    }
+  },
+  "ok": true,
+  "video": "/Users/chuluan/Spa-manager/docs/uat-evidence/song-khoe-price-aug2026/preview-uat-video/song-khoe-preview-uat-1786510141769.webm",
+  "applySummary": null,
+  "servicesAfterApply": [
+    {
+      "id": "body-60",
+      "name": "Massage Body 60 phút – không đá nóng",
+      "price": 190000,
+      "commissionPercent": 0
+    },
+    {
+      "id": "body-75",
+      "name": "Massage Body 75 phút – đá nóng lưng",
+      "price": 230000,
+      "commissionPercent": 0
+    },
+    {
+      "id": "body-90",
+      "name": "Massage Body 90 phút – đá nóng lưng + chân",
+      "price": 250000,
+      "commissionPercent": 0
+    },
+    {
+      "id": "goi-sach",
+      "name": "Gội đầu thư giãn 30 phút",
+      "price": 70000,
+      "commissionPercent": 20
+    },
+    {
+      "id": "goi-duong-sinh",
+      "name": "Gội đầu dưỡng sinh 60 phút",
+      "price": 130000,
+      "commissionPercent": 20
+    },
+    {
+      "id": "cao-mat",
+      "name": "Cạo mặt + lột mụn + đắp mặt nạ 30 phút",
+      "price": 50000,
+      "commissionPercent": 20
+    },
+    {
+      "id": "chuyen-sau",
+      "name": "Chuyên sâu 90 phút",
+      "price": 350000,
+      "commissionPercent": 10
+    },
+    {
+      "id": "combo-1",
+      "name": "Combo 1 – Massage 60P + Gội đầu 30P",
+      "price": 260000,
+      "commissionPercent": 10
+    },
+    {
+      "id": "combo-2",
+      "name": "Combo 2 – Massage 75P + Giác hơi",
+      "price": 280000,
+      "commissionPercent": 10
+    },
+    {
+      "id": "combo-3",
+      "name": "Combo 3 – Massage 90P + Gội đầu 30P + Giác hơi",
+      "price": 370000,
+      "commissionPercent": 10
+    },
+    {
+      "id": "foot",
+      "name": "Massage chân 30 phút",
+      "price": 100000,
+      "commissionPercent": 0
+    },
+    {
+      "id": "co-vai-gay",
+      "name": "Trị liệu Cổ, Vai gáy 60 phút",
+      "price": 150000,
+      "commissionPercent": 0
+    },
+    {
+      "id": "giac-hoi",
+      "name": "Giác hơi / Cạo gió 30 phút",
+      "price": 50000,
+      "commissionPercent": 20
+    },
+    {
+      "id": "dap-thuoc",
+      "name": "Đắp thuốc thảo dược / Xông ngải cứu",
+      "price": 30000,
+      "commissionPercent": 20
+    },
+    {
+      "id": "phong-don",
+      "name": "Phụ thu phòng đơn",
+      "price": 40000,
+      "commissionPercent": 20
+    }
+  ],
+  "filesToCommit": [
+    "src/constants/defaultPriceGroups.js",
+    "src/constants/catalogPriceSeeds.js",
+    "src/utils/songKhoeCatalogAug2026Preview.js",
+    "src/App.jsx",
+    "src/utils/supabaseSync.js",
+    "scripts/apply-song-khoe-prices-aug2026.mjs",
+    "scripts/audit-song-khoe-prices-aug2026-readonly.mjs",
+    "scripts/playwright-song-khoe-catalog-preview-uat.mjs",
+    "docs/uat-evidence/song-khoe-price-aug2026/"
+  ],
+  "localCatalogBeforeForm": {
+    "durationIds": [
+      "body-60",
+      "body-75",
+      "body-90",
+      "goi-sach",
+      "goi-duong-sinh",
+      "cao-mat",
+      "chuyen-sau",
+      "combo-1",
+      "combo-2",
+      "combo-3",
+      "foot",
+      "co-vai-gay",
+      "giac-hoi",
+      "dap-thuoc",
+      "phong-don"
+    ],
+    "services": [
+      {
+        "id": "song-khoe-spa-svc-body-60",
+        "name": "Massage Body 60 phút – không đá nóng"
+      },
+      {
+        "id": "song-khoe-spa-svc-body-75",
+        "name": "Massage Body 75 phút – đá nóng lưng"
+      },
+      {
+        "id": "song-khoe-spa-svc-body-90",
+        "name": "Massage Body 90 phút – đá nóng lưng + chân"
+      },
+      {
+        "id": "song-khoe-spa-svc-goi-sach",
+        "name": "Gội đầu thư giãn 30 phút"
+      },
+      {
+        "id": "song-khoe-spa-svc-goi-duong-sinh",
+        "name": "Gội đầu dưỡng sinh 60 phút"
+      },
+      {
+        "id": "song-khoe-spa-svc-cao-mat",
+        "name": "Cạo mặt + lột mụn + đắp mặt nạ 30 phút"
+      },
+      {
+        "id": "song-khoe-spa-svc-chuyen-sau",
+        "name": "Chuyên sâu 90 phút"
+      },
+      {
+        "id": "song-khoe-spa-svc-combo-1",
+        "name": "Combo 1 – Massage 60P + Gội đầu 30P"
+      },
+      {
+        "id": "song-khoe-spa-svc-combo-2",
+        "name": "Combo 2 – Massage 75P + Giác hơi"
+      },
+      {
+        "id": "song-khoe-spa-svc-combo-3",
+        "name": "Combo 3 – Massage 90P + Gội đầu 30P + Giác hơi"
+      },
+      {
+        "id": "song-khoe-spa-svc-foot",
+        "name": "Massage chân 30 phút"
+      },
+      {
+        "id": "song-khoe-spa-svc-co-vai-gay",
+        "name": "Trị liệu Cổ, Vai gáy 60 phút"
+      },
+      {
+        "id": "song-khoe-spa-svc-giac-hoi",
+        "name": "Giác hơi / Cạo gió 30 phút"
+      },
+      {
+        "id": "song-khoe-spa-svc-dap-thuoc",
+        "name": "Đắp thuốc thảo dược / Xông ngải cứu"
+      },
+      {
+        "id": "song-khoe-spa-svc-phong-don",
+        "name": "Phụ thu phòng đơn"
+      }
+    ],
+    "prices": {
+      "combo-1": {
+        "price": 260000,
+        "commissionPercent": 10
+      },
+      "combo-2": {
+        "price": 280000,
+        "commissionPercent": 10
+      },
+      "combo-3": {
+        "price": 370000,
+        "commissionPercent": 10
+      },
+      "dap-thuoc": {
+        "price": 30000,
+        "commissionPercent": 20
+      },
+      "body-60": {
+        "price": 190000,
+        "commissionPercent": 0
+      },
+      "body-75": {
+        "price": 230000,
+        "commissionPercent": 0
+      },
+      "body-90": {
+        "price": 250000,
+        "commissionPercent": 0
+      },
+      "goi-sach": {
+        "price": 70000,
+        "commissionPercent": 20
+      },
+      "goi-duong-sinh": {
+        "price": 130000,
+        "commissionPercent": 20
+      },
+      "cao-mat": {
+        "price": 50000,
+        "commissionPercent": 20
+      },
+      "chuyen-sau": {
+        "price": 350000,
+        "commissionPercent": 10
+      },
+      "foot": {
+        "price": 100000,
+        "commissionPercent": 0
+      },
+      "co-vai-gay": {
+        "price": 150000,
+        "commissionPercent": 0
+      },
+      "giac-hoi": {
+        "price": 50000,
+        "commissionPercent": 20
+      },
+      "phong-don": {
+        "price": 40000,
+        "commissionPercent": 20
+      }
+    },
+    "otherSnapshot": {
+      "tra-vinh": {
+        "durationCount": 16,
+        "priceIds": [
+          "body-60",
+          "body-75",
+          "body-90",
+          "cao-mat",
+          "chuyen-sau",
+          "co-vai-gay",
+          "combo-1",
+          "combo-2",
+          "combo-3",
+          "dap-thuoc",
+          "foot",
+          "giac-hoi",
+          "goi-duong-sinh",
+          "goi-sach",
+          "phong-don",
+          "xong-hoi"
+        ]
+      },
+      "soc-trang": {
+        "durationCount": 16,
+        "priceIds": [
+          "body-60",
+          "body-75",
+          "body-90",
+          "cao-mat",
+          "chuyen-sau",
+          "co-vai-gay",
+          "combo-1",
+          "combo-2",
+          "combo-3",
+          "dap-thuoc",
+          "foot",
+          "giac-hoi",
+          "goi-duong-sinh",
+          "goi-sach",
+          "phong-don",
+          "xong-hoi"
+        ]
+      },
+      "gia-lai-1": {
+        "durationCount": 34,
+        "priceIds": [
+          "gl-bau-60",
+          "gl-bau-75",
+          "gl-body-chuyen-sau-120",
+          "gl-body-chuyen-sau-90",
+          "gl-body-da-nong-60",
+          "gl-body-da-nong-90",
+          "gl-body-nen-60",
+          "gl-body-nen-90",
+          "gl-body-tinh-dau-60",
+          "gl-body-tinh-dau-90",
+          "gl-book-phong-don",
+          "gl-cao-gio-giac-hoi",
+          "gl-co-vai-gay-60",
+          "gl-co-vai-gay-90",
+          "gl-combo-body-chan-90",
+          "gl-combo-fresh-90",
+          "gl-combo-lung-vai-gay-90",
+          "gl-combo-phuc-hoi-90",
+          "gl-combo-relax-90",
+          "gl-combo-vip-120",
+          "gl-da-nong-addon",
+          "gl-dap-cao-vung",
+          "gl-foot-30",
+          "gl-foot-60",
+          "gl-goi-duong-sinh-60",
+          "gl-goi-duong-sinh-90",
+          "gl-goi-giam-stress-45",
+          "gl-goi-thao-duoc-60",
+          "gl-goi-thao-duoc-90",
+          "gl-goi-thu-gian-30",
+          "gl-thai-doc-ong-truc",
+          "gl-them-gio-15",
+          "gl-them-gio-30",
+          "gl-xong-hoi-da-muoi"
+        ]
+      },
+      "gia-lai-2": {
+        "durationCount": 34,
+        "priceIds": [
+          "gl-bau-60",
+          "gl-bau-75",
+          "gl-body-chuyen-sau-120",
+          "gl-body-chuyen-sau-90",
+          "gl-body-da-nong-60",
+          "gl-body-da-nong-90",
+          "gl-body-nen-60",
+          "gl-body-nen-90",
+          "gl-body-tinh-dau-60",
+          "gl-body-tinh-dau-90",
+          "gl-book-phong-don",
+          "gl-cao-gio-giac-hoi",
+          "gl-co-vai-gay-60",
+          "gl-co-vai-gay-90",
+          "gl-combo-body-chan-90",
+          "gl-combo-fresh-90",
+          "gl-combo-lung-vai-gay-90",
+          "gl-combo-phuc-hoi-90",
+          "gl-combo-relax-90",
+          "gl-combo-vip-120",
+          "gl-da-nong-addon",
+          "gl-dap-cao-vung",
+          "gl-foot-30",
+          "gl-foot-60",
+          "gl-goi-duong-sinh-60",
+          "gl-goi-duong-sinh-90",
+          "gl-goi-giam-stress-45",
+          "gl-goi-thao-duoc-60",
+          "gl-goi-thao-duoc-90",
+          "gl-goi-thu-gian-30",
+          "gl-thai-doc-ong-truc",
+          "gl-them-gio-15",
+          "gl-them-gio-30",
+          "gl-xong-hoi-da-muoi"
+        ]
+      },
+      "tram-spa": {
+        "durationCount": 12,
+        "priceIds": [
+          "body-60",
+          "body-90",
+          "cao-mat",
+          "co-vai-gay",
+          "combo-1",
+          "combo-2",
+          "dap-thuoc",
+          "foot",
+          "giac-hoi",
+          "goi-duong-sinh",
+          "goi-sach",
+          "phong-don"
+        ]
+      },
+      "bac-lieu": {
+        "durationCount": 16,
+        "priceIds": [
+          "body-60",
+          "body-75",
+          "body-90",
+          "cao-mat",
+          "chuyen-sau",
+          "co-vai-gay",
+          "combo-1",
+          "combo-2",
+          "combo-3",
+          "dap-thuoc",
+          "foot",
+          "giac-hoi",
+          "goi-duong-sinh",
+          "goi-sach",
+          "phong-don",
+          "xong-hoi"
+        ]
+      },
+      "vinh-long": {
+        "durationCount": 16,
+        "priceIds": [
+          "body-60",
+          "body-75",
+          "body-90",
+          "cao-mat",
+          "chuyen-sau",
+          "co-vai-gay",
+          "combo-1",
+          "combo-2",
+          "combo-3",
+          "dap-thuoc",
+          "foot",
+          "giac-hoi",
+          "goi-duong-sinh",
+          "goi-sach",
+          "phong-don",
+          "xong-hoi"
+        ]
+      }
+    },
+    "durationCount": 15,
+    "serviceCount": 15
+  },
+  "finishedAt": "2026-08-12T04:49:01.770Z",
+  "checklist": {
+    "catalog_15": true,
+    "prices_pct": true,
+    "form_song_khoe": true,
+    "form_services": true,
+    "combos": true,
+    "cross_branch": true,
+    "other_branches": true
+  }
+}

@@ -36,6 +36,7 @@ import {
   loadBranchCatalogsMap,
   loadBranchServicePricesV2,
 } from './serviceCatalogV2Storage'
+import { maybeApplySongKhoeCatalogAug2026PreviewFromEnv } from './songKhoeCatalogAug2026Preview'
 import { loadBranchPricingMap, saveBranchPricingMap } from './branchPricingStorage'
 import { loadCredentials, saveCredentials, syncEmployeeCredentialsFromEmployees, mergeCredentialsPreservingPasswords } from './credentialsStorage'
 import {
@@ -224,6 +225,12 @@ export async function pullAllFromSupabase() {
       apply: (data) => {
         if (!data?.catalogs) return
         applyRemoteBranchCatalogs(data)
+        // Preview sticky: re-merge Sống Khoẻ local after each pull (skipRemote).
+        try {
+          maybeApplySongKhoeCatalogAug2026PreviewFromEnv()
+        } catch {
+          /* optional preview helper */
+        }
       },
     },
     {
@@ -332,7 +339,14 @@ export async function pushLocalToSupabase() {
     ['services', () => upsertServices(snapshot.services)],
     ['branchPricing', () => upsertBranchPricingMap(snapshot.branchPricing)],
     ['commissionPolicies', () => upsertCommissionPolicyMap(snapshot.commissionPolicies ?? loadCommissionPolicyMap())],
-    ['serviceCatalogV2', () => upsertBranchCatalogsRemote(loadBranchCatalogsMap(), loadBranchServicePricesV2())],
+    ['serviceCatalogV2', async () => {
+      // Preview sticky catalog must not push local overrides to shared Supabase/production.
+      if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SONG_KHOE_CATALOG_PREVIEW === '1') {
+        console.warn('[Supabase] Bỏ qua push serviceCatalogV2 (VITE_SONG_KHOE_CATALOG_PREVIEW=1)')
+        return
+      }
+      await upsertBranchCatalogsRemote(loadBranchCatalogsMap(), loadBranchServicePricesV2())
+    }],
     ['employees', () => upsertEmployees(snapshot.employees)],
     ['invoices', () => upsertInvoices(snapshot.invoices)],
     ['expenses', () => upsertExpenses(snapshot.expenses)],

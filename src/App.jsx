@@ -64,6 +64,7 @@ import { clearLegacySession, loadCurrentUser, saveCurrentUser, clearCurrentUser 
 import { ensureCredentialsHashed, syncEmployeeCredentialsFromEmployees, syncMissingBranchCredentials, repairEmployeeCredentials } from './utils/credentialsStorage'
 import { syncAllCustomBranchPricing, stripFlatBranchGroupedCatalog } from './utils/branchPricingStorage'
 import { ensureServiceCatalogV2Migrated } from './utils/serviceCatalogV2Storage'
+import { maybeApplySongKhoeCatalogAug2026PreviewFromEnv } from './utils/songKhoeCatalogAug2026Preview'
 import { syncMissingDefaultBranches } from './utils/branchStorage'
 import { repairBranchIdReferences } from './utils/branchIdIntegrity'
 import { repairCanonicalBranchMapping } from './utils/canonicalBranchRepair'
@@ -164,6 +165,16 @@ function App() {
 
         if (isSupabaseConfigured) {
           await runInitialSync()
+        }
+
+        // Preview-only: hoàn thiện catalog Sống Khoẻ trên local (skipRemote — không ghi prod).
+        try {
+          const skPreview = maybeApplySongKhoeCatalogAug2026PreviewFromEnv()
+          if (skPreview) {
+            console.info('[Preview] Sống Khoẻ catalog Aug2026:', skPreview.summary)
+          }
+        } catch (skError) {
+          console.warn('[Preview] Sống Khoẻ catalog Aug2026:', skError?.message)
         }
 
         await syncEmployeeCredentialsFromEmployees()
