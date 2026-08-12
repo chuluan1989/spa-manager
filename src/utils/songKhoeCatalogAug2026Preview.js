@@ -198,6 +198,7 @@ export function applySongKhoeCatalogAug2026Preview(options = {}) {
       if (duration.durationMinutes !== wantMinutes) {
         duration.durationMinutes = wantMinutes
       }
+    }
 
     // Prices: only insert missing; never rewrite matching price/% (no fake audit)
     if (!existingPrice) {
