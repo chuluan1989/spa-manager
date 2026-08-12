@@ -1,0 +1,60 @@
+{
+  "startedAt": "2026-08-12T06:17:24.769Z",
+  "base": "https://www.khoespa.net.vn",
+  "commit": "7bb5f3d70e28170486080f753cff3a9cc6a4716c",
+  "steps": {
+    "bundle_loaded": {
+      "ok": true,
+      "asset": "/assets/index-D67q82p6.js"
+    },
+    "preview_flag_not_in_prod_bundle": {
+      "ok": true,
+      "note": "VITE_SONG_KHOE_CATALOG_PREVIEW không được bake vào prod"
+    },
+    "catalog_15_prices_ok": {
+      "ok": true,
+      "count": 15,
+      "sample": {
+        "body-60": 190000,
+        "body-75": 230000,
+        "body-90": 250000,
+        "goi-sach": 70000,
+        "goi-duong-sinh": 130000,
+        "cao-mat": 50000,
+        "chuyen-sau": 350000,
+        "combo-1": 260000,
+        "combo-2": 280000,
+        "combo-3": 370000,
+        "foot": 100000,
+        "co-vai-gay": 150000,
+        "giac-hoi": 50000,
+        "dap-thuoc": 30000,
+        "phong-don": 40000
+      }
+    },
+    "other_branch_soc-trang_body-60": {
+      "ok": true,
+      "price": 189000,
+      "expect": 189000
+    },
+    "other_branch_tram-spa_body-60": {
+      "ok": true,
+      "price": 160000,
+      "expect": 160000
+    },
+    "invoices_aug_count_unchanged": {
+      "ok": true,
+      "count": 38
+    },
+    "form_song_khoe_prices": {
+      "ok": true,
+      "snippet": "Cạo mặt + lột mụn + đắp mặt nạ 30 phút\n50.000 ₫\nChuyên sâu 90 phút\n350.000 ₫\nCombo 1 – Massage 60P + Gội đầu 30P 1'\n260.000 ₫\nCombo 2 – Massage 75P + Giác hơi 2'\n280.000 ₫\nCombo 3 – Massage 90P + Gội đầu 30P + Giác hơi 3'\n370.000 ₫\nĐắp thuốc thảo dược / Xông ngải cứu\n30.000 ₫\nGiá"
+    },
+    "cross_branch_soc_trang": {
+      "ok": true,
+      "has189": true
+    }
+  },
+  "ok": true,
+  "finishedAt": "2026-08-12T06:17:42.830Z"
+}
