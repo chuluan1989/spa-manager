@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
+import { parseOptionalCommissionPercent } from '../utils/commissionPercent'
 import { rowsToCamel } from './caseUtils'
 
 const TABLES = {
@@ -27,7 +28,7 @@ export async function fetchServiceCatalogV2Remote() {
     if (!branchPrices[branchId]) branchPrices[branchId] = {}
     branchPrices[branchId][row.duration_id] = {
       price: Number(row.price) || 0,
-      commissionPercent: Number(row.commission_percent) || 0,
+      commissionPercent: parseOptionalCommissionPercent(row.commission_percent),
     }
   }
 

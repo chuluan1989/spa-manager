@@ -2,6 +2,7 @@ import {
   calculateCommissionAmount,
   resolveCommissionPercent,
 } from './commissionPolicyEngine.js'
+import { isStoredCommissionPercent } from './commissionPercent'
 import { getServiceMapForBranch } from './serviceStorage'
 
 export function parseTips(value) {
@@ -39,40 +40,66 @@ export function parseDiscountInput(input) {
   return { type: 'amount', value: num, input: raw }
 }
 
-function resolveLineCommissionPercent(service, branchId = '') {
-  // Công thức HH theo nhóm chi nhánh (policy) là nguồn chuẩn khi có branchId.
-  // Không lấy % từ catalog/branch_service_prices: seed STANDARD mang % tiered
-  // (0/10/20) → sai với Trà Vinh/Vĩnh Long (flat 20%) và Bạc Liêu (CS 30%).
-  // Trạm/Sóc Trăng/Sống Khoẻ vẫn dùng policy tiered (không đồng bộ flat 20%).
+function serviceIdentity(service) {
+  return {
+    id: service?.id || service?.serviceId,
+    name: service?.name || service?.serviceName,
+  }
+}
+
+/**
+ * HĐ MỚI: % từ catalog (branch_service_prices) đã gắn trên dịch vụ.
+ * 0% là hợp lệ. Policy chỉ khi thiếu null/undefined.
+ */
+function resolveNewInvoiceCommission(service, branchId = '') {
+  if (isStoredCommissionPercent(service?.commissionPercent)) {
+    return {
+      percent: Number(service.commissionPercent),
+      source: service?.pricingSource || 'branch_service_prices',
+    }
+  }
+
   if (branchId) {
-    return resolveCommissionPercent(branchId, {
-      id: service?.id || service?.serviceId,
-      name: service?.name || service?.serviceName,
-    })
+    return {
+      percent: resolveCommissionPercent(branchId, serviceIdentity(service)),
+      source: 'commission_policy',
+    }
   }
-  if (Number.isFinite(service?.commissionPercent)) {
-    return Number(service.commissionPercent)
-  }
-  return 0
+
+  return { percent: 0, source: 'commission_policy' }
+}
+
+function resolveLineCommissionPercent(service, branchId = '') {
+  return resolveNewInvoiceCommission(service, branchId).percent
 }
 
 function resolvePricingSource(service, branchId = '') {
   if (service?.pricingSource) return service.pricingSource
-  if (branchId) return 'commission_policy'
-  if (Number.isFinite(service?.commissionPercent)) return 'branch_service_prices'
-  return 'commission_policy'
+  return resolveNewInvoiceCommission(service, branchId).source
 }
 
-/** Hoa hồng 1 dòng dịch vụ = giá vé thực thu × % theo bảng giá CN (fallback policy). */
+/** Hoa hồng 1 dòng. Payroll: snapshot amount → snapshot % → policy. Không đọc bảng giá hiện tại. */
 export function getServiceLineCommissionAmount(service, options = {}) {
   const branchId = typeof options === 'string' ? options : (options?.branchId ?? '')
   const preferSnapshot = typeof options === 'object' ? Boolean(options.preferSnapshot) : false
+  const actualPrice = Number(service?.price ?? service?.servicePrice ?? 0)
 
-  if (preferSnapshot && Number.isFinite(service?.commissionAmount)) {
-    return service.commissionAmount
+  if (preferSnapshot) {
+    if (Number.isFinite(service?.commissionAmount)) {
+      return service.commissionAmount
+    }
+    if (isStoredCommissionPercent(service?.commissionPercent)) {
+      return calculateCommissionAmount(actualPrice, Number(service.commissionPercent))
+    }
+    if (branchId) {
+      return calculateCommissionAmount(
+        actualPrice,
+        resolveCommissionPercent(branchId, serviceIdentity(service)),
+      )
+    }
+    return 0
   }
 
-  const actualPrice = Number(service?.price ?? 0)
   const percent = resolveLineCommissionPercent(service, branchId)
   return calculateCommissionAmount(actualPrice, percent)
 }
@@ -88,7 +115,7 @@ export function getInvoiceServiceCommission(invoice) {
   )
 }
 
-function buildBaseServiceLine(service, branchId = '') {
+export function buildBaseServiceLine(service, branchId = '') {
   const originalPrice = Number(service.price ?? 0)
   const commissionPercent = resolveLineCommissionPercent(service, branchId)
 
@@ -110,12 +137,13 @@ function buildBaseServiceLine(service, branchId = '') {
 }
 
 function withLineCommission(service, branchId = '') {
-  const commissionPercent = resolveLineCommissionPercent(service, branchId)
+  const { percent, source } = resolveNewInvoiceCommission(service, branchId)
   const price = Number(service.price ?? 0)
   return {
     ...service,
-    commissionPercent,
-    commissionAmount: calculateCommissionAmount(price, commissionPercent),
+    commissionPercent: percent,
+    commissionAmount: calculateCommissionAmount(price, percent),
+    pricingSource: service.pricingSource || source,
   }
 }
 

@@ -123,8 +123,8 @@ export function ensureBranchCatalogSeeded(branchId) {
 
   map[branchId] = catalog
   allPrices[branchId] = prices
-  saveBranchCatalogsMap(map, { notify: false })
-  saveBranchServicePricesV2(allPrices, { notify: false })
+  saveBranchCatalogsMap(map, { skipRemoteSync: true, notify: false })
+  saveBranchServicePricesV2(allPrices, { skipRemoteSync: true, notify: false })
   return catalog
 }
 
@@ -362,7 +362,9 @@ export async function setBranchDurationPrice(branchId, durationId, { price, comm
 
   const next = {
     price: Number(price) || 0,
-    commissionPercent: Number(commissionPercent) || 0,
+    commissionPercent: Number.isFinite(Number(commissionPercent))
+      ? Number(commissionPercent)
+      : 0,
   }
 
   // Production: luôn ghi server trước. Test/local có thể skipRemote.

@@ -1,0 +1,850 @@
+{
+  "mode": "DRY_RUN",
+  "wroteProduction": false,
+  "source": "production snapshot 2026-08-16 (investigation) — no live write",
+  "generatedAt": "2026-08-15T18:46:48.810Z",
+  "summary": {
+    "changeCount": 31,
+    "unchangedCount": 60,
+    "ambiguousCount": 0,
+    "missingCurrentCount": 0,
+    "giaLaiBlockedCount": 8,
+    "giaLaiBranches": [
+      "gia-lai-1",
+      "gia-lai-2"
+    ],
+    "giaLaiBlockedFullAuditCount": 68,
+    "giaLaiNote": "Fixture chỉ mẫu; audit đủ 34+34 dòng đều BLOCKED, không sync 40%."
+  },
+  "giaLai": {
+    "status": "BLOCKED",
+    "policyInCode": "FLAT 40% (commissionPolicyTypes.FLAT_40_BRANCH_IDS)",
+    "catalogUi": "0/10/20 theo seed gia đình",
+    "invoiceEvidence": "Không thấy HĐ Gia Lai trong mẫu 800 HĐ gần nhất lúc điều tra",
+    "conclusion": "Chưa đủ bằng chứng 40% đang áp dụng thật. Không sync batch này."
+  },
+  "changes": [
+    {
+      "branchId": "soc-trang",
+      "durationId": "xong-hoi",
+      "name": "Xông hơi",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "body-60",
+      "name": "Body 60",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "body-75",
+      "name": "Body 75",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "body-90",
+      "name": "Body 90",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "chuyen-sau",
+      "name": "Chuyên sâu",
+      "currentPercent": 29,
+      "plannedPercent": 30,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "co-vai-gay",
+      "name": "Cổ vai gáy",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "combo-1",
+      "name": "Combo 1",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "combo-2",
+      "name": "Combo 2",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "combo-3",
+      "name": "Combo 3",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "foot",
+      "name": "Foot",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "xong-hoi",
+      "name": "Xông hơi",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "body-60",
+      "name": "Body 60",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "body-75",
+      "name": "Body 75",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "body-90",
+      "name": "Body 90",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "chuyen-sau",
+      "name": "Chuyên sâu",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "co-vai-gay",
+      "name": "Cổ vai gáy",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "combo-1",
+      "name": "Combo 1",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "combo-2",
+      "name": "Combo 2",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "combo-3",
+      "name": "Combo 3",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "foot",
+      "name": "Foot",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "xong-hoi",
+      "name": "Xông hơi",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "body-60",
+      "name": "Body 60",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "body-75",
+      "name": "Body 75",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "body-90",
+      "name": "Body 90",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "chuyen-sau",
+      "name": "Chuyên sâu",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "co-vai-gay",
+      "name": "Cổ vai gáy",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "combo-1",
+      "name": "Combo 1",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "combo-2",
+      "name": "Combo 2",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "combo-3",
+      "name": "Combo 3",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "foot",
+      "name": "Foot",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "xong-hoi",
+      "name": "Xông hơi",
+      "currentPercent": 0,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026"
+    }
+  ],
+  "unchanged": [
+    {
+      "branchId": "tram-spa",
+      "durationId": "body-60",
+      "name": "Body",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "body-90",
+      "name": "Body",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "cao-mat",
+      "name": "Cạo gió",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "co-vai-gay",
+      "name": "Cổ Vai Gáy",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "combo-1",
+      "name": "Combo 1",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "combo-2",
+      "name": "Combo 2",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "dap-thuoc",
+      "name": "Đắp thuốc thảo dược",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "foot",
+      "name": "Foot",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "giac-hoi",
+      "name": "Giác hơi",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "goi-duong-sinh",
+      "name": "Gội dưỡng sinh",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "goi-sach",
+      "name": "Gội sạch",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tram-spa",
+      "durationId": "phong-don",
+      "name": "Phòng đơn",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "body-60",
+      "name": "Body 60",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "body-75",
+      "name": "Body 75",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "body-90",
+      "name": "Body 90",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "cao-mat",
+      "name": "Cạo mặt",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "chuyen-sau",
+      "name": "Chuyên sâu",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "co-vai-gay",
+      "name": "Cổ vai gáy",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "combo-1",
+      "name": "Combo 1",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "combo-2",
+      "name": "Combo 2",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "combo-3",
+      "name": "Combo 3",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "dap-thuoc",
+      "name": "Đắp thuốc",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "foot",
+      "name": "Foot",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "giac-hoi",
+      "name": "Giác hơi",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "goi-duong-sinh",
+      "name": "Gội dưỡng sinh",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "goi-sach",
+      "name": "Gội sạch",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "soc-trang",
+      "durationId": "phong-don",
+      "name": "Phòng đơn",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "body-60",
+      "name": "Massage Body 60 phút – không đá nóng",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "body-75",
+      "name": "Massage Body 75 phút – đá nóng lưng",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "body-90",
+      "name": "Massage Body 90 phút – đá nóng lưng + chân",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "cao-mat",
+      "name": "Cạo mặt + lột mụn + đắp mặt nạ 30 phút",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "chuyen-sau",
+      "name": "Chuyên sâu 90 phút",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "co-vai-gay",
+      "name": "Trị liệu Cổ, Vai gáy 60 phút",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "combo-1",
+      "name": "Combo 1 – Massage 60P + Gội đầu 30P",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "combo-2",
+      "name": "Combo 2 – Massage 75P + Giác hơi",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "combo-3",
+      "name": "Combo 3 – Massage 90P + Gội đầu 30P + Giác hơi",
+      "currentPercent": 10,
+      "plannedPercent": 10,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "dap-thuoc",
+      "name": "Đắp thuốc thảo dược / Xông ngải cứu",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "foot",
+      "name": "Massage chân 30 phút",
+      "currentPercent": 0,
+      "plannedPercent": 0,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "giac-hoi",
+      "name": "Giác hơi / Cạo gió 30 phút",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "goi-duong-sinh",
+      "name": "Gội đầu dưỡng sinh 60 phút",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "goi-sach",
+      "name": "Gội đầu thư giãn 30 phút",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "phong-don",
+      "name": "Phụ thu phòng đơn",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "cao-mat",
+      "name": "Cạo mặt",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "dap-thuoc",
+      "name": "Đắp thuốc",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "giac-hoi",
+      "name": "Giác hơi",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "goi-duong-sinh",
+      "name": "Gội dưỡng sinh",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "goi-sach",
+      "name": "Gội sạch",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "bac-lieu",
+      "durationId": "phong-don",
+      "name": "Phòng đơn",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "cao-mat",
+      "name": "Cạo mặt",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "dap-thuoc",
+      "name": "Đắp thuốc",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "giac-hoi",
+      "name": "Giác hơi",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "goi-duong-sinh",
+      "name": "Gội dưỡng sinh",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "goi-sach",
+      "name": "Gội sạch",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "tra-vinh",
+      "durationId": "phong-don",
+      "name": "Phòng đơn",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "cao-mat",
+      "name": "Cạo mặt",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "dap-thuoc",
+      "name": "Đắp thuốc",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "giac-hoi",
+      "name": "Giác hơi",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "goi-duong-sinh",
+      "name": "Gội dưỡng sinh",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "goi-sach",
+      "name": "Gội sạch",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    },
+    {
+      "branchId": "vinh-long",
+      "durationId": "phong-don",
+      "name": "Phòng đơn",
+      "currentPercent": 20,
+      "plannedPercent": 20,
+      "status": "UNCHANGED",
+      "reason": ""
+    }
+  ],
+  "ambiguous": []
+}

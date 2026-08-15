@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient'
+import { parseOptionalCommissionPercent } from '../utils/commissionPercent'
 
 const TABLE = 'branch_catalogs'
 
@@ -23,7 +24,7 @@ export async function fetchBranchCatalogsRemote() {
     if (!branchPrices[branchId]) branchPrices[branchId] = {}
     branchPrices[branchId][row.duration_id] = {
       price: Number(row.price) || 0,
-      commissionPercent: Number(row.commission_percent) || 0,
+      commissionPercent: parseOptionalCommissionPercent(row.commission_percent),
     }
   }
 
