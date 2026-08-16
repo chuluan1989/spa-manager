@@ -85,6 +85,15 @@ const icons = {
       <path d="M6 10h.01M18 14h.01" />
     </svg>
   ),
+  kpi: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 19V5" />
+      <path d="M4 19h16" />
+      <rect x="7" y="11" width="3" height="5" rx="0.5" />
+      <rect x="12" y="7" width="3" height="9" rx="0.5" />
+      <rect x="17" y="9" width="3" height="7" rx="0.5" />
+    </svg>
+  ),
   branch: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 21h18" />

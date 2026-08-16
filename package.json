@@ -32,6 +32,13 @@
     "verify:schema": "npx vite-node scripts/verify-schema.mjs",
     "verify:storage": "node --env-file=.env.local scripts/verify-storage.mjs",
     "regression:payroll": "node scripts/regression-payroll-governance-v1.mjs",
+    "verify:employee-kpi-b1": "vite-node scripts/verify-employee-kpi-b1-uat.mjs",
+    "verify:employee-kpi-b2": "vite-node scripts/verify-employee-kpi-b2-uat.mjs",
+    "verify:employee-kpi-b3": "vite-node scripts/verify-employee-kpi-b3-uat.mjs",
+    "verify:employee-kpi-b4": "vite-node scripts/verify-employee-kpi-b4-governance.mjs",
+    "audit:employee-kpi-readonly": "node_modules/.bin/vite-node scripts/audit-employee-kpi-production-readonly.mjs",
+    "audit:employee-kpi-b4-readonly": "node_modules/.bin/vite-node scripts/audit-employee-kpi-b4-production-readonly.mjs",
+    "apply:0046-kpi-policies-prod": "node --env-file=.env.local scripts/apply-0046-kpi-policies-prod.mjs",
     "preview": "vite preview",
     "sync:exceljs-vendor": "mkdir -p public/vendor && cp node_modules/exceljs/dist/exceljs.min.js public/vendor/exceljs.min.js"
   },

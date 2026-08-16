@@ -774,13 +774,16 @@ export default function Invoice({ onNavigate }) {
                   <span className="invoice__hint">{INVOICE_CUSTOMER_PHONE_SOFT_WARNING}</span>
                 )}
               </label>
-              <label className="invoice__field invoice__field--checkbox invoice__field--full">
+              <label className="invoice__field invoice__field--checkbox invoice__field--full invoice__field--requested">
                 <input
                   type="checkbox"
                   checked={form.customerRequested}
                   onChange={(e) => updateForm('customerRequested', e.target.checked)}
                 />
-                <span>Khách yêu cầu</span>
+                <span>
+                  <strong>Khách yêu cầu</strong>
+                  <em>Tick nếu khách chủ động yêu cầu kỹ thuật viên này</em>
+                </span>
               </label>
             </div>
           </section>

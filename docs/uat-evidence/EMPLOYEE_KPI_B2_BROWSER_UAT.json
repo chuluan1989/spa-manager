@@ -1,0 +1,58 @@
+{
+  "base": "http://127.0.0.1:4173",
+  "startedAt": "2026-08-16T18:53:45.601Z",
+  "wroteProduction": false,
+  "steps": [
+    {
+      "name": "Sidebar has KPI link",
+      "pass": true,
+      "detail": {
+        "clicked": 1
+      }
+    },
+    {
+      "name": "Employee KPI page visible",
+      "pass": true,
+      "detail": {
+        "sample": "Tổng quan\nTổng quan\nBáo cáo\nDoanh thu • Lương • Yêu cầu NV\nHóa đơn\nQuản lý hóa đơn khách\nKPI\nKPI dịch vụ theo hóa đơn\nKhách hàng\nCRM & tăng trưởng khách hàng\nChấm công\nĐiểm danh nhân viên\nLương\nHRM lương & phiếu lương\nHồ sơ\nThông tin cá nhân\nĐồng bộ\nĐồng bộ dữ liệu cloud\nK\n\nKPI UAT NV\n\nNhân viên\n\nĐổi mật khẩu\nĐăng xuất\n\nPHIÊN BẢN\nKhoẻ Spa Manager v1.4.0\n\nKPI\n\nKPI UAT NV\n\nNhân viên\n\nK\nKPI THÁNG 8/2026\n\nTheo hóa đơn thực tế · Không gắn thưởng/phạt lương\n\n1/4\nCHƯA ĐẠT KPI\nTháng\nCHƯA ĐẠT KPI\n\nĐã đạt 1/4 KPI\n\nDịch vụ phụ\nĐẠT\n\n1 / 1 lượt\n\n100%\nMục tiêu 70%\n\nĐẠT\n\nChuyên sâu\nCHƯA ĐẠT\n\n0 / 1 lượt\n\n0%\nMục tiêu 10%\n\nCòn thiếu 1 lượt\n\nCombo\nCHƯA ĐẠT\n\n0 / 1 lượt\n\n0%\nMục tiêu 30%\n\nCòn thiếu 1 lượt\n\nKhách yêu cầu\nCHƯA ĐẠT\n\n0 / 1 khách\n\n0%\nMục tiêu 20%\n\nCòn thiếu 1 khách yêu cầu\n\nChi tiết theo chi nhánh p"
+      }
+    },
+    {
+      "name": "Requested card before tick shows 0",
+      "pass": true,
+      "detail": {
+        "beforeRequested": "Khách yêu cầuCHƯA ĐẠT0 / 1 khách0%Mục tiêu 20%Còn thiếu 1 khách yêu cầu"
+      }
+    },
+    {
+      "name": "After tick requested → 1/1",
+      "pass": true,
+      "detail": {
+        "afterTick": "Khách yêu cầuĐẠT1 / 1 khách100%Mục tiêu 20%ĐẠT"
+      }
+    },
+    {
+      "name": "After untick requested → 0/1",
+      "pass": true,
+      "detail": {
+        "afterUntick": "Khách yêu cầuCHƯA ĐẠT0 / 1 khách0%Mục tiêu 20%Còn thiếu 1 khách yêu cầu"
+      }
+    },
+    {
+      "name": "Drill-down opens",
+      "pass": true,
+      "detail": {
+        "drill": 1
+      }
+    },
+    {
+      "name": "No Production write",
+      "pass": true,
+      "detail": {
+        "wroteProduction": false
+      }
+    }
+  ],
+  "ok": true,
+  "finishedAt": "2026-08-16T18:53:51.034Z"
+}

@@ -1,0 +1,388 @@
+{
+  "passed": true,
+  "failed": 0,
+  "results": [
+    {
+      "id": 1,
+      "name": "Employee chỉ thấy KPI mình",
+      "pass": true,
+      "detail": {
+        "main": 3,
+        "addon": 2,
+        "advanced": 0,
+        "combo": 1,
+        "unmapped": 0,
+        "totalInvoices": 3,
+        "requestedInvoices": 1
+      }
+    },
+    {
+      "id": 2,
+      "name": "4 KPI cards từ engine B1",
+      "pass": true,
+      "detail": [
+        "addon",
+        "advanced",
+        "combo",
+        "requested"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Missing ADDON đúng",
+      "pass": true,
+      "detail": {
+        "key": "addon",
+        "title": "Dịch vụ phụ",
+        "numeratorLabel": "phụ",
+        "denominatorLabel": "chính",
+        "missingUnit": "lượt",
+        "formula": "ADDON / MAIN",
+        "status": "NOT_MET",
+        "statusLabel": "CHƯA ĐẠT",
+        "actual": 2,
+        "denominator": 3,
+        "rate": 0.6666666666666666,
+        "rateLabel": "67%",
+        "target": 0.7,
+        "targetLabel": "70%",
+        "missing": 1,
+        "missingText": "Còn thiếu 1 lượt",
+        "progress": 0.9523809523809524,
+        "mixedTargets": false
+      }
+    },
+    {
+      "id": 4,
+      "name": "MAIN=0 hiển thị CHƯA ĐỦ DỮ LIỆU",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 5,
+      "name": "Requested=0 hiển thị đúng",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 6,
+      "name": "Cross-branch segments",
+      "pass": true,
+      "detail": [
+        "soc-trang",
+        "tram-spa"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Policy theo ngày serving branch",
+      "pass": true,
+      "detail": [
+        {
+          "servingBranchId": "soc-trang",
+          "policyId": "p-st",
+          "source": "versioned",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "targets": {
+            "addon": 0.7,
+            "advanced": 0.1,
+            "combo": 0.3,
+            "requested": 0.2
+          },
+          "counts": {
+            "main": 2,
+            "addon": 2,
+            "advanced": 0,
+            "combo": 1,
+            "unmapped": 0,
+            "totalInvoices": 2,
+            "requestedInvoices": 1
+          },
+          "invoiceIds": [
+            "a1",
+            "a2"
+          ],
+          "kpis": {
+            "addon": {
+              "kind": "addon",
+              "actual": 2,
+              "main": 2,
+              "rate": 1,
+              "target": 0.7,
+              "status": "MET",
+              "missing": 0
+            },
+            "advanced": {
+              "kind": "advanced",
+              "actual": 0,
+              "main": 2,
+              "rate": 0,
+              "target": 0.1,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "combo": {
+              "kind": "combo",
+              "actual": 1,
+              "main": 2,
+              "rate": 0.5,
+              "target": 0.3,
+              "status": "MET",
+              "missing": 0
+            },
+            "requested": {
+              "kind": "requested",
+              "actual": 1,
+              "total": 2,
+              "rate": 0.5,
+              "target": 0.2,
+              "status": "MET",
+              "missing": 0
+            }
+          }
+        },
+        {
+          "servingBranchId": "tram-spa",
+          "policyId": "p-tram",
+          "source": "versioned",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "targets": {
+            "addon": 0.7,
+            "advanced": 0.1,
+            "combo": 0.3,
+            "requested": 0.2
+          },
+          "counts": {
+            "main": 1,
+            "addon": 0,
+            "advanced": 0,
+            "combo": 0,
+            "unmapped": 0,
+            "totalInvoices": 1,
+            "requestedInvoices": 0
+          },
+          "invoiceIds": [
+            "a3"
+          ],
+          "kpis": {
+            "addon": {
+              "kind": "addon",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.7,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "advanced": {
+              "kind": "advanced",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.1,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "combo": {
+              "kind": "combo",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.3,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "requested": {
+              "kind": "requested",
+              "actual": 0,
+              "total": 1,
+              "rate": 0,
+              "target": 0.2,
+              "status": "NOT_MET",
+              "missing": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Tháng trước dùng policy lịch sử",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 9,
+      "name": "Invoice create → KPI tăng",
+      "pass": true,
+      "detail": {
+        "main": 1,
+        "addon": 0,
+        "advanced": 0,
+        "combo": 0,
+        "unmapped": 0,
+        "totalInvoices": 1,
+        "requestedInvoices": 0
+      }
+    },
+    {
+      "id": 10,
+      "name": "Invoice edit → KPI đổi",
+      "pass": true,
+      "detail": {
+        "main": 1,
+        "addon": 1,
+        "advanced": 0,
+        "combo": 0,
+        "unmapped": 0,
+        "totalInvoices": 1,
+        "requestedInvoices": 1
+      }
+    },
+    {
+      "id": 11,
+      "name": "Invoice delete → KPI giảm",
+      "pass": true,
+      "detail": {
+        "main": 0,
+        "addon": 0,
+        "advanced": 0,
+        "combo": 0,
+        "unmapped": 0,
+        "totalInvoices": 0,
+        "requestedInvoices": 0
+      }
+    },
+    {
+      "id": 12,
+      "name": "customerRequested toggle → KPI đổi",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 13,
+      "name": "Gia Lai không tính",
+      "pass": true,
+      "detail": {
+        "excluded": 1
+      }
+    },
+    {
+      "id": 14,
+      "name": "Support không tính",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 15,
+      "name": "Recompute deterministic (refresh)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 16,
+      "name": "Không ảnh hưởng payroll/commission",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 17,
+      "name": "Mobile CSS có breakpoint",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "N1",
+      "name": "Sidebar nhân viên có KPI sau Hóa đơn",
+      "pass": true,
+      "detail": {
+        "ids": [
+          "dashboard",
+          "reports",
+          "invoices",
+          "employee-kpi",
+          "customers",
+          "attendance",
+          "salary",
+          "profile",
+          "legacy-sync"
+        ],
+        "orderOk": true
+      }
+    },
+    {
+      "id": "N2",
+      "name": "Admin không dùng menu employee-kpi (Admin dùng admin-kpi ở B3)",
+      "pass": true,
+      "detail": {
+        "ids": [
+          "dashboard",
+          "reports",
+          "invoices",
+          "admin-kpi",
+          "customers",
+          "admin-branches",
+          "admin-employees",
+          "salary",
+          "expenses",
+          "admin-services",
+          "attendance",
+          "payroll1-admin",
+          "settings"
+        ]
+      }
+    },
+    {
+      "id": "D1",
+      "name": "Drill-down DV phụ có ngày/HĐ/CN",
+      "pass": true,
+      "detail": {
+        "n": 3
+      }
+    },
+    {
+      "id": "D2",
+      "name": "Drill-down requested có Có/Không",
+      "pass": true,
+      "detail": {
+        "n": 3
+      }
+    },
+    {
+      "id": "CR1",
+      "name": "Checkbox khách yêu cầu nổi bật",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "M1",
+      "name": "Month bounds Aug",
+      "pass": true,
+      "detail": {
+        "fromDate": "2026-08-01",
+        "toDate": "2026-08-31"
+      }
+    },
+    {
+      "id": "M2",
+      "name": "currentMonthYm format",
+      "pass": true,
+      "detail": {
+        "v": "2026-08"
+      }
+    },
+    {
+      "id": "N3",
+      "name": "NAV_ITEMS KPI label",
+      "pass": true,
+      "detail": {
+        "id": "employee-kpi",
+        "label": "KPI",
+        "icon": "kpi",
+        "description": "KPI dịch vụ theo hóa đơn"
+      }
+    }
+  ]
+}

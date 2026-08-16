@@ -1,0 +1,775 @@
+{
+  "readOnly": true,
+  "wroteProduction": false,
+  "source": "production_bundle",
+  "fromDate": "2026-08-01",
+  "toDate": "2026-08-31",
+  "performance": {
+    "fetchMs": 473,
+    "adminDashboardMs": 13,
+    "fullParityPassMs": 6,
+    "invoiceRows": 686,
+    "employeeRowsComputed": 32,
+    "architecture": "single fetch → buildAdminKpiDashboard (group once) → computeEmployeeKpi per employee; no N+1 remote fetch"
+  },
+  "system": {
+    "scopeInvoiceCount": 686,
+    "giaLaiInvoiceCount": 0,
+    "employeeCount": 32,
+    "counts": {
+      "main": 439,
+      "addon": 370,
+      "advanced": 24,
+      "combo": 159,
+      "totalInvoices": 686,
+      "requestedInvoices": 0
+    },
+    "rates": {
+      "addon": 0.8428246013667426,
+      "advanced": 0.05466970387243736,
+      "combo": 0.3621867881548975,
+      "requested": 0
+    },
+    "employeesMetAll4": 0,
+    "employeesNotMet": 32,
+    "employeesInsufficient": 0,
+    "metByKpi": {
+      "addon": 20,
+      "advanced": 5,
+      "combo": 15,
+      "requested": 0
+    }
+  },
+  "branches": [
+    {
+      "branchId": "tram-spa",
+      "employeeCount": 12,
+      "employeesMetAll": 0,
+      "metRate": 0,
+      "avgRates": {
+        "addon": 0.6826732489826717,
+        "advanced": 0.026208779116249404,
+        "combo": 0.26880322445899696,
+        "requested": 0
+      }
+    },
+    {
+      "branchId": "soc-trang",
+      "employeeCount": 11,
+      "employeesMetAll": 0,
+      "metRate": 0,
+      "avgRates": {
+        "addon": 0.6103758296033338,
+        "advanced": 0.05391607072422013,
+        "combo": 0.3048940165663426,
+        "requested": 0
+      }
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "employeeCount": 6,
+      "employeesMetAll": 0,
+      "metRate": 0,
+      "avgRates": {
+        "addon": 0.796031746031746,
+        "advanced": 0.09616402116402117,
+        "combo": 0.14325396825396824,
+        "requested": 0
+      }
+    },
+    {
+      "branchId": "bac-lieu",
+      "employeeCount": 5,
+      "employeesMetAll": 0,
+      "metRate": 0,
+      "avgRates": {
+        "addon": 0.986371237458194,
+        "advanced": 0.027391304347826086,
+        "combo": 0.34180602006688965,
+        "requested": 0
+      }
+    },
+    {
+      "branchId": "tra-vinh",
+      "employeeCount": 5,
+      "employeesMetAll": 0,
+      "metRate": 0,
+      "avgRates": {
+        "addon": 1.0992857142857142,
+        "advanced": 0.13630952380952382,
+        "combo": 0.5101190476190476,
+        "requested": 0
+      }
+    },
+    {
+      "branchId": "vinh-long",
+      "employeeCount": 6,
+      "employeesMetAll": 0,
+      "metRate": 0,
+      "avgRates": {
+        "addon": 1.1002164502164502,
+        "advanced": 0.0603896103896104,
+        "combo": 0.6867965367965368,
+        "requested": 0
+      }
+    }
+  ],
+  "catalogUnmapped": 0,
+  "invoiceUnmappedCount": 0,
+  "invoiceUnmappedSamples": [],
+  "parity": {
+    "employeesCompared": 32,
+    "mismatchCount": 0,
+    "mismatches": [],
+    "passed": true
+  },
+  "policyAudit": {
+    "count": 6,
+    "byBranch": {
+      "tram-spa": [
+        {
+          "id": "kpi-pol-seed-tram-spa-2026-08-01",
+          "branchId": "tram-spa",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "addonTarget": 0.7,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active",
+          "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+        }
+      ],
+      "soc-trang": [
+        {
+          "id": "kpi-pol-seed-soc-trang-2026-08-01",
+          "branchId": "soc-trang",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "addonTarget": 0.7,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active",
+          "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+        }
+      ],
+      "song-khoe-spa": [
+        {
+          "id": "kpi-pol-seed-song-khoe-spa-2026-08-01",
+          "branchId": "song-khoe-spa",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "addonTarget": 0.7,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active",
+          "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+        }
+      ],
+      "bac-lieu": [
+        {
+          "id": "kpi-pol-seed-bac-lieu-2026-08-01",
+          "branchId": "bac-lieu",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "addonTarget": 0.7,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active",
+          "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+        }
+      ],
+      "tra-vinh": [
+        {
+          "id": "kpi-pol-seed-tra-vinh-2026-08-01",
+          "branchId": "tra-vinh",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "addonTarget": 0.7,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active",
+          "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+        }
+      ],
+      "vinh-long": [
+        {
+          "id": "kpi-pol-seed-vinh-long-2026-08-01",
+          "branchId": "vinh-long",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "addonTarget": 0.7,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active",
+          "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+        }
+      ]
+    },
+    "giaLaiCount": 0,
+    "overlap": {
+      "ok": true
+    },
+    "augSeed": [
+      {
+        "id": "kpi-pol-seed-tram-spa-2026-08-01",
+        "branchId": "tram-spa",
+        "effectiveFrom": "2026-08-01",
+        "effectiveTo": null,
+        "addonTarget": 0.7,
+        "advancedTarget": 0.1,
+        "comboTarget": 0.3,
+        "requestedTarget": 0.2,
+        "status": "active",
+        "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+      },
+      {
+        "id": "kpi-pol-seed-soc-trang-2026-08-01",
+        "branchId": "soc-trang",
+        "effectiveFrom": "2026-08-01",
+        "effectiveTo": null,
+        "addonTarget": 0.7,
+        "advancedTarget": 0.1,
+        "comboTarget": 0.3,
+        "requestedTarget": 0.2,
+        "status": "active",
+        "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+      },
+      {
+        "id": "kpi-pol-seed-song-khoe-spa-2026-08-01",
+        "branchId": "song-khoe-spa",
+        "effectiveFrom": "2026-08-01",
+        "effectiveTo": null,
+        "addonTarget": 0.7,
+        "advancedTarget": 0.1,
+        "comboTarget": 0.3,
+        "requestedTarget": 0.2,
+        "status": "active",
+        "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+      },
+      {
+        "id": "kpi-pol-seed-bac-lieu-2026-08-01",
+        "branchId": "bac-lieu",
+        "effectiveFrom": "2026-08-01",
+        "effectiveTo": null,
+        "addonTarget": 0.7,
+        "advancedTarget": 0.1,
+        "comboTarget": 0.3,
+        "requestedTarget": 0.2,
+        "status": "active",
+        "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+      },
+      {
+        "id": "kpi-pol-seed-tra-vinh-2026-08-01",
+        "branchId": "tra-vinh",
+        "effectiveFrom": "2026-08-01",
+        "effectiveTo": null,
+        "addonTarget": 0.7,
+        "advancedTarget": 0.1,
+        "comboTarget": 0.3,
+        "requestedTarget": 0.2,
+        "status": "active",
+        "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+      },
+      {
+        "id": "kpi-pol-seed-vinh-long-2026-08-01",
+        "branchId": "vinh-long",
+        "effectiveFrom": "2026-08-01",
+        "effectiveTo": null,
+        "addonTarget": 0.7,
+        "advancedTarget": 0.1,
+        "comboTarget": 0.3,
+        "requestedTarget": 0.2,
+        "status": "active",
+        "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+      }
+    ],
+    "logs": 6,
+    "targetsDecimalOk": true
+  },
+  "crossBranch": {
+    "count": 12,
+    "samples": [
+      {
+        "employeeId": "soc-trang-bao-tran",
+        "name": "Bảo Trân",
+        "home": "soc-trang",
+        "serving": [
+          "soc-trang",
+          "tram-spa"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "soc-trang",
+            "policyId": "kpi-pol-seed-soc-trang-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "soc-trang-chi-7",
+        "name": "Chị 7",
+        "home": "soc-trang",
+        "serving": [
+          "tram-spa",
+          "soc-trang"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "soc-trang",
+            "policyId": "kpi-pol-seed-soc-trang-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "soc-trang-quyen",
+        "name": "Kim Quyên",
+        "home": "soc-trang",
+        "serving": [
+          "soc-trang",
+          "tram-spa"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "soc-trang",
+            "policyId": "kpi-pol-seed-soc-trang-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "soc-trang-ly-ly",
+        "name": "Ly Ly",
+        "home": "soc-trang",
+        "serving": [
+          "soc-trang",
+          "tram-spa"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "soc-trang",
+            "policyId": "kpi-pol-seed-soc-trang-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "song-khoe-spa-hai-anh",
+        "name": "Hải Anh",
+        "home": "song-khoe-spa",
+        "serving": [
+          "song-khoe-spa",
+          "soc-trang"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "song-khoe-spa",
+            "policyId": "kpi-pol-seed-song-khoe-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "soc-trang",
+            "policyId": "kpi-pol-seed-soc-trang-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "song-khoe-spa-ngan",
+        "name": "Kim Ngân",
+        "home": "song-khoe-spa",
+        "serving": [
+          "song-khoe-spa",
+          "tram-spa"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "song-khoe-spa",
+            "policyId": "kpi-pol-seed-song-khoe-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "song-khoe-spa-anh",
+        "name": "Ngọc Ánh",
+        "home": "song-khoe-spa",
+        "serving": [
+          "song-khoe-spa",
+          "tram-spa"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "song-khoe-spa",
+            "policyId": "kpi-pol-seed-song-khoe-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "song-khoe-spa-uc",
+        "name": "Úc",
+        "home": "song-khoe-spa",
+        "serving": [
+          "song-khoe-spa",
+          "tram-spa"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "song-khoe-spa",
+            "policyId": "kpi-pol-seed-song-khoe-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "21e75803-50f9-44c2-a052-f9c34cca233a",
+        "name": "Huỳnh",
+        "home": "tram-spa",
+        "serving": [
+          "tram-spa",
+          "soc-trang"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "soc-trang",
+            "policyId": "kpi-pol-seed-soc-trang-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "tram-spa-lan-anh",
+        "name": "Lan Anh",
+        "home": "tram-spa",
+        "serving": [
+          "tram-spa",
+          "soc-trang"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "soc-trang",
+            "policyId": "kpi-pol-seed-soc-trang-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "tram-spa-nhu-ha",
+        "name": "Như Hà",
+        "home": "tram-spa",
+        "serving": [
+          "tram-spa",
+          "soc-trang"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "soc-trang",
+            "policyId": "kpi-pol-seed-soc-trang-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      },
+      {
+        "employeeId": "tram-spa-thanh",
+        "name": "Thanh",
+        "home": "tram-spa",
+        "serving": [
+          "song-khoe-spa",
+          "tram-spa",
+          "soc-trang"
+        ],
+        "policySegments": [
+          {
+            "servingBranchId": "song-khoe-spa",
+            "policyId": "kpi-pol-seed-song-khoe-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "tram-spa",
+            "policyId": "kpi-pol-seed-tram-spa-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          },
+          {
+            "servingBranchId": "soc-trang",
+            "policyId": "kpi-pol-seed-soc-trang-2026-08-01",
+            "targets": {
+              "addon": 0.7,
+              "advanced": 0.1,
+              "combo": 0.3,
+              "requested": 0.2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "exportParitySample": [
+    {
+      "employeeId": "tram-spa-cherry",
+      "ui": {
+        "main": 13,
+        "addon": 16,
+        "score": "1/4",
+        "status": "CHƯA ĐẠT",
+        "addonCell": {
+          "rate": "123%",
+          "status": "ĐẠT",
+          "missing": "0",
+          "target": "70%",
+          "actual": "16/13"
+        }
+      },
+      "exportUsesSameHelper": true
+    },
+    {
+      "employeeId": "bac-lieu-yen",
+      "ui": {
+        "main": 20,
+        "addon": 20,
+        "score": "2/4",
+        "status": "CHƯA ĐẠT",
+        "addonCell": {
+          "rate": "100%",
+          "status": "ĐẠT",
+          "missing": "0",
+          "target": "70%",
+          "actual": "20/20"
+        }
+      },
+      "exportUsesSameHelper": true
+    },
+    {
+      "employeeId": "bac-lieu-thanh-thu",
+      "ui": {
+        "main": 23,
+        "addon": 19,
+        "score": "1/4",
+        "status": "CHƯA ĐẠT",
+        "addonCell": {
+          "rate": "83%",
+          "status": "ĐẠT",
+          "missing": "0",
+          "target": "70%",
+          "actual": "19/23"
+        }
+      },
+      "exportUsesSameHelper": true
+    },
+    {
+      "employeeId": "bac-lieu-thao-cam",
+      "ui": {
+        "main": 23,
+        "addon": 23,
+        "score": "2/4",
+        "status": "CHƯA ĐẠT",
+        "addonCell": {
+          "rate": "100%",
+          "status": "ĐẠT",
+          "missing": "0",
+          "target": "70%",
+          "actual": "23/23"
+        }
+      },
+      "exportUsesSameHelper": true
+    },
+    {
+      "employeeId": "bac-lieu-thu-huong",
+      "ui": {
+        "main": 8,
+        "addon": 7,
+        "score": "2/4",
+        "status": "CHƯA ĐẠT",
+        "addonCell": {
+          "rate": "88%",
+          "status": "ĐẠT",
+          "missing": "0",
+          "target": "70%",
+          "actual": "7/8"
+        }
+      },
+      "exportUsesSameHelper": true
+    }
+  ],
+  "governance": {
+    "singleEngine": true,
+    "giaLaiExcluded": true,
+    "stopIfMismatch": false
+  }
+}

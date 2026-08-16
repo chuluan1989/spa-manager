@@ -1,0 +1,606 @@
+{
+  "phase": "B4-governance-fixture",
+  "passed": true,
+  "failed": 0,
+  "sotMismatchCount": 0,
+  "sotMismatches": [],
+  "singleEngine": true,
+  "wroteProduction": false,
+  "results": [
+    {
+      "id": "1",
+      "name": "Three-way SoT Employee=Admin for ALL employees",
+      "pass": true,
+      "detail": {
+        "fails": [],
+        "nEmployees": 3
+      }
+    },
+    {
+      "id": "4a",
+      "name": "CREATE → Employee=Admin=SoT",
+      "pass": true,
+      "detail": {
+        "fails": []
+      }
+    },
+    {
+      "id": "4b",
+      "name": "UPDATE fields → parity",
+      "pass": true,
+      "detail": {
+        "fails": []
+      }
+    },
+    {
+      "id": "4c",
+      "name": "DELETE → parity",
+      "pass": true,
+      "detail": {
+        "fails": []
+      }
+    },
+    {
+      "id": "5a",
+      "name": "FALSE → requested 0",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "5b",
+      "name": "TRUE → requested +1 + parity",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "5c",
+      "name": "TRUE→FALSE giảm đúng + parity",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "6a",
+      "name": "Policy Sep fixture không overlap",
+      "pass": true,
+      "detail": {
+        "ok": true
+      }
+    },
+    {
+      "id": "6b",
+      "name": "Aug invoice → Aug target 0.70",
+      "pass": true,
+      "detail": [
+        {
+          "servingBranchId": "soc-trang",
+          "policyId": "aug-soc-trang",
+          "source": "versioned",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": "2026-08-31",
+          "targets": {
+            "addon": 0.7,
+            "advanced": 0.1,
+            "combo": 0.3,
+            "requested": 0.2
+          },
+          "counts": {
+            "main": 1,
+            "addon": 0,
+            "advanced": 0,
+            "combo": 0,
+            "unmapped": 0,
+            "totalInvoices": 1,
+            "requestedInvoices": 0
+          },
+          "invoiceIds": [
+            "pol-aug"
+          ],
+          "kpis": {
+            "addon": {
+              "kind": "addon",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.7,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "advanced": {
+              "kind": "advanced",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.1,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "combo": {
+              "kind": "combo",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.3,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "requested": {
+              "kind": "requested",
+              "actual": 0,
+              "total": 1,
+              "rate": 0,
+              "target": 0.2,
+              "status": "NOT_MET",
+              "missing": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "6c",
+      "name": "Sep invoice → Sep target 0.80",
+      "pass": true,
+      "detail": [
+        {
+          "servingBranchId": "soc-trang",
+          "policyId": "kpi-pol-1786907007305-j3czvg",
+          "source": "versioned",
+          "effectiveFrom": "2026-09-01",
+          "effectiveTo": null,
+          "targets": {
+            "addon": 0.8,
+            "advanced": 0.15,
+            "combo": 0.35,
+            "requested": 0.25
+          },
+          "counts": {
+            "main": 1,
+            "addon": 0,
+            "advanced": 0,
+            "combo": 0,
+            "unmapped": 0,
+            "totalInvoices": 1,
+            "requestedInvoices": 0
+          },
+          "invoiceIds": [
+            "pol-sep"
+          ],
+          "kpis": {
+            "addon": {
+              "kind": "addon",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.8,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "advanced": {
+              "kind": "advanced",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.15,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "combo": {
+              "kind": "combo",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.35,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "requested": {
+              "kind": "requested",
+              "actual": 0,
+              "total": 1,
+              "rate": 0,
+              "target": 0.25,
+              "status": "NOT_MET",
+              "missing": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "6d",
+      "name": "Sep không đổi Aug KPI",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "7",
+      "name": "Cross-branch: attribution employeeId, policy serving branch",
+      "pass": true,
+      "detail": {
+        "home": "soc-trang",
+        "serving": [
+          "soc-trang",
+          "tram-spa"
+        ],
+        "policies": [
+          "soc-trang",
+          "tram-spa"
+        ]
+      }
+    },
+    {
+      "id": "8a",
+      "name": "Missing ceil boundary ADDON/ADV/COMBO",
+      "pass": true,
+      "detail": [
+        {
+          "k": "addon",
+          "got": 1,
+          "expect": 1,
+          "label": "69.99% vs 70%"
+        },
+        {
+          "k": "addon0",
+          "got": 0,
+          "expect": 0,
+          "label": "70% exact"
+        },
+        {
+          "k": "adv",
+          "got": 1,
+          "expect": 1,
+          "label": "9.9% vs 10%"
+        },
+        {
+          "k": "combo",
+          "got": 1,
+          "expect": 1,
+          "label": "29.99% vs 30%"
+        }
+      ]
+    },
+    {
+      "id": "8b",
+      "name": "Requested formula = brute-force (19.99%→need 2)",
+      "pass": true,
+      "detail": {
+        "reqFormula": 2,
+        "reqBrute": 2,
+        "note": "ceil((0.2*10000-1999)/0.8)=ceil(1.25)=2"
+      }
+    },
+    {
+      "id": "8c",
+      "name": "No FP off-by-one at exact boundary",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "9a",
+      "name": "MAIN=0 ADDON>0 → INSUFFICIENT (not MET)",
+      "pass": true,
+      "detail": {
+        "counts": {
+          "main": 0,
+          "addon": 2,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 1,
+          "requestedInvoices": 0
+        },
+        "kpis": {
+          "addon": {
+            "kind": "addon",
+            "actual": 2,
+            "main": 0,
+            "rate": null,
+            "targets": [
+              0.7
+            ],
+            "mixedTargets": false,
+            "status": "INSUFFICIENT_DATA",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation"
+          },
+          "advanced": {
+            "kind": "advanced",
+            "actual": 0,
+            "main": 0,
+            "rate": null,
+            "targets": [
+              0.1
+            ],
+            "mixedTargets": false,
+            "status": "INSUFFICIENT_DATA",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation"
+          },
+          "combo": {
+            "kind": "combo",
+            "actual": 0,
+            "main": 0,
+            "rate": null,
+            "targets": [
+              0.3
+            ],
+            "mixedTargets": false,
+            "status": "INSUFFICIENT_DATA",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation"
+          },
+          "requested": {
+            "kind": "requested",
+            "actual": 0,
+            "total": 1,
+            "rate": 0,
+            "targets": [
+              0.2
+            ],
+            "mixedTargets": false,
+            "informationalBlendedTarget": 0.2,
+            "status": "NOT_MET",
+            "missing": 1,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": ""
+          }
+        },
+        "aggregateAlgorithm": "per-segment-obligation"
+      }
+    },
+    {
+      "id": "9b",
+      "name": "MAIN=0 nhưng có HĐ → Requested vẫn tính",
+      "pass": true,
+      "detail": {
+        "kind": "requested",
+        "actual": 0,
+        "total": 1,
+        "rate": 0,
+        "targets": [
+          0.2
+        ],
+        "mixedTargets": false,
+        "informationalBlendedTarget": 0.2,
+        "status": "NOT_MET",
+        "missing": 1,
+        "aggregateAlgorithm": "per-segment-obligation",
+        "note": ""
+      }
+    },
+    {
+      "id": "9c",
+      "name": "0 invoice → Requested INSUFFICIENT",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "10a",
+      "name": "Engine excludes Gia Lai invoices",
+      "pass": true,
+      "detail": {
+        "excluded": 1
+      }
+    },
+    {
+      "id": "10b",
+      "name": "Admin dashboard no Gia Lai branch cards",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "10c",
+      "name": "Policy form only KPI_SCOPE (no Gia Lai options in code)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "10d",
+      "name": "Catalog audit excludes Gia Lai",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "10e",
+      "name": "UI/export không hardcode tính Gia Lai",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "11",
+      "name": "Export cells MATCH Admin UI cards",
+      "pass": true,
+      "detail": {
+        "cells": {
+          "addon": {
+            "rate": "0%",
+            "status": "CHƯA ĐẠT",
+            "missing": "2",
+            "target": "70%",
+            "actual": "0/2"
+          },
+          "advanced": {
+            "rate": "50%",
+            "status": "CHƯA ĐẠT",
+            "missing": "1",
+            "target": "10%",
+            "actual": "1/2"
+          },
+          "combo": {
+            "rate": "0%",
+            "status": "CHƯA ĐẠT",
+            "missing": "2",
+            "target": "30%",
+            "actual": "0/2"
+          },
+          "requested": {
+            "rate": "0%",
+            "status": "CHƯA ĐẠT",
+            "missing": "2",
+            "target": "20%",
+            "actual": "0/2"
+          }
+        },
+        "score": "0/4"
+      }
+    },
+    {
+      "id": "12a",
+      "name": "Employee canAccess employee-kpi only",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "12b",
+      "name": "Admin canAccess admin-kpi only (not employee page)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "12c",
+      "name": "Manager KHÔNG có Admin KPI",
+      "pass": true,
+      "detail": {
+        "order": [
+          "dashboard",
+          "reports",
+          "invoices",
+          "customers",
+          "employees",
+          "salary",
+          "expenses",
+          "admin-services",
+          "attendance",
+          "payroll1-admin",
+          "legacy-sync"
+        ]
+      }
+    },
+    {
+      "id": "12d",
+      "name": "Direct route gated by canAccessPage",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "12e",
+      "name": "Employee KPI khóa session employeeId (không query param)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "S1",
+      "name": "supportEmployee không cộng KPI",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "16",
+      "name": "Single engine: both UIs use employeeKpiEngine",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "16b",
+      "name": "Admin dashboard imports computeEmployeeKpi only (no second engine)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15a",
+      "name": "payrollEngine không import KPI module",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15b",
+      "name": "commission không import KPI module",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15c",
+      "name": "invoice commission SoT không bị KPI ghi đè",
+      "pass": true,
+      "detail": {
+        "hasCommission": true
+      }
+    },
+    {
+      "id": "15-Invoice.jsx",
+      "name": "Module file exists src/pages/Invoice.jsx",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15-Salary.jsx",
+      "name": "Module file exists src/pages/Salary.jsx",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15-Attendance.jsx",
+      "name": "Module file exists src/pages/Attendance.jsx",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15-Report.jsx",
+      "name": "Module file exists src/pages/Report.jsx",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15-AdminServices.jsx",
+      "name": "Module file exists src/pages/AdminServices.jsx",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15-Expenses.jsx",
+      "name": "Module file exists src/pages/Expenses.jsx",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15-EmployeeKpi.jsx",
+      "name": "Module file exists src/pages/EmployeeKpi.jsx",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "15-AdminKpi.jsx",
+      "name": "Module file exists src/pages/AdminKpi.jsx",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "14a",
+      "name": "Employee KPI mobile breakpoint ~760/390",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "14b",
+      "name": "Admin desktop-first (table wrap scroll)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "R1",
+      "name": "B1/B2/B3 evidence files present",
+      "pass": true,
+      "detail": {
+        "b1": true,
+        "b2": true,
+        "b3": true
+      }
+    },
+    {
+      "id": "C1",
+      "name": "Known tokens classify",
+      "pass": true,
+      "detail": {}
+    }
+  ]
+}

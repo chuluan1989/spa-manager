@@ -295,6 +295,16 @@ export function canAccessSalaryPage(role = getCurrentUserRole(), branchId = getC
   return canViewSalary(role, branchId)
 }
 
+/** B2: menu KPI chỉ cho nhân viên (Admin KPI = B3). */
+export function canAccessEmployeeKpiPage(role = getCurrentUserRole()) {
+  return role === ROLES.EMPLOYEE
+}
+
+/** B3: Admin KPI dashboard + cấu hình policy. */
+export function canAccessAdminKpiPage(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN
+}
+
 export function canManagePayroll(role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
   if (role === ROLES.EMPLOYEE) return false
   return checkPermission(PERMISSION_KEYS.MANAGE_PAYROLL, role, branchId)
@@ -469,6 +479,7 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
       if (item.id === 'expenses') return canViewExpense(role, branchId)
       if (item.id === 'customers') return canAccessCustomersPage(role, branchId)
       if (item.id === 'salary') return canAccessSalaryPage(role, branchId)
+      if (item.id === 'employee-kpi') return canAccessEmployeeKpiPage(role)
       return true
     })
     if (canViewExpense(role, branchId)) {

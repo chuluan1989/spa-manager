@@ -1,0 +1,26 @@
+{
+  "startedAt": "2026-08-16T18:47:58.000Z",
+  "finishedAt": "2026-08-16T18:48:20.000Z",
+  "ok": true,
+  "note": "Migration 0046 applied + seed 6 CN verified read-only. Verify script date-compare fixed after apply.",
+  "before": {
+    "invoices": 2035,
+    "kpi_tables_existed": false
+  },
+  "after": {
+    "invoices": 2035,
+    "payroll_adjustments": 142,
+    "policies": 6,
+    "logs": 6,
+    "giaLaiPolicies": 0,
+    "effectiveFrom": "2026-08-01",
+    "targets": { "addon": 0.7, "advanced": 0.1, "combo": 0.3, "requested": 0.2 },
+    "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026",
+    "branches": ["bac-lieu", "soc-trang", "song-khoe-spa", "tra-vinh", "tram-spa", "vinh-long"]
+  },
+  "safety": {
+    "invoicesUnchanged": true,
+    "payrollUnchanged": true,
+    "noInvoicePayrollCommissionMutation": true
+  }
+}

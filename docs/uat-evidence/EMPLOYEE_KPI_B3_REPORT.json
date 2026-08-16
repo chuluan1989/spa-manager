@@ -1,0 +1,53 @@
+{
+  "phase": "B3",
+  "status": "READY_FOR_REVIEW",
+  "committed": false,
+  "deployed": false,
+  "newMigration": false,
+  "note": "Dùng migration 0046 đã apply — không thêm migration mới",
+  "preview": {
+    "command": "npm run build && npx vite preview --host 127.0.0.1 --port 4173",
+    "url": "http://127.0.0.1:4173",
+    "login": "Admin → menu KPI"
+  },
+  "filesCreated": [
+    "src/pages/AdminKpi.jsx",
+    "src/pages/AdminKpi.css",
+    "src/utils/adminKpiDashboard.js",
+    "src/utils/adminKpiExport.js",
+    "scripts/verify-employee-kpi-b3-uat.mjs",
+    "docs/uat-evidence/EMPLOYEE_KPI_B3_UAT.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B3_EXPORT_SAMPLE.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B3_REPORT.json"
+  ],
+  "filesModified": [
+    "src/constants/navigation.js",
+    "src/constants/auth.js",
+    "src/App.jsx",
+    "src/repositories/kpiPolicyRepository.js",
+    "package.json",
+    "scripts/verify-employee-kpi-b2-uat.mjs"
+  ],
+  "uat": {
+    "b3": "25/25 PASS",
+    "b2Regression": "25/25 PASS",
+    "b1Regression": "33/33 PASS"
+  },
+  "policyUi": {
+    "inputPercent": "70/10/30/20",
+    "storageDecimal": "0.70/0.10/0.30/0.20",
+    "versioned": true,
+    "closesPreviousEffectiveTo": true,
+    "noOverlap": true
+  },
+  "audit": {
+    "table": "kpi_policy_change_logs",
+    "fields": ["branch", "old_policy", "new_policy", "effective dates", "actor", "reason", "timestamp"]
+  },
+  "crossBranchExample": "Ly Ly nhà Sóc Trăng — serving Sóc Trăng + Trạm Spa (see EMPLOYEE_KPI_B3_UAT.json / EXPORT_SAMPLE)",
+  "export": {
+    "csv": true,
+    "excel": true,
+    "pdf": false
+  }
+}

@@ -1,0 +1,1349 @@
+{
+  "passed": true,
+  "failed": 0,
+  "crossBranchExample": {
+    "employeeId": "emp-lyly",
+    "employeeName": "Ly Ly",
+    "homeBranchId": "soc-trang",
+    "homeBranchName": "Sóc Trăng Khoẻ Spa",
+    "servingBranchIds": [
+      "soc-trang",
+      "tram-spa"
+    ],
+    "servingBranchNames": [
+      "Sóc Trăng Khoẻ Spa",
+      "Trạm Spa"
+    ],
+    "counts": {
+      "main": 2,
+      "addon": 2,
+      "advanced": 0,
+      "combo": 1,
+      "unmapped": 0,
+      "totalInvoices": 2,
+      "requestedInvoices": 1
+    },
+    "cards": {
+      "addon": {
+        "key": "addon",
+        "title": "Dịch vụ phụ",
+        "numeratorLabel": "phụ",
+        "denominatorLabel": "chính",
+        "missingUnit": "lượt",
+        "formula": "ADDON / MAIN",
+        "status": "NOT_MET",
+        "statusLabel": "CHƯA ĐẠT",
+        "actual": 2,
+        "denominator": 2,
+        "rate": 1,
+        "rateLabel": "100%",
+        "target": 0.7,
+        "targetLabel": "70%",
+        "missing": 1,
+        "missingText": "Còn thiếu 1 lượt",
+        "progress": 1,
+        "mixedTargets": false
+      },
+      "advanced": {
+        "key": "advanced",
+        "title": "Chuyên sâu",
+        "numeratorLabel": "chuyên sâu",
+        "denominatorLabel": "chính",
+        "missingUnit": "lượt",
+        "formula": "ADVANCED / MAIN",
+        "status": "NOT_MET",
+        "statusLabel": "CHƯA ĐẠT",
+        "actual": 0,
+        "denominator": 2,
+        "rate": 0,
+        "rateLabel": "0%",
+        "target": 0.1,
+        "targetLabel": "10%",
+        "missing": 2,
+        "missingText": "Còn thiếu 2 lượt",
+        "progress": 0,
+        "mixedTargets": false
+      },
+      "combo": {
+        "key": "combo",
+        "title": "Combo",
+        "numeratorLabel": "combo",
+        "denominatorLabel": "chính",
+        "missingUnit": "lượt",
+        "formula": "COMBO / MAIN",
+        "status": "NOT_MET",
+        "statusLabel": "CHƯA ĐẠT",
+        "actual": 1,
+        "denominator": 2,
+        "rate": 0.5,
+        "rateLabel": "50%",
+        "target": 0.3,
+        "targetLabel": "30%",
+        "missing": 1,
+        "missingText": "Còn thiếu 1 lượt",
+        "progress": 1,
+        "mixedTargets": false
+      },
+      "requested": {
+        "key": "requested",
+        "title": "Khách yêu cầu",
+        "numeratorLabel": "khách yêu cầu",
+        "denominatorLabel": "hóa đơn",
+        "missingUnit": "khách yêu cầu",
+        "formula": "REQUESTED / TOTAL",
+        "status": "NOT_MET",
+        "statusLabel": "CHƯA ĐẠT",
+        "actual": 1,
+        "denominator": 2,
+        "rate": 0.5,
+        "rateLabel": "50%",
+        "target": 0.2,
+        "targetLabel": "20%",
+        "missing": 1,
+        "missingText": "Còn thiếu 1 khách yêu cầu",
+        "progress": 1,
+        "mixedTargets": false
+      }
+    },
+    "met": 0,
+    "total": 4,
+    "scoreLabel": "0/4",
+    "headline": "CHƯA ĐẠT KPI",
+    "rowStatus": "NOT_MET",
+    "rowStatusLabel": "CHƯA ĐẠT",
+    "model": {
+      "employeeId": "emp-lyly",
+      "fromDate": "2026-08-01",
+      "toDate": "2026-08-31",
+      "overall": {
+        "counts": {
+          "main": 2,
+          "addon": 2,
+          "advanced": 0,
+          "combo": 1,
+          "unmapped": 0,
+          "totalInvoices": 2,
+          "requestedInvoices": 1
+        },
+        "kpis": {
+          "addon": {
+            "kind": "addon",
+            "actual": 2,
+            "main": 2,
+            "rate": 1,
+            "targets": [
+              0.7
+            ],
+            "mixedTargets": false,
+            "informationalBlendedTarget": 0.7,
+            "status": "NOT_MET",
+            "missing": 1,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": ""
+          },
+          "advanced": {
+            "kind": "advanced",
+            "actual": 0,
+            "main": 2,
+            "rate": 0,
+            "targets": [
+              0.1
+            ],
+            "mixedTargets": false,
+            "informationalBlendedTarget": 0.1,
+            "status": "NOT_MET",
+            "missing": 2,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": ""
+          },
+          "combo": {
+            "kind": "combo",
+            "actual": 1,
+            "main": 2,
+            "rate": 0.5,
+            "targets": [
+              0.3
+            ],
+            "mixedTargets": false,
+            "informationalBlendedTarget": 0.3,
+            "status": "NOT_MET",
+            "missing": 1,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": ""
+          },
+          "requested": {
+            "kind": "requested",
+            "actual": 1,
+            "total": 2,
+            "rate": 0.5,
+            "targets": [
+              0.2
+            ],
+            "mixedTargets": false,
+            "informationalBlendedTarget": 0.2,
+            "status": "NOT_MET",
+            "missing": 1,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": ""
+          }
+        },
+        "aggregateAlgorithm": "per-segment-obligation"
+      },
+      "servingBranchSegments": [
+        {
+          "servingBranchId": "soc-trang",
+          "counts": {
+            "main": 1,
+            "addon": 2,
+            "advanced": 0,
+            "combo": 0,
+            "unmapped": 0,
+            "totalInvoices": 1,
+            "requestedInvoices": 0
+          },
+          "invoiceIds": [
+            "1"
+          ],
+          "mixedPolicyTargets": false,
+          "kpis": {
+            "addon": {
+              "kind": "addon",
+              "actual": 2,
+              "main": 1,
+              "rate": 2,
+              "target": 0.7,
+              "status": "MET",
+              "missing": 0
+            },
+            "advanced": {
+              "kind": "advanced",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.1,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "combo": {
+              "kind": "combo",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.3,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "requested": {
+              "kind": "requested",
+              "actual": 0,
+              "total": 1,
+              "rate": 0,
+              "target": 0.2,
+              "status": "NOT_MET",
+              "missing": 1
+            }
+          }
+        },
+        {
+          "servingBranchId": "tram-spa",
+          "counts": {
+            "main": 1,
+            "addon": 0,
+            "advanced": 0,
+            "combo": 1,
+            "unmapped": 0,
+            "totalInvoices": 1,
+            "requestedInvoices": 1
+          },
+          "invoiceIds": [
+            "2"
+          ],
+          "mixedPolicyTargets": false,
+          "kpis": {
+            "addon": {
+              "kind": "addon",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.7,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "advanced": {
+              "kind": "advanced",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.1,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "combo": {
+              "kind": "combo",
+              "actual": 1,
+              "main": 1,
+              "rate": 1,
+              "target": 0.3,
+              "status": "MET",
+              "missing": 0
+            },
+            "requested": {
+              "kind": "requested",
+              "actual": 1,
+              "total": 1,
+              "rate": 1,
+              "target": 0.2,
+              "status": "MET",
+              "missing": 0
+            }
+          }
+        }
+      ],
+      "policySegments": [
+        {
+          "servingBranchId": "soc-trang",
+          "policyId": "aug-soc-trang",
+          "source": "versioned",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "targets": {
+            "addon": 0.7,
+            "advanced": 0.1,
+            "combo": 0.3,
+            "requested": 0.2
+          },
+          "counts": {
+            "main": 1,
+            "addon": 2,
+            "advanced": 0,
+            "combo": 0,
+            "unmapped": 0,
+            "totalInvoices": 1,
+            "requestedInvoices": 0
+          },
+          "invoiceIds": [
+            "1"
+          ],
+          "kpis": {
+            "addon": {
+              "kind": "addon",
+              "actual": 2,
+              "main": 1,
+              "rate": 2,
+              "target": 0.7,
+              "status": "MET",
+              "missing": 0
+            },
+            "advanced": {
+              "kind": "advanced",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.1,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "combo": {
+              "kind": "combo",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.3,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "requested": {
+              "kind": "requested",
+              "actual": 0,
+              "total": 1,
+              "rate": 0,
+              "target": 0.2,
+              "status": "NOT_MET",
+              "missing": 1
+            }
+          }
+        },
+        {
+          "servingBranchId": "tram-spa",
+          "policyId": "aug-tram-spa",
+          "source": "versioned",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "targets": {
+            "addon": 0.7,
+            "advanced": 0.1,
+            "combo": 0.3,
+            "requested": 0.2
+          },
+          "counts": {
+            "main": 1,
+            "addon": 0,
+            "advanced": 0,
+            "combo": 1,
+            "unmapped": 0,
+            "totalInvoices": 1,
+            "requestedInvoices": 1
+          },
+          "invoiceIds": [
+            "2"
+          ],
+          "kpis": {
+            "addon": {
+              "kind": "addon",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.7,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "advanced": {
+              "kind": "advanced",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.1,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "combo": {
+              "kind": "combo",
+              "actual": 1,
+              "main": 1,
+              "rate": 1,
+              "target": 0.3,
+              "status": "MET",
+              "missing": 0
+            },
+            "requested": {
+              "kind": "requested",
+              "actual": 1,
+              "total": 1,
+              "rate": 1,
+              "target": 0.2,
+              "status": "MET",
+              "missing": 0
+            }
+          }
+        }
+      ],
+      "unmappedLines": [],
+      "includedInvoices": [
+        {
+          "invoiceId": "1",
+          "employeeId": "emp-lyly",
+          "branchId": "soc-trang",
+          "date": "2026-08-10",
+          "customerRequested": false,
+          "services": [
+            {
+              "serviceId": "body-60",
+              "serviceName": "body-60"
+            },
+            {
+              "serviceId": "goi-sach",
+              "serviceName": "goi-sach"
+            },
+            {
+              "serviceId": "phong-don",
+              "serviceName": "phong-don"
+            }
+          ],
+          "classified": [
+            {
+              "group": "MAIN",
+              "token": "body-60",
+              "source": "serviceId"
+            },
+            {
+              "group": "ADDON",
+              "token": "goi-sach",
+              "source": "serviceId"
+            },
+            {
+              "group": "ADDON",
+              "token": "phong-don",
+              "source": "serviceId"
+            }
+          ]
+        },
+        {
+          "invoiceId": "2",
+          "employeeId": "emp-lyly",
+          "branchId": "tram-spa",
+          "date": "2026-08-10",
+          "customerRequested": true,
+          "services": [
+            {
+              "serviceId": "body-60",
+              "serviceName": "body-60"
+            },
+            {
+              "serviceId": "combo-1",
+              "serviceName": "combo-1"
+            }
+          ],
+          "classified": [
+            {
+              "group": "MAIN",
+              "token": "body-60",
+              "source": "serviceId"
+            },
+            {
+              "group": "COMBO",
+              "token": "combo-1",
+              "source": "serviceId"
+            }
+          ]
+        }
+      ],
+      "excludedGiaLaiInvoices": 0,
+      "excludedOutOfScopeInvoices": 0,
+      "skippedOtherEmployee": 0
+    }
+  },
+  "results": [
+    {
+      "id": 1,
+      "name": "Admin thấy menu KPI",
+      "pass": true,
+      "detail": {
+        "ids": [
+          "dashboard",
+          "reports",
+          "invoices",
+          "admin-kpi",
+          "customers",
+          "admin-branches",
+          "admin-employees",
+          "salary",
+          "expenses",
+          "admin-services",
+          "attendance",
+          "payroll1-admin",
+          "settings"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "name": "Employee menu KPI không lỗi / vẫn có employee-kpi",
+      "pass": true,
+      "detail": {
+        "employeeOrder": [
+          "dashboard",
+          "reports",
+          "invoices",
+          "employee-kpi",
+          "customers",
+          "attendance",
+          "salary",
+          "profile",
+          "legacy-sync"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "name": "6 CN đúng scope",
+      "pass": true,
+      "detail": {
+        "branches": [
+          "tram-spa",
+          "soc-trang",
+          "song-khoe-spa",
+          "bac-lieu",
+          "tra-vinh",
+          "vinh-long"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "name": "Gia Lai không hiện",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 5,
+      "name": "Tổng nhân viên đúng",
+      "pass": true,
+      "detail": {
+        "employeeCount": 2,
+        "employeesMetAll": 0,
+        "employeesNotMet": 2,
+        "employeesInsufficient": 0,
+        "counts": {
+          "main": 3,
+          "addon": 2,
+          "advanced": 0,
+          "combo": 1,
+          "totalInvoices": 3,
+          "requestedInvoices": 1
+        },
+        "rates": {
+          "addon": 0.6666666666666666,
+          "advanced": 0,
+          "combo": 0.3333333333333333,
+          "requested": 0.3333333333333333
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "4 KPI khớp engine B1",
+      "pass": true,
+      "detail": {
+        "ly": {
+          "main": 2,
+          "addon": 2,
+          "advanced": 0,
+          "combo": 1,
+          "unmapped": 0,
+          "totalInvoices": 2,
+          "requestedInvoices": 1
+        },
+        "engine": {
+          "main": 2,
+          "addon": 2,
+          "advanced": 0,
+          "combo": 1,
+          "unmapped": 0,
+          "totalInvoices": 2,
+          "requestedInvoices": 1
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "Filter tháng đúng (bounds)",
+      "pass": true,
+      "detail": {
+        "fromDate": "2026-08-01",
+        "toDate": "2026-08-31"
+      }
+    },
+    {
+      "id": 8,
+      "name": "Filter CN đúng",
+      "pass": true,
+      "detail": {
+        "n": 1
+      }
+    },
+    {
+      "id": 9,
+      "name": "Filter NV đúng",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 10,
+      "name": "Filter status đúng",
+      "pass": true,
+      "detail": {
+        "insuff": 0,
+        "notMet": 2
+      }
+    },
+    {
+      "id": 11,
+      "name": "Drill-down data đủ",
+      "pass": true,
+      "detail": {
+        "serving": [
+          "soc-trang",
+          "tram-spa"
+        ],
+        "invoices": 2
+      }
+    },
+    {
+      "id": 12,
+      "name": "Cross-branch đúng",
+      "pass": true,
+      "detail": {
+        "employeeId": "emp-lyly",
+        "employeeName": "Ly Ly",
+        "homeBranchId": "soc-trang",
+        "homeBranchName": "Sóc Trăng Khoẻ Spa",
+        "servingBranchIds": [
+          "soc-trang",
+          "tram-spa"
+        ],
+        "servingBranchNames": [
+          "Sóc Trăng Khoẻ Spa",
+          "Trạm Spa"
+        ],
+        "counts": {
+          "main": 2,
+          "addon": 2,
+          "advanced": 0,
+          "combo": 1,
+          "unmapped": 0,
+          "totalInvoices": 2,
+          "requestedInvoices": 1
+        },
+        "cards": {
+          "addon": {
+            "key": "addon",
+            "title": "Dịch vụ phụ",
+            "numeratorLabel": "phụ",
+            "denominatorLabel": "chính",
+            "missingUnit": "lượt",
+            "formula": "ADDON / MAIN",
+            "status": "NOT_MET",
+            "statusLabel": "CHƯA ĐẠT",
+            "actual": 2,
+            "denominator": 2,
+            "rate": 1,
+            "rateLabel": "100%",
+            "target": 0.7,
+            "targetLabel": "70%",
+            "missing": 1,
+            "missingText": "Còn thiếu 1 lượt",
+            "progress": 1,
+            "mixedTargets": false
+          },
+          "advanced": {
+            "key": "advanced",
+            "title": "Chuyên sâu",
+            "numeratorLabel": "chuyên sâu",
+            "denominatorLabel": "chính",
+            "missingUnit": "lượt",
+            "formula": "ADVANCED / MAIN",
+            "status": "NOT_MET",
+            "statusLabel": "CHƯA ĐẠT",
+            "actual": 0,
+            "denominator": 2,
+            "rate": 0,
+            "rateLabel": "0%",
+            "target": 0.1,
+            "targetLabel": "10%",
+            "missing": 2,
+            "missingText": "Còn thiếu 2 lượt",
+            "progress": 0,
+            "mixedTargets": false
+          },
+          "combo": {
+            "key": "combo",
+            "title": "Combo",
+            "numeratorLabel": "combo",
+            "denominatorLabel": "chính",
+            "missingUnit": "lượt",
+            "formula": "COMBO / MAIN",
+            "status": "NOT_MET",
+            "statusLabel": "CHƯA ĐẠT",
+            "actual": 1,
+            "denominator": 2,
+            "rate": 0.5,
+            "rateLabel": "50%",
+            "target": 0.3,
+            "targetLabel": "30%",
+            "missing": 1,
+            "missingText": "Còn thiếu 1 lượt",
+            "progress": 1,
+            "mixedTargets": false
+          },
+          "requested": {
+            "key": "requested",
+            "title": "Khách yêu cầu",
+            "numeratorLabel": "khách yêu cầu",
+            "denominatorLabel": "hóa đơn",
+            "missingUnit": "khách yêu cầu",
+            "formula": "REQUESTED / TOTAL",
+            "status": "NOT_MET",
+            "statusLabel": "CHƯA ĐẠT",
+            "actual": 1,
+            "denominator": 2,
+            "rate": 0.5,
+            "rateLabel": "50%",
+            "target": 0.2,
+            "targetLabel": "20%",
+            "missing": 1,
+            "missingText": "Còn thiếu 1 khách yêu cầu",
+            "progress": 1,
+            "mixedTargets": false
+          }
+        },
+        "met": 0,
+        "total": 4,
+        "scoreLabel": "0/4",
+        "headline": "CHƯA ĐẠT KPI",
+        "rowStatus": "NOT_MET",
+        "rowStatusLabel": "CHƯA ĐẠT",
+        "model": {
+          "employeeId": "emp-lyly",
+          "fromDate": "2026-08-01",
+          "toDate": "2026-08-31",
+          "overall": {
+            "counts": {
+              "main": 2,
+              "addon": 2,
+              "advanced": 0,
+              "combo": 1,
+              "unmapped": 0,
+              "totalInvoices": 2,
+              "requestedInvoices": 1
+            },
+            "kpis": {
+              "addon": {
+                "kind": "addon",
+                "actual": 2,
+                "main": 2,
+                "rate": 1,
+                "targets": [
+                  0.7
+                ],
+                "mixedTargets": false,
+                "informationalBlendedTarget": 0.7,
+                "status": "NOT_MET",
+                "missing": 1,
+                "aggregateAlgorithm": "per-segment-obligation",
+                "note": ""
+              },
+              "advanced": {
+                "kind": "advanced",
+                "actual": 0,
+                "main": 2,
+                "rate": 0,
+                "targets": [
+                  0.1
+                ],
+                "mixedTargets": false,
+                "informationalBlendedTarget": 0.1,
+                "status": "NOT_MET",
+                "missing": 2,
+                "aggregateAlgorithm": "per-segment-obligation",
+                "note": ""
+              },
+              "combo": {
+                "kind": "combo",
+                "actual": 1,
+                "main": 2,
+                "rate": 0.5,
+                "targets": [
+                  0.3
+                ],
+                "mixedTargets": false,
+                "informationalBlendedTarget": 0.3,
+                "status": "NOT_MET",
+                "missing": 1,
+                "aggregateAlgorithm": "per-segment-obligation",
+                "note": ""
+              },
+              "requested": {
+                "kind": "requested",
+                "actual": 1,
+                "total": 2,
+                "rate": 0.5,
+                "targets": [
+                  0.2
+                ],
+                "mixedTargets": false,
+                "informationalBlendedTarget": 0.2,
+                "status": "NOT_MET",
+                "missing": 1,
+                "aggregateAlgorithm": "per-segment-obligation",
+                "note": ""
+              }
+            },
+            "aggregateAlgorithm": "per-segment-obligation"
+          },
+          "servingBranchSegments": [
+            {
+              "servingBranchId": "soc-trang",
+              "counts": {
+                "main": 1,
+                "addon": 2,
+                "advanced": 0,
+                "combo": 0,
+                "unmapped": 0,
+                "totalInvoices": 1,
+                "requestedInvoices": 0
+              },
+              "invoiceIds": [
+                "1"
+              ],
+              "mixedPolicyTargets": false,
+              "kpis": {
+                "addon": {
+                  "kind": "addon",
+                  "actual": 2,
+                  "main": 1,
+                  "rate": 2,
+                  "target": 0.7,
+                  "status": "MET",
+                  "missing": 0
+                },
+                "advanced": {
+                  "kind": "advanced",
+                  "actual": 0,
+                  "main": 1,
+                  "rate": 0,
+                  "target": 0.1,
+                  "status": "NOT_MET",
+                  "missing": 1
+                },
+                "combo": {
+                  "kind": "combo",
+                  "actual": 0,
+                  "main": 1,
+                  "rate": 0,
+                  "target": 0.3,
+                  "status": "NOT_MET",
+                  "missing": 1
+                },
+                "requested": {
+                  "kind": "requested",
+                  "actual": 0,
+                  "total": 1,
+                  "rate": 0,
+                  "target": 0.2,
+                  "status": "NOT_MET",
+                  "missing": 1
+                }
+              }
+            },
+            {
+              "servingBranchId": "tram-spa",
+              "counts": {
+                "main": 1,
+                "addon": 0,
+                "advanced": 0,
+                "combo": 1,
+                "unmapped": 0,
+                "totalInvoices": 1,
+                "requestedInvoices": 1
+              },
+              "invoiceIds": [
+                "2"
+              ],
+              "mixedPolicyTargets": false,
+              "kpis": {
+                "addon": {
+                  "kind": "addon",
+                  "actual": 0,
+                  "main": 1,
+                  "rate": 0,
+                  "target": 0.7,
+                  "status": "NOT_MET",
+                  "missing": 1
+                },
+                "advanced": {
+                  "kind": "advanced",
+                  "actual": 0,
+                  "main": 1,
+                  "rate": 0,
+                  "target": 0.1,
+                  "status": "NOT_MET",
+                  "missing": 1
+                },
+                "combo": {
+                  "kind": "combo",
+                  "actual": 1,
+                  "main": 1,
+                  "rate": 1,
+                  "target": 0.3,
+                  "status": "MET",
+                  "missing": 0
+                },
+                "requested": {
+                  "kind": "requested",
+                  "actual": 1,
+                  "total": 1,
+                  "rate": 1,
+                  "target": 0.2,
+                  "status": "MET",
+                  "missing": 0
+                }
+              }
+            }
+          ],
+          "policySegments": [
+            {
+              "servingBranchId": "soc-trang",
+              "policyId": "aug-soc-trang",
+              "source": "versioned",
+              "effectiveFrom": "2026-08-01",
+              "effectiveTo": null,
+              "targets": {
+                "addon": 0.7,
+                "advanced": 0.1,
+                "combo": 0.3,
+                "requested": 0.2
+              },
+              "counts": {
+                "main": 1,
+                "addon": 2,
+                "advanced": 0,
+                "combo": 0,
+                "unmapped": 0,
+                "totalInvoices": 1,
+                "requestedInvoices": 0
+              },
+              "invoiceIds": [
+                "1"
+              ],
+              "kpis": {
+                "addon": {
+                  "kind": "addon",
+                  "actual": 2,
+                  "main": 1,
+                  "rate": 2,
+                  "target": 0.7,
+                  "status": "MET",
+                  "missing": 0
+                },
+                "advanced": {
+                  "kind": "advanced",
+                  "actual": 0,
+                  "main": 1,
+                  "rate": 0,
+                  "target": 0.1,
+                  "status": "NOT_MET",
+                  "missing": 1
+                },
+                "combo": {
+                  "kind": "combo",
+                  "actual": 0,
+                  "main": 1,
+                  "rate": 0,
+                  "target": 0.3,
+                  "status": "NOT_MET",
+                  "missing": 1
+                },
+                "requested": {
+                  "kind": "requested",
+                  "actual": 0,
+                  "total": 1,
+                  "rate": 0,
+                  "target": 0.2,
+                  "status": "NOT_MET",
+                  "missing": 1
+                }
+              }
+            },
+            {
+              "servingBranchId": "tram-spa",
+              "policyId": "aug-tram-spa",
+              "source": "versioned",
+              "effectiveFrom": "2026-08-01",
+              "effectiveTo": null,
+              "targets": {
+                "addon": 0.7,
+                "advanced": 0.1,
+                "combo": 0.3,
+                "requested": 0.2
+              },
+              "counts": {
+                "main": 1,
+                "addon": 0,
+                "advanced": 0,
+                "combo": 1,
+                "unmapped": 0,
+                "totalInvoices": 1,
+                "requestedInvoices": 1
+              },
+              "invoiceIds": [
+                "2"
+              ],
+              "kpis": {
+                "addon": {
+                  "kind": "addon",
+                  "actual": 0,
+                  "main": 1,
+                  "rate": 0,
+                  "target": 0.7,
+                  "status": "NOT_MET",
+                  "missing": 1
+                },
+                "advanced": {
+                  "kind": "advanced",
+                  "actual": 0,
+                  "main": 1,
+                  "rate": 0,
+                  "target": 0.1,
+                  "status": "NOT_MET",
+                  "missing": 1
+                },
+                "combo": {
+                  "kind": "combo",
+                  "actual": 1,
+                  "main": 1,
+                  "rate": 1,
+                  "target": 0.3,
+                  "status": "MET",
+                  "missing": 0
+                },
+                "requested": {
+                  "kind": "requested",
+                  "actual": 1,
+                  "total": 1,
+                  "rate": 1,
+                  "target": 0.2,
+                  "status": "MET",
+                  "missing": 0
+                }
+              }
+            }
+          ],
+          "unmappedLines": [],
+          "includedInvoices": [
+            {
+              "invoiceId": "1",
+              "employeeId": "emp-lyly",
+              "branchId": "soc-trang",
+              "date": "2026-08-10",
+              "customerRequested": false,
+              "services": [
+                {
+                  "serviceId": "body-60",
+                  "serviceName": "body-60"
+                },
+                {
+                  "serviceId": "goi-sach",
+                  "serviceName": "goi-sach"
+                },
+                {
+                  "serviceId": "phong-don",
+                  "serviceName": "phong-don"
+                }
+              ],
+              "classified": [
+                {
+                  "group": "MAIN",
+                  "token": "body-60",
+                  "source": "serviceId"
+                },
+                {
+                  "group": "ADDON",
+                  "token": "goi-sach",
+                  "source": "serviceId"
+                },
+                {
+                  "group": "ADDON",
+                  "token": "phong-don",
+                  "source": "serviceId"
+                }
+              ]
+            },
+            {
+              "invoiceId": "2",
+              "employeeId": "emp-lyly",
+              "branchId": "tram-spa",
+              "date": "2026-08-10",
+              "customerRequested": true,
+              "services": [
+                {
+                  "serviceId": "body-60",
+                  "serviceName": "body-60"
+                },
+                {
+                  "serviceId": "combo-1",
+                  "serviceName": "combo-1"
+                }
+              ],
+              "classified": [
+                {
+                  "group": "MAIN",
+                  "token": "body-60",
+                  "source": "serviceId"
+                },
+                {
+                  "group": "COMBO",
+                  "token": "combo-1",
+                  "source": "serviceId"
+                }
+              ]
+            }
+          ],
+          "excludedGiaLaiInvoices": 0,
+          "excludedOutOfScopeInvoices": 0,
+          "skippedOtherEmployee": 0
+        }
+      }
+    },
+    {
+      "id": 13,
+      "name": "Policy Aug vẫn 70/10/30/20",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 14,
+      "name": "Tạo policy Sep không đổi Aug",
+      "pass": true,
+      "detail": {
+        "aug": {
+          "id": "aug-soc-trang",
+          "branchId": "soc-trang",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": "2026-08-31",
+          "addonTarget": 0.7,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "superseded"
+        },
+        "sep": {
+          "id": "kpi-pol-1786907006632-xci6rk",
+          "branchId": "soc-trang",
+          "effectiveFrom": "2026-09-01",
+          "effectiveTo": null,
+          "addonTarget": 0.6,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active",
+          "createdBy": "admin",
+          "createdAt": "2026-08-16T19:03:26.632Z",
+          "updatedBy": "admin",
+          "updatedAt": "2026-08-16T19:03:26.632Z",
+          "changeReason": "UAT Sep policy"
+        },
+        "logReason": "UAT Sep policy"
+      }
+    },
+    {
+      "id": 15,
+      "name": "Không overlap policy",
+      "pass": true,
+      "detail": {
+        "ok": true
+      }
+    },
+    {
+      "id": 16,
+      "name": "Audit log đúng",
+      "pass": true,
+      "detail": {
+        "id": "kpi-log-1786907006632-pf1rw0",
+        "branchId": "soc-trang",
+        "oldPolicy": {
+          "id": "aug-soc-trang",
+          "branchId": "soc-trang",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": null,
+          "addonTarget": 0.7,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active"
+        },
+        "newPolicy": {
+          "id": "kpi-pol-1786907006632-xci6rk",
+          "branchId": "soc-trang",
+          "effectiveFrom": "2026-09-01",
+          "effectiveTo": null,
+          "addonTarget": 0.6,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active",
+          "createdBy": "admin",
+          "createdAt": "2026-08-16T19:03:26.632Z",
+          "updatedBy": "admin",
+          "updatedAt": "2026-08-16T19:03:26.632Z",
+          "changeReason": "UAT Sep policy"
+        },
+        "effectiveFrom": "2026-09-01",
+        "effectiveTo": null,
+        "actorId": "admin",
+        "reason": "UAT Sep policy",
+        "timestamp": "2026-08-16T19:03:26.632Z"
+      }
+    },
+    {
+      "id": 17,
+      "name": "Realtime invoice update đúng (recompute)",
+      "pass": true,
+      "detail": {
+        "d1": {
+          "main": 1,
+          "addon": 0,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 1,
+          "requestedInvoices": 0
+        },
+        "d2": {
+          "main": 1,
+          "addon": 1,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 1,
+          "requestedInvoices": 1
+        },
+        "d3n": 0
+      }
+    },
+    {
+      "id": 18,
+      "name": "customerRequested update đúng",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 19,
+      "name": "Export CSV đúng (module + headers)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 20,
+      "name": "Export Excel đúng (module)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": 21,
+      "name": "Payroll/commission không đổi",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "P1",
+      "name": "UI % → storage decimal",
+      "pass": true,
+      "detail": {
+        "p": 0.7,
+        "d": "70"
+      }
+    },
+    {
+      "id": "P2",
+      "name": "Admin nav order có KPI sau invoices",
+      "pass": true,
+      "detail": [
+        "dashboard",
+        "reports",
+        "invoices",
+        "admin-kpi",
+        "customers",
+        "admin-branches",
+        "admin-employees",
+        "salary",
+        "expenses",
+        "admin-services",
+        "attendance",
+        "payroll1-admin",
+        "settings"
+      ]
+    },
+    {
+      "id": "P3",
+      "name": "NAV_ITEMS có admin-kpi",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "P4",
+      "name": "closePreviousPolicy helper",
+      "pass": true,
+      "detail": {}
+    }
+  ]
+}

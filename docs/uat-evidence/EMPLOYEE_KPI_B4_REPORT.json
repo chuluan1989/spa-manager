@@ -1,0 +1,125 @@
+{
+  "phase": "B4",
+  "status": "READY_FOR_PRODUCTION_APPROVAL",
+  "committed": false,
+  "deployed": false,
+  "wroteProductionDuringB4": false,
+  "sotMismatch": false,
+  "verdict": "ALL PASS — sẵn sàng Production sau khi chủ dự án duyệt commit/deploy",
+  "regressions": {
+    "B1": "33/33 PASS",
+    "B2": "25/25 PASS",
+    "B3": "25/25 PASS",
+    "B4_fixture": "47/47 PASS"
+  },
+  "productionReadOnly": {
+    "range": "2026-08-01 → 2026-08-31",
+    "scopeInvoices": 686,
+    "giaLaiInvoices": 0,
+    "employees": 32,
+    "MAIN": 439,
+    "ADDON": 370,
+    "ADVANCED": 24,
+    "COMBO": 159,
+    "REQUESTED": 0,
+    "metByKpi": { "addon": 20, "advanced": 5, "combo": 15, "requested": 0 },
+    "employeesMet4of4": 0,
+    "employeesNotMet": 32,
+    "employeesInsufficient": 0,
+    "catalogUnmapped": 0,
+    "invoiceUnmapped": 0,
+    "evidence": "docs/uat-evidence/EMPLOYEE_KPI_B4_PROD_READONLY.json"
+  },
+  "parity": {
+    "employeesCompared": 32,
+    "mismatches": 0,
+    "note": "Employee computeEmployeeKpi === Admin buildAdminKpiDashboard row.model for ALL employees"
+  },
+  "crossBranch": {
+    "employeesWithCrossOrOffHome": 12,
+    "example": "Bảo Trân home soc-trang serving [soc-trang, tram-spa] — policy per serving branch"
+  },
+  "policyAudit": {
+    "policies": 6,
+    "giaLai": 0,
+    "overlap": false,
+    "targets": "0.70 / 0.10 / 0.30 / 0.20",
+    "effectiveFrom": "2026-08-01",
+    "auditLogsPresent": true,
+    "sepFixture": "local only — NOT written to Production"
+  },
+  "requestedPipeline": {
+    "productionRequestedRate": "0%",
+    "fixtureToggle": "PASS true/false/edit",
+    "noProdTestWrites": true
+  },
+  "exportParity": "formatAdminKpiCell shared — CSV/Excel match Admin UI cards",
+  "auth": {
+    "employee": "employee-kpi only; session employeeId locked",
+    "admin": "admin-kpi only",
+    "manager": "no KPI admin access"
+  },
+  "performance": {
+    "fetchMs": 473,
+    "adminDashboardMs": 13,
+    "fullParityMs": 6,
+    "architecture": "single invoice fetch → group once → computeEmployeeKpi; no N+1"
+  },
+  "responsive": {
+    "mobile390": "PASS — 4 cards readable",
+    "screenshot": "docs/uat-evidence/EMPLOYEE_KPI_B4_MOBILE_390.png"
+  },
+  "otherModules": {
+    "payrollEngine": "no KPI import",
+    "commission": "no KPI import",
+    "invoiceCommissionSoT": "untouched",
+    "pagesPresent": ["Invoice", "Salary", "Attendance", "Report", "AdminServices", "Expenses", "EmployeeKpi", "AdminKpi"]
+  },
+  "architecture": "Invoice SoT → classifier → policy resolver (branch+date) → employeeKpiEngine → Employee UI | Admin UI → Export",
+  "filesToCommitExact": [
+    "src/constants/kpiPolicy.js",
+    "src/utils/kpiServiceClassifier.js",
+    "src/utils/employeeKpiEngine.js",
+    "src/utils/employeeKpiView.js",
+    "src/utils/kpiPolicyStorage.js",
+    "src/utils/adminKpiDashboard.js",
+    "src/utils/adminKpiExport.js",
+    "src/repositories/kpiPolicyRepository.js",
+    "src/pages/EmployeeKpi.jsx",
+    "src/pages/EmployeeKpi.css",
+    "src/pages/AdminKpi.jsx",
+    "src/pages/AdminKpi.css",
+    "src/pages/Invoice.jsx",
+    "src/pages/Invoice.css",
+    "src/constants/navigation.js",
+    "src/constants/auth.js",
+    "src/App.jsx",
+    "src/components/layout/NavIcon.jsx",
+    "supabase/migrations/0046_kpi_branch_policies.sql",
+    "package.json",
+    "scripts/apply-0046-kpi-policies-prod.mjs",
+    "scripts/verify-employee-kpi-b1-uat.mjs",
+    "scripts/verify-employee-kpi-b2-uat.mjs",
+    "scripts/verify-employee-kpi-b3-uat.mjs",
+    "scripts/verify-employee-kpi-b4-governance.mjs",
+    "scripts/audit-employee-kpi-production-readonly.mjs",
+    "scripts/audit-employee-kpi-b4-production-readonly.mjs",
+    "scripts/uat-employee-kpi-b2-browser.mjs",
+    "docs/uat-evidence/EMPLOYEE_KPI_B1_UAT.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B2_UAT.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B2_BROWSER_UAT.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B3_UAT.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B3_EXPORT_SAMPLE.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B3_REPORT.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B4_GOVERNANCE_UAT.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B4_PROD_READONLY.json",
+    "docs/uat-evidence/EMPLOYEE_KPI_B4_MOBILE_390.png",
+    "docs/uat-evidence/EMPLOYEE_KPI_B4_REPORT.json",
+    "docs/uat-evidence/kpi-policy-migration-prod/LATEST_REPORT.json"
+  ],
+  "doNotCommit": [
+    "Unrelated WIP outside KPI module",
+    "Production credentials",
+    "Sep policy fixture (never applied to Production)"
+  ]
+}

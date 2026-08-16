@@ -24,6 +24,8 @@ import {
   canAccessCustomersPage,
   canAccessAttendancePage,
   canAccessSalaryPage,
+  canAccessEmployeeKpiPage,
+  canAccessAdminKpiPage,
   canAccessInvoicesPage,
   canAccessLegacySyncPage,
   canAccessMyProfilePage,
@@ -51,6 +53,8 @@ import Revenue from './pages/Revenue'
 import Customers from './pages/Customers'
 import Attendance from './pages/Attendance'
 import Salary from './pages/Salary'
+import EmployeeKpi from './pages/EmployeeKpi'
+import AdminKpi from './pages/AdminKpi'
 import LegacySync from './pages/LegacySync'
 import Settings from './pages/Settings'
 import AdminBranches from './pages/AdminBranches'
@@ -85,6 +89,8 @@ const PAGES = {
   customers: Customers,
   attendance: Attendance,
   salary: Salary,
+  'employee-kpi': EmployeeKpi,
+  'admin-kpi': AdminKpi,
   'admin-employees': AdminEmployees,
   'admin-branches': AdminBranches,
   expenses: Expenses,
@@ -112,6 +118,8 @@ function canAccessPage(pageId) {
   if (pageId === 'customers') return canAccessCustomersPage()
   if (pageId === 'attendance') return canAccessAttendancePage()
   if (pageId === 'salary') return canAccessSalaryPage()
+  if (pageId === 'employee-kpi') return canAccessEmployeeKpiPage()
+  if (pageId === 'admin-kpi') return canAccessAdminKpiPage()
   if (pageId === 'expenses') return canAccessExpensesPage()
   if (pageId === 'reports') return canViewReport()
   if (pageId === 'legacy-sync') return canAccessLegacySyncPage()

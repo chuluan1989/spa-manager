@@ -1,0 +1,1385 @@
+{
+  "passed": true,
+  "failed": 0,
+  "results": [
+    {
+      "id": 1,
+      "name": "Body → MAIN",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "MAIN",
+          "token": "body-60",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "MAIN",
+          "token": "body-60",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "CVG → MAIN",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "MAIN",
+          "token": "co-vai-gay",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "MAIN",
+          "token": "co-vai-gay",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "Foot → MAIN",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "MAIN",
+          "token": "foot",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "MAIN",
+          "token": "foot",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "Combo → COMBO",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "COMBO",
+          "token": "combo-1",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "COMBO",
+          "token": "combo-1",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "Chuyên sâu → ADVANCED",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "ADVANCED",
+          "token": "chuyen-sau",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "ADVANCED",
+          "token": "chuyen-sau",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "Gội → ADDON",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "ADDON",
+          "token": "goi-sach",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "ADDON",
+          "token": "goi-sach",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "Giác hơi → ADDON",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "ADDON",
+          "token": "giac-hoi",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "ADDON",
+          "token": "giac-hoi",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "name": "Đắp thuốc → ADDON",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "ADDON",
+          "token": "dap-thuoc",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "ADDON",
+          "token": "dap-thuoc",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "name": "Xông hơi → ADDON",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "ADDON",
+          "token": "xong-hoi",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "ADDON",
+          "token": "xong-hoi",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "name": "Cạo mặt → ADDON",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "ADDON",
+          "token": "cao-mat",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "ADDON",
+          "token": "cao-mat",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "name": "Phòng đơn → ADDON",
+      "pass": true,
+      "detail": {
+        "a": {
+          "group": "ADDON",
+          "token": "phong-don",
+          "source": "serviceId"
+        },
+        "b": {
+          "group": "ADDON",
+          "token": "phong-don",
+          "source": "serviceId"
+        }
+      }
+    },
+    {
+      "id": "1b",
+      "name": "Legacy id body + name → MAIN; id lạ không fallback name",
+      "pass": true,
+      "detail": {
+        "legacy": {
+          "group": "MAIN",
+          "token": "body-60",
+          "source": "legacyId+name"
+        },
+        "blocked": {
+          "group": "UNMAPPED",
+          "token": "",
+          "source": "unmapped-id",
+          "rawId": "mystery-svc",
+          "name": "Body 60'"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "name": "Body + Phòng đơn = MAIN1 ADDON1",
+      "pass": true,
+      "detail": {
+        "main": 1,
+        "addon": 1,
+        "advanced": 0,
+        "combo": 0,
+        "unmapped": 0,
+        "totalInvoices": 1,
+        "requestedInvoices": 0
+      }
+    },
+    {
+      "id": 13,
+      "name": "Body + Gội + Giác + Phòng đơn = MAIN1 ADDON3",
+      "pass": true,
+      "detail": {
+        "main": 1,
+        "addon": 3,
+        "advanced": 0,
+        "combo": 0,
+        "unmapped": 0,
+        "totalInvoices": 1,
+        "requestedInvoices": 0
+      }
+    },
+    {
+      "id": 14,
+      "name": "6 CN known catalog UNMAPPED=0",
+      "pass": true,
+      "detail": {
+        "total": 96,
+        "unmappedCount": 0,
+        "unmapped": [],
+        "classified": [
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-body-60",
+            "serviceName": "body-60",
+            "group": "MAIN",
+            "token": "body-60",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-body-75",
+            "serviceName": "body-75",
+            "group": "MAIN",
+            "token": "body-75",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-body-90",
+            "serviceName": "body-90",
+            "group": "MAIN",
+            "token": "body-90",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-co-vai-gay",
+            "serviceName": "co-vai-gay",
+            "group": "MAIN",
+            "token": "co-vai-gay",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-foot",
+            "serviceName": "foot",
+            "group": "MAIN",
+            "token": "foot",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-combo-1",
+            "serviceName": "combo-1",
+            "group": "COMBO",
+            "token": "combo-1",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-combo-2",
+            "serviceName": "combo-2",
+            "group": "COMBO",
+            "token": "combo-2",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-combo-3",
+            "serviceName": "combo-3",
+            "group": "COMBO",
+            "token": "combo-3",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-chuyen-sau",
+            "serviceName": "chuyen-sau",
+            "group": "ADVANCED",
+            "token": "chuyen-sau",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-goi-sach",
+            "serviceName": "goi-sach",
+            "group": "ADDON",
+            "token": "goi-sach",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-goi-duong-sinh",
+            "serviceName": "goi-duong-sinh",
+            "group": "ADDON",
+            "token": "goi-duong-sinh",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-giac-hoi",
+            "serviceName": "giac-hoi",
+            "group": "ADDON",
+            "token": "giac-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-cao-mat",
+            "serviceName": "cao-mat",
+            "group": "ADDON",
+            "token": "cao-mat",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-dap-thuoc",
+            "serviceName": "dap-thuoc",
+            "group": "ADDON",
+            "token": "dap-thuoc",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-xong-hoi",
+            "serviceName": "xong-hoi",
+            "group": "ADDON",
+            "token": "xong-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "tram-spa-svc-phong-don",
+            "serviceName": "phong-don",
+            "group": "ADDON",
+            "token": "phong-don",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-body-60",
+            "serviceName": "body-60",
+            "group": "MAIN",
+            "token": "body-60",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-body-75",
+            "serviceName": "body-75",
+            "group": "MAIN",
+            "token": "body-75",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-body-90",
+            "serviceName": "body-90",
+            "group": "MAIN",
+            "token": "body-90",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-co-vai-gay",
+            "serviceName": "co-vai-gay",
+            "group": "MAIN",
+            "token": "co-vai-gay",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-foot",
+            "serviceName": "foot",
+            "group": "MAIN",
+            "token": "foot",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-combo-1",
+            "serviceName": "combo-1",
+            "group": "COMBO",
+            "token": "combo-1",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-combo-2",
+            "serviceName": "combo-2",
+            "group": "COMBO",
+            "token": "combo-2",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-combo-3",
+            "serviceName": "combo-3",
+            "group": "COMBO",
+            "token": "combo-3",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-chuyen-sau",
+            "serviceName": "chuyen-sau",
+            "group": "ADVANCED",
+            "token": "chuyen-sau",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-goi-sach",
+            "serviceName": "goi-sach",
+            "group": "ADDON",
+            "token": "goi-sach",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-goi-duong-sinh",
+            "serviceName": "goi-duong-sinh",
+            "group": "ADDON",
+            "token": "goi-duong-sinh",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-giac-hoi",
+            "serviceName": "giac-hoi",
+            "group": "ADDON",
+            "token": "giac-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-cao-mat",
+            "serviceName": "cao-mat",
+            "group": "ADDON",
+            "token": "cao-mat",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-dap-thuoc",
+            "serviceName": "dap-thuoc",
+            "group": "ADDON",
+            "token": "dap-thuoc",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-xong-hoi",
+            "serviceName": "xong-hoi",
+            "group": "ADDON",
+            "token": "xong-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "soc-trang-svc-phong-don",
+            "serviceName": "phong-don",
+            "group": "ADDON",
+            "token": "phong-don",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-body-60",
+            "serviceName": "body-60",
+            "group": "MAIN",
+            "token": "body-60",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-body-75",
+            "serviceName": "body-75",
+            "group": "MAIN",
+            "token": "body-75",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-body-90",
+            "serviceName": "body-90",
+            "group": "MAIN",
+            "token": "body-90",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-co-vai-gay",
+            "serviceName": "co-vai-gay",
+            "group": "MAIN",
+            "token": "co-vai-gay",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-foot",
+            "serviceName": "foot",
+            "group": "MAIN",
+            "token": "foot",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-combo-1",
+            "serviceName": "combo-1",
+            "group": "COMBO",
+            "token": "combo-1",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-combo-2",
+            "serviceName": "combo-2",
+            "group": "COMBO",
+            "token": "combo-2",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-combo-3",
+            "serviceName": "combo-3",
+            "group": "COMBO",
+            "token": "combo-3",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-chuyen-sau",
+            "serviceName": "chuyen-sau",
+            "group": "ADVANCED",
+            "token": "chuyen-sau",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-goi-sach",
+            "serviceName": "goi-sach",
+            "group": "ADDON",
+            "token": "goi-sach",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-goi-duong-sinh",
+            "serviceName": "goi-duong-sinh",
+            "group": "ADDON",
+            "token": "goi-duong-sinh",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-giac-hoi",
+            "serviceName": "giac-hoi",
+            "group": "ADDON",
+            "token": "giac-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-cao-mat",
+            "serviceName": "cao-mat",
+            "group": "ADDON",
+            "token": "cao-mat",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-dap-thuoc",
+            "serviceName": "dap-thuoc",
+            "group": "ADDON",
+            "token": "dap-thuoc",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-xong-hoi",
+            "serviceName": "xong-hoi",
+            "group": "ADDON",
+            "token": "xong-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "song-khoe-spa",
+            "durationId": "song-khoe-spa-svc-phong-don",
+            "serviceName": "phong-don",
+            "group": "ADDON",
+            "token": "phong-don",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-body-60",
+            "serviceName": "body-60",
+            "group": "MAIN",
+            "token": "body-60",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-body-75",
+            "serviceName": "body-75",
+            "group": "MAIN",
+            "token": "body-75",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-body-90",
+            "serviceName": "body-90",
+            "group": "MAIN",
+            "token": "body-90",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-co-vai-gay",
+            "serviceName": "co-vai-gay",
+            "group": "MAIN",
+            "token": "co-vai-gay",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-foot",
+            "serviceName": "foot",
+            "group": "MAIN",
+            "token": "foot",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-combo-1",
+            "serviceName": "combo-1",
+            "group": "COMBO",
+            "token": "combo-1",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-combo-2",
+            "serviceName": "combo-2",
+            "group": "COMBO",
+            "token": "combo-2",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-combo-3",
+            "serviceName": "combo-3",
+            "group": "COMBO",
+            "token": "combo-3",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-chuyen-sau",
+            "serviceName": "chuyen-sau",
+            "group": "ADVANCED",
+            "token": "chuyen-sau",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-goi-sach",
+            "serviceName": "goi-sach",
+            "group": "ADDON",
+            "token": "goi-sach",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-goi-duong-sinh",
+            "serviceName": "goi-duong-sinh",
+            "group": "ADDON",
+            "token": "goi-duong-sinh",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-giac-hoi",
+            "serviceName": "giac-hoi",
+            "group": "ADDON",
+            "token": "giac-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-cao-mat",
+            "serviceName": "cao-mat",
+            "group": "ADDON",
+            "token": "cao-mat",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-dap-thuoc",
+            "serviceName": "dap-thuoc",
+            "group": "ADDON",
+            "token": "dap-thuoc",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-xong-hoi",
+            "serviceName": "xong-hoi",
+            "group": "ADDON",
+            "token": "xong-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "bac-lieu",
+            "durationId": "bac-lieu-svc-phong-don",
+            "serviceName": "phong-don",
+            "group": "ADDON",
+            "token": "phong-don",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-body-60",
+            "serviceName": "body-60",
+            "group": "MAIN",
+            "token": "body-60",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-body-75",
+            "serviceName": "body-75",
+            "group": "MAIN",
+            "token": "body-75",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-body-90",
+            "serviceName": "body-90",
+            "group": "MAIN",
+            "token": "body-90",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-co-vai-gay",
+            "serviceName": "co-vai-gay",
+            "group": "MAIN",
+            "token": "co-vai-gay",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-foot",
+            "serviceName": "foot",
+            "group": "MAIN",
+            "token": "foot",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-combo-1",
+            "serviceName": "combo-1",
+            "group": "COMBO",
+            "token": "combo-1",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-combo-2",
+            "serviceName": "combo-2",
+            "group": "COMBO",
+            "token": "combo-2",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-combo-3",
+            "serviceName": "combo-3",
+            "group": "COMBO",
+            "token": "combo-3",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-chuyen-sau",
+            "serviceName": "chuyen-sau",
+            "group": "ADVANCED",
+            "token": "chuyen-sau",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-goi-sach",
+            "serviceName": "goi-sach",
+            "group": "ADDON",
+            "token": "goi-sach",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-goi-duong-sinh",
+            "serviceName": "goi-duong-sinh",
+            "group": "ADDON",
+            "token": "goi-duong-sinh",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-giac-hoi",
+            "serviceName": "giac-hoi",
+            "group": "ADDON",
+            "token": "giac-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-cao-mat",
+            "serviceName": "cao-mat",
+            "group": "ADDON",
+            "token": "cao-mat",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-dap-thuoc",
+            "serviceName": "dap-thuoc",
+            "group": "ADDON",
+            "token": "dap-thuoc",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-xong-hoi",
+            "serviceName": "xong-hoi",
+            "group": "ADDON",
+            "token": "xong-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "tra-vinh",
+            "durationId": "tra-vinh-svc-phong-don",
+            "serviceName": "phong-don",
+            "group": "ADDON",
+            "token": "phong-don",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-body-60",
+            "serviceName": "body-60",
+            "group": "MAIN",
+            "token": "body-60",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-body-75",
+            "serviceName": "body-75",
+            "group": "MAIN",
+            "token": "body-75",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-body-90",
+            "serviceName": "body-90",
+            "group": "MAIN",
+            "token": "body-90",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-co-vai-gay",
+            "serviceName": "co-vai-gay",
+            "group": "MAIN",
+            "token": "co-vai-gay",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-foot",
+            "serviceName": "foot",
+            "group": "MAIN",
+            "token": "foot",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-combo-1",
+            "serviceName": "combo-1",
+            "group": "COMBO",
+            "token": "combo-1",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-combo-2",
+            "serviceName": "combo-2",
+            "group": "COMBO",
+            "token": "combo-2",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-combo-3",
+            "serviceName": "combo-3",
+            "group": "COMBO",
+            "token": "combo-3",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-chuyen-sau",
+            "serviceName": "chuyen-sau",
+            "group": "ADVANCED",
+            "token": "chuyen-sau",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-goi-sach",
+            "serviceName": "goi-sach",
+            "group": "ADDON",
+            "token": "goi-sach",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-goi-duong-sinh",
+            "serviceName": "goi-duong-sinh",
+            "group": "ADDON",
+            "token": "goi-duong-sinh",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-giac-hoi",
+            "serviceName": "giac-hoi",
+            "group": "ADDON",
+            "token": "giac-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-cao-mat",
+            "serviceName": "cao-mat",
+            "group": "ADDON",
+            "token": "cao-mat",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-dap-thuoc",
+            "serviceName": "dap-thuoc",
+            "group": "ADDON",
+            "token": "dap-thuoc",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-xong-hoi",
+            "serviceName": "xong-hoi",
+            "group": "ADDON",
+            "token": "xong-hoi",
+            "source": "serviceId"
+          },
+          {
+            "branchId": "vinh-long",
+            "durationId": "vinh-long-svc-phong-don",
+            "serviceName": "phong-don",
+            "group": "ADDON",
+            "token": "phong-don",
+            "source": "serviceId"
+          }
+        ]
+      }
+    },
+    {
+      "id": 15,
+      "name": "Gia Lai invoice NOT_APPLICABLE / excluded",
+      "pass": true,
+      "detail": {
+        "counts": {
+          "main": 0,
+          "addon": 0,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 0,
+          "requestedInvoices": 0
+        },
+        "policy": {
+          "applicable": false,
+          "status": "NOT_APPLICABLE",
+          "source": "excluded",
+          "branchId": "gia-lai-1",
+          "targets": null,
+          "policy": null
+        }
+      }
+    },
+    {
+      "id": 16,
+      "name": "Gia Lai catalog không warning unmapped",
+      "pass": true,
+      "detail": {
+        "total": 0,
+        "unmappedCount": 0,
+        "unmapped": [],
+        "classified": []
+      }
+    },
+    {
+      "id": 17,
+      "name": "MAIN=0 INSUFFICIENT_DATA",
+      "pass": true,
+      "detail": {
+        "kind": "addon",
+        "actual": 1,
+        "main": 0,
+        "rate": null,
+        "targets": [
+          0.7
+        ],
+        "mixedTargets": false,
+        "status": "INSUFFICIENT_DATA",
+        "missing": null,
+        "aggregateAlgorithm": "per-segment-obligation"
+      }
+    },
+    {
+      "id": 18,
+      "name": "Missing ADDON ceil(10*0.7-5)=2",
+      "pass": true,
+      "detail": {
+        "missing": 2
+      }
+    },
+    {
+      "id": 19,
+      "name": "Missing ADVANCED ceil(10*0.1-0)=1",
+      "pass": true,
+      "detail": {
+        "missing": 1
+      }
+    },
+    {
+      "id": 20,
+      "name": "Missing COMBO ceil(10*0.3-2)=1",
+      "pass": true,
+      "detail": {
+        "missing": 1
+      }
+    },
+    {
+      "id": 21,
+      "name": "Missing requested = brute-force; t=1 no Infinity",
+      "pass": true,
+      "detail": {
+        "formula": 2,
+        "brute": 2,
+        "t1": null
+      }
+    },
+    {
+      "id": 22,
+      "name": "customerRequested=true đếm",
+      "pass": true,
+      "detail": {
+        "main": 2,
+        "addon": 0,
+        "advanced": 0,
+        "combo": 0,
+        "unmapped": 0,
+        "totalInvoices": 2,
+        "requestedInvoices": 1
+      }
+    },
+    {
+      "id": 23,
+      "name": "customerRequested=false không đếm",
+      "pass": true,
+      "detail": {
+        "main": 2,
+        "addon": 0,
+        "advanced": 0,
+        "combo": 0,
+        "unmapped": 0,
+        "totalInvoices": 2,
+        "requestedInvoices": 1
+      }
+    },
+    {
+      "id": 24,
+      "name": "Cross-branch policy serving branch Trạm",
+      "pass": true,
+      "detail": [
+        {
+          "servingBranchId": "tram-spa",
+          "policyId": "tram-p",
+          "source": "versioned",
+          "effectiveFrom": "2026-01-01",
+          "effectiveTo": null,
+          "targets": {
+            "addon": 0.9,
+            "advanced": 0.1,
+            "combo": 0.3,
+            "requested": 0.2
+          },
+          "counts": {
+            "main": 1,
+            "addon": 0,
+            "advanced": 0,
+            "combo": 0,
+            "unmapped": 0,
+            "totalInvoices": 1,
+            "requestedInvoices": 0
+          },
+          "invoiceIds": [
+            "xb"
+          ],
+          "kpis": {
+            "addon": {
+              "kind": "addon",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.9,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "advanced": {
+              "kind": "advanced",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.1,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "combo": {
+              "kind": "combo",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": 0.3,
+              "status": "NOT_MET",
+              "missing": 1
+            },
+            "requested": {
+              "kind": "requested",
+              "actual": 0,
+              "total": 1,
+              "rate": 0,
+              "target": 0.2,
+              "status": "NOT_MET",
+              "missing": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Policy đổi giữa tháng: đúng version theo ngày",
+      "pass": true,
+      "detail": [
+        {
+          "id": "st-old",
+          "from": "2026-08-01",
+          "n": 1
+        },
+        {
+          "id": "st-new",
+          "from": "2026-08-15",
+          "n": 1
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "name": "Multi-branch không average target sai",
+      "pass": true,
+      "detail": {
+        "blendedRate": 0.9900990099009901,
+        "avgTarget": 0.39999999999999997,
+        "naiveMet": true,
+        "engineStatus": "NOT_MET",
+        "missing": 1
+      }
+    },
+    {
+      "id": 27,
+      "name": "supportEmployee không cộng KPI",
+      "pass": true,
+      "detail": {
+        "support": {
+          "main": 0,
+          "addon": 0,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 0,
+          "requestedInvoices": 0
+        },
+        "primary": {
+          "main": 1,
+          "addon": 1,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 1,
+          "requestedInvoices": 0
+        }
+      }
+    },
+    {
+      "id": 28,
+      "name": "Update invoice recompute (service/employee/branch/requested)",
+      "pass": true,
+      "detail": {
+        "afterCreate": {
+          "main": 1,
+          "addon": 0,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 1,
+          "requestedInvoices": 0
+        },
+        "afterUpdateNewEmp": {
+          "main": 0,
+          "addon": 0,
+          "advanced": 1,
+          "combo": 1,
+          "unmapped": 0,
+          "totalInvoices": 1,
+          "requestedInvoices": 1
+        }
+      }
+    },
+    {
+      "id": 29,
+      "name": "Delete invoice recompute giảm đúng",
+      "pass": true,
+      "detail": {
+        "main": 0,
+        "addon": 0,
+        "advanced": 0,
+        "combo": 0,
+        "unmapped": 0,
+        "totalInvoices": 0,
+        "requestedInvoices": 0
+      }
+    },
+    {
+      "id": 30,
+      "name": "Engine KPI không đụng payroll/commission",
+      "pass": true,
+      "detail": {
+        "payrollBytes": 18392,
+        "commissionBytes": 2698
+      }
+    },
+    {
+      "id": "P1",
+      "name": "Policy versioned: policy cũ kết thúc trước effective_from mới",
+      "pass": true,
+      "detail": {
+        "closed": {
+          "id": "kpi-pol-1786907005198-2ts0sj",
+          "branchId": "soc-trang",
+          "effectiveFrom": "2026-08-01",
+          "effectiveTo": "2026-08-14",
+          "addonTarget": 0.7,
+          "advancedTarget": 0.1,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "superseded",
+          "createdBy": "admin",
+          "createdAt": "2026-08-16T19:03:25.198Z",
+          "updatedBy": "admin",
+          "updatedAt": "2026-08-16T19:03:25.198Z",
+          "changeReason": "seed"
+        },
+        "log": {
+          "id": "kpi-log-1786907005199-7vb20a",
+          "branchId": "soc-trang",
+          "oldPolicy": {
+            "id": "kpi-pol-1786907005198-2ts0sj",
+            "branchId": "soc-trang",
+            "effectiveFrom": "2026-08-01",
+            "effectiveTo": null,
+            "addonTarget": 0.7,
+            "advancedTarget": 0.1,
+            "comboTarget": 0.3,
+            "requestedTarget": 0.2,
+            "status": "active",
+            "createdBy": "admin",
+            "createdAt": "2026-08-16T19:03:25.198Z",
+            "updatedBy": "admin",
+            "updatedAt": "2026-08-16T19:03:25.198Z",
+            "changeReason": "seed"
+          },
+          "newPolicy": {
+            "id": "kpi-pol-1786907005198-7sws2j",
+            "branchId": "soc-trang",
+            "effectiveFrom": "2026-08-15",
+            "effectiveTo": null,
+            "addonTarget": 0.6,
+            "advancedTarget": 0.1,
+            "comboTarget": 0.3,
+            "requestedTarget": 0.2,
+            "status": "active",
+            "createdBy": "admin",
+            "createdAt": "2026-08-16T19:03:25.198Z",
+            "updatedBy": "admin",
+            "updatedAt": "2026-08-16T19:03:25.198Z",
+            "changeReason": "mid-month"
+          },
+          "effectiveFrom": "2026-08-15",
+          "effectiveTo": null,
+          "actorId": "admin",
+          "reason": "mid-month",
+          "timestamp": "2026-08-16T19:03:25.199Z"
+        }
+      }
+    },
+    {
+      "id": "P2",
+      "name": "Phòng đơn trong ADDON system",
+      "pass": true,
+      "detail": {
+        "main": 1,
+        "addon": 1,
+        "advanced": 0,
+        "combo": 0,
+        "unmapped": 0,
+        "totalInvoices": 1,
+        "requestedInvoices": 0
+      }
+    }
+  ]
+}
