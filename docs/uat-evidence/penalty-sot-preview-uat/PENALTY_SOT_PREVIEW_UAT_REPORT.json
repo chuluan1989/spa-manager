@@ -1,0 +1,272 @@
+{
+  "at": "2026-08-16T21:21:14.918Z",
+  "preview": "http://127.0.0.1:4177",
+  "uiOk": false,
+  "passed": false,
+  "failed": 5,
+  "total": 20,
+  "results": [
+    {
+      "id": "CASE1_engine",
+      "pass": true,
+      "detail": {
+        "employeeId": "uat-e1",
+        "employeeName": "UAT",
+        "branchId": "bac-lieu",
+        "branchName": "CN5 Bạc Liêu Khoẻ Spa",
+        "position": "",
+        "avatar": "",
+        "invoiceCount": 0,
+        "workDays": 0,
+        "branchSections": null,
+        "baseSalary": 0,
+        "ticketRevenue": 0,
+        "commission": 0,
+        "tips": 0,
+        "bonus": 0,
+        "kpi": 0,
+        "reduction": 0,
+        "penalty": 100000,
+        "attendancePenalty": 100000,
+        "manualPenalty": 0,
+        "advance": 0,
+        "otherAdjustment": 0,
+        "grossBeforeDeduction": -100000,
+        "netSalary": -100000,
+        "paidAmount": 0,
+        "remainingAmount": 0,
+        "provisionalNet": -100000
+      }
+    },
+    {
+      "id": "CASE2_block_Phạt nghỉ không phép",
+      "pass": true,
+      "detail": "Nội dung giống phạt chấm công (nghỉ không phép / quá phép / đi trễ / về sớm / off). Hãy sửa trạng thái Chấm công — không nhập lại tại đây."
+    },
+    {
+      "id": "CASE2_block_Phạt quá phép",
+      "pass": true,
+      "detail": "Nội dung giống phạt chấm công (nghỉ không phép / quá phép / đi trễ / về sớm / off). Hãy sửa trạng thái Chấm công — không nhập lại tại đây."
+    },
+    {
+      "id": "CASE2_block_Phạt off quá phép",
+      "pass": true,
+      "detail": "Nội dung giống phạt chấm công (nghỉ không phép / quá phép / đi trễ / về sớm / off). Hãy sửa trạng thái Chấm công — không nhập lại tại đây."
+    },
+    {
+      "id": "CASE2_block_Phạt đi trễ",
+      "pass": true,
+      "detail": "Nội dung giống phạt chấm công (nghỉ không phép / quá phép / đi trễ / về sớm / off). Hãy sửa trạng thái Chấm công — không nhập lại tại đây."
+    },
+    {
+      "id": "CASE2_block_Phạt về sớm",
+      "pass": true,
+      "detail": "Nội dung giống phạt chấm công (nghỉ không phép / quá phép / đi trễ / về sớm / off). Hãy sửa trạng thái Chấm công — không nhập lại tại đây."
+    },
+    {
+      "id": "CASE3_engine_600",
+      "pass": true,
+      "detail": {
+        "payroll": 600000
+      }
+    },
+    {
+      "id": "CASE3_pnl_parity",
+      "pass": true,
+      "detail": {
+        "pnl": 600000
+      }
+    },
+    {
+      "id": "CASE4_att_zero_manual_kept",
+      "pass": true,
+      "detail": {
+        "employeeId": "uat-e1",
+        "employeeName": "UAT",
+        "branchId": "bac-lieu",
+        "branchName": "CN5 Bạc Liêu Khoẻ Spa",
+        "position": "",
+        "avatar": "",
+        "invoiceCount": 0,
+        "workDays": 0,
+        "branchSections": null,
+        "baseSalary": 0,
+        "ticketRevenue": 0,
+        "commission": 0,
+        "tips": 0,
+        "bonus": 0,
+        "kpi": 0,
+        "reduction": 0,
+        "penalty": 500000,
+        "attendancePenalty": 0,
+        "manualPenalty": 500000,
+        "advance": 0,
+        "otherAdjustment": 0,
+        "grossBeforeDeduction": -500000,
+        "netSalary": -500000,
+        "paidAmount": 0,
+        "remainingAmount": 0,
+        "provisionalNet": -500000
+      }
+    },
+    {
+      "id": "CASE5_manual_only",
+      "pass": true,
+      "detail": {
+        "employeeId": "uat-e1",
+        "employeeName": "UAT",
+        "branchId": "bac-lieu",
+        "branchName": "CN5 Bạc Liêu Khoẻ Spa",
+        "position": "",
+        "avatar": "",
+        "invoiceCount": 0,
+        "workDays": 0,
+        "branchSections": null,
+        "baseSalary": 0,
+        "ticketRevenue": 0,
+        "commission": 0,
+        "tips": 0,
+        "bonus": 0,
+        "kpi": 0,
+        "reduction": 0,
+        "penalty": 500000,
+        "attendancePenalty": 0,
+        "manualPenalty": 500000,
+        "advance": 0,
+        "otherAdjustment": 0,
+        "grossBeforeDeduction": -500000,
+        "netSalary": -500000,
+        "paidAmount": 0,
+        "remainingAmount": 0,
+        "provisionalNet": -500000
+      }
+    },
+    {
+      "id": "LEGACY_still_counts_manual",
+      "pass": true,
+      "detail": {
+        "employeeId": "bac-lieu-thu-huong",
+        "employeeName": "Thu Hương",
+        "branchId": "bac-lieu",
+        "branchName": "CN5 Bạc Liêu Khoẻ Spa",
+        "position": "",
+        "avatar": "",
+        "invoiceCount": 0,
+        "workDays": 0,
+        "branchSections": null,
+        "baseSalary": 0,
+        "ticketRevenue": 0,
+        "commission": 0,
+        "tips": 0,
+        "bonus": 0,
+        "kpi": 0,
+        "reduction": 0,
+        "penalty": 100000,
+        "attendancePenalty": 0,
+        "manualPenalty": 100000,
+        "advance": 0,
+        "otherAdjustment": 0,
+        "grossBeforeDeduction": -100000,
+        "netSalary": -100000,
+        "paidAmount": 0,
+        "remainingAmount": 0,
+        "provisionalNet": -100000
+      }
+    },
+    {
+      "id": "CHERRY_500_PROTECTED_AMOUNT_EXISTS",
+      "pass": true,
+      "detail": {
+        "cherryLive": [
+          {
+            "id": "payadj-1786800135828-rsb024",
+            "amount": 500000,
+            "reason": "Phạt lúc làm khách",
+            "note": "Phạt lúc làm khách 12/8",
+            "source": "manual",
+            "category": "service",
+            "date": "2026-08-12"
+          }
+        ],
+        "cherryOld": {
+          "id": "payadj-1786800135828-rsb024",
+          "amount": 500000,
+          "reason": "Phạt lúc làm khách",
+          "note": "Phạt lúc làm khách 12/8",
+          "source": "manual",
+          "category": "service"
+        }
+      }
+    },
+    {
+      "id": "CHERRY_12_RESTORED_ON_ORIGINAL_ID",
+      "pass": true,
+      "detail": {
+        "note": "payadj-1786800135828-rsb024 = 500k Phạt lúc làm khách (restored)",
+        "cherryOld": {
+          "id": "payadj-1786800135828-rsb024",
+          "amount": 500000,
+          "reason": "Phạt lúc làm khách",
+          "note": "Phạt lúc làm khách 12/8",
+          "source": "manual",
+          "category": "service"
+        }
+      }
+    },
+    {
+      "id": "LEGACY_SOURCE_DEFAULT_MANUAL",
+      "pass": true,
+      "detail": {
+        "id": "payadj-1786800135828-rsb024",
+        "amount": 500000,
+        "reason": "Phạt lúc làm khách",
+        "note": "Phạt lúc làm khách 12/8",
+        "source": "manual",
+        "category": "service"
+      }
+    },
+    {
+      "id": "UI_LOGIN_ADMIN",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "UI_BOARD_SPLIT",
+      "pass": false,
+      "detail": {
+        "hasAttLabel": false,
+        "hasOtherLabel": false,
+        "hasHint": false
+      }
+    },
+    {
+      "id": "UI_HINT",
+      "pass": false,
+      "detail": {}
+    },
+    {
+      "id": "UI_BOARD_ATT_READONLY_ROW",
+      "pass": false,
+      "detail": {
+        "attReadonly": 0
+      }
+    },
+    {
+      "id": "UI_BOARD_MANUAL_INPUT_EXISTS",
+      "pass": false,
+      "detail": {
+        "attInput": 0
+      }
+    },
+    {
+      "id": "UI_BROWSER",
+      "pass": false,
+      "detail": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('input[inputmode=\"numeric\"], input[placeholder*=\"500\"]').first()\n"
+    }
+  ],
+  "shots": [
+    "docs/uat-evidence/penalty-sot-preview-uat/shots/01-board-penalty-split.png",
+    "docs/uat-evidence/penalty-sot-preview-uat/shots/02-block-mirror.png"
+  ],
+  "note": "CHƯA commit · CHƯA deploy · CHƯA void 4 dòng Production"
+}

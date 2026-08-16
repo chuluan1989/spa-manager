@@ -10,13 +10,22 @@ export const PAYROLL_ADJUSTMENT_TYPES = {
 
 export const PAYROLL_ADJUSTMENT_LABELS = {
   [PAYROLL_ADJUSTMENT_TYPES.BONUS]: 'Thưởng',
-  [PAYROLL_ADJUSTMENT_TYPES.PENALTY]: 'Phạt',
+  [PAYROLL_ADJUSTMENT_TYPES.PENALTY]: 'Phạt khác',
   [PAYROLL_ADJUSTMENT_TYPES.ADVANCE]: 'Ứng lương',
   [PAYROLL_ADJUSTMENT_TYPES.REDUCTION]: 'Giảm lương',
   [PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT]: 'Điều chỉnh khác',
   [PAYROLL_ADJUSTMENT_TYPES.KPI]: 'KPI',
   [PAYROLL_ADJUSTMENT_TYPES.PAYMENT]: 'Thanh toán lương',
 }
+
+/** Nhãn cột tổng phạt trên bảng lương (attendance + manual). */
+export const PAYROLL_TOTAL_PENALTY_LABEL = 'Phạt'
+
+export {
+  PAYROLL_ADJUSTMENT_SOURCES,
+  PAYROLL_PENALTY_CATEGORIES,
+  PAYROLL_PENALTY_CATEGORY_LABELS,
+} from '../utils/payrollPenaltyPolicy'
 
 export const PAYROLL_WALLET_SOURCE = {
   MANUAL: 'manual',

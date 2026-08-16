@@ -1,0 +1,80 @@
+{
+  "at": "2026-08-16T20:59:54.310Z",
+  "migration": "0047_payroll_adjustment_penalty_source.sql",
+  "ok": false,
+  "before": {
+    "columns": []
+  },
+  "after": {
+    "columns": [
+      {
+        "column_name": "category",
+        "data_type": "text",
+        "column_default": "'other'::text"
+      },
+      {
+        "column_name": "source",
+        "data_type": "text",
+        "column_default": "'manual'::text"
+      }
+    ],
+    "counts": {
+      "total": 146,
+      "source_manual": 146,
+      "category_other": 146,
+      "penalty_nonzero": 3
+    }
+  },
+  "sampleLegacy": [
+    {
+      "id": "payadj-1786800211581-6opqia",
+      "employee_name": "Cherry",
+      "date": "2026-08-06",
+      "amount": 0,
+      "reason": "nhầm",
+      "note": "Phạt off quá phép",
+      "source": "manual",
+      "category": "other"
+    },
+    {
+      "id": "payadj-1786800377253-nbeu8b",
+      "employee_name": "Thu Hương",
+      "date": "2026-08-06",
+      "amount": 100000,
+      "reason": "Phạt quá phép",
+      "note": "Phạt off quá phép",
+      "source": "manual",
+      "category": "other"
+    },
+    {
+      "id": "payadj-1786800229645-v048cg",
+      "employee_name": "Cherry",
+      "date": "2026-08-07",
+      "amount": 0,
+      "reason": "nhầm",
+      "note": "Phạt off quá phép",
+      "source": "manual",
+      "category": "other"
+    },
+    {
+      "id": "payadj-1786800394617-1l6bpo",
+      "employee_name": "Thu Hương",
+      "date": "2026-08-07",
+      "amount": 100000,
+      "reason": "Phạt quá phép",
+      "note": "Phạt off quá phép",
+      "source": "manual",
+      "category": "other"
+    },
+    {
+      "id": "payadj-1786800135828-rsb024",
+      "employee_name": "Cherry",
+      "date": "2026-08-12",
+      "amount": 0,
+      "reason": "nhầm",
+      "note": "Phạt lúc làm khách 12/8",
+      "source": "manual",
+      "category": "other"
+    }
+  ]
+}

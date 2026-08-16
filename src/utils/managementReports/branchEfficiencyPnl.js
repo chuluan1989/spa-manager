@@ -101,8 +101,9 @@ function penaltyDedupeKey(employeeId, date, amount) {
 }
 
 /**
- * Phạt P&L — phương án A: attendance + adjustment, dedupe employeeId+date+amount.
- * Ưu tiên giữ attendance; adjustment trùng → bỏ qua + cảnh báo.
+ * Phạt P&L = cùng SoT với payrollEngine:
+ * attendancePenalty + manualPenalty (không dedupe mù emp+date+amount).
+ * Vẫn gắn cờ duplicateSuspect để cảnh báo đối soát — KHÔNG loại khỏi tổng.
  */
 export function buildPenaltyPnlItems({ attendanceRecords = [], adjustments = [], fromDate = '', toDate = '' } = {}) {
   const attendanceItems = []
@@ -147,7 +148,7 @@ export function buildPenaltyPnlItems({ attendanceRecords = [], adjustments = [],
       amount,
       reason: row.reason || row.note || '',
       duplicateSuspect: isDup,
-      excludedAsDuplicate: isDup,
+      excludedAsDuplicate: false,
     }
     if (isDup) {
       duplicateWarnings.push({
@@ -157,27 +158,22 @@ export function buildPenaltyPnlItems({ attendanceRecords = [], adjustments = [],
         amount: item.amount,
         attendanceMatched: true,
         adjustmentId: item.id,
-        label: 'Nghi trùng phạt',
+        label: 'Nghi trùng phạt (vẫn tính cả hai — đối soát nguồn)',
       })
-      // Đánh dấu luôn trên attendance item tương ứng
       for (const att of attendanceItems) {
         if (penaltyDedupeKey(att.employeeId, att.date, att.amount) === key) {
           att.duplicateSuspect = true
         }
       }
-    } else {
-      adjustmentItems.push(item)
     }
+    adjustmentItems.push(item)
   }
 
-  const included = [
-    ...attendanceItems,
-    ...adjustmentItems.filter((item) => !item.excludedAsDuplicate),
-  ]
+  const included = [...attendanceItems, ...adjustmentItems]
 
   return {
     items: included,
-    allItems: [...attendanceItems, ...adjustmentItems],
+    allItems: included,
     duplicateWarnings,
     total: included.reduce((sum, item) => sum + item.amount, 0),
   }

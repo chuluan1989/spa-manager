@@ -1,0 +1,49 @@
+{
+  "at": "2026-08-16T21:16:20.811Z",
+  "passed": true,
+  "failed": 0,
+  "total": 10,
+  "results": [
+    {
+      "id": "U1_att_100k",
+      "pass": true
+    },
+    {
+      "id": "U2_block_mirror_text",
+      "pass": true
+    },
+    {
+      "id": "U2b_block_off_qua_phep",
+      "pass": true
+    },
+    {
+      "id": "U3_att_100_plus_manual_500",
+      "pass": true
+    },
+    {
+      "id": "U4_att_to_zero_manual_kept",
+      "pass": true
+    },
+    {
+      "id": "U5_manual_only_500",
+      "pass": true
+    },
+    {
+      "id": "U6_pnl_equals_payroll_no_blind_dedupe",
+      "pass": true
+    },
+    {
+      "id": "U7_ui_hint_present",
+      "pass": true
+    },
+    {
+      "id": "U8_allow_service_penalty",
+      "pass": true
+    },
+    {
+      "id": "U9_migration_file",
+      "pass": true
+    }
+  ],
+  "note": "Engine/UI policy UAT. Void Production + Final gate: docs/uat-evidence/PENALTY_SOT_FINAL_GATE.json"
+}

@@ -90,8 +90,9 @@ check('Cycle FULL = whole month', () => {
 
 // ─── Popup Sửa bảng lương binds payrollRow only ────────────────────────────
 check('Popup: currentTotalsFromPayrollRow binds 4 fields from payrollRow', () => {
+  // Phạt trên board = manualPenalty (phạt chấm công tách RO).
   const totals = currentTotalsFromPayrollRow({
-    bonus: 100, kpi: -50, penalty: 20, advance: 30, otherAdjustment: 999,
+    bonus: 100, kpi: -50, penalty: 120, manualPenalty: 20, attendancePenalty: 100, advance: 30, otherAdjustment: 999,
   })
   assert.deepEqual(totals, {
     [PAYROLL_ADJUSTMENT_TYPES.BONUS]: 100,

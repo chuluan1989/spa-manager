@@ -49,6 +49,18 @@ export async function fetchPayrollAdjustments({
   })
 }
 
+function isMissingColumnError(error) {
+  const message = String(error?.message ?? '')
+  return error?.code === 'PGRST204' || /column .* does not exist|Could not find the/i.test(message)
+}
+
+function stripOptionalPenaltyMeta(row) {
+  const next = { ...row }
+  delete next.source
+  delete next.category
+  return next
+}
+
 export async function insertPayrollAdjustment(record) {
   if (!isSupabaseConfigured) throw new Error('Supabase chưa cấu hình.')
   const row = objectToSnakeRow({
@@ -56,7 +68,14 @@ export async function insertPayrollAdjustment(record) {
     createdAt: record.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   })
-  const { data, error } = await supabase.from(ADJUSTMENTS_TABLE).insert(row).select('*').single()
+  let { data, error } = await supabase.from(ADJUSTMENTS_TABLE).insert(row).select('*').single()
+  if (error && isMissingColumnError(error) && (row.source != null || row.category != null)) {
+    ;({ data, error } = await supabase
+      .from(ADJUSTMENTS_TABLE)
+      .insert(stripOptionalPenaltyMeta(row))
+      .select('*')
+      .single())
+  }
   if (error) throw error
   return rowsToCamel([data])[0]
 }
@@ -64,7 +83,15 @@ export async function insertPayrollAdjustment(record) {
 export async function updatePayrollAdjustment(record) {
   if (!isSupabaseConfigured) throw new Error('Supabase chưa cấu hình.')
   const row = objectToSnakeRow({ ...record, updatedAt: new Date().toISOString() })
-  const { data, error } = await supabase.from(ADJUSTMENTS_TABLE).update(row).eq('id', record.id).select('*').single()
+  let { data, error } = await supabase.from(ADJUSTMENTS_TABLE).update(row).eq('id', record.id).select('*').single()
+  if (error && isMissingColumnError(error) && (row.source != null || row.category != null)) {
+    ;({ data, error } = await supabase
+      .from(ADJUSTMENTS_TABLE)
+      .update(stripOptionalPenaltyMeta(row))
+      .eq('id', record.id)
+      .select('*')
+      .single())
+  }
   if (error) throw error
   return rowsToCamel([data])[0]
 }

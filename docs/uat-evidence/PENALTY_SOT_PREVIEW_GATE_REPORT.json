@@ -1,0 +1,65 @@
+{
+  "at": "2026-08-16T21:16:00.000Z",
+  "pass": true,
+  "commit": false,
+  "deploy": false,
+  "voidApply": true,
+  "A_migration_0047": {
+    "status": "PASS",
+    "detail": "Columns source + category on payroll_adjustments. Report: docs/uat-evidence/MIGRATION_0047_APPLY_REPORT.json"
+  },
+  "B_uat_cases": {
+    "CASE1_att_100k": "PASS — verify-penalty-sot-uat U1",
+    "CASE2_block_mirror": "PASS — U2/U2b + policy gate",
+    "CASE3_att100_manual500_600": "PASS — U3 + P&L parity U6",
+    "CASE4_att_to_0_keeps_500": "PASS — U4",
+    "CASE5_payroll_eq_pnl": "PASS — live Cherry/Thu Hương parity in PENALTY_SOT_FINAL_GATE.json",
+    "CASE6_4_mirrors_void": "PASS — amount=0 + audit logs",
+    "CASE7_cherry_500_kept": "PASS — payadj-1786800135828-rsb024 = 500k Phạt lúc làm khách 12/08"
+  },
+  "C_void_apply": {
+    "report": "docs/uat-evidence/VOID_ATTENDANCE_MIRROR_PENALTIES_APPLY.json",
+    "mirrorsZero": true,
+    "cherryRestored": true,
+    "dup0815Zeroed": true
+  },
+  "D_final_gate": {
+    "report": "docs/uat-evidence/PENALTY_SOT_FINAL_GATE.json",
+    "pass": true,
+    "cherry": { "payroll": 500000, "pnl": 500000 },
+    "thuHuong": { "payroll": 100000, "pnl": 100000, "attendancePenalty": 100000, "manualPenalty": 0 }
+  },
+  "E_regression": {
+    "verify-penalty-sot-uat": "10/10 PASS",
+    "governance-offline": "14/14 PASS"
+  },
+  "F_scope_commit": [
+    "supabase/migrations/0047_payroll_adjustment_penalty_source.sql",
+    "src/utils/payrollPenaltyPolicy.js",
+    "src/utils/payrollService.js",
+    "src/repositories/payrollRepository.js",
+    "src/constants/payrollTypes.js",
+    "src/components/salary/PayrollEditBoardModal.jsx",
+    "src/components/salary/PayrollAdjustmentModal.jsx",
+    "src/utils/managementReports/branchEfficiencyPnl.js",
+    "src/pages/Salary.css",
+    "scripts/apply-0047-payroll-penalty-source.mjs",
+    "scripts/apply-void-attendance-mirror-penalties.mjs",
+    "scripts/verify-penalty-sot-uat.mjs",
+    "scripts/verify-penalty-sot-final-gate.mjs",
+    "scripts/plan-void-attendance-mirror-penalties.mjs",
+    "scripts/playwright-penalty-sot-preview-uat.mjs",
+    "scripts/playwright-penalty-board-shot.mjs",
+    "scripts/audit-attendance-vs-payroll-penalty-readonly.mjs",
+    "scripts/regression-payroll-governance-offline.mjs",
+    "docs/uat-evidence/MIGRATION_0047_APPLY_REPORT.json",
+    "docs/uat-evidence/PENALTY_SOT_UAT.json",
+    "docs/uat-evidence/PENALTY_SOT_FINAL_GATE.json",
+    "docs/uat-evidence/PENALTY_SOT_PREVIEW_GATE_REPORT.json",
+    "docs/uat-evidence/VOID_ATTENDANCE_MIRROR_PENALTIES_PLAN.json",
+    "docs/uat-evidence/VOID_ATTENDANCE_MIRROR_PENALTIES_APPLY.json",
+    "docs/uat-evidence/ATTENDANCE_VS_PAYROLL_PENALTY_AUDIT_READONLY.json",
+    "docs/uat-evidence/ATTENDANCE_VS_PAYROLL_PENALTY_AUDIT_FOLLOWUP.json",
+    "docs/uat-evidence/penalty-sot-preview-uat/"
+  ]
+}

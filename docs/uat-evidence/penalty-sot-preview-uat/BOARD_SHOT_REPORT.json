@@ -1,0 +1,40 @@
+{
+  "at": "2026-08-16T21:26:35.315Z",
+  "preview": "http://127.0.0.1:4177",
+  "steps": [
+    {
+      "id": "login",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "open_branch_employees",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "board_labels",
+      "ok": true,
+      "detail": "att=true other=true"
+    },
+    {
+      "id": "board_hint",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "block_mirror_ui",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "shot": "docs/uat-evidence/penalty-sot-preview-uat/shots/03-board-penalty-split-live.png",
+  "passed": true,
+  "soft": [
+    {
+      "id": "block_mirror_ui",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

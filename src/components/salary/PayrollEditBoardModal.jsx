@@ -10,6 +10,7 @@ import {
   netSalaryImpactForFieldSet,
   spaProfitImpactForNetDelta,
 } from '../../utils/payrollFieldAudit'
+import { ATTENDANCE_PENALTY_READONLY_HINT } from '../../utils/payrollPenaltyPolicy'
 
 /** Bốn hạng mục chính thức trên bảng lương kỳ — giá trị CUỐI, không phải dòng phát sinh. */
 const BOARD_FIELDS = [
@@ -22,7 +23,8 @@ const BOARD_FIELDS = [
 const BOARD_FIELD_TO_ROW_KEY = {
   [PAYROLL_ADJUSTMENT_TYPES.BONUS]: 'bonus',
   [PAYROLL_ADJUSTMENT_TYPES.KPI]: 'kpi',
-  [PAYROLL_ADJUSTMENT_TYPES.PENALTY]: 'penalty',
+  // Phạt trên board = phạt khác (manual). Phạt chấm công tách RO.
+  [PAYROLL_ADJUSTMENT_TYPES.PENALTY]: 'manualPenalty',
   [PAYROLL_ADJUSTMENT_TYPES.ADVANCE]: 'advance',
 }
 
@@ -36,7 +38,7 @@ function parseFieldInput(type, raw) {
 
 /**
  * Nguồn duy nhất cho cột “Dữ liệu hiện tại”: payrollRow đang render trên màn hình.
- * Không query lại, không cộng dòng, không snapshot.
+ * Phạt = manualPenalty (không gồm attendance).
  */
 export function currentTotalsFromPayrollRow(payrollRow) {
   if (!payrollRow) return null
@@ -75,6 +77,8 @@ export default function PayrollEditBoardModal({
     [payrollRow],
   )
 
+  const attendancePenalty = Number(payrollRow?.attendancePenalty ?? 0)
+
   useEffect(() => {
     if (!open || !payrollRow || !currentTotals) return
     const next = {}
@@ -106,14 +110,16 @@ export default function PayrollEditBoardModal({
     const nextNet = currentNet + netDelta
     const laborCostDelta = laborCostImpactForNetDelta(netDelta)
     const profitDelta = spaProfitImpactForNetDelta(netDelta)
+    const nextManual = parsedDraft[PAYROLL_ADJUSTMENT_TYPES.PENALTY]
     return {
       currentNet,
       nextNet,
       netDelta,
       laborCostDelta,
       profitDelta,
+      nextTotalPenalty: attendancePenalty + (nextManual ?? 0),
     }
-  }, [open, payrollRow, currentTotals, parsedDraft])
+  }, [open, payrollRow, currentTotals, parsedDraft, attendancePenalty])
 
   if (!open) return null
 
@@ -143,7 +149,7 @@ export default function PayrollEditBoardModal({
         note: '',
         totals,
         displayedTotals: currentTotals,
-        attendancePenalty: Number(payrollRow.attendancePenalty ?? 0),
+        attendancePenalty,
         employeeId: payrollRow.employeeId,
         employeeName: payrollRow.employeeName,
         branchId: payrollRow.branchId || employee?.branchId || '',
@@ -168,6 +174,11 @@ export default function PayrollEditBoardModal({
   }
 
   const periodLabel = [month, cycle === 'period2' ? 'Kỳ 2' : 'Kỳ 1'].filter(Boolean).join(' · ')
+  const fieldLabel = (type) => (
+    type === PAYROLL_ADJUSTMENT_TYPES.PENALTY
+      ? 'Phạt khác'
+      : PAYROLL_ADJUSTMENT_LABELS[type]
+  )
 
   return (
     <div className="salary-modal" role="dialog" aria-modal="true" aria-labelledby="payroll-edit-title">
@@ -194,12 +205,32 @@ export default function PayrollEditBoardModal({
             <span role="columnheader">Dữ liệu hiện tại</span>
             <span role="columnheader">Giá trị mới</span>
           </div>
+
+          <div className="salary-edit-totals__row salary-edit-totals__row--readonly" role="row">
+            <span role="cell">
+              <strong>Phạt chấm công</strong>
+            </span>
+            <span
+              role="cell"
+              className="salary-edit-totals__current"
+              data-testid="edit-current-attendance-penalty"
+            >
+              {formatCurrency(attendancePenalty)}
+            </span>
+            <span role="cell" className="salary-edit-totals__readonly">
+              Chỉ đọc
+            </span>
+          </div>
+          <p className="salary-board-edit__penalty-hint" data-testid="attendance-penalty-hint">
+            {ATTENDANCE_PENALTY_READONLY_HINT}
+          </p>
+
           {BOARD_FIELDS.map((type) => {
             const current = currentTotals?.[type] ?? 0
             return (
               <div key={type} className="salary-edit-totals__row" role="row">
                 <span role="cell">
-                  <strong>{PAYROLL_ADJUSTMENT_LABELS[type]}</strong>
+                  <strong>{fieldLabel(type)}</strong>
                 </span>
                 <span
                   role="cell"
@@ -210,7 +241,7 @@ export default function PayrollEditBoardModal({
                 </span>
                 <label role="cell">
                   <span className="salary-edit-totals__sr">
-                    Giá trị mới {PAYROLL_ADJUSTMENT_LABELS[type]}
+                    Giá trị mới {fieldLabel(type)}
                   </span>
                   <input
                     required
@@ -222,6 +253,7 @@ export default function PayrollEditBoardModal({
                         ? 'VD: 0 / 200000 / -200000'
                         : 'VD: 100000'
                     }
+                    data-testid={`edit-input-${type}`}
                   />
                 </label>
               </div>
@@ -231,6 +263,10 @@ export default function PayrollEditBoardModal({
 
         {preview && (
           <div className="salary-board-edit__preview" role="status">
+            <div>
+              <span>Tổng phạt (chấm công + khác)</span>
+              <strong>{formatCurrency(preview.nextTotalPenalty)}</strong>
+            </div>
             <div>
               <span>Lương hiện tại</span>
               <strong>{formatCurrency(preview.currentNet)}</strong>

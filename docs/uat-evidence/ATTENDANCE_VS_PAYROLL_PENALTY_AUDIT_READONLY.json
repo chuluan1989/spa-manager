@@ -1,0 +1,411 @@
+{
+  "at": "2026-08-16T20:49:21.876Z",
+  "base": "https://www.khoespa.net.vn",
+  "readOnly": true,
+  "architecture": {
+    "attendanceWritesPayrollAdjustment": false,
+    "evidence": [
+      "attendanceService adminCreate/Update only updates attendance.penalty_amount via recomputeMonthlyPenalties",
+      "afterAttendanceSourceChanged only invalidateClose / post-approval mark — no insertPayrollAdjustment",
+      "payroll_adjustments created only via payrollService.addPayrollAdjustment / saveAdminPayrollBoardEdits",
+      "payrollEngine.computeEmployeePayrollRow: penalty = sumAttendancePenalty + sumAdjustments(PENALTY)",
+      "branchEfficiencyPnl.buildPenaltyPnlItems DEDupes same emp+date+amount; payrollEngine does NOT dedupe",
+      "saveAdminPayrollBoardEdits SET penalty stores adjTarget = displayedTotal - attendancePenalty (manual delta only by design)"
+    ],
+    "syncOnAttendanceChange": false,
+    "reverseOnAttendanceChange": false
+  },
+  "totals": {
+    "penaltyAdjustmentsNonZero": 5,
+    "penaltyAdjustmentsAll": 45,
+    "A_doubleCount": 0,
+    "A_exactDoubleCount": 0,
+    "A_doubleAmount": 0,
+    "A_exactDoubleAmount": 0,
+    "B_orphanHungCount": 5,
+    "B_orphanHungAmount": 900000,
+    "C_manualKeepCount": 0,
+    "C_manualKeepAmount": 0,
+    "D_unknownCount": 0,
+    "D_unknownAmount": 0,
+    "riskMoneyIfEngineAddsBoth_A_exact": 0,
+    "riskMoneyHung_B": 900000
+  },
+  "groups": {
+    "A_exact_double": [],
+    "A_same_date_any": [],
+    "B_orphan_adj": [
+      {
+        "id": "payadj-1786800135828-rsb024",
+        "employeeId": "tram-spa-cherry",
+        "employeeName": "Cherry",
+        "branchId": "bac-lieu",
+        "date": "2026-08-12",
+        "month": "2026-08",
+        "amount": 500000,
+        "reason": "Phạt",
+        "note": "Phạt lúc làm khách 12/8",
+        "createdBy": "branch_manager",
+        "createdByName": "QL Bạc Liêu Khoẻ Spa",
+        "createdAt": "2026-08-15T13:22:15.828+00:00",
+        "updatedAt": "2026-08-15T13:22:15.828+00:00",
+        "payrollCycle": "",
+        "attendanceLike": false,
+        "attPenaltyOnDate": 0,
+        "attStatuses": [
+          {
+            "id": "att-1786550079480-8dwjpu",
+            "status": "on_time",
+            "statusLabel": "Đi làm đúng giờ",
+            "penaltyAmount": 0
+          }
+        ]
+      },
+      {
+        "id": "payadj-1786800211581-6opqia",
+        "employeeId": "tram-spa-cherry",
+        "employeeName": "Cherry",
+        "branchId": "bac-lieu",
+        "date": "2026-08-06",
+        "month": "2026-08",
+        "amount": 100000,
+        "reason": "Phạt",
+        "note": "Phạt off quá phép",
+        "createdBy": "branch_manager",
+        "createdByName": "QL Bạc Liêu Khoẻ Spa",
+        "createdAt": "2026-08-15T13:23:31.581+00:00",
+        "updatedAt": "2026-08-15T13:23:31.581+00:00",
+        "payrollCycle": "",
+        "attendanceLike": true,
+        "attPenaltyOnDate": 0,
+        "attStatuses": []
+      },
+      {
+        "id": "payadj-1786800229645-v048cg",
+        "employeeId": "tram-spa-cherry",
+        "employeeName": "Cherry",
+        "branchId": "bac-lieu",
+        "date": "2026-08-07",
+        "month": "2026-08",
+        "amount": 100000,
+        "reason": "Phạt",
+        "note": "Phạt off quá phép",
+        "createdBy": "branch_manager",
+        "createdByName": "QL Bạc Liêu Khoẻ Spa",
+        "createdAt": "2026-08-15T13:23:49.645+00:00",
+        "updatedAt": "2026-08-15T13:23:49.645+00:00",
+        "payrollCycle": "",
+        "attendanceLike": true,
+        "attPenaltyOnDate": 0,
+        "attStatuses": []
+      },
+      {
+        "id": "payadj-1786800377253-nbeu8b",
+        "employeeId": "bac-lieu-thu-huong",
+        "employeeName": "Thu Hương",
+        "branchId": "bac-lieu",
+        "date": "2026-08-06",
+        "month": "2026-08",
+        "amount": 100000,
+        "reason": "Phạt quá phép",
+        "note": "Phạt off quá phép",
+        "createdBy": "branch_manager",
+        "createdByName": "QL Bạc Liêu Khoẻ Spa",
+        "createdAt": "2026-08-15T13:26:17.253+00:00",
+        "updatedAt": "2026-08-15T13:26:17.254+00:00",
+        "payrollCycle": "",
+        "attendanceLike": true,
+        "attPenaltyOnDate": 0,
+        "attStatuses": [
+          {
+            "id": "att-1786786327870-n0de7y",
+            "status": "full_day_permitted",
+            "statusLabel": "Nghỉ nguyên ngày (Có phép)",
+            "penaltyAmount": 0
+          }
+        ]
+      },
+      {
+        "id": "payadj-1786800394617-1l6bpo",
+        "employeeId": "bac-lieu-thu-huong",
+        "employeeName": "Thu Hương",
+        "branchId": "bac-lieu",
+        "date": "2026-08-07",
+        "month": "2026-08",
+        "amount": 100000,
+        "reason": "Phạt quá phép",
+        "note": "Phạt off quá phép",
+        "createdBy": "branch_manager",
+        "createdByName": "QL Bạc Liêu Khoẻ Spa",
+        "createdAt": "2026-08-15T13:26:34.617+00:00",
+        "updatedAt": "2026-08-15T13:26:34.617+00:00",
+        "payrollCycle": "",
+        "attendanceLike": true,
+        "attPenaltyOnDate": 0,
+        "attStatuses": [
+          {
+            "id": "att-1786786450809-93kvse",
+            "status": "full_day_permitted",
+            "statusLabel": "Nghỉ nguyên ngày (Có phép)",
+            "penaltyAmount": 0
+          }
+        ]
+      }
+    ],
+    "C_manual_keep": [],
+    "C_manual_keep_truncated": false,
+    "D_unknown": []
+  },
+  "thuHuong_08_07": {
+    "adjustment": {
+      "id": "payadj-1786800394617-1l6bpo",
+      "date": "2026-08-07",
+      "month": "2026-08",
+      "branch_id": "bac-lieu",
+      "employee_id": "bac-lieu-thu-huong",
+      "employee_name": "Thu Hương",
+      "type": "penalty",
+      "amount": 100000,
+      "reason": "Phạt quá phép",
+      "note": "Phạt off quá phép",
+      "created_by": "branch_manager",
+      "created_by_name": "QL Bạc Liêu Khoẻ Spa",
+      "created_at": "2026-08-15T13:26:34.617+00:00",
+      "updated_at": "2026-08-15T13:26:34.617+00:00",
+      "expense_id": "",
+      "payroll_cycle": ""
+    },
+    "attendance": [
+      {
+        "id": "att-1786786450809-93kvse",
+        "employeeId": "bac-lieu-thu-huong",
+        "branchId": "bac-lieu",
+        "date": "2026-08-07",
+        "status": "full_day_permitted",
+        "reason": "…",
+        "note": "",
+        "penaltyAmount": 0,
+        "submittedAt": "2026-08-07T01:00:00+00:00",
+        "updatedAt": "2026-08-07T10:00:00+00:00",
+        "createdBy": "",
+        "submittedBy": "",
+        "employeeName": ""
+      }
+    ],
+    "audits": [
+      {
+        "id": "payaudit-1786800394855-rjun4a",
+        "entity_type": "payroll_adjustment",
+        "entity_id": "payadj-1786800394617-1l6bpo",
+        "action": "create",
+        "editor_id": "branch_manager",
+        "editor_name": "QL Bạc Liêu Khoẻ Spa",
+        "old_value": {},
+        "new_value": {
+          "id": "payadj-1786800394617-1l6bpo",
+          "date": "2026-08-07",
+          "note": "Phạt off quá phép",
+          "type": "penalty",
+          "month": "2026-08",
+          "amount": 100000,
+          "reason": "Phạt quá phép",
+          "branchId": "bac-lieu",
+          "createdAt": "2026-08-15T13:26:34.617+00:00",
+          "createdBy": "branch_manager",
+          "expenseId": "",
+          "updatedAt": "2026-08-15T13:26:34.617+00:00",
+          "employeeId": "bac-lieu-thu-huong",
+          "employeeName": "Thu Hương",
+          "payrollCycle": "",
+          "createdByName": "QL Bạc Liêu Khoẻ Spa"
+        },
+        "reason": "Phạt quá phép ",
+        "created_at": "2026-08-15T13:26:34.855+00:00"
+      }
+    ],
+    "fieldAuditsSample": [
+      {
+        "id": "payaudit-1785945864102-0ggua5",
+        "entity_type": "payroll_field",
+        "entity_id": "bac-lieu-thu-huong",
+        "action": "set_field_total",
+        "editor_id": "admin",
+        "editor_name": "Admin",
+        "old_value": {
+          "note": "Ứng 500 ngày 4/8 — chuyển từ Điều chỉnh khác",
+          "cycle": "period1",
+          "month": "2026-08",
+          "value": 0,
+          "branchId": "bac-lieu",
+          "setTotal": true,
+          "adjTarget": 500000,
+          "employeeId": "bac-lieu-thu-huong",
+          "adjustmentId": "payadj-1785945863671-q278fs",
+          "employeeName": "Thu Hương",
+          "fieldChanged": "advance",
+          "payrollPeriod": "2026-08/period1"
+        },
+        "new_value": {
+          "note": "Ứng 500 ngày 4/8 — chuyển từ Điều chỉnh khác",
+          "cycle": "period1",
+          "month": "2026-08",
+          "value": 500000,
+          "branchId": "bac-lieu",
+          "setTotal": true,
+          "adjTarget": 500000,
+          "difference": -500000,
+          "employeeId": "bac-lieu-thu-huong",
+          "adjustmentId": "payadj-1785945863671-q278fs",
+          "employeeName": "Thu Hương",
+          "fieldChanged": "advance",
+          "payrollPeriod": "2026-08/period1"
+        },
+        "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+        "created_at": "2026-08-05T16:04:24.102+00:00"
+      },
+      {
+        "id": "payaudit-1785945863076-wyugyn",
+        "entity_type": "payroll_field",
+        "entity_id": "bac-lieu-thu-huong",
+        "action": "set_field_total",
+        "editor_id": "admin",
+        "editor_name": "Admin",
+        "old_value": {
+          "note": "Ứng 500 ngày 4/8 — chuyển từ Điều chỉnh khác",
+          "cycle": "period1",
+          "month": "2026-08",
+          "value": 500000,
+          "branchId": "bac-lieu",
+          "migration": "other_to_advance",
+          "zeroedIds": [
+            "payadj-1785867587565-martmn"
+          ],
+          "employeeId": "bac-lieu-thu-huong",
+          "legacyOnly": true,
+          "employeeName": "Thu Hương",
+          "fieldChanged": "adjustment",
+          "payrollPeriod": "2026-08/period1"
+        },
+        "new_value": {
+          "note": "Ứng 500 ngày 4/8 — chuyển từ Điều chỉnh khác",
+          "cycle": "period1",
+          "month": "2026-08",
+          "value": 0,
+          "branchId": "bac-lieu",
+          "migration": "other_to_advance",
+          "zeroedIds": [
+            "payadj-1785867587565-martmn"
+          ],
+          "difference": -500000,
+          "employeeId": "bac-lieu-thu-huong",
+          "legacyOnly": true,
+          "employeeName": "Thu Hương",
+          "fieldChanged": "adjustment",
+          "payrollPeriod": "2026-08/period1"
+        },
+        "reason": "Chuyển khoản nhập nhầm từ Điều chỉnh khác sang Ứng lương theo ghi chú ngày 04/08.",
+        "created_at": "2026-08-05T16:04:23.076+00:00"
+      },
+      {
+        "id": "payaudit-1785925706197-ktrx7c",
+        "entity_type": "payroll_field",
+        "entity_id": "bac-lieu-thu-huong",
+        "action": "update_field",
+        "editor_id": "admin",
+        "editor_name": "Admin",
+        "old_value": {
+          "note": "tm",
+          "cycle": "period2",
+          "month": "2026-07",
+          "value": 500000,
+          "branchId": "bac-lieu",
+          "employeeId": "bac-lieu-thu-huong",
+          "adjustmentId": "payadj-1785912537706-zvvz1z",
+          "employeeName": "Thu Hương",
+          "fieldChanged": "advance",
+          "payrollPeriod": "2026-07/period2"
+        },
+        "new_value": {
+          "note": "tm",
+          "cycle": "period2",
+          "month": "2026-07",
+          "value": 0,
+          "branchId": "bac-lieu",
+          "difference": -500000,
+          "employeeId": "bac-lieu-thu-huong",
+          "adjustmentId": "payadj-1785912537706-zvvz1z",
+          "employeeName": "Thu Hương",
+          "fieldChanged": "advance",
+          "payrollPeriod": "2026-07/period2"
+        },
+        "reason": "phạt do bệnh",
+        "created_at": "2026-08-05T10:28:26.197+00:00"
+      },
+      {
+        "id": "payaudit-1785925651128-8qjgdu",
+        "entity_type": "payroll_field",
+        "entity_id": "bac-lieu-thu-huong",
+        "action": "update_field",
+        "editor_id": "admin",
+        "editor_name": "Admin",
+        "old_value": {
+          "note": "tm",
+          "cycle": "period2",
+          "month": "2026-07",
+          "value": 500000,
+          "branchId": "bac-lieu",
+          "employeeId": "bac-lieu-thu-huong",
+          "adjustmentId": "payadj-1785912507089-fvknre",
+          "employeeName": "Thu Hương",
+          "fieldChanged": "bonus",
+          "payrollPeriod": "2026-07/period2"
+        },
+        "new_value": {
+          "note": "tm",
+          "cycle": "period2",
+          "month": "2026-07",
+          "value": 0,
+          "branchId": "bac-lieu",
+          "difference": -500000,
+          "employeeId": "bac-lieu-thu-huong",
+          "adjustmentId": "payadj-1785912507089-fvknre",
+          "employeeName": "Thu Hương",
+          "fieldChanged": "bonus",
+          "payrollPeriod": "2026-07/period2"
+        },
+        "reason": "sai",
+        "created_at": "2026-08-05T10:27:31.128+00:00"
+      }
+    ],
+    "classification": "check",
+    "ifApproveRequest": {
+      "attendancePenaltyAfter": 0,
+      "adjustmentRemains": 100000,
+      "enginePenaltyAfter": 100000,
+      "note": "Duyệt → attendance.penaltyAmount=0; adjustment 100k vẫn còn; lương vẫn trừ 100k từ manual. Hiện tại trước duyệt engine có thể trừ 200k."
+    }
+  },
+  "periodLock_bacLieu_2026_08": {
+    "locks": [
+      {
+        "id": "paylock-2026-08-all",
+        "month": "2026-08",
+        "branch_id": "",
+        "is_locked": false,
+        "locked_at": "2026-08-04T05:29:17.823+00:00",
+        "locked_by": "admin",
+        "locked_by_name": "Admin",
+        "unlocked_at": "2026-08-04T16:23:16.049+00:00",
+        "unlocked_by": "admin",
+        "unlocked_by_name": "Admin",
+        "note": "1"
+      }
+    ],
+    "closes": []
+  },
+  "conclusions": {
+    "adjustmentIsAutoMirrorOfAttendance": false,
+    "adjustmentIsIndependentAdminChannel": true,
+    "whyEngineAddsBoth": "Designed as two channels: attendance SoT auto + Admin manual SET/add. Board SET subtracts attendance when writing adj, but live compute always sums both. Duplicate if Admin entered full amount while attendance already had penalty, or SET used wrong attendancePart=0."
+  }
+}

@@ -1,6 +1,16 @@
 import { useState } from 'react'
-import { MANUAL_ADJUSTMENT_OPTIONS, PAYROLL_ADJUSTMENT_LABELS, PAYROLL_ADJUSTMENT_TYPES } from '../../constants/payrollTypes'
+import {
+  MANUAL_ADJUSTMENT_OPTIONS,
+  PAYROLL_ADJUSTMENT_LABELS,
+  PAYROLL_ADJUSTMENT_TYPES,
+  PAYROLL_PENALTY_CATEGORIES,
+  PAYROLL_PENALTY_CATEGORY_LABELS,
+} from '../../constants/payrollTypes'
 import { isAdmin } from '../../constants/auth'
+import {
+  ATTENDANCE_PENALTY_READONLY_HINT,
+  assertManualPenaltyNotAttendanceMirror,
+} from '../../utils/payrollPenaltyPolicy'
 
 export default function PayrollAdjustmentModal({
   open,
@@ -19,7 +29,9 @@ export default function PayrollAdjustmentModal({
     amount: '',
     reason: '',
     note: '',
+    category: PAYROLL_PENALTY_CATEGORIES.OTHER,
   })
+  const [error, setError] = useState('')
 
   if (!open) return null
 
@@ -30,19 +42,41 @@ export default function PayrollAdjustmentModal({
   })
 
   const selectedEmployee = employees.find((emp) => emp.id === form.employeeId)
+  const isPenalty = form.type === PAYROLL_ADJUSTMENT_TYPES.PENALTY
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    setError('')
     const amount = Number(String(form.amount).replace(/\D/g, ''))
     if (!form.employeeId || !amount || !form.reason.trim()) return
-    await onSubmit({
-      ...form,
-      amount,
-      branchId: selectedEmployee?.branchId ?? defaultBranchId,
-      employeeName: selectedEmployee?.name ?? '',
-      month: defaultMonth,
-    })
-    onClose()
+
+    if (isPenalty) {
+      const gate = assertManualPenaltyNotAttendanceMirror({
+        type: form.type,
+        reason: form.reason,
+        note: form.note,
+        category: form.category,
+      })
+      if (gate.blocked) {
+        setError(gate.message)
+        return
+      }
+    }
+
+    try {
+      await onSubmit({
+        ...form,
+        amount,
+        branchId: selectedEmployee?.branchId ?? defaultBranchId,
+        employeeName: selectedEmployee?.name ?? '',
+        month: defaultMonth,
+        category: isPenalty ? form.category : undefined,
+        source: 'manual',
+      })
+      onClose()
+    } catch (err) {
+      setError(err?.message || 'Không thể lưu khoản phát sinh.')
+    }
   }
 
   return (
@@ -80,6 +114,27 @@ export default function PayrollAdjustmentModal({
           </select>
         </label>
 
+        {isPenalty && (
+          <>
+            <p className="salary-board-edit__penalty-hint" data-testid="manual-penalty-hint">
+              {ATTENDANCE_PENALTY_READONLY_HINT}
+            </p>
+            <label>
+              Nhóm phạt khác
+              <select
+                required
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                data-testid="penalty-category"
+              >
+                {Object.entries(PAYROLL_PENALTY_CATEGORY_LABELS).map(([id, label]) => (
+                  <option key={id} value={id}>{label}</option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
+
         <label>
           Ngày
           <input
@@ -107,6 +162,7 @@ export default function PayrollAdjustmentModal({
             required
             value={form.reason}
             onChange={(e) => setForm({ ...form, reason: e.target.value })}
+            placeholder={isPenalty ? 'VD: Phạt lúc làm khách' : ''}
           />
         </label>
 
@@ -118,6 +174,8 @@ export default function PayrollAdjustmentModal({
             onChange={(e) => setForm({ ...form, note: e.target.value })}
           />
         </label>
+
+        {error && <p className="salary-page__error" data-testid="penalty-block-error">{error}</p>}
 
         <footer>
           <button type="button" onClick={onClose}>Huỷ</button>

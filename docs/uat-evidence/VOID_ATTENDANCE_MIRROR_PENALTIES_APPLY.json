@@ -1,0 +1,43 @@
+{
+  "at": "2026-08-16T21:14:16.862Z",
+  "apply": false,
+  "applied": false,
+  "actions": [
+    {
+      "id": "payadj-1786800377253-nbeu8b",
+      "plan": "void_or_stamp",
+      "amount": 0,
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026"
+    },
+    {
+      "id": "payadj-1786800394617-1l6bpo",
+      "plan": "void_or_stamp",
+      "amount": 0,
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026"
+    },
+    {
+      "id": "payadj-1786800211581-6opqia",
+      "plan": "void_or_stamp",
+      "amount": 0,
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026"
+    },
+    {
+      "id": "payadj-1786800229645-v048cg",
+      "plan": "void_or_stamp",
+      "amount": 0,
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026"
+    },
+    {
+      "id": "payadj-1786800135828-rsb024",
+      "plan": "restore_500k_if_zero",
+      "amount": 500000
+    },
+    {
+      "id": "payadj-1786913796088-nsz4dm",
+      "plan": "zero_if_500_duplicate",
+      "amount": 0
+    }
+  ],
+  "errors": [],
+  "note": "DRY-RUN — set APPLY=1 to write"
+}

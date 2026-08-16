@@ -1,0 +1,172 @@
+{
+  "at": "2026-08-16T21:16:08.043Z",
+  "pass": true,
+  "checks": {
+    "mirrorsZero": true,
+    "cherry12_500": true,
+    "cherry15_zero": true,
+    "cherryNote": true,
+    "auditAtLeast6": true
+  },
+  "rows": {
+    "payadj-1786800135828-rsb024": {
+      "id": "payadj-1786800135828-rsb024",
+      "employee_id": "tram-spa-cherry",
+      "amount": 500000,
+      "reason": "Phạt lúc làm khách",
+      "note": "Phạt lúc làm khách 12/8",
+      "date": "2026-08-12",
+      "category": "service",
+      "source": "manual"
+    },
+    "payadj-1786800211581-6opqia": {
+      "id": "payadj-1786800211581-6opqia",
+      "employee_id": "tram-spa-cherry",
+      "amount": 0,
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026",
+      "note": "Phạt off quá phép | voided",
+      "date": "2026-08-06",
+      "category": "other",
+      "source": "manual"
+    },
+    "payadj-1786800229645-v048cg": {
+      "id": "payadj-1786800229645-v048cg",
+      "employee_id": "tram-spa-cherry",
+      "amount": 0,
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026",
+      "note": "Phạt off quá phép | voided",
+      "date": "2026-08-07",
+      "category": "other",
+      "source": "manual"
+    },
+    "payadj-1786800377253-nbeu8b": {
+      "id": "payadj-1786800377253-nbeu8b",
+      "employee_id": "bac-lieu-thu-huong",
+      "amount": 0,
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026",
+      "note": "Phạt off quá phép | voided",
+      "date": "2026-08-06",
+      "category": "other",
+      "source": "manual"
+    },
+    "payadj-1786800394617-1l6bpo": {
+      "id": "payadj-1786800394617-1l6bpo",
+      "employee_id": "bac-lieu-thu-huong",
+      "amount": 0,
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026",
+      "note": "Phạt off quá phép | voided",
+      "date": "2026-08-07",
+      "category": "other",
+      "source": "manual"
+    },
+    "payadj-1786913796088-nsz4dm": {
+      "id": "payadj-1786913796088-nsz4dm",
+      "employee_id": "tram-spa-cherry",
+      "amount": 0,
+      "reason": "Hủy bản ghi trùng — giữ phạt làm khách ngày 12/08 (payadj-1786800135828-rsb024)",
+      "note": "| superseded_by_12_08",
+      "date": "2026-08-15",
+      "category": "other",
+      "source": "manual"
+    }
+  },
+  "audits": [
+    {
+      "id": "payaudit-1786914829368-ep0i4s",
+      "entity_id": "payadj-1786913796088-nsz4dm",
+      "reason": "Hủy bản ghi trùng — giữ phạt làm khách ngày 12/08 (payadj-1786800135828-rsb024)",
+      "created_at": "2026-08-16T21:13:49.440Z"
+    },
+    {
+      "id": "payaudit-1786914829040-a83puh",
+      "entity_id": "payadj-1786800135828-rsb024",
+      "reason": "Phạt lúc làm khách",
+      "created_at": "2026-08-16T21:13:49.122Z"
+    },
+    {
+      "id": "payaudit-1786914828735-77nfnn",
+      "entity_id": "payadj-1786800229645-v048cg",
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026",
+      "created_at": "2026-08-16T21:13:48.822Z"
+    },
+    {
+      "id": "payaudit-1786914828454-0l4kv7",
+      "entity_id": "payadj-1786800211581-6opqia",
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026",
+      "created_at": "2026-08-16T21:13:48.523Z"
+    },
+    {
+      "id": "payaudit-1786914828171-85goli",
+      "entity_id": "payadj-1786800394617-1l6bpo",
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026",
+      "created_at": "2026-08-16T21:13:48.240Z"
+    },
+    {
+      "id": "payaudit-1786914827780-sa89ov",
+      "entity_id": "payadj-1786800377253-nbeu8b",
+      "reason": "Hủy phạt off nhập tay do chấm công là nguồn chính thức tính phạt - đối soát Aug 2026",
+      "created_at": "2026-08-16T21:13:47.852Z"
+    },
+    {
+      "id": "payaudit-1786913796374-gpmnj9",
+      "entity_id": "payadj-1786913796088-nsz4dm",
+      "reason": "nhầm",
+      "created_at": "2026-08-16T20:56:36.374Z"
+    },
+    {
+      "id": "payaudit-1786913795762-00ce8s",
+      "entity_id": "payadj-1786800135828-rsb024",
+      "reason": "nhầm",
+      "created_at": "2026-08-16T20:56:35.762Z"
+    },
+    {
+      "id": "payaudit-1786913795239-kiyfwo",
+      "entity_id": "payadj-1786800229645-v048cg",
+      "reason": "nhầm",
+      "created_at": "2026-08-16T20:56:35.239Z"
+    },
+    {
+      "id": "payaudit-1786913794558-dwr7rb",
+      "entity_id": "payadj-1786800211581-6opqia",
+      "reason": "nhầm",
+      "created_at": "2026-08-16T20:56:34.558Z"
+    },
+    {
+      "id": "payaudit-1786800394855-rjun4a",
+      "entity_id": "payadj-1786800394617-1l6bpo",
+      "reason": "Phạt quá phép ",
+      "created_at": "2026-08-15T13:26:34.855Z"
+    },
+    {
+      "id": "payaudit-1786800377411-53bds5",
+      "entity_id": "payadj-1786800377253-nbeu8b",
+      "reason": "Phạt quá phép ",
+      "created_at": "2026-08-15T13:26:17.411Z"
+    }
+  ],
+  "live": {
+    "cherry": {
+      "attendancePenalty": 0,
+      "manualPenalty": 500000,
+      "payrollPenalty": 500000,
+      "pnlTotal": 500000,
+      "parity": true,
+      "nonZeroManual": [
+        {
+          "id": "payadj-1786800135828-rsb024",
+          "amount": 500000,
+          "date": "2026-08-12",
+          "reason": "Phạt lúc làm khách"
+        }
+      ]
+    },
+    "thuHuong": {
+      "attendancePenalty": 100000,
+      "manualPenalty": 0,
+      "payrollPenalty": 100000,
+      "pnlTotal": 100000,
+      "parity": true,
+      "nonZeroManual": []
+    }
+  }
+}
