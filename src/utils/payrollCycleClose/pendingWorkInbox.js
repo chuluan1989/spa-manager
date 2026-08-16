@@ -169,7 +169,7 @@ export async function loadPendingWorkInbox() {
     })
 
   const correctionItems = (corrections ?? []).map((row) => {
-    const submittedAt = row.submittedAt || row.createdAt || row.updatedAt || ''
+    const submittedAt = row.requestedAt || row.submittedAt || row.createdAt || row.updatedAt || ''
     return {
       id: `acr:${row.id}`,
       type: PENDING_WORK_TYPES.ATTENDANCE_CORRECTION,

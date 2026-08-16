@@ -1,0 +1,151 @@
+{
+  "passed": true,
+  "failed": 0,
+  "total": 17,
+  "results": [
+    {
+      "id": "SRC1",
+      "name": "Approve không còn quyết định CREATE chỉ vì type===create",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "SRC2",
+      "name": "Approve: live → update; không live → create",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "SRC3",
+      "name": "Inbox map requestedAt trước submittedAt",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "A",
+      "name": "create request + live attendance → UPDATE (không INSERT)",
+      "pass": true,
+      "detail": {
+        "path": "update",
+        "request": {
+          "type": "create",
+          "attendanceId": "",
+          "employeeId": "bac-lieu-thu-huong",
+          "date": "2026-08-14"
+        },
+        "live": {
+          "id": "att-1786786524559-1f4uy3",
+          "employeeId": "bac-lieu-thu-huong",
+          "date": "2026-08-14",
+          "status": "full_day_permitted"
+        }
+      }
+    },
+    {
+      "id": "B",
+      "name": "create request + chưa có attendance → CREATE",
+      "pass": true,
+      "detail": {
+        "path": "create"
+      }
+    },
+    {
+      "id": "C",
+      "name": "update request + live → UPDATE",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "D",
+      "name": "rejectAttendanceEditRequest vẫn tồn tại",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "E",
+      "name": "adminCreateAttendance vẫn chặn trùng NV+ngày",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "F1",
+      "name": "requestedAt → submittedAt không rỗng",
+      "pass": true,
+      "detail": {
+        "submittedAt": "2026-08-15T09:22:59.418+00:00"
+      }
+    },
+    {
+      "id": "F2",
+      "name": "không có timestamp → rỗng (UI sẽ —)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "TH-2026-08-14",
+      "name": "Thu Hương 2026-08-14: path=update",
+      "pass": true,
+      "detail": {
+        "id": "acr-fed74906-f063-4962-8401-6bb11b8031e1",
+        "type": "create",
+        "attendanceId": "",
+        "liveStatus": "full_day_permitted",
+        "proposedStatus": null,
+        "path": "update"
+      }
+    },
+    {
+      "id": "TH-2026-08-07",
+      "name": "Thu Hương 2026-08-07: path=update",
+      "pass": true,
+      "detail": {
+        "id": "acr-44ceed12-21e9-4b90-a894-3d1ca200a00d",
+        "type": "create",
+        "attendanceId": "",
+        "liveStatus": "full_day_unpermitted",
+        "proposedStatus": "full_day_permitted",
+        "path": "update"
+      }
+    },
+    {
+      "id": "TH-2026-08-06",
+      "name": "Thu Hương 2026-08-06: path=update",
+      "pass": true,
+      "detail": {
+        "id": "acr-661ae0ba-95f7-40c0-a5e5-8434c8facb28",
+        "type": "create",
+        "attendanceId": "",
+        "liveStatus": "on_time",
+        "proposedStatus": null,
+        "path": "update"
+      }
+    },
+    {
+      "id": "TH-08-07-note",
+      "name": "08-07: duyệt sẽ UPDATE unpermitted→proposed (không tạo bản ghi mới); penalty theo adminUpdateAttendance hiện có",
+      "pass": true,
+      "detail": {
+        "livePenalty": 100000
+      }
+    },
+    {
+      "id": "REG1",
+      "name": "Báo cáo Yêu cầu NV vẫn gọi approve/reject",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "REG2",
+      "name": "AttendanceEditRequestsPanel vẫn gọi approve/reject",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "REG3",
+      "name": "Không đụng payroll formula / KPI engine trong diff scope (source markers)",
+      "pass": true,
+      "detail": {}
+    }
+  ],
+  "note": "Không duyệt 3 request Thu Hương trên Production trong UAT này."
+}

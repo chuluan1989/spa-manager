@@ -449,8 +449,28 @@ export async function approveAttendanceEditRequest(requestId, {
   const updatedAt = combineDateAndTime(request.date, checkOut, submittedAt) || submittedAt
   const editNote = String(reviewNote || '').trim() || 'Duyệt yêu cầu bổ sung chấm công của nhân viên'
 
+  // SoT create/update = attendance thật của NV trong ngày (không dựa request.type / attendanceId rỗng).
+  const live = await fetchAttendanceByEmployeeAndDate(request.employeeId, request.date)
+  if (live && live.employeeId && live.employeeId !== request.employeeId) {
+    throw new Error('Không được cập nhật chấm công của nhân viên khác.')
+  }
+  if (live && live.date && live.date !== request.date) {
+    throw new Error('Bản ghi chấm công không khớp ngày yêu cầu.')
+  }
+
   let attendanceResult = null
-  if (request.type === 'create' || !request.attendanceId) {
+  if (live) {
+    attendanceResult = await adminUpdateAttendance({
+      record: live,
+      nextStatus: status,
+      nextReason: reason,
+      nextNote: note,
+      nextSubmittedAt: submittedAt || live.submittedAt,
+      nextUpdatedAt: updatedAt || live.updatedAt,
+      editNote,
+      editor,
+    })
+  } else {
     attendanceResult = await adminCreateAttendance({
       employeeId: request.employeeId,
       employeeName: request.employeeName,
@@ -464,34 +484,6 @@ export async function approveAttendanceEditRequest(requestId, {
       editNote,
       editor,
     })
-  } else {
-    const live = await fetchAttendanceByEmployeeAndDate(request.employeeId, request.date)
-    if (!live) {
-      attendanceResult = await adminCreateAttendance({
-        employeeId: request.employeeId,
-        employeeName: request.employeeName,
-        branchId: request.branchId,
-        date: request.date,
-        status,
-        reason,
-        note,
-        submittedAt: submittedAt || undefined,
-        updatedAt: updatedAt || undefined,
-        editNote,
-        editor,
-      })
-    } else {
-      attendanceResult = await adminUpdateAttendance({
-        record: live,
-        nextStatus: status,
-        nextReason: reason,
-        nextNote: note,
-        nextSubmittedAt: submittedAt || live.submittedAt,
-        nextUpdatedAt: updatedAt || live.updatedAt,
-        editNote,
-        editor,
-      })
-    }
   }
 
   const before = { ...request }
