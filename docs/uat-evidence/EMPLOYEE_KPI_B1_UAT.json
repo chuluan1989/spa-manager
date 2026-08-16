@@ -1309,7 +1309,7 @@
       "pass": true,
       "detail": {
         "closed": {
-          "id": "kpi-pol-1786908730712-y2av7b",
+          "id": "kpi-pol-1786910905402-sumjwf",
           "branchId": "soc-trang",
           "effectiveFrom": "2026-08-01",
           "effectiveTo": "2026-08-14",
@@ -1319,16 +1319,16 @@
           "requestedTarget": 0.2,
           "status": "superseded",
           "createdBy": "admin",
-          "createdAt": "2026-08-16T19:32:10.712Z",
+          "createdAt": "2026-08-16T20:08:25.402Z",
           "updatedBy": "admin",
-          "updatedAt": "2026-08-16T19:32:10.713Z",
+          "updatedAt": "2026-08-16T20:08:25.403Z",
           "changeReason": "seed"
         },
         "log": {
-          "id": "kpi-log-1786908730714-4fc9cz",
+          "id": "kpi-log-1786910905404-s75mob",
           "branchId": "soc-trang",
           "oldPolicy": {
-            "id": "kpi-pol-1786908730712-y2av7b",
+            "id": "kpi-pol-1786910905402-sumjwf",
             "branchId": "soc-trang",
             "effectiveFrom": "2026-08-01",
             "effectiveTo": null,
@@ -1338,13 +1338,13 @@
             "requestedTarget": 0.2,
             "status": "active",
             "createdBy": "admin",
-            "createdAt": "2026-08-16T19:32:10.712Z",
+            "createdAt": "2026-08-16T20:08:25.402Z",
             "updatedBy": "admin",
-            "updatedAt": "2026-08-16T19:32:10.713Z",
+            "updatedAt": "2026-08-16T20:08:25.403Z",
             "changeReason": "seed"
           },
           "newPolicy": {
-            "id": "kpi-pol-1786908730713-r92rjn",
+            "id": "kpi-pol-1786910905403-hdewhb",
             "branchId": "soc-trang",
             "effectiveFrom": "2026-08-15",
             "effectiveTo": null,
@@ -1354,16 +1354,16 @@
             "requestedTarget": 0.2,
             "status": "active",
             "createdBy": "admin",
-            "createdAt": "2026-08-16T19:32:10.713Z",
+            "createdAt": "2026-08-16T20:08:25.403Z",
             "updatedBy": "admin",
-            "updatedAt": "2026-08-16T19:32:10.713Z",
+            "updatedAt": "2026-08-16T20:08:25.403Z",
             "changeReason": "mid-month"
           },
           "effectiveFrom": "2026-08-15",
           "effectiveTo": null,
           "actorId": "admin",
           "reason": "mid-month",
-          "timestamp": "2026-08-16T19:32:10.714Z"
+          "timestamp": "2026-08-16T20:08:25.404Z"
         }
       }
     },

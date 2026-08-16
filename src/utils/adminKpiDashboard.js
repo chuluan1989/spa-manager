@@ -43,14 +43,14 @@ export function buildAdminEmployeeKpiRow(model, { homeBranchId = '', homeBranchN
     cards,
     met: summary.met,
     total: summary.total,
-    scoreLabel: summary.noPolicy ? '—' : `${summary.met}/${summary.total}`,
+    scoreLabel: summary.noPolicy ? '—' : `Đạt ${summary.met}/${summary.total} KPI`,
     headline: summary.headline,
     rowStatus,
     rowStatusLabel:
-      rowStatus === 'MET' ? 'ĐẠT KPI'
-        : rowStatus === 'INSUFFICIENT_DATA' ? 'CHƯA ĐỦ DỮ LIỆU'
+      rowStatus === 'MET' ? 'Đạt 4/4 KPI'
+        : rowStatus === 'INSUFFICIENT_DATA' ? 'Chưa đủ dữ liệu'
           : rowStatus === 'NO_POLICY' ? 'Chưa có chính sách KPI kỳ này'
-            : 'CHƯA ĐẠT',
+            : `Đạt ${summary.met}/${summary.total} KPI`,
     model,
   }
 }
@@ -91,8 +91,8 @@ export function buildAdminKpiDashboard(invoices = [], {
   }).sort((a, b) => a.homeBranchName.localeCompare(b.homeBranchName) || a.employeeName.localeCompare(b.employeeName))
 
   const branches = KPI_SCOPE_BRANCH_IDS.map((branchId) => {
-    // NV có contribution tại serving branch này (không chỉ home)
-    const branchRows = rows.filter((r) => r.servingBranchIds.includes(branchId))
+    // Roster CN = employee.branchId hiện tại (không dùng invoice serving)
+    const branchRows = rows.filter((r) => r.homeBranchId === branchId)
     const metAll = branchRows.filter((r) => r.rowStatus === 'MET')
     return {
       branchId,
@@ -142,12 +142,18 @@ export function buildAdminKpiDashboard(invoices = [], {
   }
 }
 
+/**
+ * Lọc bảng Admin KPI.
+ * branchId mặc định = home (employee.branchId hiện tại).
+ * Không dùng invoice.branchId / serving để xác định NV thuộc CN.
+ * homeOrServing: 'home' | 'serving' | 'either' — giữ serving/either cho audit cũ.
+ */
 export function filterAdminKpiRows(rows = [], {
   branchId = '',
   employeeId = '',
   status = '',
   kpiKey = '',
-  homeOrServing = 'either',
+  homeOrServing = 'home',
 } = {}) {
   return rows.filter((row) => {
     if (employeeId && row.employeeId !== employeeId) return false
@@ -165,6 +171,45 @@ export function filterAdminKpiRows(rows = [], {
     }
     return true
   })
+}
+
+/** Hiển thị ô KPI: actual / mẫu số = % + mục tiêu + Đạt|Còn thiếu — lấy từ card engine. */
+export function formatAdminKpiMetricCell(card) {
+  if (!card) {
+    return {
+      ratioLine: '—',
+      targetLine: '',
+      hintLine: '—',
+      tone: 'neutral',
+    }
+  }
+  const actual = card.actual
+  const denominator = card.denominator
+  const hasRatio = Number.isFinite(actual) && Number.isFinite(denominator)
+  const ratioLine = hasRatio
+    ? `${actual} / ${denominator} = ${card.rateLabel}`
+    : (card.rateLabel || '—')
+  const targetLine = card.target != null && Number.isFinite(card.target)
+    ? `Mục tiêu ≥ ${card.targetLabel}`
+    : (card.status === KPI_STATUS.NO_POLICY ? 'Chưa có chính sách KPI' : '')
+  let hintLine = '—'
+  let tone = 'neutral'
+  if (card.status === KPI_STATUS.MET) {
+    hintLine = 'Đạt'
+    tone = 'met'
+  } else if (card.status === KPI_STATUS.NOT_MET) {
+    hintLine = card.missing == null ? 'Chưa đạt' : `Còn thiếu ${card.missing}`
+    tone = 'miss'
+  } else if (card.status === KPI_STATUS.NO_POLICY) {
+    hintLine = 'Chưa có chính sách KPI'
+    tone = 'neutral'
+  } else if (card.status === KPI_STATUS.INSUFFICIENT_DATA) {
+    hintLine = 'Chưa đủ dữ liệu'
+    tone = 'neutral'
+  } else {
+    hintLine = card.missingText || card.statusLabel || '—'
+  }
+  return { ratioLine, targetLine, hintLine, tone }
 }
 
 export function percentInputToDecimal(value) {

@@ -1,0 +1,49 @@
+{
+  "readOnly": true,
+  "wroteProduction": false,
+  "committed": false,
+  "deployed": false,
+  "rootCause": {
+    "file": "src/pages/AdminKpi.jsx",
+    "call": "filterAdminKpiRows(..., { homeOrServing: 'either' })",
+    "effect": "Filter CN khớp home HOẶC serving (invoice.branchId) → Trạm/Sóc Trăng lẫn nhau"
+  },
+  "fix": {
+    "defaultHomeOrServing": "home",
+    "sourceOfTruth": "employee.branchId từ employee master (loadEmployees / emp.branchId)",
+    "engineUnchanged": true
+  },
+  "aug2026HomeRosterPreview": {
+    "socTrang": {
+      "count": 6,
+      "names": ["Bảo Trân", "Chị 7", "Huỳnh Anh", "Kim Quyên", "Ly Ly", "Trúc Ly"]
+    },
+    "tramSpa": {
+      "count": 5,
+      "names": ["Huỳnh", "Lan Anh", "Ngọc Trân", "Như Hà", "Thanh"]
+    },
+    "overlap": [],
+    "independent": true
+  },
+  "prodOldEitherFilterEvidence": {
+    "socCount": 11,
+    "tramCount": 12,
+    "overlapSample": ["Bảo Trân", "Chị 7", "Kim Quyên", "Ly Ly", "Huỳnh", "Lan Anh", "Như Hà", "Thanh"]
+  },
+  "crossBranchLyLy": {
+    "homeBranchId": "soc-trang",
+    "inSocFilter": true,
+    "inTramFilter": false,
+    "servingBranches": ["Trạm Spa", "Sóc Trăng Khoẻ Spa"],
+    "serviceLines": 46
+  },
+  "fixtureUat": {
+    "b1": "34/34",
+    "b2": "25/25",
+    "b3": "26/26",
+    "b4": "49/49",
+    "sotExport": "18/18"
+  },
+  "screenshot": "docs/uat-evidence/ADMIN_KPI_HOTFIX_TABLE_ST.png",
+  "pass": true
+}

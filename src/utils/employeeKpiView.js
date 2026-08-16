@@ -41,10 +41,10 @@ export function formatTargetPercent(target) {
 }
 
 export function kpiStatusLabel(status) {
-  if (status === KPI_STATUS.MET) return 'ĐẠT'
-  if (status === KPI_STATUS.NOT_MET) return 'CHƯA ĐẠT'
-  if (status === KPI_STATUS.INSUFFICIENT_DATA) return 'CHƯA ĐỦ DỮ LIỆU'
-  if (status === KPI_STATUS.NOT_APPLICABLE) return 'KHÔNG ÁP DỤNG'
+  if (status === KPI_STATUS.MET) return 'Đạt'
+  if (status === KPI_STATUS.NOT_MET) return 'Chưa đạt'
+  if (status === KPI_STATUS.INSUFFICIENT_DATA) return 'Chưa đủ dữ liệu'
+  if (status === KPI_STATUS.NOT_APPLICABLE) return 'Không áp dụng'
   if (status === KPI_STATUS.NO_POLICY) return 'Chưa có chính sách KPI kỳ này'
   return status || '—'
 }
@@ -114,9 +114,9 @@ export function buildKpiCardModel(def, kpi, counts) {
   if (status === KPI_STATUS.NO_POLICY) {
     missingText = 'Chưa có chính sách KPI kỳ này'
   } else if (status === KPI_STATUS.INSUFFICIENT_DATA) {
-    missingText = isRequested ? 'Chưa có hóa đơn trong kỳ' : 'Chưa có dịch vụ chính (MAIN = 0)'
+    missingText = isRequested ? 'Chưa có hóa đơn trong kỳ' : 'Chưa có dịch vụ chính'
   } else if (status === KPI_STATUS.MET) {
-    missingText = 'ĐẠT'
+    missingText = 'Đạt'
   } else if (missing == null) {
     missingText = 'Chưa tính được số còn thiếu'
   } else {
@@ -158,7 +158,7 @@ export function summarizeOverallKpis(overall) {
   const allMet = evaluable.length === total && met === total
   const headline = noPolicy
     ? 'Chưa có chính sách KPI kỳ này'
-    : allMet ? 'ĐẠT KPI' : 'CHƯA ĐẠT KPI'
+    : allMet ? 'Đạt KPI' : 'Chưa đạt KPI'
   return { cards, met, total, headline, allMet, noPolicy }
 }
 

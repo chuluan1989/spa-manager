@@ -160,7 +160,14 @@ check(7, 'Filter tháng đúng (bounds)', fromDate === '2026-08-01' && toDate ==
 
 {
   const f = filterAdminKpiRows(dash.rows, { branchId: 'tram-spa' })
-  check(8, 'Filter CN đúng', f.length === 1 && f[0].employeeId === 'emp-lyly', { n: f.length })
+  check(8, 'Filter CN theo employee.branchId (home)', f.length === 0, {
+    n: f.length,
+    note: 'Ly Ly home=soc-trang dù có HĐ tram-spa',
+  })
+  const soc = filterAdminKpiRows(dash.rows, { branchId: 'soc-trang' })
+  check('8b', 'Filter Sóc Trăng có Ly Ly (home)', soc.length === 1 && soc[0].employeeId === 'emp-lyly', {
+    ids: soc.map((r) => r.employeeId),
+  })
 }
 
 {
@@ -257,7 +264,7 @@ check(13, 'Policy Aug vẫn 70/10/30/20', augPolicies.every((p) =>
   const { exportAdminKpiCsv } = await import('../src/utils/adminKpiExport.js')
   // CSV uses DOM — verify matrix via reading source + percent helpers instead when no document
   const src = readFileSync(join(ROOT, 'src/utils/adminKpiExport.js'), 'utf8')
-  check(19, 'Export CSV đúng (module + headers)', src.includes('downloadCsv') && src.includes('Đạt /4') && src.includes('Trạng thái'), {})
+  check(19, 'Export CSV đúng (module + headers)', src.includes('downloadCsv') && src.includes('Kết quả') && src.includes('Trạng thái') && src.includes('Chi nhánh hiện tại'), {})
   check(20, 'Export Excel đúng (module)', src.includes('exportAdminKpiExcel') && src.includes('loadExcelJS') && src.includes('.xlsx'), {})
 }
 

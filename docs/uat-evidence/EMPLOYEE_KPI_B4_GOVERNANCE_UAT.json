@@ -143,7 +143,7 @@
       "detail": [
         {
           "servingBranchId": "soc-trang",
-          "policyId": "kpi-pol-1786908731414-1k7ue7",
+          "policyId": "kpi-pol-1786910152563-r7qwql",
           "source": "versioned",
           "effectiveFrom": "2026-09-01",
           "effectiveTo": null,
@@ -414,34 +414,34 @@
         "cells": {
           "addon": {
             "rate": "0%",
-            "status": "CHƯA ĐẠT",
+            "status": "Chưa đạt",
             "missing": "2",
             "target": "70%",
             "actual": "0/2"
           },
           "advanced": {
             "rate": "50%",
-            "status": "CHƯA ĐẠT",
+            "status": "Chưa đạt",
             "missing": "1",
             "target": "10%",
             "actual": "1/2"
           },
           "combo": {
             "rate": "0%",
-            "status": "CHƯA ĐẠT",
+            "status": "Chưa đạt",
             "missing": "2",
             "target": "30%",
             "actual": "0/2"
           },
           "requested": {
             "rate": "0%",
-            "status": "CHƯA ĐẠT",
+            "status": "Chưa đạt",
             "missing": "2",
             "target": "20%",
             "actual": "0/2"
           }
         },
-        "score": "0/4"
+        "score": "Đạt 0/4 KPI"
       }
     },
     {

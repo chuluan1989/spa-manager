@@ -132,10 +132,14 @@ const dash = buildAdminKpiDashboard(invoices, {
 check('B1', 'Admin August counts chỉ HĐ Aug (không Jul)', dash.system.counts.totalInvoices === 5, dash.system.counts)
 
 {
-  const soc = filterAdminKpiRows(dash.rows, { branchId: 'soc-trang', homeOrServing: 'either' })
-  const ids = soc.map((r) => r.employeeId).sort()
-  // emp-lyly (home ST + serving ST), emp-tran (ST) — emp-tram only tram-spa
-  check('C1', 'Sóc Trăng từ Invoice serving SoT', ids.includes('emp-lyly') && ids.includes('emp-tran') && !ids.includes('emp-tram'), { ids })
+  const soc = filterAdminKpiRows(dash.rows, { branchId: 'soc-trang', homeOrServing: 'home' })
+  const tram = filterAdminKpiRows(dash.rows, { branchId: 'tram-spa', homeOrServing: 'home' })
+  const socIds = soc.map((r) => r.employeeId).sort()
+  const tramIds = tram.map((r) => r.employeeId).sort()
+  // emp-lyly home ST (có HĐ Trạm) — chỉ roster ST; emp-tran ST; emp-tram chỉ Trạm
+  check('C1', 'Sóc Trăng = employee.branchId home', socIds.includes('emp-lyly') && socIds.includes('emp-tran') && !socIds.includes('emp-tram'), { socIds })
+  check('C1b', 'Trạm không lẫn Ly Ly (home ST)', !tramIds.includes('emp-lyly') && tramIds.includes('emp-tram'), { tramIds })
+  check('C1c', 'Roster ST và Trạm độc lập', JSON.stringify(socIds) !== JSON.stringify(tramIds), { socIds, tramIds })
 }
 
 {

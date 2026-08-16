@@ -91,13 +91,14 @@
     "range": {
       "monthYm": "2026-08",
       "fromDate": "2026-08-01",
-      "toDate": "2026-08-17",
+      "toDate": "2026-08-31",
       "calendarToDate": "2026-08-31",
-      "clippedToToday": true,
-      "rangeLabel": "2026-08-01 → 2026-08-17 (đến hôm nay; tháng lịch đến 2026-08-31)"
+      "clippedToToday": false,
+      "dataAsOfHint": "2026-08-17",
+      "rangeLabel": "2026-08-01 → 2026-08-31 (tháng đủ Kỳ 1+2; HĐ thực tế đến 2026-08-17)"
     },
-    "fetch": 685,
-    "adminHD": 685,
+    "fetch": 686,
+    "adminHD": 686,
     "nv": 32
   },
   "augFullMonth": {
@@ -107,6 +108,7 @@
       "toDate": "2026-08-31",
       "calendarToDate": "2026-08-31",
       "clippedToToday": false,
+      "dataAsOfHint": null,
       "rangeLabel": "2026-08-01 → 2026-08-31"
     },
     "fetch": 686,
@@ -148,6 +150,7 @@
       "toDate": "2026-07-31",
       "calendarToDate": "2026-07-31",
       "clippedToToday": false,
+      "dataAsOfHint": null,
       "rangeLabel": "2026-07-01 → 2026-07-31"
     },
     "fetch": 1348,
@@ -201,8 +204,8 @@
     ]
   },
   "perf": {
-    "fetchMs": 890,
-    "buildMs": 20
+    "fetchMs": 834,
+    "buildMs": 14
   },
   "pass": true
 }

@@ -386,7 +386,7 @@ function runThreeWay(invoices, policies, tag) {
   const exportSrc = readFileSync(join(ROOT, 'src/utils/adminKpiExport.js'), 'utf8')
   check('11', 'Export cells MATCH Admin UI cards', match
     && exportSrc.includes('formatAdminKpiCell')
-    && exportSrc.includes('Đạt /4'), { cells, score: row.scoreLabel })
+    && (exportSrc.includes('Kết quả') || exportSrc.includes('Đạt')), { cells, score: row.scoreLabel })
 }
 
 // ——— 12. Auth / data scope ———

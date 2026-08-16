@@ -7,7 +7,7 @@ import {
   getCurrentUserName,
   isAdmin,
 } from '../constants/auth'
-import { KPI_SCOPE_BRANCH_IDS, KPI_STATUS } from '../constants/kpiPolicy'
+import { KPI_SCOPE_BRANCH_IDS } from '../constants/kpiPolicy'
 import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import {
   fetchKpiBranchPolicies,
@@ -18,6 +18,7 @@ import {
   buildAdminKpiDashboard,
   decimalToPercentInput,
   filterAdminKpiRows,
+  formatAdminKpiMetricCell,
   percentInputToDecimal,
   EMPLOYEE_KPI_CARD_DEFS,
 } from '../utils/adminKpiDashboard'
@@ -36,6 +37,7 @@ import {
   filterKpiServiceLineRows,
   formatKpiPercent,
   formatMonthLabel,
+  KPI_GROUP_LABELS,
 } from '../utils/employeeKpiView'
 import {
   fetchKpiInvoicesForScope,
@@ -51,13 +53,31 @@ function formatDateVi(iso) {
   return `${d}/${m}/${y}`
 }
 
-function StatusPill({ status, label }) {
-  const cls =
-    status === 'MET' || status === KPI_STATUS.MET ? 'is-met'
-      : status === 'INSUFFICIENT_DATA' || status === KPI_STATUS.INSUFFICIENT_DATA ? 'is-insuff'
-        : status === 'NO_POLICY' || status === KPI_STATUS.NO_POLICY ? 'is-insuff'
-          : 'is-miss'
-  return <span className={`admin-kpi-pill ${cls}`}>{label}</span>
+function AdminKpiMetricCell({ card }) {
+  const display = formatAdminKpiMetricCell(card)
+  return (
+    <div className={`admin-kpi-metric is-${display.tone}`}>
+      <div className="admin-kpi-metric__ratio">{display.ratioLine}</div>
+      {display.targetLine ? (
+        <div className="admin-kpi-metric__target">{display.targetLine}</div>
+      ) : null}
+      <div className={`admin-kpi-metric__hint is-${display.tone}`}>{display.hintLine}</div>
+    </div>
+  )
+}
+
+function ResultCell({ row }) {
+  const tone = row.rowStatus === 'MET' ? 'met'
+    : row.rowStatus === 'NOT_MET' ? 'miss'
+      : 'neutral'
+  return (
+    <div className={`admin-kpi-result is-${tone}`}>
+      <strong>{row.scoreLabel}</strong>
+      {row.rowStatus === 'NO_POLICY' || row.rowStatus === 'INSUFFICIENT_DATA' ? (
+        <span>{row.rowStatusLabel}</span>
+      ) : null}
+    </div>
+  )
 }
 
 export default function AdminKpi() {
@@ -149,7 +169,7 @@ export default function AdminKpi() {
       employeeId,
       status,
       kpiKey,
-      homeOrServing: 'either',
+      homeOrServing: 'home',
     }),
     [dashboard.rows, branchId, employeeId, status, kpiKey],
   )
@@ -160,10 +180,19 @@ export default function AdminKpi() {
   )
 
   const employeeOptions = useMemo(() => {
+    const source = branchId
+      ? dashboard.rows.filter((r) => r.homeBranchId === branchId)
+      : dashboard.rows
     const map = new Map()
-    for (const r of dashboard.rows) map.set(r.employeeId, r.employeeName)
+    for (const r of source) map.set(r.employeeId, r.employeeName)
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]))
-  }, [dashboard.rows])
+  }, [dashboard.rows, branchId])
+
+  useEffect(() => {
+    if (employeeId && !employeeOptions.some(([id]) => id === employeeId)) {
+      setEmployeeId('')
+    }
+  }, [employeeId, employeeOptions])
 
   if (!canAccessAdminKpiPage()) {
     return (
@@ -296,10 +325,10 @@ export default function AdminKpi() {
               Trạng thái
               <select value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="">Tất cả</option>
-                <option value="MET">ĐẠT KPI</option>
-                <option value="NOT_MET">CHƯA ĐẠT</option>
-                <option value="INSUFFICIENT_DATA">CHƯA ĐỦ DỮ LIỆU</option>
-                <option value="NO_POLICY">Chưa có chính sách</option>
+                <option value="MET">Đạt 4/4 KPI</option>
+                <option value="NOT_MET">Chưa đạt đủ 4 KPI</option>
+                <option value="INSUFFICIENT_DATA">Chưa đủ dữ liệu</option>
+                <option value="NO_POLICY">Chưa có chính sách KPI</option>
               </select>
             </label>
             <label>
@@ -318,16 +347,19 @@ export default function AdminKpi() {
               <h3>Hệ thống</h3>
               <p>{dashboard.system.employeeCount} NV · {dashboard.system.counts.totalInvoices} HĐ</p>
               <p>
-                MAIN {dashboard.system.counts.main} · ADDON {dashboard.system.counts.addon}
-                {' '}· ADV {dashboard.system.counts.advanced} · COMBO {dashboard.system.counts.combo}
+                Dịch vụ chính {dashboard.system.counts.main}
+                {' · '}Dịch vụ phụ {dashboard.system.counts.addon}
+                {' · '}Chuyên sâu {dashboard.system.counts.advanced}
+                {' · '}Combo {dashboard.system.counts.combo}
               </p>
               <p>
-                Khách YC {dashboard.system.counts.requestedInvoices}/{dashboard.system.counts.totalInvoices}
+                Khách yêu cầu {dashboard.system.counts.requestedInvoices}/{dashboard.system.counts.totalInvoices}
                 {' '}({formatKpiPercent(dashboard.system.rates.requested)})
               </p>
               <p>
-                Đạt 4/4: {dashboard.system.employeesMetAll} · Chưa đạt: {dashboard.system.employeesNotMet}
-                {' '}· Chưa đủ DL: {dashboard.system.employeesInsufficient}
+                Đạt 4/4: {dashboard.system.employeesMetAll}
+                {' · '}Chưa đạt đủ: {dashboard.system.employeesNotMet}
+                {' · '}Chưa đủ dữ liệu: {dashboard.system.employeesInsufficient}
               </p>
             </article>
             <div className="admin-kpi-branch-grid">
@@ -336,39 +368,33 @@ export default function AdminKpi() {
                   <h4>{b.branchName}</h4>
                   <p>{b.employeeCount} NV · Đạt 4/4: {b.employeesMetAll} ({formatKpiPercent(b.metRate)})</p>
                   <p className="admin-kpi-muted">
-                    TB DV phụ {formatKpiPercent(b.avgRates.addon)} · CS {formatKpiPercent(b.avgRates.advanced)}
-                    {' '}· Combo {formatKpiPercent(b.avgRates.combo)} · YC {formatKpiPercent(b.avgRates.requested)}
+                    TB DV phụ {formatKpiPercent(b.avgRates.addon)}
+                    {' · '}CS {formatKpiPercent(b.avgRates.advanced)}
+                    {' · '}Combo {formatKpiPercent(b.avgRates.combo)}
+                    {' · '}YC {formatKpiPercent(b.avgRates.requested)}
                   </p>
-                  <p className="admin-kpi-note">TB chỉ tham khảo — không average target để pass/fail</p>
+                  <p className="admin-kpi-note">Theo chi nhánh hiện tại của NV — TB chỉ tham khảo</p>
                 </article>
               ))}
             </div>
           </section>
 
           <section className="admin-kpi-table-wrap">
-            <table className="admin-kpi-table">
+            <table className="admin-kpi-table admin-kpi-table--simple">
               <thead>
                 <tr>
                   <th>Nhân viên</th>
-                  <th>CN nhà</th>
-                  <th>CN phục vụ</th>
-                  <th>MAIN</th>
-                  <th>ADDON</th>
-                  <th>KPI DV phụ</th>
-                  <th>ADV</th>
-                  <th>KPI CS</th>
-                  <th>COMBO</th>
-                  <th>KPI Combo</th>
-                  <th>Tổng HĐ</th>
-                  <th>Khách YC</th>
-                  <th>KPI YC</th>
-                  <th>Đạt /4</th>
-                  <th>Trạng thái</th>
+                  <th>Dịch vụ chính</th>
+                  <th>Dịch vụ phụ</th>
+                  <th>Combo</th>
+                  <th>Chuyên sâu</th>
+                  <th>Khách yêu cầu</th>
+                  <th>Kết quả</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length === 0 && (
-                  <tr><td colSpan={15}>Không có dữ liệu KPI trong bộ lọc.</td></tr>
+                  <tr><td colSpan={7}>Không có dữ liệu KPI trong bộ lọc.</td></tr>
                 )}
                 {filteredRows.map((row) => (
                   <tr
@@ -377,32 +403,12 @@ export default function AdminKpi() {
                     onClick={() => setSelectedEmployeeId(row.employeeId)}
                   >
                     <td><button type="button" className="admin-kpi-link">{row.employeeName}</button></td>
-                    <td>{row.homeBranchName}</td>
-                    <td>{row.servingBranchNames.join(', ') || '—'}</td>
-                    <td>{row.counts.main}</td>
-                    <td>{row.counts.addon}</td>
-                    <td>
-                      {row.cards.addon.rateLabel}
-                      <small>{row.cards.addon.statusLabel}</small>
-                    </td>
-                    <td>{row.counts.advanced}</td>
-                    <td>
-                      {row.cards.advanced.rateLabel}
-                      <small>{row.cards.advanced.statusLabel}</small>
-                    </td>
-                    <td>{row.counts.combo}</td>
-                    <td>
-                      {row.cards.combo.rateLabel}
-                      <small>{row.cards.combo.statusLabel}</small>
-                    </td>
-                    <td>{row.counts.totalInvoices}</td>
-                    <td>{row.counts.requestedInvoices}</td>
-                    <td>
-                      {row.cards.requested.rateLabel}
-                      <small>{row.cards.requested.statusLabel}</small>
-                    </td>
-                    <td>{row.scoreLabel}</td>
-                    <td><StatusPill status={row.rowStatus} label={row.rowStatusLabel} /></td>
+                    <td className="admin-kpi-main-count">{row.counts.main}</td>
+                    <td><AdminKpiMetricCell card={row.cards.addon} /></td>
+                    <td><AdminKpiMetricCell card={row.cards.combo} /></td>
+                    <td><AdminKpiMetricCell card={row.cards.advanced} /></td>
+                    <td><AdminKpiMetricCell card={row.cards.requested} /></td>
+                    <td><ResultCell row={row} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -490,7 +496,7 @@ export default function AdminKpi() {
                   <th>CS</th>
                   <th>Combo</th>
                   <th>YC</th>
-                  <th>Status</th>
+                  <th>Trạng thái</th>
                   <th>Lý do</th>
                 </tr>
               </thead>
@@ -567,6 +573,37 @@ function summarizePolicySnap(policy) {
   return `${decimalToPercentInput(a)}/${decimalToPercentInput(adv)}/${decimalToPercentInput(c)}/${decimalToPercentInput(r)}`
 }
 
+function resolveLinePolicy(row, line) {
+  const segs = row.model?.policySegments || []
+  const byInvoice = segs.find((s) =>
+    s.servingBranchId === line.branchId
+    && Array.isArray(s.invoiceIds)
+    && s.invoiceIds.includes(line.invoiceId),
+  )
+  if (byInvoice) return byInvoice
+  return segs.find((s) => s.servingBranchId === line.branchId) || null
+}
+
+function formatLineContribution(line) {
+  const parts = []
+  const groupLabel = line.groupLabel || KPI_GROUP_LABELS[line.group] || '—'
+  parts.push(`+1 ${groupLabel}`)
+  if (line.customerRequested) parts.push('+1 Khách yêu cầu (HĐ)')
+  return parts.join(' · ')
+}
+
+function formatPolicyLabel(seg) {
+  if (!seg) return '—'
+  if (!seg.targets) return 'Chưa có chính sách KPI'
+  return [
+    getBranchName(seg.servingBranchId) || seg.servingBranchId,
+    `DV phụ ${decimalToPercentInput(seg.targets.addon)}%`,
+    `CS ${decimalToPercentInput(seg.targets.advanced)}%`,
+    `Combo ${decimalToPercentInput(seg.targets.combo)}%`,
+    `YC ${decimalToPercentInput(seg.targets.requested)}%`,
+  ].join(' · ')
+}
+
 function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabel }) {
   const [lineFilter, setLineFilter] = useState('all')
   const [exportBusy, setExportBusy] = useState(false)
@@ -602,14 +639,14 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
           <div>
             <h3>{row.employeeName}</h3>
             <p>
-              CN nhà: {row.homeBranchName}
+              Chi nhánh hiện tại: {row.homeBranchName}
               {' · '}
               Phạm vi: {rangeLabel || `${fromDate} → ${toDate}`}
             </p>
             <p>
-              CN phục vụ: {row.servingBranchNames.join(', ') || '—'}
+              Chi nhánh đã phục vụ: {row.servingBranchNames.join(', ') || '—'}
               {' · '}
-              {row.scoreLabel} · {row.rowStatusLabel}
+              {row.scoreLabel}
             </p>
           </div>
           <div className="admin-kpi-drill__actions">
@@ -625,21 +662,25 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
 
         <div className="admin-kpi-drill__summary">
           <p>
-            MAIN {row.counts.main} · ADDON {row.counts.addon} · ADV {row.counts.advanced}
-            {' '}· COMBO {row.counts.combo} · HĐ {row.counts.totalInvoices} · YC {row.counts.requestedInvoices}
+            Dịch vụ chính {row.counts.main}
+            {' · '}Dịch vụ phụ {row.counts.addon}
+            {' · '}Chuyên sâu {row.counts.advanced}
+            {' · '}Combo {row.counts.combo}
+            {' · '}HĐ {row.counts.totalInvoices}
+            {' · '}Khách yêu cầu {row.counts.requestedInvoices}
           </p>
         </div>
 
         <div className="admin-kpi-drill__cards">
           {EMPLOYEE_KPI_CARD_DEFS.map((def) => {
             const card = row.cards[def.key]
+            const display = formatAdminKpiMetricCell(card)
             return (
-              <div key={def.key} className="admin-kpi-drill__card">
+              <div key={def.key} className={`admin-kpi-drill__card is-${display.tone}`}>
                 <strong>{def.title}</strong>
-                <span>{card.actual}/{card.denominator} · {card.rateLabel}</span>
-                <span>Target {card.targetLabel}</span>
-                <span>{card.missingText}</span>
-                <span>{card.statusLabel}</span>
+                <span>{display.ratioLine}</span>
+                {display.targetLine ? <span>{display.targetLine}</span> : null}
+                <span className={`admin-kpi-metric__hint is-${display.tone}`}>{display.hintLine}</span>
               </div>
             )
           })}
@@ -651,27 +692,26 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
             <li key={seg.servingBranchId}>
               <strong>{getBranchName(seg.servingBranchId) || seg.servingBranchId}</strong>
               {' — '}
-              MAIN {seg.counts.main}, ADDON {seg.counts.addon}, ADV {seg.counts.advanced}, COMBO {seg.counts.combo},
-              HĐ {seg.counts.totalInvoices}, YC {seg.counts.requestedInvoices}
+              Dịch vụ chính {seg.counts.main}, Dịch vụ phụ {seg.counts.addon},
+              {' '}Chuyên sâu {seg.counts.advanced}, Combo {seg.counts.combo},
+              {' '}HĐ {seg.counts.totalInvoices}, Khách yêu cầu {seg.counts.requestedInvoices}
             </li>
           ))}
         </ul>
 
-        <h4>Theo policy segment</h4>
+        <h4>Chính sách KPI áp dụng</h4>
         <ul className="admin-kpi-drill__list">
           {(row.model.policySegments || []).map((seg) => (
             <li key={`${seg.policyId}-${seg.servingBranchId}`}>
               <strong>{getBranchName(seg.servingBranchId) || seg.servingBranchId}</strong>
               {' · '}
-              {seg.policyId} ({seg.source})
-              {' · '}
               {seg.targets
                 ? (
                   <>
-                    target {decimalToPercentInput(seg.targets?.addon)}/
-                    {decimalToPercentInput(seg.targets?.advanced)}/
-                    {decimalToPercentInput(seg.targets?.combo)}/
-                    {decimalToPercentInput(seg.targets?.requested)}
+                    Mục tiêu DV phụ {decimalToPercentInput(seg.targets?.addon)}%
+                    {' / '}CS {decimalToPercentInput(seg.targets?.advanced)}%
+                    {' / '}Combo {decimalToPercentInput(seg.targets?.combo)}%
+                    {' / '}YC {decimalToPercentInput(seg.targets?.requested)}%
                   </>
                 )
                 : 'Chưa có chính sách KPI kỳ này'}
@@ -685,8 +725,8 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
           <span>Lọc dòng dịch vụ:</span>
           {[
             ['all', 'Tất cả'],
-            ['main', 'DV chính'],
-            ['addon', 'DV phụ'],
+            ['main', 'Dịch vụ chính'],
+            ['addon', 'Dịch vụ phụ'],
             ['advanced', 'Chuyên sâu'],
             ['combo', 'Combo'],
             ['requested', 'Khách yêu cầu'],
@@ -708,27 +748,34 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
             <thead>
               <tr>
                 <th>Ngày</th>
-                <th>Mã HĐ</th>
+                <th>Mã hóa đơn</th>
                 <th>Chi nhánh phục vụ</th>
                 <th>Dịch vụ</th>
                 <th>Nhóm KPI</th>
                 <th>Khách yêu cầu</th>
+                <th>Chính sách áp dụng</th>
+                <th>Đóng góp KPI</th>
               </tr>
             </thead>
             <tbody>
               {lineRows.length === 0 && (
-                <tr><td colSpan={6}>Không có dòng dịch vụ</td></tr>
+                <tr><td colSpan={8}>Không có dòng dịch vụ</td></tr>
               )}
-              {lineRows.map((r, idx) => (
-                <tr key={`${r.invoiceId}-${r.token}-${idx}`}>
-                  <td>{formatDateVi(r.date)}</td>
-                  <td className="admin-kpi-mono">{String(r.invoiceId).slice(0, 8)}</td>
-                  <td>{getBranchName(r.branchId) || r.branchId}</td>
-                  <td>{r.serviceName}</td>
-                  <td>{r.groupLabel}</td>
-                  <td>{r.customerRequested ? 'Có' : 'Không'}</td>
-                </tr>
-              ))}
+              {lineRows.map((r, idx) => {
+                const policy = resolveLinePolicy(row, r)
+                return (
+                  <tr key={`${r.invoiceId}-${r.token}-${idx}`}>
+                    <td>{formatDateVi(r.date)}</td>
+                    <td className="admin-kpi-mono">{String(r.invoiceId).slice(0, 8)}</td>
+                    <td>{getBranchName(r.branchId) || r.branchId}</td>
+                    <td>{r.serviceName}</td>
+                    <td>{r.groupLabel}</td>
+                    <td>{r.customerRequested ? 'Có' : 'Không'}</td>
+                    <td className="admin-kpi-policy-cell">{formatPolicyLabel(policy)}</td>
+                    <td>{formatLineContribution(r)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

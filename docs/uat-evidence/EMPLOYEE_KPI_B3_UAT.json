@@ -32,7 +32,7 @@
         "missingUnit": "lượt",
         "formula": "ADDON / MAIN",
         "status": "NOT_MET",
-        "statusLabel": "CHƯA ĐẠT",
+        "statusLabel": "Chưa đạt",
         "actual": 2,
         "denominator": 2,
         "rate": 1,
@@ -52,7 +52,7 @@
         "missingUnit": "lượt",
         "formula": "ADVANCED / MAIN",
         "status": "NOT_MET",
-        "statusLabel": "CHƯA ĐẠT",
+        "statusLabel": "Chưa đạt",
         "actual": 0,
         "denominator": 2,
         "rate": 0,
@@ -72,7 +72,7 @@
         "missingUnit": "lượt",
         "formula": "COMBO / MAIN",
         "status": "NOT_MET",
-        "statusLabel": "CHƯA ĐẠT",
+        "statusLabel": "Chưa đạt",
         "actual": 1,
         "denominator": 2,
         "rate": 0.5,
@@ -92,7 +92,7 @@
         "missingUnit": "khách yêu cầu",
         "formula": "REQUESTED / TOTAL",
         "status": "NOT_MET",
-        "statusLabel": "CHƯA ĐẠT",
+        "statusLabel": "Chưa đạt",
         "actual": 1,
         "denominator": 2,
         "rate": 0.5,
@@ -107,10 +107,10 @@
     },
     "met": 0,
     "total": 4,
-    "scoreLabel": "0/4",
-    "headline": "CHƯA ĐẠT KPI",
+    "scoreLabel": "Đạt 0/4 KPI",
+    "headline": "Chưa đạt KPI",
     "rowStatus": "NOT_MET",
-    "rowStatusLabel": "CHƯA ĐẠT",
+    "rowStatusLabel": "Đạt 0/4 KPI",
     "model": {
       "employeeId": "emp-lyly",
       "fromDate": "2026-08-01",
@@ -625,10 +625,21 @@
     },
     {
       "id": 8,
-      "name": "Filter CN đúng",
+      "name": "Filter CN theo employee.branchId (home)",
       "pass": true,
       "detail": {
-        "n": 1
+        "n": 0,
+        "note": "Ly Ly home=soc-trang dù có HĐ tram-spa"
+      }
+    },
+    {
+      "id": "8b",
+      "name": "Filter Sóc Trăng có Ly Ly (home)",
+      "pass": true,
+      "detail": {
+        "ids": [
+          "emp-lyly"
+        ]
       }
     },
     {
@@ -693,7 +704,7 @@
             "missingUnit": "lượt",
             "formula": "ADDON / MAIN",
             "status": "NOT_MET",
-            "statusLabel": "CHƯA ĐẠT",
+            "statusLabel": "Chưa đạt",
             "actual": 2,
             "denominator": 2,
             "rate": 1,
@@ -713,7 +724,7 @@
             "missingUnit": "lượt",
             "formula": "ADVANCED / MAIN",
             "status": "NOT_MET",
-            "statusLabel": "CHƯA ĐẠT",
+            "statusLabel": "Chưa đạt",
             "actual": 0,
             "denominator": 2,
             "rate": 0,
@@ -733,7 +744,7 @@
             "missingUnit": "lượt",
             "formula": "COMBO / MAIN",
             "status": "NOT_MET",
-            "statusLabel": "CHƯA ĐẠT",
+            "statusLabel": "Chưa đạt",
             "actual": 1,
             "denominator": 2,
             "rate": 0.5,
@@ -753,7 +764,7 @@
             "missingUnit": "khách yêu cầu",
             "formula": "REQUESTED / TOTAL",
             "status": "NOT_MET",
-            "statusLabel": "CHƯA ĐẠT",
+            "statusLabel": "Chưa đạt",
             "actual": 1,
             "denominator": 2,
             "rate": 0.5,
@@ -768,10 +779,10 @@
         },
         "met": 0,
         "total": 4,
-        "scoreLabel": "0/4",
-        "headline": "CHƯA ĐẠT KPI",
+        "scoreLabel": "Đạt 0/4 KPI",
+        "headline": "Chưa đạt KPI",
         "rowStatus": "NOT_MET",
-        "rowStatusLabel": "CHƯA ĐẠT",
+        "rowStatusLabel": "Đạt 0/4 KPI",
         "model": {
           "employeeId": "emp-lyly",
           "fromDate": "2026-08-01",
@@ -1187,7 +1198,7 @@
           "status": "superseded"
         },
         "sep": {
-          "id": "kpi-pol-1786907006632-xci6rk",
+          "id": "kpi-pol-1786910168415-5jfhyy",
           "branchId": "soc-trang",
           "effectiveFrom": "2026-09-01",
           "effectiveTo": null,
@@ -1197,9 +1208,9 @@
           "requestedTarget": 0.2,
           "status": "active",
           "createdBy": "admin",
-          "createdAt": "2026-08-16T19:03:26.632Z",
+          "createdAt": "2026-08-16T19:56:08.415Z",
           "updatedBy": "admin",
-          "updatedAt": "2026-08-16T19:03:26.632Z",
+          "updatedAt": "2026-08-16T19:56:08.415Z",
           "changeReason": "UAT Sep policy"
         },
         "logReason": "UAT Sep policy"
@@ -1218,7 +1229,7 @@
       "name": "Audit log đúng",
       "pass": true,
       "detail": {
-        "id": "kpi-log-1786907006632-pf1rw0",
+        "id": "kpi-log-1786910168416-w5dwat",
         "branchId": "soc-trang",
         "oldPolicy": {
           "id": "aug-soc-trang",
@@ -1232,7 +1243,7 @@
           "status": "active"
         },
         "newPolicy": {
-          "id": "kpi-pol-1786907006632-xci6rk",
+          "id": "kpi-pol-1786910168415-5jfhyy",
           "branchId": "soc-trang",
           "effectiveFrom": "2026-09-01",
           "effectiveTo": null,
@@ -1242,16 +1253,16 @@
           "requestedTarget": 0.2,
           "status": "active",
           "createdBy": "admin",
-          "createdAt": "2026-08-16T19:03:26.632Z",
+          "createdAt": "2026-08-16T19:56:08.415Z",
           "updatedBy": "admin",
-          "updatedAt": "2026-08-16T19:03:26.632Z",
+          "updatedAt": "2026-08-16T19:56:08.415Z",
           "changeReason": "UAT Sep policy"
         },
         "effectiveFrom": "2026-09-01",
         "effectiveTo": null,
         "actorId": "admin",
         "reason": "UAT Sep policy",
-        "timestamp": "2026-08-16T19:03:26.632Z"
+        "timestamp": "2026-08-16T19:56:08.416Z"
       }
     },
     {

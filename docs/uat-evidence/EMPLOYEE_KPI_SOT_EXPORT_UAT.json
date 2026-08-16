@@ -45,12 +45,36 @@
     },
     {
       "id": "C1",
-      "name": "Sóc Trăng từ Invoice serving SoT",
+      "name": "Sóc Trăng = employee.branchId home",
       "pass": true,
       "detail": {
-        "ids": [
+        "socIds": [
           "emp-lyly",
           "emp-tran"
+        ]
+      }
+    },
+    {
+      "id": "C1b",
+      "name": "Trạm không lẫn Ly Ly (home ST)",
+      "pass": true,
+      "detail": {
+        "tramIds": [
+          "emp-tram"
+        ]
+      }
+    },
+    {
+      "id": "C1c",
+      "name": "Roster ST và Trạm độc lập",
+      "pass": true,
+      "detail": {
+        "socIds": [
+          "emp-lyly",
+          "emp-tran"
+        ],
+        "tramIds": [
+          "emp-tram"
         ]
       }
     },
@@ -101,7 +125,7 @@
           "missingUnit": "lượt",
           "formula": "ADDON / MAIN",
           "status": "MET",
-          "statusLabel": "ĐẠT",
+          "statusLabel": "Đạt",
           "actual": 2,
           "denominator": 1,
           "rate": 2,
@@ -109,7 +133,7 @@
           "target": 0.7,
           "targetLabel": "70%",
           "missing": 0,
-          "missingText": "ĐẠT",
+          "missingText": "Đạt",
           "progress": 1,
           "mixedTargets": false
         },
@@ -121,7 +145,7 @@
           "missingUnit": "khách yêu cầu",
           "formula": "REQUESTED / TOTAL",
           "status": "MET",
-          "statusLabel": "ĐẠT",
+          "statusLabel": "Đạt",
           "actual": 2,
           "denominator": 3,
           "rate": 0.6666666666666666,
@@ -129,7 +153,7 @@
           "target": 0.2,
           "targetLabel": "20%",
           "missing": 0,
-          "missingText": "ĐẠT",
+          "missingText": "Đạt",
           "progress": 1,
           "mixedTargets": false
         }
@@ -190,8 +214,8 @@
         "rangeLabel": "2026-08-01 → 2026-08-31",
         "monthYm": "2026-08",
         "fileStem": "KPI_LyLy_08-2026",
-        "scoreLabel": "3/4",
-        "statusLabel": "CHƯA ĐẠT"
+        "scoreLabel": "Đạt 3/4 KPI",
+        "statusLabel": "Đạt 3/4 KPI"
       }
     },
     {
@@ -255,7 +279,7 @@
         "missingUnit": "lượt",
         "formula": "ADDON / MAIN",
         "status": "MET",
-        "statusLabel": "ĐẠT",
+        "statusLabel": "Đạt",
         "actual": 2,
         "denominator": 1,
         "rate": 2,
@@ -263,7 +287,7 @@
         "target": 0.7,
         "targetLabel": "70%",
         "missing": 0,
-        "missingText": "ĐẠT",
+        "missingText": "Đạt",
         "progress": 1,
         "mixedTargets": false
       }
@@ -382,7 +406,7 @@
       "pass": true,
       "detail": {
         "rows": 3,
-        "ms": 1
+        "ms": 0
       }
     }
   ]

@@ -39,7 +39,7 @@
         "missingUnit": "lượt",
         "formula": "ADDON / MAIN",
         "status": "NOT_MET",
-        "statusLabel": "CHƯA ĐẠT",
+        "statusLabel": "Chưa đạt",
         "actual": 2,
         "denominator": 3,
         "rate": 0.6666666666666666,

@@ -211,6 +211,92 @@
   font-size: 10px;
 }
 
+.admin-kpi-table--simple th,
+.admin-kpi-table--simple td {
+  white-space: normal;
+  min-width: 110px;
+}
+
+.admin-kpi-table--simple th:first-child,
+.admin-kpi-table--simple td:first-child {
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.admin-kpi-main-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.admin-kpi-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+
+.admin-kpi-metric__ratio {
+  font-weight: 600;
+  color: #111827;
+  font-size: 12px;
+}
+
+.admin-kpi-metric__target {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.admin-kpi-metric__hint {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-kpi-metric__hint.is-met,
+.admin-kpi-result.is-met strong,
+.admin-kpi-drill__card.is-met .admin-kpi-metric__hint {
+  color: #166534;
+}
+
+.admin-kpi-metric__hint.is-miss,
+.admin-kpi-result.is-miss strong,
+.admin-kpi-drill__card.is-miss .admin-kpi-metric__hint {
+  color: #c2410c;
+}
+
+.admin-kpi-metric__hint.is-neutral {
+  color: #6b7280;
+}
+
+.admin-kpi-result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 110px;
+}
+
+.admin-kpi-result span {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.admin-kpi-policy-cell {
+  white-space: normal;
+  max-width: 220px;
+  font-size: 11px;
+  color: #374151;
+}
+
+.admin-kpi-drill__card.is-met {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.admin-kpi-drill__card.is-miss {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
 .admin-kpi-link {
   border: 0;
   background: transparent;
