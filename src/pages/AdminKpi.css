@@ -4,6 +4,68 @@
   gap: 16px;
 }
 
+.admin-kpi-drill header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.admin-kpi-drill__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-kpi-drill__summary {
+  margin: 8px 0 12px;
+  color: #374151;
+  font-size: 13px;
+}
+
+.admin-kpi-drill__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  font-size: 12px;
+}
+
+.admin-kpi-drill__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 10px 0;
+  font-size: 13px;
+}
+
+.admin-kpi-drill__filters button {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.admin-kpi-drill__filters button.is-active {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+.admin-kpi-muted {
+  margin: 0 0 8px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+
 .admin-kpi-tabs {
   display: flex;
   gap: 6px;

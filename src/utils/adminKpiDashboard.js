@@ -22,7 +22,8 @@ export function buildAdminEmployeeKpiRow(model, { homeBranchId = '', homeBranchN
   const cards = Object.fromEntries(summary.cards.map((c) => [c.key, c]))
   const counts = model?.overall?.counts || {}
   let rowStatus = 'NOT_MET'
-  if (summary.allMet) rowStatus = 'MET'
+  if (summary.noPolicy) rowStatus = 'NO_POLICY'
+  else if (summary.allMet) rowStatus = 'MET'
   else if (summary.cards.some((c) => c.status === KPI_STATUS.INSUFFICIENT_DATA) && counts.main === 0) {
     rowStatus = 'INSUFFICIENT_DATA'
   } else if (counts.totalInvoices === 0) {
@@ -42,13 +43,14 @@ export function buildAdminEmployeeKpiRow(model, { homeBranchId = '', homeBranchN
     cards,
     met: summary.met,
     total: summary.total,
-    scoreLabel: `${summary.met}/${summary.total}`,
+    scoreLabel: summary.noPolicy ? '—' : `${summary.met}/${summary.total}`,
     headline: summary.headline,
     rowStatus,
     rowStatusLabel:
       rowStatus === 'MET' ? 'ĐẠT KPI'
         : rowStatus === 'INSUFFICIENT_DATA' ? 'CHƯA ĐỦ DỮ LIỆU'
-          : 'CHƯA ĐẠT',
+          : rowStatus === 'NO_POLICY' ? 'Chưa có chính sách KPI kỳ này'
+            : 'CHƯA ĐẠT',
     model,
   }
 }

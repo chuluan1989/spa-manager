@@ -36,6 +36,7 @@
     "verify:employee-kpi-b2": "vite-node scripts/verify-employee-kpi-b2-uat.mjs",
     "verify:employee-kpi-b3": "vite-node scripts/verify-employee-kpi-b3-uat.mjs",
     "verify:employee-kpi-b4": "vite-node scripts/verify-employee-kpi-b4-governance.mjs",
+    "verify:employee-kpi-sot-export": "vite-node scripts/verify-employee-kpi-sot-export-uat.mjs",
     "audit:employee-kpi-readonly": "node_modules/.bin/vite-node scripts/audit-employee-kpi-production-readonly.mjs",
     "audit:employee-kpi-b4-readonly": "node_modules/.bin/vite-node scripts/audit-employee-kpi-b4-production-readonly.mjs",
     "apply:0046-kpi-policies-prod": "node --env-file=.env.local scripts/apply-0046-kpi-policies-prod.mjs",

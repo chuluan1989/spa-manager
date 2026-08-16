@@ -45,7 +45,16 @@ export function kpiStatusLabel(status) {
   if (status === KPI_STATUS.NOT_MET) return 'CHƯA ĐẠT'
   if (status === KPI_STATUS.INSUFFICIENT_DATA) return 'CHƯA ĐỦ DỮ LIỆU'
   if (status === KPI_STATUS.NOT_APPLICABLE) return 'KHÔNG ÁP DỤNG'
+  if (status === KPI_STATUS.NO_POLICY) return 'Chưa có chính sách KPI kỳ này'
   return status || '—'
+}
+
+export const KPI_GROUP_LABELS = {
+  [KPI_GROUPS.MAIN]: 'DV chính',
+  [KPI_GROUPS.ADDON]: 'DV phụ',
+  [KPI_GROUPS.ADVANCED]: 'Chuyên sâu',
+  [KPI_GROUPS.COMBO]: 'Combo',
+  [KPI_GROUPS.UNMAPPED]: 'Chưa map',
 }
 
 export const EMPLOYEE_KPI_CARD_DEFS = [
@@ -102,7 +111,9 @@ export function buildKpiCardModel(def, kpi, counts) {
   const rate = kpi?.rate
   const missing = kpi?.missing
   let missingText = ''
-  if (status === KPI_STATUS.INSUFFICIENT_DATA) {
+  if (status === KPI_STATUS.NO_POLICY) {
+    missingText = 'Chưa có chính sách KPI kỳ này'
+  } else if (status === KPI_STATUS.INSUFFICIENT_DATA) {
     missingText = isRequested ? 'Chưa có hóa đơn trong kỳ' : 'Chưa có dịch vụ chính (MAIN = 0)'
   } else if (status === KPI_STATUS.MET) {
     missingText = 'ĐẠT'
@@ -113,7 +124,7 @@ export function buildKpiCardModel(def, kpi, counts) {
   }
 
   const progress = (() => {
-    if (status === KPI_STATUS.INSUFFICIENT_DATA) return 0
+    if (status === KPI_STATUS.INSUFFICIENT_DATA || status === KPI_STATUS.NO_POLICY) return 0
     if (target == null || target <= 0) return rate != null ? Math.min(1, rate) : 0
     if (rate == null) return 0
     return Math.max(0, Math.min(1, rate / target))
@@ -143,9 +154,73 @@ export function summarizeOverallKpis(overall) {
   const evaluable = cards.filter((c) => c.status === KPI_STATUS.MET || c.status === KPI_STATUS.NOT_MET)
   const met = cards.filter((c) => c.status === KPI_STATUS.MET).length
   const total = cards.length
+  const noPolicy = cards.every((c) => c.status === KPI_STATUS.NO_POLICY)
   const allMet = evaluable.length === total && met === total
-  const headline = allMet ? 'ĐẠT KPI' : 'CHƯA ĐẠT KPI'
-  return { cards, met, total, headline, allMet }
+  const headline = noPolicy
+    ? 'Chưa có chính sách KPI kỳ này'
+    : allMet ? 'ĐẠT KPI' : 'CHƯA ĐẠT KPI'
+  return { cards, met, total, headline, allMet, noPolicy }
+}
+
+/**
+ * 1 service line = 1 row — dùng drill-down + export (không tính lại KPI).
+ */
+export function buildKpiServiceLineRows(includedInvoices = []) {
+  const rows = []
+  for (const inv of includedInvoices || []) {
+    const services = Array.isArray(inv.services) ? inv.services : []
+    const classified = Array.isArray(inv.classified) ? inv.classified : []
+    const requested = Boolean(inv.customerRequested)
+    const n = Math.max(services.length, classified.length, 1)
+    for (let i = 0; i < n; i += 1) {
+      const svc = services[i] || {}
+      const c = classified[i] || (svc.serviceId || svc.id ? classifyKpiServiceLine(svc) : null)
+      if (!c && services.length === 0) {
+        rows.push({
+          date: inv.date,
+          invoiceId: inv.invoiceId,
+          branchId: inv.branchId,
+          serviceName: '—',
+          group: KPI_GROUPS.UNMAPPED,
+          groupLabel: KPI_GROUP_LABELS[KPI_GROUPS.UNMAPPED],
+          customerRequested: requested,
+          token: '',
+        })
+        break
+      }
+      if (!c) continue
+      rows.push({
+        date: inv.date,
+        invoiceId: inv.invoiceId,
+        branchId: inv.branchId,
+        serviceName: svc.serviceName || svc.name || c.token || '—',
+        group: c.group,
+        groupLabel: KPI_GROUP_LABELS[c.group] || c.group,
+        customerRequested: requested,
+        token: c.token || '',
+      })
+    }
+  }
+  rows.sort((a, b) =>
+    String(b.date).localeCompare(String(a.date))
+    || String(b.invoiceId).localeCompare(String(a.invoiceId))
+    || String(a.serviceName).localeCompare(String(b.serviceName)),
+  )
+  return rows
+}
+
+export function filterKpiServiceLineRows(rows = [], filterKey = 'all') {
+  if (!filterKey || filterKey === 'all') return rows
+  if (filterKey === 'requested') return rows.filter((r) => r.customerRequested)
+  const groupMap = {
+    main: KPI_GROUPS.MAIN,
+    addon: KPI_GROUPS.ADDON,
+    advanced: KPI_GROUPS.ADVANCED,
+    combo: KPI_GROUPS.COMBO,
+  }
+  const group = groupMap[filterKey]
+  if (!group) return rows
+  return rows.filter((r) => r.group === group)
 }
 
 export function buildDrillRows(includedInvoices = [], kpiKey) {

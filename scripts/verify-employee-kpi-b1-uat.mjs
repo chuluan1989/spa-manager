@@ -49,7 +49,21 @@ function line(serviceId, serviceName = '') {
 }
 
 function kpisOf(invoices, extra = {}) {
-  return computeEmployeeKpi(invoices, { employeeId: extra.employeeId || 'emp-lyly', policies: extra.policies || [], ...extra })
+  const defaultPolicies = KPI_SCOPE_BRANCH_IDS.map((branchId) => ({
+    id: `uat-${branchId}`,
+    branchId,
+    effectiveFrom: '2026-01-01',
+    addonTarget: 0.7,
+    advancedTarget: 0.1,
+    comboTarget: 0.3,
+    requestedTarget: 0.2,
+  }))
+  const { employeeId, policies, ...rest } = extra
+  return computeEmployeeKpi(invoices, {
+    ...rest,
+    employeeId: employeeId || 'emp-lyly',
+    policies: Array.isArray(policies) && policies.length > 0 ? policies : defaultPolicies,
+  })
 }
 
 const CLASS_CASES = [
@@ -394,6 +408,24 @@ for (const [id, name, token, group] of CLASS_CASES) {
     'Policy versioned: policy cũ kết thúc trước effective_from mới',
     closed.effectiveTo === '2026-08-14' && closed.status === 'superseded' && second.policies.length === 2,
     { closed, log: second.log },
+  )
+}
+
+{
+  const none = computeEmployeeKpi(
+    [inv({ id: 'jul1', date: '2026-07-10', services: [line('body-60'), line('goi-sach')] })],
+    { employeeId: 'emp-lyly', fromDate: '2026-07-01', toDate: '2026-07-31', policies: [] },
+  )
+  check(
+    'NP1',
+    'Không policy → raw counts + NO_POLICY (không giả 70/10/30/20)',
+    none.overall.counts.main === 1
+      && none.overall.counts.addon === 1
+      && none.overall.kpis.addon.status === KPI_STATUS.NO_POLICY
+      && none.overall.kpis.addon.target == null
+      && none.overall.kpis.addon.missing == null
+      && none.policySegments[0]?.source === 'none',
+    none.overall,
   )
 }
 

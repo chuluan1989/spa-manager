@@ -143,7 +143,7 @@
       "detail": [
         {
           "servingBranchId": "soc-trang",
-          "policyId": "kpi-pol-1786907007305-j3czvg",
+          "policyId": "kpi-pol-1786908731414-1k7ue7",
           "source": "versioned",
           "effectiveFrom": "2026-09-01",
           "effectiveTo": null,
@@ -503,6 +503,18 @@
     {
       "id": "16b",
       "name": "Admin dashboard imports computeEmployeeKpi only (no second engine)",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "16c",
+      "name": "Admin/Employee KPI không dùng loadInvoices cache 100",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "16d",
+      "name": "Detail export bundle tồn tại",
       "pass": true,
       "detail": {}
     },

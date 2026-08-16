@@ -5,8 +5,8 @@
   "fromDate": "2026-08-01",
   "toDate": "2026-08-31",
   "performance": {
-    "fetchMs": 473,
-    "adminDashboardMs": 13,
+    "fetchMs": 769,
+    "adminDashboardMs": 10,
     "fullParityPassMs": 6,
     "invoiceRows": 686,
     "employeeRowsComputed": 32,
@@ -124,7 +124,7 @@
     "passed": true
   },
   "policyAudit": {
-    "count": 6,
+    "count": 7,
     "byBranch": {
       "tram-spa": [
         {
@@ -145,13 +145,25 @@
           "id": "kpi-pol-seed-soc-trang-2026-08-01",
           "branchId": "soc-trang",
           "effectiveFrom": "2026-08-01",
-          "effectiveTo": null,
+          "effectiveTo": "2026-08-31",
           "addonTarget": 0.7,
           "advancedTarget": 0.1,
           "comboTarget": 0.3,
           "requestedTarget": 0.2,
-          "status": "active",
+          "status": "superseded",
           "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
+        },
+        {
+          "id": "kpi-pol-dbe7beda-b1ff-41f7-ab80-a257d81bfbc6",
+          "branchId": "soc-trang",
+          "effectiveFrom": "2026-09-01",
+          "effectiveTo": null,
+          "addonTarget": 0.7,
+          "advancedTarget": 0.11,
+          "comboTarget": 0.3,
+          "requestedTarget": 0.2,
+          "status": "active",
+          "changeReason": "tháng mới"
         }
       ],
       "song-khoe-spa": [
@@ -229,18 +241,6 @@
         "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
       },
       {
-        "id": "kpi-pol-seed-soc-trang-2026-08-01",
-        "branchId": "soc-trang",
-        "effectiveFrom": "2026-08-01",
-        "effectiveTo": null,
-        "addonTarget": 0.7,
-        "advancedTarget": 0.1,
-        "comboTarget": 0.3,
-        "requestedTarget": 0.2,
-        "status": "active",
-        "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
-      },
-      {
         "id": "kpi-pol-seed-song-khoe-spa-2026-08-01",
         "branchId": "song-khoe-spa",
         "effectiveFrom": "2026-08-01",
@@ -289,7 +289,7 @@
         "changeReason": "Khởi tạo chính sách KPI nhân viên - Aug 2026"
       }
     ],
-    "logs": 6,
+    "logs": 7,
     "targetsDecimalOk": true
   },
   "crossBranch": {

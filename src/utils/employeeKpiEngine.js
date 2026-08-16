@@ -1,5 +1,4 @@
 import {
-  DEFAULT_KPI_TARGETS,
   KPI_GROUPS,
   KPI_STATUS,
   isKpiExcludedBranch,
@@ -87,15 +86,16 @@ export function resolveKpiPolicy(branchId, date, policies = []) {
       policy,
     }
   }
+  // Không giả DEFAULT 70/10/30/20 — raw counts vẫn đếm, status = NO_POLICY.
   return {
     applicable: true,
-    status: 'APPLICABLE',
-    source: 'fallback',
+    status: KPI_STATUS.NO_POLICY,
+    source: 'none',
     branchId,
-    policyId: `fallback:${branchId}`,
+    policyId: `none:${branchId}`,
     effectiveFrom: null,
     effectiveTo: null,
-    targets: { ...DEFAULT_KPI_TARGETS },
+    targets: null,
     policy: null,
   }
 }
@@ -240,7 +240,37 @@ function classifyInvoiceLines(invoice) {
   return { counts, lines }
 }
 
+function noPolicyKpi({ actual, main, total, kind }) {
+  const isRequested = kind === 'requested'
+  const base = isRequested ? total : main
+  return {
+    kind,
+    actual,
+    main: isRequested ? undefined : main,
+    total: isRequested ? total : undefined,
+    rate: base > 0 ? actual / base : null,
+    target: null,
+    targets: [],
+    mixedTargets: false,
+    status: KPI_STATUS.NO_POLICY,
+    missing: null,
+    note: 'Chưa có chính sách KPI kỳ này',
+  }
+}
+
 function evaluateSegment(counts, targets) {
+  if (!targets) {
+    return {
+      addon: noPolicyKpi({ actual: counts.addon, main: counts.main, kind: 'addon' }),
+      advanced: noPolicyKpi({ actual: counts.advanced, main: counts.main, kind: 'advanced' }),
+      combo: noPolicyKpi({ actual: counts.combo, main: counts.main, kind: 'combo' }),
+      requested: noPolicyKpi({
+        actual: counts.requestedInvoices,
+        total: counts.totalInvoices,
+        kind: 'requested',
+      }),
+    }
+  }
   return {
     addon: evaluateRatioKpi({ actual: counts.addon, main: counts.main, target: targets.addon, kind: 'addon' }),
     advanced: evaluateRatioKpi({ actual: counts.advanced, main: counts.main, target: targets.advanced, kind: 'advanced' }),
@@ -254,13 +284,15 @@ function evaluateSegment(counts, targets) {
 }
 
 function uniqueTargets(segments, key) {
-  return [...new Set(segments.map((s) => s.targets[key]))]
+  return [...new Set(
+    segments
+      .filter((s) => s.targets && s.targets[key] != null)
+      .map((s) => s.targets[key]),
+  )]
 }
 
 function aggregateKpiAcrossSegments(segments, kpiKey, countsKey) {
   const applicable = segments.filter((s) => s.kpis[kpiKey].status !== KPI_STATUS.NOT_APPLICABLE)
-  const targets = uniqueTargets(applicable, kpiKey === 'requested' ? 'requested' : kpiKey)
-  const mixedTargets = targets.length > 1
   const totalActual = applicable.reduce((sum, s) => {
     if (kpiKey === 'requested') return sum + s.counts.requestedInvoices
     return sum + s.counts[countsKey]
@@ -269,16 +301,36 @@ function aggregateKpiAcrossSegments(segments, kpiKey, countsKey) {
     if (kpiKey === 'requested') return sum + s.counts.totalInvoices
     return sum + s.counts.main
   }, 0)
+  const rate = totalBase > 0 ? totalActual / totalBase : null
 
-  const evaluable = applicable.filter((s) => s.kpis[kpiKey].status !== KPI_STATUS.INSUFFICIENT_DATA)
-
-  if (applicable.length === 0 || evaluable.length === 0) {
+  const withPolicy = applicable.filter((s) => s.kpis[kpiKey].status !== KPI_STATUS.NO_POLICY)
+  if (applicable.length > 0 && withPolicy.length === 0) {
     return {
       kind: kpiKey,
       actual: totalActual,
       main: kpiKey === 'requested' ? undefined : totalBase,
       total: kpiKey === 'requested' ? totalBase : undefined,
-      rate: totalBase > 0 ? totalActual / totalBase : null,
+      rate,
+      targets: [],
+      mixedTargets: false,
+      status: KPI_STATUS.NO_POLICY,
+      missing: null,
+      aggregateAlgorithm: 'per-segment-obligation',
+      note: 'Chưa có chính sách KPI kỳ này',
+    }
+  }
+
+  const targets = uniqueTargets(withPolicy.length ? withPolicy : applicable, kpiKey === 'requested' ? 'requested' : kpiKey)
+  const mixedTargets = targets.length > 1
+  const evaluable = withPolicy.filter((s) => s.kpis[kpiKey].status !== KPI_STATUS.INSUFFICIENT_DATA)
+
+  if (withPolicy.length === 0 || evaluable.length === 0) {
+    return {
+      kind: kpiKey,
+      actual: totalActual,
+      main: kpiKey === 'requested' ? undefined : totalBase,
+      total: kpiKey === 'requested' ? totalBase : undefined,
+      rate,
       targets,
       mixedTargets,
       status: KPI_STATUS.INSUFFICIENT_DATA,
@@ -299,7 +351,7 @@ function aggregateKpiAcrossSegments(segments, kpiKey, countsKey) {
     actual: totalActual,
     main: kpiKey === 'requested' ? undefined : totalBase,
     total: kpiKey === 'requested' ? totalBase : undefined,
-    rate: totalBase > 0 ? totalActual / totalBase : null,
+    rate,
     targets,
     mixedTargets,
     informationalBlendedTarget: mixedTargets ? null : targets[0],
@@ -416,7 +468,7 @@ export function computeEmployeeKpi(invoices = [], {
           combo: aggregateKpiAcrossSegments(related, 'combo', 'combo'),
           requested: aggregateKpiAcrossSegments(related, 'requested', 'requestedInvoices'),
         }
-      : evaluateSegment(seg.counts, related[0]?.targets || DEFAULT_KPI_TARGETS)
+      : evaluateSegment(seg.counts, related[0]?.targets ?? null)
     return {
       ...seg,
       mixedPolicyTargets: mixed,

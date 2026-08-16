@@ -329,6 +329,34 @@
   font-size: 12px;
 }
 
+.emp-kpi-muted {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.emp-kpi-drill__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 10px;
+}
+
+.emp-kpi-drill__filters button {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.emp-kpi-drill__filters button.is-active {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
 @media (max-width: 760px) {
   .emp-kpi-grid {
     grid-template-columns: 1fr;

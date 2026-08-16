@@ -1,0 +1,389 @@
+{
+  "passed": true,
+  "failed": 0,
+  "results": [
+    {
+      "id": "A1",
+      "name": "August = full month 01→31 (Kỳ1+Kỳ2)",
+      "pass": true,
+      "detail": {
+        "monthYm": "2026-08",
+        "fromDate": "2026-08-01",
+        "toDate": "2026-08-31",
+        "calendarToDate": "2026-08-31",
+        "clippedToToday": false,
+        "dataAsOfHint": "2026-08-17",
+        "rangeLabel": "2026-08-01 → 2026-08-31 (tháng đủ Kỳ 1+2; HĐ thực tế đến 2026-08-17)"
+      }
+    },
+    {
+      "id": "A2",
+      "name": "July = full month Kỳ1+Kỳ2",
+      "pass": true,
+      "detail": {
+        "monthYm": "2026-07",
+        "fromDate": "2026-07-01",
+        "toDate": "2026-07-31",
+        "calendarToDate": "2026-07-31",
+        "clippedToToday": false,
+        "dataAsOfHint": null,
+        "rangeLabel": "2026-07-01 → 2026-07-31"
+      }
+    },
+    {
+      "id": "B1",
+      "name": "Admin August counts chỉ HĐ Aug (không Jul)",
+      "pass": true,
+      "detail": {
+        "main": 3,
+        "addon": 3,
+        "advanced": 1,
+        "combo": 1,
+        "totalInvoices": 5,
+        "requestedInvoices": 2
+      }
+    },
+    {
+      "id": "C1",
+      "name": "Sóc Trăng từ Invoice serving SoT",
+      "pass": true,
+      "detail": {
+        "ids": [
+          "emp-lyly",
+          "emp-tran"
+        ]
+      }
+    },
+    {
+      "id": "D1",
+      "name": "Cross-branch Ly Ly serving ST+Trạm",
+      "pass": true,
+      "detail": [
+        "soc-trang",
+        "tram-spa"
+      ]
+    },
+    {
+      "id": "D2",
+      "name": "Employee engine === Admin row model counts",
+      "pass": true,
+      "detail": {
+        "emp": {
+          "main": 1,
+          "addon": 2,
+          "advanced": 1,
+          "combo": 1,
+          "unmapped": 0,
+          "totalInvoices": 3,
+          "requestedInvoices": 2
+        },
+        "admin": {
+          "main": 1,
+          "addon": 2,
+          "advanced": 1,
+          "combo": 1,
+          "unmapped": 0,
+          "totalInvoices": 3,
+          "requestedInvoices": 2
+        }
+      }
+    },
+    {
+      "id": "D3",
+      "name": "Employee engine === Admin missing/status",
+      "pass": true,
+      "detail": {
+        "addon": {
+          "key": "addon",
+          "title": "Dịch vụ phụ",
+          "numeratorLabel": "phụ",
+          "denominatorLabel": "chính",
+          "missingUnit": "lượt",
+          "formula": "ADDON / MAIN",
+          "status": "MET",
+          "statusLabel": "ĐẠT",
+          "actual": 2,
+          "denominator": 1,
+          "rate": 2,
+          "rateLabel": "200%",
+          "target": 0.7,
+          "targetLabel": "70%",
+          "missing": 0,
+          "missingText": "ĐẠT",
+          "progress": 1,
+          "mixedTargets": false
+        },
+        "requested": {
+          "key": "requested",
+          "title": "Khách yêu cầu",
+          "numeratorLabel": "khách yêu cầu",
+          "denominatorLabel": "hóa đơn",
+          "missingUnit": "khách yêu cầu",
+          "formula": "REQUESTED / TOTAL",
+          "status": "MET",
+          "statusLabel": "ĐẠT",
+          "actual": 2,
+          "denominator": 3,
+          "rate": 0.6666666666666666,
+          "rateLabel": "67%",
+          "target": 0.2,
+          "targetLabel": "20%",
+          "missing": 0,
+          "missingText": "ĐẠT",
+          "progress": 1,
+          "mixedTargets": false
+        }
+      }
+    },
+    {
+      "id": "E1",
+      "name": "1 HĐ multi-service → nhiều dòng",
+      "pass": true,
+      "detail": [
+        {
+          "date": "2026-08-03",
+          "invoiceId": "hd-multi",
+          "branchId": "soc-trang",
+          "serviceName": "Body 60",
+          "group": "MAIN",
+          "groupLabel": "DV chính",
+          "customerRequested": true,
+          "token": "body-60"
+        },
+        {
+          "date": "2026-08-03",
+          "invoiceId": "hd-multi",
+          "branchId": "soc-trang",
+          "serviceName": "Gội dưỡng sinh",
+          "group": "ADDON",
+          "groupLabel": "DV phụ",
+          "customerRequested": true,
+          "token": "goi-duong-sinh"
+        },
+        {
+          "date": "2026-08-03",
+          "invoiceId": "hd-multi",
+          "branchId": "soc-trang",
+          "serviceName": "Phòng đơn",
+          "group": "ADDON",
+          "groupLabel": "DV phụ",
+          "customerRequested": true,
+          "token": "phong-don"
+        }
+      ]
+    },
+    {
+      "id": "F1",
+      "name": "Export file stem KPI_Ten_Thang",
+      "pass": true,
+      "detail": {
+        "employeeId": "emp-lyly",
+        "employeeName": "Ly Ly",
+        "homeBranchId": "soc-trang",
+        "homeBranchName": "Sóc Trăng Khoẻ Spa",
+        "servingBranchNames": [
+          "Sóc Trăng Khoẻ Spa",
+          "Trạm Spa"
+        ],
+        "fromDate": "2026-08-01",
+        "toDate": "2026-08-31",
+        "rangeLabel": "2026-08-01 → 2026-08-31",
+        "monthYm": "2026-08",
+        "fileStem": "KPI_LyLy_08-2026",
+        "scoreLabel": "3/4",
+        "statusLabel": "CHƯA ĐẠT"
+      }
+    },
+    {
+      "id": "F2",
+      "name": "Export parity MAIN/ADDON/…",
+      "pass": true,
+      "detail": {
+        "main": 1,
+        "addon": 2,
+        "advanced": 1,
+        "combo": 1,
+        "totalInvoices": 3,
+        "requestedInvoices": 2,
+        "rates": {
+          "addon": 2,
+          "advanced": 1,
+          "combo": 1,
+          "requested": 0.6666666666666666
+        },
+        "targets": {
+          "addon": 0.7,
+          "advanced": 0.1,
+          "combo": 0.3,
+          "requested": 0.2
+        },
+        "missing": {
+          "addon": 0,
+          "advanced": 1,
+          "combo": 0,
+          "requested": 0
+        },
+        "status": {
+          "addon": "MET",
+          "advanced": "NOT_MET",
+          "combo": "MET",
+          "requested": "MET"
+        },
+        "segmentCount": 2
+      }
+    },
+    {
+      "id": "F3",
+      "name": "Excel sheets đủ 7 nhóm dòng",
+      "pass": true,
+      "detail": {
+        "all": 5,
+        "main": 1,
+        "addon": 2,
+        "requested": 4
+      }
+    },
+    {
+      "id": "F4",
+      "name": "Export không tự tính — cards từ row",
+      "pass": true,
+      "detail": {
+        "key": "addon",
+        "title": "Dịch vụ phụ",
+        "numeratorLabel": "phụ",
+        "denominatorLabel": "chính",
+        "missingUnit": "lượt",
+        "formula": "ADDON / MAIN",
+        "status": "MET",
+        "statusLabel": "ĐẠT",
+        "actual": 2,
+        "denominator": 1,
+        "rate": 2,
+        "rateLabel": "200%",
+        "target": 0.7,
+        "targetLabel": "70%",
+        "missing": 0,
+        "missingText": "ĐẠT",
+        "progress": 1,
+        "mixedTargets": false
+      }
+    },
+    {
+      "id": "G1",
+      "name": "Edit dịch vụ → counts đổi",
+      "pass": true,
+      "detail": {
+        "before": {
+          "main": 1,
+          "addon": 2,
+          "advanced": 1,
+          "combo": 1,
+          "unmapped": 0,
+          "totalInvoices": 3,
+          "requestedInvoices": 2
+        },
+        "after": {
+          "main": 2,
+          "addon": 3,
+          "advanced": 1,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 3,
+          "requestedInvoices": 2
+        }
+      }
+    },
+    {
+      "id": "G2",
+      "name": "Delete HĐ → không còn trong included",
+      "pass": true,
+      "detail": {
+        "afterDel": {
+          "main": 2,
+          "addon": 3,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 2,
+          "requestedInvoices": 1
+        }
+      }
+    },
+    {
+      "id": "H1",
+      "name": "July + chỉ policy Aug → NO_POLICY raw counts",
+      "pass": true,
+      "detail": {
+        "counts": {
+          "main": 1,
+          "addon": 1,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 1,
+          "requestedInvoices": 0
+        },
+        "kpis": {
+          "addon": {
+            "kind": "addon",
+            "actual": 1,
+            "main": 1,
+            "rate": 1,
+            "targets": [],
+            "mixedTargets": false,
+            "status": "NO_POLICY",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": "Chưa có chính sách KPI kỳ này"
+          },
+          "advanced": {
+            "kind": "advanced",
+            "actual": 0,
+            "main": 1,
+            "rate": 0,
+            "targets": [],
+            "mixedTargets": false,
+            "status": "NO_POLICY",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": "Chưa có chính sách KPI kỳ này"
+          },
+          "combo": {
+            "kind": "combo",
+            "actual": 0,
+            "main": 1,
+            "rate": 0,
+            "targets": [],
+            "mixedTargets": false,
+            "status": "NO_POLICY",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": "Chưa có chính sách KPI kỳ này"
+          },
+          "requested": {
+            "kind": "requested",
+            "actual": 0,
+            "total": 1,
+            "rate": 0,
+            "targets": [],
+            "mixedTargets": false,
+            "status": "NO_POLICY",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": "Chưa có chính sách KPI kỳ này"
+          }
+        },
+        "aggregateAlgorithm": "per-segment-obligation"
+      }
+    },
+    {
+      "id": "I1",
+      "name": "1 buildAdminKpiDashboard cho nhiều NV (no N+1)",
+      "pass": true,
+      "detail": {
+        "rows": 3,
+        "ms": 1
+      }
+    }
+  ]
+}

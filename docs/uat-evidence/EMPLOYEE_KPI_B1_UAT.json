@@ -1309,7 +1309,7 @@
       "pass": true,
       "detail": {
         "closed": {
-          "id": "kpi-pol-1786907005198-2ts0sj",
+          "id": "kpi-pol-1786908730712-y2av7b",
           "branchId": "soc-trang",
           "effectiveFrom": "2026-08-01",
           "effectiveTo": "2026-08-14",
@@ -1319,16 +1319,16 @@
           "requestedTarget": 0.2,
           "status": "superseded",
           "createdBy": "admin",
-          "createdAt": "2026-08-16T19:03:25.198Z",
+          "createdAt": "2026-08-16T19:32:10.712Z",
           "updatedBy": "admin",
-          "updatedAt": "2026-08-16T19:03:25.198Z",
+          "updatedAt": "2026-08-16T19:32:10.713Z",
           "changeReason": "seed"
         },
         "log": {
-          "id": "kpi-log-1786907005199-7vb20a",
+          "id": "kpi-log-1786908730714-4fc9cz",
           "branchId": "soc-trang",
           "oldPolicy": {
-            "id": "kpi-pol-1786907005198-2ts0sj",
+            "id": "kpi-pol-1786908730712-y2av7b",
             "branchId": "soc-trang",
             "effectiveFrom": "2026-08-01",
             "effectiveTo": null,
@@ -1338,13 +1338,13 @@
             "requestedTarget": 0.2,
             "status": "active",
             "createdBy": "admin",
-            "createdAt": "2026-08-16T19:03:25.198Z",
+            "createdAt": "2026-08-16T19:32:10.712Z",
             "updatedBy": "admin",
-            "updatedAt": "2026-08-16T19:03:25.198Z",
+            "updatedAt": "2026-08-16T19:32:10.713Z",
             "changeReason": "seed"
           },
           "newPolicy": {
-            "id": "kpi-pol-1786907005198-7sws2j",
+            "id": "kpi-pol-1786908730713-r92rjn",
             "branchId": "soc-trang",
             "effectiveFrom": "2026-08-15",
             "effectiveTo": null,
@@ -1354,17 +1354,84 @@
             "requestedTarget": 0.2,
             "status": "active",
             "createdBy": "admin",
-            "createdAt": "2026-08-16T19:03:25.198Z",
+            "createdAt": "2026-08-16T19:32:10.713Z",
             "updatedBy": "admin",
-            "updatedAt": "2026-08-16T19:03:25.198Z",
+            "updatedAt": "2026-08-16T19:32:10.713Z",
             "changeReason": "mid-month"
           },
           "effectiveFrom": "2026-08-15",
           "effectiveTo": null,
           "actorId": "admin",
           "reason": "mid-month",
-          "timestamp": "2026-08-16T19:03:25.199Z"
+          "timestamp": "2026-08-16T19:32:10.714Z"
         }
+      }
+    },
+    {
+      "id": "NP1",
+      "name": "Không policy → raw counts + NO_POLICY (không giả 70/10/30/20)",
+      "pass": true,
+      "detail": {
+        "counts": {
+          "main": 1,
+          "addon": 1,
+          "advanced": 0,
+          "combo": 0,
+          "unmapped": 0,
+          "totalInvoices": 1,
+          "requestedInvoices": 0
+        },
+        "kpis": {
+          "addon": {
+            "kind": "addon",
+            "actual": 1,
+            "main": 1,
+            "rate": 1,
+            "targets": [],
+            "mixedTargets": false,
+            "status": "NO_POLICY",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": "Chưa có chính sách KPI kỳ này"
+          },
+          "advanced": {
+            "kind": "advanced",
+            "actual": 0,
+            "main": 1,
+            "rate": 0,
+            "targets": [],
+            "mixedTargets": false,
+            "status": "NO_POLICY",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": "Chưa có chính sách KPI kỳ này"
+          },
+          "combo": {
+            "kind": "combo",
+            "actual": 0,
+            "main": 1,
+            "rate": 0,
+            "targets": [],
+            "mixedTargets": false,
+            "status": "NO_POLICY",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": "Chưa có chính sách KPI kỳ này"
+          },
+          "requested": {
+            "kind": "requested",
+            "actual": 0,
+            "total": 1,
+            "rate": 0,
+            "targets": [],
+            "mixedTargets": false,
+            "status": "NO_POLICY",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": "Chưa có chính sách KPI kỳ này"
+          }
+        },
+        "aggregateAlgorithm": "per-segment-obligation"
       }
     },
     {

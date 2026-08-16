@@ -24,6 +24,8 @@ export const KPI_STATUS = {
   NOT_MET: 'NOT_MET',
   INSUFFICIENT_DATA: 'INSUFFICIENT_DATA',
   NOT_APPLICABLE: 'NOT_APPLICABLE',
+  /** Có HĐ nhưng không có versioned policy cho ngày/CN — không giả DEFAULT targets. */
+  NO_POLICY: 'NO_POLICY',
 }
 
 export const DEFAULT_KPI_TARGETS = {

@@ -428,6 +428,14 @@ function runThreeWay(invoices, policies, tag) {
     || files.includes('buildAdminKpiDashboard'), {})
   check('16b', 'Admin dashboard imports computeEmployeeKpi only (no second engine)', readFileSync(join(ROOT, 'src/utils/adminKpiDashboard.js'), 'utf8').includes("from './employeeKpiEngine'")
     && !existsSync(join(ROOT, 'src/utils/adminKpiEngine.js')), {})
+  const adminSrc = readFileSync(join(ROOT, 'src/pages/AdminKpi.jsx'), 'utf8')
+  const empPageSrc = readFileSync(join(ROOT, 'src/pages/EmployeeKpi.jsx'), 'utf8')
+  check('16c', 'Admin/Employee KPI không dùng loadInvoices cache 100', !adminSrc.includes('loadInvoices')
+    && !empPageSrc.includes('loadInvoices')
+    && adminSrc.includes('fetchKpiInvoicesForScope')
+    && empPageSrc.includes('fetchKpiInvoicesForScope'), {})
+  check('16d', 'Detail export bundle tồn tại', existsSync(join(ROOT, 'src/utils/employeeKpiDetailExport.js'))
+    && existsSync(join(ROOT, 'src/utils/kpiInvoiceScope.js')), {})
 }
 
 // ——— Module smoke (import / no payroll touch) ———

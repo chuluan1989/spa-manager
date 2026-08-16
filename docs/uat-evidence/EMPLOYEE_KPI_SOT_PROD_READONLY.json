@@ -1,0 +1,208 @@
+{
+  "readOnly": true,
+  "wroteProduction": false,
+  "policies": [
+    {
+      "branchId": "tram-spa",
+      "from": "2026-08-01",
+      "to": null,
+      "status": "active",
+      "targets": [
+        0.7,
+        0.1,
+        0.3,
+        0.2
+      ]
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "from": "2026-08-01",
+      "to": null,
+      "status": "active",
+      "targets": [
+        0.7,
+        0.1,
+        0.3,
+        0.2
+      ]
+    },
+    {
+      "branchId": "bac-lieu",
+      "from": "2026-08-01",
+      "to": null,
+      "status": "active",
+      "targets": [
+        0.7,
+        0.1,
+        0.3,
+        0.2
+      ]
+    },
+    {
+      "branchId": "tra-vinh",
+      "from": "2026-08-01",
+      "to": null,
+      "status": "active",
+      "targets": [
+        0.7,
+        0.1,
+        0.3,
+        0.2
+      ]
+    },
+    {
+      "branchId": "vinh-long",
+      "from": "2026-08-01",
+      "to": null,
+      "status": "active",
+      "targets": [
+        0.7,
+        0.1,
+        0.3,
+        0.2
+      ]
+    },
+    {
+      "branchId": "soc-trang",
+      "from": "2026-08-01",
+      "to": "2026-08-31",
+      "status": "superseded",
+      "targets": [
+        0.7,
+        0.1,
+        0.3,
+        0.2
+      ]
+    },
+    {
+      "branchId": "soc-trang",
+      "from": "2026-09-01",
+      "to": null,
+      "status": "active",
+      "targets": [
+        0.7,
+        0.11,
+        0.3,
+        0.2
+      ]
+    }
+  ],
+  "augClippedToToday": {
+    "range": {
+      "monthYm": "2026-08",
+      "fromDate": "2026-08-01",
+      "toDate": "2026-08-17",
+      "calendarToDate": "2026-08-31",
+      "clippedToToday": true,
+      "rangeLabel": "2026-08-01 → 2026-08-17 (đến hôm nay; tháng lịch đến 2026-08-31)"
+    },
+    "fetch": 685,
+    "adminHD": 685,
+    "nv": 32
+  },
+  "augFullMonth": {
+    "range": {
+      "monthYm": "2026-08",
+      "fromDate": "2026-08-01",
+      "toDate": "2026-08-31",
+      "calendarToDate": "2026-08-31",
+      "clippedToToday": false,
+      "rangeLabel": "2026-08-01 → 2026-08-31"
+    },
+    "fetch": 686,
+    "adminHD": 686,
+    "nv": 32,
+    "counts": {
+      "main": 439,
+      "addon": 370,
+      "advanced": 24,
+      "combo": 159,
+      "totalInvoices": 686,
+      "requestedInvoices": 0
+    }
+  },
+  "socTrang": {
+    "dbServingEmployees": 11,
+    "adminRows": 11,
+    "mismatches": 0,
+    "missing": [],
+    "extra": [],
+    "names": [
+      "Bảo Trân",
+      "Chị 7",
+      "Huỳnh",
+      "Huỳnh Anh",
+      "Hải Anh",
+      "Kim Quyên",
+      "Lan Anh",
+      "Ly Ly",
+      "Như Hà",
+      "Thanh",
+      "Trúc Ly"
+    ]
+  },
+  "july": {
+    "range": {
+      "monthYm": "2026-07",
+      "fromDate": "2026-07-01",
+      "toDate": "2026-07-31",
+      "calendarToDate": "2026-07-31",
+      "clippedToToday": false,
+      "rangeLabel": "2026-07-01 → 2026-07-31"
+    },
+    "fetch": 1348,
+    "adminHD": 1348,
+    "nv": 32,
+    "noPolicy": 32,
+    "met": 0,
+    "sample": [
+      {
+        "name": "An Nhỏ",
+        "status": "Chưa có chính sách KPI kỳ này",
+        "counts": {
+          "main": 32,
+          "addon": 19,
+          "advanced": 0,
+          "combo": 8,
+          "unmapped": 0,
+          "totalInvoices": 45,
+          "requestedInvoices": 0
+        },
+        "targetAddon": null
+      },
+      {
+        "name": "Bảo Trân",
+        "status": "Chưa có chính sách KPI kỳ này",
+        "counts": {
+          "main": 48,
+          "addon": 27,
+          "advanced": 2,
+          "combo": 10,
+          "unmapped": 0,
+          "totalInvoices": 64,
+          "requestedInvoices": 0
+        },
+        "targetAddon": null
+      },
+      {
+        "name": "Cẩm Hà",
+        "status": "Chưa có chính sách KPI kỳ này",
+        "counts": {
+          "main": 33,
+          "addon": 32,
+          "advanced": 5,
+          "combo": 22,
+          "unmapped": 0,
+          "totalInvoices": 35,
+          "requestedInvoices": 0
+        },
+        "targetAddon": null
+      }
+    ]
+  },
+  "perf": {
+    "fetchMs": 890,
+    "buildMs": 20
+  },
+  "pass": true
+}
