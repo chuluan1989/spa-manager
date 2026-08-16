@@ -13,7 +13,7 @@ import KhoeSpaLogo from '../components/brand/KhoeSpaLogo'
 import { ROLES } from '../constants/auth'
 import { verifyLogin } from '../constants/loginCredentials'
 import { getActiveBranches } from '../constants/branches'
-import { BRANCH_CONTACTS, SYSTEM_HOTLINE } from '../constants/branchContacts'
+import { SYSTEM_HOTLINE } from '../constants/branchContacts'
 import { getActiveEmployeesByBranch } from '../utils/employeeStorage'
 import './Login.css'
 
@@ -24,6 +24,17 @@ const ROLE_OPTIONS = [
 ]
 
 const REMEMBER_ROLE_KEY = 'spa-manager-login-remember-role'
+
+const LOGIN_BRANCH_CONTACTS = [
+  { id: 'cn1', label: 'CN1', address: '347 Phú Lợi, P. Phú Lợi, TP Cần Thơ', phone: '0933.664.368' },
+  { id: 'cn2', label: 'CN2', address: '61 Nguyễn Chí Thanh, P. Sóc Trăng, TP Cần Thơ', phone: '0846.80.83.83' },
+  { id: 'cn3', label: 'CN3', address: '63 Trần Khánh Dư, P. Pleiku, Gia Lai', phone: '0779.881.388' },
+  { id: 'cn4', label: 'CN4', address: 'Tuyến 5, dãy nhà TNR, đường Võ Nguyên Giáp, P. Nguyệt Hoá, Vĩnh Long', phone: '0704.858.777' },
+  { id: 'cn5', label: 'CN5', address: '36 Ninh Bình, P. Bạc Liêu, Cà Mau', phone: '0888.077.655' },
+  { id: 'cn6', label: 'CN6', address: '55D14 Phạm Thái Bường, P. Phước Hậu, Vĩnh Long (Lốc cuối dãy nhà VinHome Vĩnh Long)', phone: '0704.884.777' },
+  { id: 'cn7', label: 'CN7', address: '08N Lê Lai, P. Pleiku, Gia Lai', phone: '0779.881.388' },
+  { id: 'cn8', label: 'CN8', address: '286 Trần Hưng Đạo, P. Phú Lợi, TP Cần Thơ', phone: '085.4758.777' },
+]
 
 function FieldIcon({ children }) {
   return <span className="login__field-icon" aria-hidden="true">{children}</span>
@@ -227,7 +238,7 @@ export default function Login({ onLogin }) {
         <div className="login__branches-fade" aria-hidden="true" />
         <h2 className="login__branches-title">Hệ thống 8 chi nhánh</h2>
         <div className="login__branches-grid">
-          {BRANCH_CONTACTS.map((item) => (
+          {LOGIN_BRANCH_CONTACTS.map((item) => (
             <article key={item.id} className="login__branch-card">
               <div className="login__branch-card-top">
                 <span className="login__branch-pin">
