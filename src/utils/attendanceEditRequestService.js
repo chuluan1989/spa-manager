@@ -18,6 +18,7 @@ import {
   CORRECTION_STATUS,
   createAttendanceChangeEventId,
   createCorrectionRequestId,
+  fetchCorrectionByLegacySourceId,
   fetchCorrectionRequestById,
   fetchCorrectionRequestsFiltered,
   fetchPendingCorrectionForDay,
@@ -165,6 +166,28 @@ async function writeAuditEvent(partial) {
 
 async function isDatabaseAvailable() {
   return isSupabaseConfigured
+}
+
+/**
+ * Duyệt/Từ chối phải tìm được cả bản bảng mới (acr-*) lẫn JSON legacy (aer-*).
+ * List đã merge hai nguồn; lookup cũ chỉ .eq('id') trên bảng mới nên aer-* ném "Không tìm thấy yêu cầu."
+ */
+async function resolveReviewRequest(requestId) {
+  const db = await isDatabaseAvailable()
+  if (!db) {
+    return { db: false, persistTo: 'legacy', raw: await getLegacyById(requestId) }
+  }
+
+  const fromTable = await fetchCorrectionRequestById(requestId)
+  if (fromTable) return { db: true, persistTo: 'db', raw: fromTable }
+
+  const fromLegacySource = await fetchCorrectionByLegacySourceId(requestId)
+  if (fromLegacySource) return { db: true, persistTo: 'db', raw: fromLegacySource }
+
+  const fromJson = await getLegacyById(requestId)
+  if (fromJson) return { db: true, persistTo: 'legacy', raw: fromJson }
+
+  return { db: true, persistTo: 'db', raw: null }
 }
 
 function markUiSource(rows, source) {
@@ -417,10 +440,7 @@ export async function approveAttendanceEditRequest(requestId, {
   finalCheckIn,
   finalCheckOut,
 } = {}) {
-  const db = await isDatabaseAvailable()
-  const raw = db
-    ? await fetchCorrectionRequestById(requestId)
-    : await getLegacyById(requestId)
+  const { db, persistTo, raw } = await resolveReviewRequest(requestId)
   const request = normalizeUiRequest(raw)
   if (!request) throw new Error('Không tìm thấy yêu cầu.')
   if (request.status !== CORRECTION_STATUS.PENDING) {
@@ -527,8 +547,23 @@ export async function approveAttendanceEditRequest(requestId, {
   }
 
   let saved
-  if (db) {
+  if (persistTo === 'db') {
     saved = normalizeUiRequest(await upsertCorrectionRequest(afterPayload))
+  } else {
+    saved = normalizeUiRequest(await upsertLegacyRequest({
+      ...request,
+      newStatus: status,
+      newReason: reason,
+      newNote: note,
+      status: ATTENDANCE_EDIT_REQUEST_STATUS.APPROVED,
+      reviewedAt: afterPayload.reviewedAt,
+      reviewedBy: editor.editorId,
+      reviewedByName: editor.editorName,
+      reviewNote: editNote,
+      employeeNotified: false,
+    }))
+  }
+  if (db) {
     await writeAuditEvent({
       requestId: saved.id,
       attendanceId: saved.attendanceId,
@@ -547,19 +582,6 @@ export async function approveAttendanceEditRequest(requestId, {
       note: editNote,
       branchAtAction: getCurrentUserBranch() || saved.branchId || '',
     })
-  } else {
-    saved = normalizeUiRequest(await upsertLegacyRequest({
-      ...request,
-      newStatus: status,
-      newReason: reason,
-      newNote: note,
-      status: ATTENDANCE_EDIT_REQUEST_STATUS.APPROVED,
-      reviewedAt: afterPayload.reviewedAt,
-      reviewedBy: editor.editorId,
-      reviewedByName: editor.editorName,
-      reviewNote: editNote,
-      employeeNotified: false,
-    }))
   }
 
   notifyDataSynced(['settings', 'attendance-edit-requests', 'attendance-corrections', 'attendance'])
@@ -572,10 +594,7 @@ export async function rejectAttendanceEditRequest(requestId, { reviewNote = '' }
     throw new Error('Vui lòng nhập lý do từ chối.')
   }
 
-  const db = await isDatabaseAvailable()
-  const raw = db
-    ? await fetchCorrectionRequestById(requestId)
-    : await getLegacyById(requestId)
+  const { db, persistTo, raw } = await resolveReviewRequest(requestId)
   const request = normalizeUiRequest(raw)
   if (!request) throw new Error('Không tìm thấy yêu cầu.')
   if (request.status !== CORRECTION_STATUS.PENDING) {
@@ -620,8 +639,20 @@ export async function rejectAttendanceEditRequest(requestId, { reviewNote = '' }
   }
 
   let saved
-  if (db) {
+  if (persistTo === 'db') {
     saved = normalizeUiRequest(await upsertCorrectionRequest(afterPayload))
+  } else {
+    saved = normalizeUiRequest(await upsertLegacyRequest({
+      ...request,
+      status: ATTENDANCE_EDIT_REQUEST_STATUS.REJECTED,
+      reviewedAt: afterPayload.reviewedAt,
+      reviewedBy: editor.editorId,
+      reviewedByName: editor.editorName,
+      reviewNote: reason,
+      employeeNotified: false,
+    }))
+  }
+  if (db) {
     await writeAuditEvent({
       requestId: saved.id,
       attendanceId: saved.attendanceId,
@@ -637,16 +668,6 @@ export async function rejectAttendanceEditRequest(requestId, { reviewNote = '' }
       note: reason,
       branchAtAction: getCurrentUserBranch() || saved.branchId || '',
     })
-  } else {
-    saved = normalizeUiRequest(await upsertLegacyRequest({
-      ...request,
-      status: ATTENDANCE_EDIT_REQUEST_STATUS.REJECTED,
-      reviewedAt: afterPayload.reviewedAt,
-      reviewedBy: editor.editorId,
-      reviewedByName: editor.editorName,
-      reviewNote: reason,
-      employeeNotified: false,
-    }))
   }
 
   notifyDataSynced(['settings', 'attendance-edit-requests', 'attendance-corrections'])

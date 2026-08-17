@@ -85,6 +85,21 @@ function resolveCorrectionSubmittedAt(row) {
 // ——— CASE D: reject path still present ———
 {
   check('D', 'rejectAttendanceEditRequest vẫn tồn tại', approveSrc.includes('export async function rejectAttendanceEditRequest'), {})
+  check(
+    'LEGACY1',
+    'Duyệt/Từ chối resolve aer-* qua JSON khi bảng mới miss',
+    approveSrc.includes('async function resolveReviewRequest')
+      && approveSrc.includes('fetchCorrectionByLegacySourceId')
+      && approveSrc.includes("persistTo: 'legacy'"),
+    {},
+  )
+  check(
+    'LEGACY2',
+    'Persist JSON khi persistTo === legacy (không upsert aer-* vào bảng mới)',
+    approveSrc.includes("if (persistTo === 'db')")
+      && /persistTo === 'db'[\s\S]*upsertCorrectionRequest[\s\S]*upsertLegacyRequest/.test(approveSrc),
+    {},
+  )
 }
 
 // ——— CASE E: anti-duplicate create vẫn giữ ———

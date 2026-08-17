@@ -1,7 +1,7 @@
 {
   "passed": true,
   "failed": 0,
-  "total": 17,
+  "total": 19,
   "results": [
     {
       "id": "SRC1",
@@ -58,6 +58,18 @@
     {
       "id": "D",
       "name": "rejectAttendanceEditRequest vẫn tồn tại",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "LEGACY1",
+      "name": "Duyệt/Từ chối resolve aer-* qua JSON khi bảng mới miss",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "LEGACY2",
+      "name": "Persist JSON khi persistTo === legacy (không upsert aer-* vào bảng mới)",
       "pass": true,
       "detail": {}
     },
