@@ -16,6 +16,7 @@ import {
   buildBranchManagementRows,
   buildEmployeeInvoiceList,
   buildEmployeeManagementRows,
+  buildSystemManagementRow,
   EMPLOYEE_INVOICE_DRILL_MODES,
 } from '../src/utils/managementReports/managementMetrics.js'
 import {
@@ -130,6 +131,28 @@ assert.ok(Number.isFinite(st.averageRevenuePerDay))
 const julyCurrent = invoices.filter((i) => i.date >= '2026-07-01' && i.date <= '2026-07-21')
 const junePrevious = invoices.filter((i) => i.date.startsWith('2026-06'))
 
+{
+  const julyRows = buildBranchManagementRows({
+    invoices: julyCurrent,
+    previousInvoices: junePrevious,
+    expenses: [],
+    previousExpenses: [],
+    fixedCosts: [],
+    fromDate: '2026-07-01',
+    toDate: '2026-07-21',
+    previousFromDate: '2026-06-01',
+    previousToDate: '2026-06-21',
+    scopeBranchId: 'soc-trang',
+  })
+  const julySt = julyRows.find((r) => r.branchId === 'soc-trang')
+  assert.equal(julySt.invoiceCount, 2)
+  assert.equal(julySt.revenue, 800000)
+  assert.equal(julySt.tips, 50000)
+  assert.equal(julySt.ticketRevenuePerInvoice, 400000)
+  assert.equal(julySt.tipsPerInvoice, 25000)
+  assert.equal(julySt.averageTicket, julySt.ticketRevenuePerInvoice)
+}
+
 const empRows = buildEmployeeManagementRows({
   invoices: julyCurrent,
   previousInvoices: junePrevious,
@@ -212,6 +235,83 @@ assert.equal(buildEmployeeInvoiceList(julyCurrent, 'e1', EMPLOYEE_INVOICE_DRILL_
   assert.equal(movers.losers[0].name, 'B')
 }
 
+{
+  const twoBranchInvoices = [
+    {
+      id: 'st1',
+      date: '2026-07-10',
+      branchId: 'soc-trang',
+      employeeId: 'e1',
+      employeeName: 'A',
+      customerName: 'Khách ST',
+      customerPhone: '0901111001',
+      tips: 100000,
+      serviceTotal: 500000,
+      total: 600000,
+      services: [{ id: 's1', name: 'Body', price: 500000 }],
+    },
+    {
+      id: 'st2',
+      date: '2026-07-11',
+      branchId: 'soc-trang',
+      employeeId: 'e1',
+      employeeName: 'A',
+      customerName: 'Khách ST 2',
+      customerPhone: '0901111004',
+      tips: 100000,
+      serviceTotal: 500000,
+      total: 600000,
+      services: [{ id: 's1', name: 'Body', price: 500000 }],
+    },
+    {
+      id: 'bl1',
+      date: '2026-07-10',
+      branchId: 'bac-lieu',
+      employeeId: 'e3',
+      employeeName: 'C',
+      customerName: 'Khách BL',
+      customerPhone: '0901111003',
+      tips: 20000,
+      serviceTotal: 300000,
+      total: 320000,
+      services: [{ id: 's1', name: 'Body', price: 300000 }],
+    },
+  ]
+  const rows = buildBranchManagementRows({
+    invoices: twoBranchInvoices,
+    previousInvoices: [],
+    expenses: [],
+    previousExpenses: [],
+    fixedCosts: [],
+    fromDate: '2026-07-01',
+    toDate: '2026-07-21',
+    previousFromDate: '2026-06-01',
+    previousToDate: '2026-06-21',
+  })
+  const system = buildSystemManagementRow({
+    invoices: twoBranchInvoices,
+    previousInvoices: [],
+    fromDate: '2026-07-01',
+    toDate: '2026-07-21',
+    previousFromDate: '2026-06-01',
+    previousToDate: '2026-06-21',
+  })
+  const stRow = rows.find((r) => r.branchId === 'soc-trang')
+  const blRow = rows.find((r) => r.branchId === 'bac-lieu')
+  assert.ok(stRow && blRow)
+  assert.equal(stRow.ticketRevenuePerInvoice, 500000)
+  assert.equal(stRow.tipsPerInvoice, 100000)
+  assert.equal(blRow.ticketRevenuePerInvoice, 300000)
+  assert.equal(blRow.tipsPerInvoice, 20000)
+  assert.equal(system.invoiceCount, 3)
+  assert.equal(system.revenue, 1300000)
+  assert.equal(system.tips, 220000)
+  assert.equal(system.ticketRevenuePerInvoice, 1300000 / 3)
+  assert.equal(system.tipsPerInvoice, 220000 / 3)
+  const avgOfAveragesTicket = (stRow.ticketRevenuePerInvoice + blRow.ticketRevenuePerInvoice) / 2
+  assert.notEqual(system.ticketRevenuePerInvoice, avgOfAveragesTicket)
+}
+
 console.log('PASS — verify:management-reports')
 console.log('  ✓ MoM same-days + full-month compare')
 console.log('  ✓ safe divide / trend labels')
@@ -219,3 +319,4 @@ console.log('  ✓ customerRequested metrics')
 console.log('  ✓ support employee not credited ticket revenue')
 console.log('  ✓ main/support/total tour split + drill list')
 console.log('  ✓ rule-based insights + KPI tones + top movers')
+console.log('  ✓ Tiền vé/HĐ + Tips/HĐ theo số hóa đơn; Tổng hệ thống không trung bình CN')

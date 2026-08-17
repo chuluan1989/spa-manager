@@ -235,6 +235,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+.mgmt-table tfoot tr.is-total {
+  font-weight: 700;
+  background: #f9fafb;
+}
+
+.mgmt-table tfoot tr.is-total td {
+  border-top: 1px solid var(--ks-border, #e5e7eb);
+}
+
 .mgmt-empty {
   text-align: center;
   color: #6b7280;

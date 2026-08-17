@@ -17,6 +17,7 @@ import { getManagementComparePeriod } from '../utils/managementReports/periodCom
 import {
   buildBranchManagementRows,
   buildEmployeeManagementRows,
+  buildSystemManagementRow,
 } from '../utils/managementReports/managementMetrics'
 
 export function buildDefaultManagementFilters(overrides = {}) {
@@ -147,7 +148,7 @@ export function useManagementReportsData(filters) {
 
   const derived = useMemo(() => {
     if (!payload) {
-      return { branchRows: [], employeeRows: [], compare }
+      return { branchRows: [], employeeRows: [], systemRow: null, compare }
     }
 
     const currentInvoices = filterInvoicesByRange(
@@ -209,6 +210,15 @@ export function useManagementReportsData(filters) {
       scopeBranchId,
     })
 
+    const systemRow = buildSystemManagementRow({
+      invoices: currentInvoices,
+      previousInvoices,
+      fromDate: filters.fromDate,
+      toDate: filters.toDate,
+      previousFromDate: compare.fromDate,
+      previousToDate: compare.toDate,
+    })
+
     const employeeRows = buildEmployeeManagementRows({
       invoices: currentInvoices,
       previousInvoices,
@@ -225,6 +235,7 @@ export function useManagementReportsData(filters) {
     return {
       branchRows,
       employeeRows,
+      systemRow,
       compare,
       currentInvoices,
       previousInvoices,

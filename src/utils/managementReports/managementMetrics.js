@@ -83,9 +83,12 @@ function buildBaseMetrics(invoices, daysInPeriod) {
   const requestedRate = safeRatePercent(requestedCustomerCount, totalCustomerCount)
   const customerRequestedTourCount = countRequestedTours(invoices)
   const customerRequestedTourRate = safeRatePercent(customerRequestedTourCount, invoices.length)
+  const invoiceCount = invoices.length
   const averageRevenuePerCustomer = safeDivide(revenue, totalCustomerCount)
   const averageRevenuePerDay = safeDivide(revenue, daysInPeriod)
-  const averageTicket = safeDivide(revenue, invoices.length)
+  const ticketRevenuePerInvoice = safeDivide(revenue, invoiceCount)
+  const tipsPerInvoice = safeDivide(tips, invoiceCount)
+  const averageTicket = ticketRevenuePerInvoice
   const payments = aggregatePaymentMethodTotals(invoices)
 
   return {
@@ -98,8 +101,10 @@ function buildBaseMetrics(invoices, daysInPeriod) {
     customerRequestedTourRate,
     averageRevenuePerCustomer,
     averageRevenuePerDay,
+    ticketRevenuePerInvoice,
+    tipsPerInvoice,
     averageTicket,
-    invoiceCount: invoices.length,
+    invoiceCount,
     cashAmount: payments.cashAmount,
     bankTransferAmount: payments.bankTransferAmount,
     unknownPaymentAmount: payments.unknownAmount,
@@ -123,6 +128,11 @@ function withTrends(current, previous) {
       previous?.customerRequestedTourRate,
     ),
     tipsTrend: computeSafeTrend(current.tips, previous?.tips),
+    ticketRevenuePerInvoiceTrend: computeSafeTrend(
+      current.ticketRevenuePerInvoice,
+      previous?.ticketRevenuePerInvoice,
+    ),
+    tipsPerInvoiceTrend: computeSafeTrend(current.tipsPerInvoice, previous?.tipsPerInvoice),
     averageTicketTrend: computeSafeTrend(current.averageTicket, previous?.averageTicket),
     previous: previous
       ? {
@@ -133,6 +143,8 @@ function withTrends(current, previous) {
           customerRequestedTourCount: previous.customerRequestedTourCount,
           customerRequestedTourRate: previous.customerRequestedTourRate,
           tips: previous.tips,
+          ticketRevenuePerInvoice: previous.ticketRevenuePerInvoice,
+          tipsPerInvoice: previous.tipsPerInvoice,
           averageTicket: previous.averageTicket,
         }
       : null,
@@ -201,6 +213,30 @@ export function buildBranchManagementRows({
     row.profitTrend = computeSafeTrend(row.profit, previous ? prevSummary.profit : null)
     return row
   }).sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0))
+}
+
+/**
+ * Tổng hệ thống — cùng công thức buildBaseMetrics trên toàn bộ hóa đơn đã lọc.
+ * Không lấy trung bình các tỷ lệ chi nhánh.
+ */
+export function buildSystemManagementRow({
+  invoices = [],
+  previousInvoices = [],
+  fromDate,
+  toDate,
+  previousFromDate,
+  previousToDate,
+} = {}) {
+  const current = buildBaseMetrics(invoices, countInclusiveDays(fromDate, toDate))
+  const previous = buildBaseMetrics(previousInvoices, countInclusiveDays(previousFromDate, previousToDate))
+  return withTrends(
+    {
+      ...current,
+      id: '__system__',
+      name: 'Tổng hệ thống',
+    },
+    previous,
+  )
 }
 
 /**
