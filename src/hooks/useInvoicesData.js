@@ -1,14 +1,32 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { fetchInvoices, subscribeInvoicesChanges } from '../repositories/invoicesRepository'
+import {
+  fetchInvoices,
+  fetchInvoicesFiltered,
+  subscribeInvoicesChanges,
+} from '../repositories/invoicesRepository'
 import { replaceAllInvoices } from '../utils/invoiceStorage'
 import { subscribeToDataSync } from '../utils/supabaseSync'
+
+function hasInvoiceFetchScope(scope) {
+  return Boolean(
+    scope.fromDate
+    || scope.toDate
+    || scope.branchId
+    || scope.employeeId,
+  )
+}
 
 /**
  * Danh sách hóa đơn từ Supabase — nguồn duy nhất cho UI (Admin/Nhân viên).
  * localStorage chỉ là cache phụ sau khi ghi thành công.
+ * Khi caller truyền fromDate/toDate: fetch đúng khoảng ngày đã chọn (không cắt theo kỳ hiện tại).
  */
-export function useInvoicesData() {
+export function useInvoicesData(scope = {}) {
+  const fromDate = scope.fromDate || ''
+  const toDate = scope.toDate || ''
+  const branchId = scope.branchId || ''
+  const employeeId = scope.employeeId || ''
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -26,7 +44,10 @@ export function useInvoicesData() {
         if (!isSupabaseConfigured) {
           throw new Error('Supabase chưa cấu hình. Không thể tải hóa đơn.')
         }
-        const rows = await fetchInvoices()
+        const fetchScope = { fromDate, toDate, branchId, employeeId }
+        const rows = hasInvoiceFetchScope(fetchScope)
+          ? await fetchInvoicesFiltered(fetchScope)
+          : await fetchInvoices()
         if (!cancelled) {
           const list = Array.isArray(rows) ? rows : []
           setInvoices(list)
@@ -53,7 +74,7 @@ export function useInvoicesData() {
 
     load()
     return () => { cancelled = true }
-  }, [refreshKey])
+  }, [refreshKey, fromDate, toDate, branchId, employeeId])
 
   useEffect(() => {
     const onLiveChange = () => reload()

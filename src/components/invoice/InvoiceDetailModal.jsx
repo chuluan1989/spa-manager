@@ -15,7 +15,12 @@ import {
 } from '../../utils/invoiceFilters'
 import './InvoiceDetailModal.css'
 
-export default function InvoiceDetailModal({ invoice, onClose, onEdit, canEdit }) {
+export default function InvoiceDetailModal({
+  invoice,
+  onClose,
+  onEdit,
+  canEdit,
+}) {
   if (!invoice) return null
 
   const services = getInvoiceServiceDetails(invoice)
@@ -31,6 +36,7 @@ export default function InvoiceDetailModal({ invoice, onClose, onEdit, canEdit }
           <div>
             <h3 id="invoice-detail-title">Chi tiết hóa đơn</h3>
             <p>{invoice.date} · {readInvoiceTime(invoice)} · {invoice.branchName}</p>
+            <p className="invoice-detail-modal__id" data-testid="invoice-detail-id">Mã HĐ: {invoice.id || '—'}</p>
           </div>
           <button type="button" className="invoice-detail-modal__close" onClick={onClose}>×</button>
         </header>
@@ -39,6 +45,8 @@ export default function InvoiceDetailModal({ invoice, onClose, onEdit, canEdit }
           <section className="invoice-detail-modal__section">
             <h4>Nhân viên &amp; khách</h4>
             <dl className="invoice-detail-modal__grid">
+              <div><dt>Mã HĐ</dt><dd data-testid="invoice-detail-code">{invoice.id || '—'}</dd></div>
+              <div><dt>Ngày</dt><dd>{invoice.date || '—'}</dd></div>
               <div><dt>Nhân viên</dt><dd>{invoice.employeeName || '—'}</dd></div>
               <div><dt>Tên khách</dt><dd>{invoice.customerName || '—'}</dd></div>
               <div><dt>SĐT khách</dt><dd>{invoice.customerPhone || '—'}</dd></div>

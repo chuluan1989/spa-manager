@@ -49,6 +49,10 @@ import {
   sortInvoicesDesc,
 } from '../utils/invoiceFilters'
 import {
+  buildInvoicePageFetchScope,
+  filterInvoicesForManagerHistory,
+} from '../utils/invoiceManagerHistoryScope'
+import {
   isKnownPaymentMethod,
   normalizePaymentMethod,
   PAYMENT_METHOD_OPTIONS,
@@ -92,6 +96,8 @@ function getInvoiceFormToday() {
 const INITIAL_FILTERS = () => ({
   fromDate: getMonthStartDate(),
   toDate: getTodayDate(),
+  month: getMonthStartDate().slice(0, 7),
+  cycle: 'full',
   branchId: canSelectBranch() ? '' : getCurrentUserBranch(),
   employeeId: '',
   serviceId: '',
@@ -139,8 +145,20 @@ export default function Invoice({ onNavigate }) {
   const [discountInput, setDiscountInput] = useState('')
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CASH)
   const [editingId, setEditingId] = useState(null)
-  const { invoices, loading: invoicesLoading, error: invoicesError, reload: reloadInvoices } = useInvoicesData()
   const [listFilters, setListFilters] = useState(INITIAL_FILTERS)
+  const invoiceFetchScope = useMemo(
+    () => buildInvoicePageFetchScope({
+      fromDate: listFilters.fromDate,
+      toDate: listFilters.toDate,
+      branchId: listFilters.branchId,
+      employeeId: listFilters.employeeId,
+      isEmployeeUser: lockedEmployee,
+      isBranchManagerUser: isBranchManager(),
+      currentEmployeeId,
+    }),
+    [listFilters.fromDate, listFilters.toDate, listFilters.branchId, listFilters.employeeId, lockedEmployee, currentEmployeeId],
+  )
+  const { invoices, loading: invoicesLoading, error: invoicesError, reload: reloadInvoices } = useInvoicesData(invoiceFetchScope)
   const [listPage, setListPage] = useState(1)
   const [detailInvoice, setDetailInvoice] = useState(null)
   const [errors, setErrors] = useState({})
@@ -224,13 +242,18 @@ export default function Invoice({ onNavigate }) {
   }, [currentEmployeeId])
 
   const getInvoiceByIdFromList = (id) => invoices.find((invoice) => invoice.id === id) ?? null
+  const managerHistoryView = isBranchManager()
 
   const visibleInvoices = useMemo(
-    () => filterByUserScope(invoices),
-    [invoices],
+    () => (
+      managerHistoryView
+        ? filterInvoicesForManagerHistory(invoices, sessionBranchId)
+        : filterByUserScope(invoices)
+    ),
+    [invoices, managerHistoryView, sessionBranchId],
   )
 
-  const effectiveListFilters = useMemo(
+  const uiListFilters = useMemo(
     () => ({
       ...listFilters,
       branchId: lockedEmployee ? '' : (lockedBranch ? getCurrentUserBranch() : listFilters.branchId),
@@ -239,32 +262,41 @@ export default function Invoice({ onNavigate }) {
     [listFilters, lockedBranch, lockedEmployee],
   )
 
-  const filteredInvoices = useMemo(
-    () => sortInvoicesDesc(filterInvoices(visibleInvoices, effectiveListFilters)),
-    [visibleInvoices, effectiveListFilters],
+  // Quản lý: đã lọc theo chi nhánh gốc NV — không lọc lại theo chi nhánh phục vụ.
+  const queryListFilters = useMemo(
+    () => ({
+      ...uiListFilters,
+      branchId: managerHistoryView ? '' : uiListFilters.branchId,
+    }),
+    [uiListFilters, managerHistoryView],
   )
 
-  const listEmptyMessage = hasActiveInvoiceFilters(effectiveListFilters)
+  const filteredInvoices = useMemo(
+    () => sortInvoicesDesc(filterInvoices(visibleInvoices, queryListFilters)),
+    [visibleInvoices, queryListFilters],
+  )
+
+  const listEmptyMessage = hasActiveInvoiceFilters(queryListFilters)
     ? 'Không có hóa đơn phù hợp với bộ lọc.'
     : 'Chưa có hóa đơn nào.'
 
   const filterServiceOptions = useMemo(() => {
-    if (effectiveListFilters.branchId) {
-      return getActiveServicesForBranch(effectiveListFilters.branchId)
+    if (managerHistoryView || !uiListFilters.branchId) {
+      const serviceMap = new Map()
+      for (const invoice of visibleInvoices) {
+        for (const service of getInvoiceServiceDetails(invoice)) {
+          serviceMap.set(service.id, { id: service.id, name: service.name })
+        }
+      }
+      return [...serviceMap.values()].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
     }
 
-    const serviceMap = new Map()
-    for (const invoice of visibleInvoices) {
-      for (const service of getInvoiceServiceDetails(invoice)) {
-        serviceMap.set(service.id, { id: service.id, name: service.name })
-      }
-    }
-    return [...serviceMap.values()].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
-  }, [effectiveListFilters.branchId, visibleInvoices])
+    return getActiveServicesForBranch(uiListFilters.branchId)
+  }, [managerHistoryView, uiListFilters.branchId, visibleInvoices])
 
   useEffect(() => {
     setListPage(1)
-  }, [effectiveListFilters])
+  }, [queryListFilters])
 
   const catalogGroups = useMemo(
     () => (form.branchId ? getCatalogGroupsForBranch(form.branchId) : []),
@@ -715,14 +747,15 @@ export default function Invoice({ onNavigate }) {
             <p className="invoice__subtitle">Đang tải hóa đơn từ Supabase…</p>
           )}
           <InvoiceFilters
-            filters={effectiveListFilters}
+            filters={uiListFilters}
             onChange={setListFilters}
             onReset={resetListFilters}
-            onExport={() => exportInvoicesCsv(filteredInvoices, effectiveListFilters)}
+            onExport={() => exportInvoicesCsv(filteredInvoices, uiListFilters)}
             lockedBranch={lockedBranch}
             branchName={activeBranchName}
             resultCount={filteredInvoices.length}
             serviceOptions={filterServiceOptions}
+            managerHistoryScope={managerHistoryView}
           />
           <InvoiceList
             invoices={filteredInvoices}

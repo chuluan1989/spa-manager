@@ -60,9 +60,18 @@ export function canEmployeeServeAtBranch(employeeId, servingBranchId, sessionBra
   return isCrossBranchSupportBranchId(home) && isCrossBranchSupportBranchId(serving)
 }
 
-/** HĐ hỗ trợ liên CN: có homeBranchId và khác branchId (CN phục vụ). */
+/**
+ * HĐ hỗ trợ liên CN: chi nhánh gốc NV ≠ chi nhánh phục vụ.
+ * homeBranchId thiếu trên HĐ cũ → fallback employee.branchId.
+ */
+export function resolveInvoiceHomeBranchId(invoice) {
+  const fromInvoice = resolveCanonicalBranchId(invoice?.homeBranchId ?? '')
+  if (fromInvoice) return fromInvoice
+  return resolveEmployeeHomeBranchId(invoice?.employeeId ?? '', '')
+}
+
 export function isCrossBranchSupportInvoice(invoice) {
   const serving = resolveCanonicalBranchId(invoice?.branchId ?? '')
-  const home = resolveCanonicalBranchId(invoice?.homeBranchId ?? '')
+  const home = resolveInvoiceHomeBranchId(invoice)
   return Boolean(home && serving && home !== serving)
 }

@@ -1,11 +1,30 @@
 import BranchBanner from '../common/BranchBanner'
-import { canSelectBranch } from '../../constants/auth'
+import { canSelectBranch, isBranchManager } from '../../constants/auth'
 import ExportActions from '../common/ExportActions'
 import { loadBranches } from '../../constants/branches'
 import { getActiveEmployeesByBranch, getAllActiveEmployees } from '../../utils/employeeStorage'
 import { getMonthStartDate, getTodayDate } from '../../utils/invoiceStorage'
-import { PAYMENT_METHOD_OPTIONS } from '../../utils/invoiceFilters'
+import {
+  BRANCH_FILTER_MODE_OPTIONS,
+  BRANCH_FILTER_MODES,
+  PAYMENT_METHOD_OPTIONS,
+} from '../../utils/invoiceFilters'
+import {
+  getDefaultPayCycleForVietnamDate,
+  getPayPeriodRange,
+  getPrevPayCycle,
+  getVietnamCurrentMonthValue,
+  PAY_CYCLE_OPTIONS,
+  PAY_CYCLES,
+  shiftMonthValue,
+} from '../../utils/salaryReport'
 import './InvoiceFilters.css'
+
+function monthFromFilters(filters) {
+  if (filters?.month) return filters.month
+  if (filters?.fromDate && filters.fromDate.length >= 7) return filters.fromDate.slice(0, 7)
+  return getVietnamCurrentMonthValue()
+}
 
 export default function InvoiceFilters({
   filters,
@@ -16,6 +35,7 @@ export default function InvoiceFilters({
   branchName = '',
   resultCount = 0,
   serviceOptions = [],
+  managerHistoryScope = false,
 }) {
   const branchEmployees = filters.branchId
     ? getActiveEmployeesByBranch(filters.branchId)
@@ -25,6 +45,9 @@ export default function InvoiceFilters({
   const selectedBranchName = branchName
     || loadBranches().find((b) => b.id === filters.branchId)?.name
     || filters.branchId
+  const selectedMonth = monthFromFilters(filters)
+  const selectedCycle = filters.cycle || PAY_CYCLES.FULL
+  const showManagerHistoryHint = managerHistoryScope || isBranchManager()
 
   const update = (field, value) => {
     if (field === 'branchId') {
@@ -34,21 +57,56 @@ export default function InvoiceFilters({
     onChange({ ...filters, [field]: value })
   }
 
+  const applyRange = (patch) => {
+    onChange({ ...filters, ...patch })
+  }
+
+  const applyMonthCycle = (month, cycle) => {
+    const nextCycle = cycle || PAY_CYCLES.FULL
+    const range = getPayPeriodRange(month, nextCycle)
+    applyRange({
+      month,
+      cycle: nextCycle,
+      fromDate: range.fromDate,
+      toDate: range.toDate,
+    })
+  }
+
   const applyToday = () => {
     const today = getTodayDate()
-    onChange({ ...filters, fromDate: today, toDate: today })
+    applyRange({
+      fromDate: today,
+      toDate: today,
+      month: today.slice(0, 7),
+      cycle: '',
+    })
   }
 
   const applyThisMonth = () => {
-    onChange({
-      ...filters,
+    const month = getVietnamCurrentMonthValue()
+    applyRange({
+      month,
+      cycle: PAY_CYCLES.FULL,
       fromDate: getMonthStartDate(),
       toDate: getTodayDate(),
     })
   }
 
+  const applyPrevMonth = () => {
+    const month = shiftMonthValue(getVietnamCurrentMonthValue(), -1)
+    applyMonthCycle(month, PAY_CYCLES.FULL)
+  }
+
+  const applyPrevCycle = () => {
+    const current = getPrevPayCycle(
+      getVietnamCurrentMonthValue(),
+      getDefaultPayCycleForVietnamDate(),
+    )
+    applyMonthCycle(current.month, current.cycle)
+  }
+
   const applyAll = () => {
-    onChange({ ...filters, fromDate: '', toDate: '' })
+    applyRange({ fromDate: '', toDate: '', cycle: '' })
   }
 
   return (
@@ -65,6 +123,22 @@ export default function InvoiceFilters({
         <button type="button" className="invoice-filters__preset" onClick={applyThisMonth}>
           Tháng này
         </button>
+        <button
+          type="button"
+          className="invoice-filters__preset"
+          data-testid="invoice-preset-prev-month"
+          onClick={applyPrevMonth}
+        >
+          Tháng trước
+        </button>
+        <button
+          type="button"
+          className="invoice-filters__preset"
+          data-testid="invoice-preset-prev-cycle"
+          onClick={applyPrevCycle}
+        >
+          Kỳ trước
+        </button>
         <button type="button" className="invoice-filters__preset" onClick={applyAll}>
           Tất cả
         </button>
@@ -78,9 +152,33 @@ export default function InvoiceFilters({
         )}
 
         <label className="invoice-filters__field">
+          <span>Tháng</span>
+          <input
+            type="month"
+            data-testid="invoice-filter-month"
+            value={selectedMonth}
+            onChange={(e) => applyMonthCycle(e.target.value, selectedCycle || PAY_CYCLES.FULL)}
+          />
+        </label>
+
+        <label className="invoice-filters__field">
+          <span>Kỳ lương</span>
+          <select
+            data-testid="invoice-filter-cycle"
+            value={selectedCycle}
+            onChange={(e) => applyMonthCycle(selectedMonth, e.target.value)}
+          >
+            {PAY_CYCLE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="invoice-filters__field">
           <span>Từ ngày</span>
           <input
             type="date"
+            data-testid="invoice-filter-from"
             value={filters.fromDate}
             onChange={(e) => update('fromDate', e.target.value)}
           />
@@ -90,6 +188,7 @@ export default function InvoiceFilters({
           <span>Đến ngày</span>
           <input
             type="date"
+            data-testid="invoice-filter-to"
             value={filters.toDate}
             onChange={(e) => update('toDate', e.target.value)}
           />
@@ -107,9 +206,27 @@ export default function InvoiceFilters({
           </label>
         )}
 
+        {canSelectBranch() && (
+          <label className="invoice-filters__field">
+            <span>Lọc chi nhánh theo</span>
+            <select
+              value={filters.branchFilterMode || BRANCH_FILTER_MODES.SERVING}
+              onChange={(e) => update('branchFilterMode', e.target.value)}
+            >
+              {BRANCH_FILTER_MODE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+        )}
+
         <label className="invoice-filters__field">
           <span>Nhân viên</span>
-          <select value={filters.employeeId} onChange={(e) => update('employeeId', e.target.value)}>
+          <select
+            data-testid="invoice-filter-employee"
+            value={filters.employeeId}
+            onChange={(e) => update('employeeId', e.target.value)}
+          >
             <option value="">Tất cả nhân viên</option>
             {branchEmployees.map((employee) => (
               <option key={employee.id} value={employee.id}>{employee.name}</option>
@@ -151,9 +268,15 @@ export default function InvoiceFilters({
       </div>
 
       <p className="invoice-filters__hint invoice-filters__hint--scope" role="note">
-        {employeeSelected ? (
+        {showManagerHistoryHint && !employeeSelected ? (
           <>
-            Phạm vi bộ lọc đang áp dụng: <strong>Theo nhân viên</strong>
+            Phạm vi xem: <strong>nhân viên thuộc chi nhánh mình</strong>
+            {selectedBranchName ? ` (${selectedBranchName})` : ''}
+            {' '}— gồm hóa đơn phục vụ chi nhánh khác. Chỉ xem lịch sử; kỳ đã chốt không sửa/xóa tại đây.
+          </>
+        ) : employeeSelected ? (
+          <>
+            Phạm vi bộ lọc đang áp dụng: <strong>Đang lọc theo nhân viên</strong>
             {' '}— danh sách hóa đơn theo NV đã chọn. Không mặc định bằng tổng thu nhập đa chi nhánh trên màn Lương.
           </>
         ) : branchSelected || lockedBranch ? (

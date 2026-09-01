@@ -47,6 +47,12 @@
   color: var(--ks-text-muted);
 }
 
+.invoice-detail-modal__id {
+  margin-top: 4px !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px !important;
+}
+
 .invoice-detail-modal__close {
   border: none;
   background: transparent;

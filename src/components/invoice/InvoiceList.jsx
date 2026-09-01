@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { formatPhoneDisplay } from '../../utils/customerAnalytics'
+import { getCanonicalBranchName } from '../../constants/canonicalBranches'
 import {
   formatCurrency,
   getInvoiceDiscountAmount,
@@ -10,6 +11,10 @@ import {
   getInvoiceTips,
   invoiceHasDiscount,
 } from '../../utils/invoice'
+import {
+  isCrossBranchSupportInvoice,
+  resolveInvoiceHomeBranchId,
+} from '../../utils/crossBranchSupport'
 import {
   computeInvoiceListTotals,
   getPaymentMethodLabel,
@@ -23,6 +28,10 @@ function formatServiceSummary(services, maxLength = 44) {
   if (!text) return '—'
   if (text.length <= maxLength) return text
   return `${text.slice(0, maxLength - 1)}…`
+}
+
+function branchLabel(id, name) {
+  return name || getCanonicalBranchName(id) || id || '—'
 }
 
 export default function InvoiceList({
@@ -65,8 +74,10 @@ export default function InvoiceList({
             <tr>
               <th className="is-center is-stt">STT</th>
               <th className="is-center">Ngày</th>
+              <th>Mã HĐ</th>
               <th className="is-center">Giờ</th>
-              <th>Chi nhánh</th>
+              <th>Chi nhánh gốc NV</th>
+              <th>Chi nhánh phục vụ</th>
               <th>PTTT</th>
               <th>NV thực hiện</th>
               <th>Tên khách</th>
@@ -91,13 +102,35 @@ export default function InvoiceList({
               const customerTotal = getInvoiceCustomerTotal(inv)
               const hasDiscount = invoiceHasDiscount(inv)
               const rowNumber = (pagination.page - 1) * pagination.pageSize + index + 1
+              const homeId = resolveInvoiceHomeBranchId(inv)
+              const homeName = inv.homeBranchName || branchLabel(homeId)
+              const servingName = inv.branchName || branchLabel(inv.branchId)
+              const crossBranch = isCrossBranchSupportInvoice(inv)
 
               return (
-                <tr key={inv.id} className={hasDiscount ? 'has-discount' : ''}>
+                <tr
+                  key={inv.id}
+                  className={hasDiscount ? 'has-discount' : ''}
+                  data-testid="invoice-row"
+                  data-invoice-id={inv.id}
+                  data-employee-id={inv.employeeId}
+                  data-date={inv.date}
+                  data-serving-branch={inv.branchId}
+                  data-home-branch={homeId}
+                >
                   <td className="is-center is-stt">{rowNumber}</td>
                   <td className="is-center">{inv.date}</td>
+                  <td className="invoice-list__id" title={inv.id}>{inv.id || '—'}</td>
                   <td className="is-center">{readInvoiceTime(inv)}</td>
-                  <td className="invoice-list__branch">{inv.branchName}</td>
+                  <td className="invoice-list__branch">{homeName}</td>
+                  <td className="invoice-list__branch">
+                    <div className="invoice-list__branch-stack">
+                      <span>{servingName}</span>
+                      {crossBranch && (
+                        <span className="invoice-list__cross-badge">Hỗ trợ liên chi nhánh</span>
+                      )}
+                    </div>
+                  </td>
                   <td className="invoice-list__payment">{getPaymentMethodLabel(inv.paymentMethod)}</td>
                   <td>{inv.employeeName}</td>
                   <td className="invoice-list__customer">
@@ -138,7 +171,7 @@ export default function InvoiceList({
                         Sửa
                       </button>
                     )}
-                    {allowDelete && (
+                    {(typeof allowDelete === 'function' ? allowDelete(inv) : allowDelete) ? (
                       <button
                         type="button"
                         className="invoice-list__btn invoice-list__btn--delete"
@@ -146,7 +179,7 @@ export default function InvoiceList({
                       >
                         Xóa
                       </button>
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               )
@@ -154,7 +187,7 @@ export default function InvoiceList({
           </tbody>
           <tfoot>
             <tr className="invoice-list__totals-row">
-              <td colSpan={9}><strong>Tổng ({totals.count})</strong></td>
+              <td colSpan={11}><strong>Tổng ({totals.count})</strong></td>
               <td className="is-money"><strong>{formatCurrency(totals.ticketPrice)}</strong></td>
               <td className="is-money"><strong>{totals.discount > 0 ? `−${formatCurrency(totals.discount)}` : '—'}</strong></td>
               <td className="is-money"><strong>{formatCurrency(totals.ticketRevenue)}</strong></td>

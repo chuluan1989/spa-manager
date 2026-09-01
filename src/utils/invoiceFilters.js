@@ -14,12 +14,29 @@ import {
   getInvoiceServiceDetails,
   getInvoiceServiceCommission,
 } from './invoice'
+import { resolveInvoiceHomeBranchId } from './crossBranchSupport'
 
 export const INVOICE_PAGE_SIZE = 20
 
+/** Lọc chi nhánh: phục vụ khách vs chi nhánh gốc nhân viên — không gộp một filter chung. */
+export const BRANCH_FILTER_MODES = {
+  SERVING: 'serving',
+  HOME: 'home',
+}
+
+export const BRANCH_FILTER_MODE_OPTIONS = [
+  { value: BRANCH_FILTER_MODES.SERVING, label: 'Chi nhánh phục vụ' },
+  { value: BRANCH_FILTER_MODES.HOME, label: 'Chi nhánh gốc nhân viên' },
+]
+
 export const PAYMENT_METHOD_OPTIONS = PAYMENT_METHOD_FILTER_OPTIONS
 
-export { getPaymentMethodLabel, normalizePaymentMethod }
+export { resolveInvoiceHomeBranchId, getPaymentMethodLabel, normalizePaymentMethod }
+
+export function invoiceMatchesEmployee(invoice, employeeId) {
+  if (!employeeId) return true
+  return invoice?.employeeId === employeeId || invoice?.supportEmployeeId === employeeId
+}
 
 export function formatInvoiceDateTime(iso) {
   if (!iso) return '—'
@@ -82,6 +99,7 @@ export function filterInvoices(invoices, filters) {
     fromDate = '',
     toDate = '',
     branchId = '',
+    branchFilterMode = BRANCH_FILTER_MODES.SERVING,
     employeeId = '',
     serviceId = '',
     paymentMethod = '',
@@ -90,14 +108,21 @@ export function filterInvoices(invoices, filters) {
   } = filters
 
   const query = search.trim().toLowerCase()
+  const scopedBranchId = resolveCanonicalBranchId(branchId)
 
   return invoices.filter((invoice) => {
     if (fromDate && invoice.date < fromDate) return false
     if (toDate && invoice.date > toDate) return false
-    if (branchId && resolveCanonicalBranchId(invoice.branchId) !== resolveCanonicalBranchId(branchId)) return false
 
-    if (employeeId && invoice.employeeId !== employeeId && invoice.supportEmployeeId !== employeeId) {
-      return false
+    // Chọn / tìm theo nhân viên: hiện đủ HĐ chính + hỗ trợ, mọi chi nhánh phục vụ.
+    if (employeeId) {
+      if (!invoiceMatchesEmployee(invoice, employeeId)) return false
+    } else if (scopedBranchId) {
+      if (branchFilterMode === BRANCH_FILTER_MODES.HOME) {
+        if (resolveInvoiceHomeBranchId(invoice) !== scopedBranchId) return false
+      } else if (resolveCanonicalBranchId(invoice.branchId) !== scopedBranchId) {
+        return false
+      }
     }
 
     if (!invoiceMatchesPaymentMethodFilter(invoice, paymentMethod)) return false
@@ -167,6 +192,7 @@ export function hasActiveInvoiceFilters(filters) {
     || filters.branchId
     || filters.employeeId
     || filters.serviceId
+    || filters.paymentMethod
     || filters.search?.trim(),
   )
 }
