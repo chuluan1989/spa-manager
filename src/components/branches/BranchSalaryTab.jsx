@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useBranchPayrollData } from './useBranchPayrollData'
 import { getCurrentMonthValue } from '../../utils/salaryReport'
 import { formatCurrency } from '../../utils/invoice'
+import { PAYROLL_DETAIL_LABELS } from '../../constants/payrollTypes'
 import { mergeEmployeePayrollRows } from '../../utils/payrollViewHelpers'
 import BranchEmptyState from './BranchEmptyState'
 
@@ -44,7 +45,7 @@ export default function BranchSalaryTab({ branchId }) {
                 <th>Tips</th>
                 <th>Thưởng</th>
                 <th>Phạt</th>
-                <th>Giảm lương</th>
+                <th>{PAYROLL_DETAIL_LABELS.reduction}</th>
                 <th>Ứng lương</th>
                 <th>Đã thanh toán</th>
                 <th>Còn phải trả</th>

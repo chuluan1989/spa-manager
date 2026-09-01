@@ -1,0 +1,109 @@
+{
+  "at": "2026-09-01T17:42:32.136Z",
+  "base": "http://127.0.0.1:5174",
+  "marker": "UAT-GIAM-1788284552136",
+  "steps": [
+    {
+      "name": "admin_login",
+      "at": "2026-09-01T17:42:35.336Z"
+    },
+    {
+      "name": "open_uat_employee",
+      "at": "2026-09-01T17:42:39.185Z"
+    },
+    {
+      "name": "baseline",
+      "at": "2026-09-01T17:42:41.283Z",
+      "reduction": 0,
+      "net": 0,
+      "bonus": 0,
+      "kpi": 0,
+      "penalty": 0,
+      "advance": 0
+    },
+    {
+      "name": "overview_label_giam_luong",
+      "at": "2026-09-01T17:42:41.290Z",
+      "failed": false,
+      "hasGiam": true,
+      "hasGiamSai": false
+    },
+    {
+      "name": "modal_giam_luong_set",
+      "at": "2026-09-01T17:42:41.369Z",
+      "failed": false,
+      "heading": "GIAM LƯƠNG",
+      "hasSet": 1,
+      "penaltySet": 0,
+      "advanceSet": 0
+    },
+    {
+      "name": "modal_not_penalty_copy",
+      "at": "2026-09-01T17:42:41.370Z",
+      "failed": false,
+      "note": "Hint giữ lại theo kỳ"
+    },
+    {
+      "name": "set_500000",
+      "at": "2026-09-01T17:42:44.162Z",
+      "failed": false,
+      "expectedNet": -500000,
+      "actualNet": -500000,
+      "reduction": 500000
+    },
+    {
+      "name": "others_unchanged_after_500",
+      "at": "2026-09-01T17:42:44.162Z",
+      "failed": false,
+      "before": {
+        "bonus": 0,
+        "kpi": 0,
+        "penalty": 0,
+        "advance": 0
+      },
+      "after": {
+        "bonus": 0,
+        "kpi": 0,
+        "penalty": 0,
+        "advance": 0
+      }
+    },
+    {
+      "name": "open_uat_employee",
+      "at": "2026-09-01T17:42:49.893Z"
+    },
+    {
+      "name": "reload_keeps_500000",
+      "at": "2026-09-01T17:42:51.919Z",
+      "failed": false,
+      "reduction": 500000,
+      "net": -500000
+    },
+    {
+      "name": "set_300000",
+      "at": "2026-09-01T17:42:54.725Z",
+      "failed": false,
+      "expectedNet": -300000,
+      "actualNet": -300000
+    },
+    {
+      "name": "set_0_restore_net",
+      "at": "2026-09-01T17:42:57.167Z",
+      "failed": false,
+      "expectedNet": 0,
+      "actualNet": 0
+    },
+    {
+      "name": "others_unchanged_after_0",
+      "at": "2026-09-01T17:42:57.168Z",
+      "failed": false,
+      "after": {
+        "bonus": 0,
+        "kpi": 0,
+        "penalty": 0,
+        "advance": 0
+      }
+    }
+  ],
+  "ok": true
+}

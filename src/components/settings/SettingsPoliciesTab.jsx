@@ -16,7 +16,7 @@ export default function SettingsPoliciesTab() {
       <section className="settings__policy-block">
         <h4 className="settings__subheading">Chính sách lương</h4>
         <ul className="settings__policy-list">
-          <li>Lương kỳ = Hoa hồng (theo chính sách chi nhánh) + Tips + Thưởng − Phạt − Giảm lương − Ứng lương.</li>
+          <li>Lương thực nhận = Hoa hồng (theo chính sách chi nhánh) + Tips + Thưởng − Phạt − Ứng lương − Giam lương.</li>
           <li>Báo cáo lương theo kỳ 1–15, 16–cuối tháng và cả tháng tại module Lương / Nhân viên.</li>
           <li>Tỷ lệ lương riêng theo nhân viên (nếu có) được lưu trong hồ sơ nhân viên.</li>
         </ul>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { PAYROLL_ADJUSTMENT_TYPES, PAYROLL_DETAIL_CATEGORIES, PAYROLL_WALLET_SOURCE } from '../../constants/payrollTypes'
+import { PAYROLL_ADJUSTMENT_TYPES, PAYROLL_DETAIL_CATEGORIES, PAYROLL_ADJUSTMENT_LABELS, PAYROLL_WALLET_SOURCE } from '../../constants/payrollTypes'
 import {
   buildAdjustmentHistory,
   buildInvoiceRevenueList,
@@ -36,7 +36,7 @@ const HISTORY_TABS = [
   { id: 'bonus', label: 'Thưởng', category: PAYROLL_ADJUSTMENT_TYPES.BONUS },
   { id: 'penalty', label: 'Phạt', category: PAYROLL_ADJUSTMENT_TYPES.PENALTY },
   { id: 'advance', label: 'Ứng lương', category: PAYROLL_ADJUSTMENT_TYPES.ADVANCE },
-  { id: 'reduction', label: 'Giảm lương', category: PAYROLL_ADJUSTMENT_TYPES.REDUCTION },
+  { id: 'reduction', label: PAYROLL_ADJUSTMENT_LABELS.reduction, category: PAYROLL_ADJUSTMENT_TYPES.REDUCTION },
   { id: 'attendance', label: 'Chấm công', category: 'attendance' },
 ]
 
@@ -283,7 +283,7 @@ export default function PayrollEmployeeProfile({
           </div>
           <PayrollAdjustmentHistory title="Thưởng" rows={bonusRows} />
           <PayrollAdjustmentHistory title="Phạt (nhập tay)" rows={penaltyRows} />
-          <PayrollAdjustmentHistory title="Giảm lương" rows={reductionRows} showCreator={false} />
+          <PayrollAdjustmentHistory title={PAYROLL_ADJUSTMENT_LABELS.reduction} rows={reductionRows} />
           <PayrollAdjustmentHistory title="ỨNG LƯƠNG" rows={advanceRows} contentLabel="Nội dung" />
           {legacyOtherAdjustmentRows.length > 0 && (
             <PayrollAdjustmentHistory

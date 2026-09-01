@@ -28,7 +28,13 @@ import {
 } from '../src/utils/profitReport.js'
 import { assertOneSource, diffGovernance, buildGovernanceSnapshot } from './lib/payrollGovernanceSnapshot.mjs'
 import { currentTotalsFromPayrollRow } from '../src/components/salary/PayrollEditBoardModal.jsx'
-import { ADMIN_EDITABLE_ADJUSTMENT_TYPES, PAYROLL_ADJUSTMENT_TYPES } from '../src/constants/payrollTypes.js'
+import {
+  ADMIN_EDITABLE_ADJUSTMENT_TYPES,
+  PAYROLL_ADJUSTMENT_LABELS,
+  PAYROLL_ADJUSTMENT_TYPES,
+  PAYROLL_DETAIL_CATEGORIES,
+  PAYROLL_DETAIL_LABELS,
+} from '../src/constants/payrollTypes.js'
 import { aggregateBranchSummaries, mergeEmployeePayrollRows } from '../src/utils/payrollViewHelpers.js'
 
 const results = []
@@ -57,6 +63,33 @@ check('KPI: net includes signed KPI; excludes otherAdjustment', () => {
     otherAdjustment: 999999, // legacy — must NOT affect ops net
   })
   assert.equal(net, 1000 + 2000 + 500 - 300 - 100 - 200)
+})
+
+check('Giam luong: label is Giam lương, never Giảm lương', () => {
+  assert.equal(PAYROLL_DETAIL_LABELS[PAYROLL_DETAIL_CATEGORIES.REDUCTION], 'Giam lương')
+  assert.equal(PAYROLL_ADJUSTMENT_LABELS[PAYROLL_ADJUSTMENT_TYPES.REDUCTION], 'Giam lương')
+})
+
+check('Giam luong: net = trước giữ/trừ − Phạt − Ứng lương − Giam lương', () => {
+  const base = {
+    baseSalary: 1_000_000,
+    commission: 2_000_000,
+    tips: 100_000,
+    bonus: 200_000,
+    kpi: 50_000,
+    penalty: 100_000,
+    advance: 150_000,
+    reduction: 0,
+  }
+  const net0 = computeNetSalary(base)
+  assert.equal(computeNetSalary({ ...base, reduction: 500_000 }), net0 - 500_000)
+  assert.equal(computeNetSalary({ ...base, reduction: 300_000 }), net0 - 300_000)
+  assert.equal(computeNetSalary({ ...base, reduction: 0 }), net0)
+  assert.equal(
+    computeNetSalary({ ...base, reduction: 500_000 }),
+    base.baseSalary + base.commission + base.tips + base.bonus + base.kpi
+      - base.penalty - base.advance - 500_000,
+  )
 })
 
 check('KPI: positive KPI increases net', () => {
@@ -89,19 +122,21 @@ check('Cycle FULL = whole month', () => {
 })
 
 // ─── Popup Sửa bảng lương binds payrollRow only ────────────────────────────
-check('Popup: currentTotalsFromPayrollRow binds 4 fields from payrollRow', () => {
+check('Popup: currentTotalsFromPayrollRow binds board fields from payrollRow', () => {
   // Phạt trên board = manualPenalty (phạt chấm công tách RO).
   const totals = currentTotalsFromPayrollRow({
-    bonus: 100, kpi: -50, penalty: 120, manualPenalty: 20, attendancePenalty: 100, advance: 30, otherAdjustment: 999,
+    bonus: 100, kpi: -50, penalty: 120, manualPenalty: 20, attendancePenalty: 100, advance: 30, reduction: 40, otherAdjustment: 999,
   })
   assert.deepEqual(totals, {
     [PAYROLL_ADJUSTMENT_TYPES.BONUS]: 100,
     [PAYROLL_ADJUSTMENT_TYPES.KPI]: -50,
     [PAYROLL_ADJUSTMENT_TYPES.PENALTY]: 20,
     [PAYROLL_ADJUSTMENT_TYPES.ADVANCE]: 30,
+    [PAYROLL_ADJUSTMENT_TYPES.REDUCTION]: 40,
   })
-  assert.equal(ADMIN_EDITABLE_ADJUSTMENT_TYPES.length, 4)
+  assert.equal(ADMIN_EDITABLE_ADJUSTMENT_TYPES.length, 5)
   assert.ok(!ADMIN_EDITABLE_ADJUSTMENT_TYPES.includes(PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT))
+  assert.ok(ADMIN_EDITABLE_ADJUSTMENT_TYPES.includes(PAYROLL_ADJUSTMENT_TYPES.REDUCTION))
 })
 
 check('Popup: null payrollRow → null totals', () => {
@@ -276,10 +311,10 @@ check('SoT: profit = actualRevenue − labor − expenses', () => {
 })
 
 // ─── Audit contract (impact helpers exist; log is event source) ────────────
-check('Audit: board fields only (bonus/kpi/penalty/advance)', () => {
+check('Audit: board fields include giam luong SET (bonus/kpi/reduction) plus line items', () => {
   assert.deepEqual(
     [...ADMIN_EDITABLE_ADJUSTMENT_TYPES].sort(),
-    ['advance', 'bonus', 'kpi', 'penalty'].sort(),
+    ['advance', 'bonus', 'kpi', 'penalty', 'reduction'].sort(),
   )
 })
 

@@ -17,10 +17,11 @@ import {
 } from '../../utils/payrollBoardLines'
 import PayrollBoardLineSection from './PayrollBoardLineSection'
 
-/** Thưởng / KPI vẫn SET giá trị cuối kỳ. Ứng lương / Phạt khác = từng phát sinh. */
+/** Thưởng / KPI / Giam lương vẫn SET giá trị cuối kỳ. Ứng lương / Phạt khác = từng phát sinh. */
 const SET_FIELDS = [
   PAYROLL_ADJUSTMENT_TYPES.BONUS,
   PAYROLL_ADJUSTMENT_TYPES.KPI,
+  PAYROLL_ADJUSTMENT_TYPES.REDUCTION,
 ]
 
 const BOARD_FIELD_TO_ROW_KEY = {
@@ -28,6 +29,7 @@ const BOARD_FIELD_TO_ROW_KEY = {
   [PAYROLL_ADJUSTMENT_TYPES.KPI]: 'kpi',
   [PAYROLL_ADJUSTMENT_TYPES.PENALTY]: 'manualPenalty',
   [PAYROLL_ADJUSTMENT_TYPES.ADVANCE]: 'advance',
+  [PAYROLL_ADJUSTMENT_TYPES.REDUCTION]: 'reduction',
 }
 
 function parseFieldInput(type, raw) {
@@ -50,6 +52,7 @@ export function currentTotalsFromPayrollRow(payrollRow) {
     PAYROLL_ADJUSTMENT_TYPES.KPI,
     PAYROLL_ADJUSTMENT_TYPES.PENALTY,
     PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
+    PAYROLL_ADJUSTMENT_TYPES.REDUCTION,
   ]) {
     const key = BOARD_FIELD_TO_ROW_KEY[type]
     totals[type] = Number(payrollRow[key] ?? 0)
@@ -59,7 +62,7 @@ export function currentTotalsFromPayrollRow(payrollRow) {
 
 /**
  * Popup Admin — Sửa bảng lương.
- * Thưởng / KPI: SET giá trị cuối. Ứng lương / Phạt khác: cộng từng phát sinh.
+ * Thưởng / KPI / Giam lương: SET giá trị cuối. Ứng lương / Phạt khác: cộng từng phát sinh.
  */
 export default function PayrollEditBoardModal({
   open,
@@ -161,8 +164,6 @@ export default function PayrollEditBoardModal({
     }
   }, [open, payrollRow, currentTotals, parsedDraft, attendancePenalty, manualPenaltyTotal])
 
-  if (!open) return null
-
   const handleSubmit = async (event) => {
     event?.preventDefault?.()
     setError('')
@@ -171,7 +172,7 @@ export default function PayrollEditBoardModal({
       return
     }
     if (!reason.trim()) {
-      setError('Lý do chỉnh sửa Thưởng / KPI là bắt buộc.')
+      setError('Lý do chỉnh sửa Thưởng / KPI / Giam lương là bắt buộc.')
       return
     }
     if (!preview) {
@@ -217,6 +218,43 @@ export default function PayrollEditBoardModal({
     }
   }
 
+  const renderSetField = (type) => {
+    const current = currentTotals?.[type] ?? 0
+    return (
+      <div key={type} className="salary-edit-totals__row" role="row">
+        <span role="cell">
+          <strong>{PAYROLL_ADJUSTMENT_LABELS[type]}</strong>
+        </span>
+        <span
+          role="cell"
+          className="salary-edit-totals__current"
+          data-testid={`edit-current-${type}`}
+        >
+          {formatCurrency(current)}
+        </span>
+        <label role="cell">
+          <span className="salary-edit-totals__sr">
+            Giá trị mới {PAYROLL_ADJUSTMENT_LABELS[type]}
+          </span>
+          <input
+            required
+            inputMode="text"
+            value={draft[type] ?? ''}
+            onChange={(e) => setDraft((prev) => ({ ...prev, [type]: e.target.value }))}
+            placeholder={
+              type === PAYROLL_ADJUSTMENT_TYPES.KPI
+                ? 'VD: 0 / 200000 / -200000'
+                : 'VD: 100000'
+            }
+            data-testid={`edit-input-${type}`}
+          />
+        </label>
+      </div>
+    )
+  }
+
+  if (!open) return null
+
   const periodLabel = [month, cycle === 'period2' ? 'Kỳ 2' : 'Kỳ 1'].filter(Boolean).join(' · ')
 
   return (
@@ -234,7 +272,9 @@ export default function PayrollEditBoardModal({
         </p>
         <h4 className="salary-board-edit__title">BẢNG LƯƠNG HIỆN TẠI</h4>
         <p className="salary-board-edit__hint">
-          <strong>Thưởng / KPI</strong> nhập giá trị cuối kỳ.
+          <strong>Thưởng / KPI / Giam lương</strong> nhập giá trị cuối kỳ.
+          {' '}
+          <strong>Giam lương</strong> là khoản giữ lại một phần lương theo kỳ — không phải phạt.
           {' '}
           <strong>Ứng lương / Phạt khác</strong> thêm từng phát sinh — tổng = cộng tất cả dòng trong kỳ,
           không ghi đè số hiện tại.
@@ -266,40 +306,15 @@ export default function PayrollEditBoardModal({
             {ATTENDANCE_PENALTY_READONLY_HINT}
           </p>
 
-          {SET_FIELDS.map((type) => {
-            const current = currentTotals?.[type] ?? 0
-            return (
-              <div key={type} className="salary-edit-totals__row" role="row">
-                <span role="cell">
-                  <strong>{PAYROLL_ADJUSTMENT_LABELS[type]}</strong>
-                </span>
-                <span
-                  role="cell"
-                  className="salary-edit-totals__current"
-                  data-testid={`edit-current-${type}`}
-                >
-                  {formatCurrency(current)}
-                </span>
-                <label role="cell">
-                  <span className="salary-edit-totals__sr">
-                    Giá trị mới {PAYROLL_ADJUSTMENT_LABELS[type]}
-                  </span>
-                  <input
-                    required
-                    inputMode="text"
-                    value={draft[type] ?? ''}
-                    onChange={(e) => setDraft((prev) => ({ ...prev, [type]: e.target.value }))}
-                    placeholder={
-                      type === PAYROLL_ADJUSTMENT_TYPES.KPI
-                        ? 'VD: 0 / 200000 / -200000'
-                        : 'VD: 100000'
-                    }
-                    data-testid={`edit-input-${type}`}
-                  />
-                </label>
-              </div>
-            )
-          })}
+          {SET_FIELDS
+            .filter((type) => type !== PAYROLL_ADJUSTMENT_TYPES.REDUCTION)
+            .map((type) => renderSetField(type))}
+
+          <h4 className="salary-board-edit__title" data-testid="giam-luong-heading">GIAM LƯƠNG</h4>
+          <p className="salary-board-edit__hint">
+            Khoản giữ lại một phần lương theo kỳ của nhân viên. Không phải phạt.
+          </p>
+          {renderSetField(PAYROLL_ADJUSTMENT_TYPES.REDUCTION)}
         </div>
 
         <PayrollBoardLineSection
@@ -343,15 +358,23 @@ export default function PayrollEditBoardModal({
               <strong>{formatCurrency(advanceTotal)}</strong>
             </div>
             <div>
+              <span>Giam lương</span>
+              <strong data-testid="edit-preview-reduction">{formatCurrency(
+                parsedDraft[PAYROLL_ADJUSTMENT_TYPES.REDUCTION]
+                ?? currentTotals?.[PAYROLL_ADJUSTMENT_TYPES.REDUCTION]
+                ?? 0,
+              )}</strong>
+            </div>
+            <div>
               <span>Lương hiện tại</span>
               <strong>{formatCurrency(preview.currentNet)}</strong>
             </div>
             <div>
-              <span>Lương sau chỉnh thưởng/KPI</span>
+              <span>Lương sau chỉnh</span>
               <strong>{formatCurrency(preview.nextNet)}</strong>
             </div>
             <div>
-              <span>Chênh lệch thưởng/KPI</span>
+              <span>Chênh lệch</span>
               <strong className={preview.netDelta >= 0 ? 'is-plus' : 'is-minus'}>
                 {preview.netDelta >= 0 ? '+' : ''}{formatCurrency(preview.netDelta)}
               </strong>
@@ -373,7 +396,7 @@ export default function PayrollEditBoardModal({
 
         {setChanged && (
           <label className="salary-board-edit__reason">
-            Lý do chỉnh sửa Thưởng / KPI
+            Lý do chỉnh sửa Thưởng / KPI / Giam lương
             <textarea
               required={setChanged}
               rows={3}
@@ -393,7 +416,7 @@ export default function PayrollEditBoardModal({
             disabled={saving || (setChanged && !preview)}
             onClick={handleSubmit}
           >
-            {saving ? 'Đang lưu…' : setChanged ? 'Lưu thưởng / KPI' : 'Đóng'}
+            {saving ? 'Đang lưu…' : setChanged ? 'Lưu thưởng / KPI / Giam lương' : 'Đóng'}
           </button>
         </footer>
       </div>

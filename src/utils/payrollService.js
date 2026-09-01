@@ -331,7 +331,7 @@ export async function deletePayrollBoardLine(record, reason = '', locks = null) 
 }
 
 /**
- * Admin — lưu SET Thưởng / KPI.
+ * Admin — lưu SET Thưởng / KPI / Giam lương.
  * Ứng lương và Phạt khác KHÔNG SET tổng — bỏ qua nếu vẫn còn trong payload cũ.
  */
 export async function saveAdminPayrollBoardEdits({
@@ -361,6 +361,7 @@ export async function saveAdminPayrollBoardEdits({
   const boardTypes = [
     PAYROLL_ADJUSTMENT_TYPES.BONUS,
     PAYROLL_ADJUSTMENT_TYPES.KPI,
+    PAYROLL_ADJUSTMENT_TYPES.REDUCTION,
   ]
   const results = []
   const date = toDate || `${month}-15`
