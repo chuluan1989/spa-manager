@@ -24,6 +24,7 @@ import {
   normalizePenaltyCategory,
   normalizePenaltySource,
 } from './payrollPenaltyPolicy'
+import { isPayrollBoardLineType } from './payrollBoardLines'
 
 async function afterPayrollAdjustmentSourceChanged(record) {
   if (!record?.employeeId) return
@@ -116,12 +117,7 @@ export async function addPayrollAdjustment(payload, locks = null) {
   }
 
   const { editorId, editorName } = currentEditor()
-  const rawAmount = Number(payload.amount ?? 0)
-  const amount = payload.allowSignedPenalty
-    && payload.type === PAYROLL_ADJUSTMENT_TYPES.PENALTY
-    && Number.isFinite(rawAmount)
-    ? rawAmount
-    : normalizePayrollAdjustmentAmount(payload.type, payload.amount)
+  const amount = normalizePayrollAdjustmentAmount(payload.type, payload.amount)
   const record = {
     id: createPayrollAdjustmentId(),
     date: payload.date,
@@ -166,17 +162,16 @@ export async function editPayrollAdjustment(record, updates, locks = null) {
   assertCanManagePayroll(record.branchId)
   await assertMonthEditable(record.month, record.branchId, locks)
 
-  const nextType = updates.type ?? record.type
-  const nextReason = updates.reason !== undefined ? updates.reason : record.reason
-  const nextNote = updates.note !== undefined ? updates.note : record.note
+  const { allowSignedPenalty: _omitSignedFlag, ...safeUpdates } = updates || {}
+  const nextType = safeUpdates.type ?? record.type
+  const nextReason = safeUpdates.reason !== undefined ? safeUpdates.reason : record.reason
+  const nextNote = safeUpdates.note !== undefined ? safeUpdates.note : record.note
   const nextCategory = normalizePenaltyCategory(
-    updates.category ?? record.category ?? PAYROLL_PENALTY_CATEGORIES.OTHER,
+    safeUpdates.category ?? record.category ?? PAYROLL_PENALTY_CATEGORIES.OTHER,
   )
   // Cho phép zero/void legacy mirror; chặn khi vẫn còn số tiền > 0 và nội dung attendance-like.
-  const nextAmountRaw = updates.amount !== undefined
-    ? (updates.allowSignedPenalty && nextType === PAYROLL_ADJUSTMENT_TYPES.PENALTY
-      ? Number(updates.amount)
-      : normalizePayrollAdjustmentAmount(nextType, updates.amount))
+  const nextAmountRaw = safeUpdates.amount !== undefined
+    ? normalizePayrollAdjustmentAmount(nextType, safeUpdates.amount)
     : record.amount
   if (
     nextType === PAYROLL_ADJUSTMENT_TYPES.PENALTY
@@ -193,14 +188,16 @@ export async function editPayrollAdjustment(record, updates, locks = null) {
 
   const next = {
     ...record,
-    ...updates,
+    ...safeUpdates,
     reason: nextReason,
     note: nextNote,
     category: nextCategory,
-    source: normalizePenaltySource(updates.source ?? record.source ?? PAYROLL_ADJUSTMENT_SOURCES.MANUAL),
+    source: normalizePenaltySource(safeUpdates.source ?? record.source ?? PAYROLL_ADJUSTMENT_SOURCES.MANUAL),
     amount: nextAmountRaw,
     updatedAt: new Date().toISOString(),
   }
+  delete next.allowSignedPenalty
+  delete next.allow_signed_penalty
   if (next.source === PAYROLL_ADJUSTMENT_SOURCES.ATTENDANCE && Number(next.amount) !== 0) {
     throw new Error(
       'Không lưu payroll_adjustment nguồn attendance với số tiền > 0. Dùng attendance.penaltyAmount.',
@@ -214,7 +211,7 @@ export async function editPayrollAdjustment(record, updates, locks = null) {
     action: 'update',
     oldValue: record,
     newValue: saved,
-    reason: updates.reason ?? record.reason ?? '',
+    reason: safeUpdates.reason ?? record.reason ?? '',
   })
   await afterPayrollAdjustmentSourceChanged(saved)
   if (record.employeeId !== saved.employeeId || record.date !== saved.date || record.month !== saved.month) {
@@ -240,17 +237,109 @@ export async function removePayrollAdjustment(record, reason = '', locks = null)
   await afterPayrollAdjustmentSourceChanged(record)
 }
 
+function assertBoardLinePayload(payload) {
+  if (!isPayrollBoardLineType(payload?.type)) {
+    throw new Error('Chỉ được thêm/sửa ứng lương hoặc phạt khác theo từng phát sinh.')
+  }
+  const amount = Number(payload.amount ?? 0)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Số tiền phát sinh phải lớn hơn 0.')
+  }
+  if (!String(payload.date || '').trim()) {
+    throw new Error('Ngày phát sinh là bắt buộc.')
+  }
+  if (!String(payload.reason || '').trim()) {
+    throw new Error('Lý do là bắt buộc.')
+  }
+}
+
 /**
- * Admin — lưu sửa bảng lương theo GIÁ TRỊ TỔNG từng hạng mục (SET).
- * oldValue / so sánh đổi = đúng số đang hiển thị trên bảng (displayedTotals từ payrollRow).
- * Phạt trên board = "Phạt khác" (manual only). Phạt chấm công (attendancePenalty) read-only, không SET tại đây.
+ * Admin — thêm 1 phát sinh ứng lương / phạt khác (cộng dồn, không SET tổng).
+ */
+export async function addPayrollBoardLine(payload, locks = null) {
+  assertCanAdminEditPayroll()
+  assertBoardLinePayload(payload)
+  return addPayrollAdjustment({
+    ...payload,
+    amount: normalizePayrollAdjustmentAmount(payload.type, payload.amount),
+    source: PAYROLL_ADJUSTMENT_SOURCES.MANUAL,
+    category: payload.type === PAYROLL_ADJUSTMENT_TYPES.PENALTY
+      ? normalizePenaltyCategory(payload.category ?? PAYROLL_PENALTY_CATEGORIES.OTHER)
+      : PAYROLL_PENALTY_CATEGORIES.OTHER,
+  }, locks)
+}
+
+/**
+ * Admin — sửa 1 phát sinh (không ghi đè các dòng khác).
+ */
+export async function editPayrollBoardLine(record, updates, locks = null) {
+  assertCanAdminEditPayroll()
+  if (!isPayrollBoardLineType(record?.type)) {
+    throw new Error('Chỉ sửa từng phát sinh ứng lương / phạt khác.')
+  }
+  const nextAmount = updates?.amount !== undefined ? Number(updates.amount) : Number(record.amount ?? 0)
+  if (!Number.isFinite(nextAmount) || nextAmount < 0) {
+    throw new Error('Số tiền không hợp lệ.')
+  }
+  if (updates?.amount !== undefined && nextAmount === 0) {
+    throw new Error('Để đưa về 0 hãy dùng Hủy khoản — không SET tổng.')
+  }
+  const { allowSignedPenalty: _omit, ...safeUpdates } = updates || {}
+  return editPayrollAdjustment(record, {
+    ...safeUpdates,
+    amount: updates?.amount !== undefined
+      ? normalizePayrollAdjustmentAmount(record.type, updates.amount)
+      : record.amount,
+  }, locks)
+}
+
+/**
+ * Admin — void 1 phát sinh (amount = 0). Tổng kỳ giảm đúng số dòng đó.
+ */
+export async function voidPayrollBoardLine(record, reason = '', locks = null) {
+  assertCanAdminEditPayroll()
+  if (!isPayrollBoardLineType(record?.type)) {
+    throw new Error('Chỉ hủy từng phát sinh ứng lương / phạt khác.')
+  }
+  const why = String(reason || '').trim()
+  if (!why) throw new Error('Lý do hủy khoản là bắt buộc.')
+  if (Number(record.amount ?? 0) === 0) return record
+  const saved = await editPayrollAdjustment(record, {
+    amount: 0,
+    note: [record.note, `Đã hủy: ${why}`].filter(Boolean).join(' · '),
+  }, locks)
+  await writeAuditLog({
+    entityType: 'payroll_adjustment',
+    entityId: saved.id,
+    action: 'void',
+    oldValue: record,
+    newValue: saved,
+    reason: why,
+  })
+  return saved
+}
+
+/**
+ * Admin — xóa 1 phát sinh.
+ */
+export async function deletePayrollBoardLine(record, reason = '', locks = null) {
+  assertCanAdminEditPayroll()
+  if (!isPayrollBoardLineType(record?.type)) {
+    throw new Error('Chỉ xóa từng phát sinh ứng lương / phạt khác.')
+  }
+  return removePayrollAdjustment(record, reason, locks)
+}
+
+/**
+ * Admin — lưu SET Thưởng / KPI.
+ * Ứng lương và Phạt khác KHÔNG SET tổng — bỏ qua nếu vẫn còn trong payload cũ.
  */
 export async function saveAdminPayrollBoardEdits({
   reason,
   note = '',
   totals = {},
   displayedTotals = null,
-  attendancePenalty = 0,
+  attendancePenalty: _attendancePenalty = 0,
   employeeId,
   employeeName,
   branchId,
@@ -272,12 +361,15 @@ export async function saveAdminPayrollBoardEdits({
   const boardTypes = [
     PAYROLL_ADJUSTMENT_TYPES.BONUS,
     PAYROLL_ADJUSTMENT_TYPES.KPI,
-    PAYROLL_ADJUSTMENT_TYPES.PENALTY,
-    PAYROLL_ADJUSTMENT_TYPES.ADVANCE,
   ]
   const results = []
   const date = toDate || `${month}-15`
-  const attendancePart = Math.max(0, Number(attendancePenalty) || 0)
+
+  for (const type of [PAYROLL_ADJUSTMENT_TYPES.PENALTY, PAYROLL_ADJUSTMENT_TYPES.ADVANCE]) {
+    if (Object.prototype.hasOwnProperty.call(totals, type)) {
+      results.push({ action: 'ignored_line_item_type', type })
+    }
+  }
 
   for (const type of boardTypes) {
     if (!Object.prototype.hasOwnProperty.call(totals, type)) continue
@@ -290,7 +382,6 @@ export async function saveAdminPayrollBoardEdits({
       return true
     })
     const adjSum = periodRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0)
-    // Phạt: displayed = manual only (không cộng attendance vào ô SET).
     const oldDisplayed = displayedTotals && Object.prototype.hasOwnProperty.call(displayedTotals, type)
       ? Number(displayedTotals[type] ?? 0)
       : adjSum
@@ -300,17 +391,6 @@ export async function saveAdminPayrollBoardEdits({
       continue
     }
 
-    if (type === PAYROLL_ADJUSTMENT_TYPES.PENALTY && targetDisplayed !== 0) {
-      const gate = assertManualPenaltyNotAttendanceMirror({
-        type,
-        reason,
-        note,
-        category: PAYROLL_PENALTY_CATEGORIES.OTHER,
-      })
-      if (gate.blocked) throw new Error(gate.message)
-    }
-
-    // Số ghi vào adjustment = đúng giá trị SET (phạt = phạt khác / manual).
     const adjTarget = targetDisplayed
 
     for (const record of periodRows) {
@@ -319,7 +399,6 @@ export async function saveAdminPayrollBoardEdits({
         amount: 0,
         note: record.note,
         reason,
-        allowSignedPenalty: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY,
       }, locks)
     }
 
@@ -327,9 +406,7 @@ export async function saveAdminPayrollBoardEdits({
     if (adjTarget !== 0) {
       const saved = await addPayrollAdjustment({
         type,
-        amount: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY
-          ? adjTarget
-          : normalizePayrollAdjustmentAmount(type, adjTarget),
+        amount: normalizePayrollAdjustmentAmount(type, adjTarget),
         note: note || '',
         reason,
         date,
@@ -338,11 +415,8 @@ export async function saveAdminPayrollBoardEdits({
         employeeId,
         employeeName,
         payrollCycle: cycle,
-        allowSignedPenalty: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY,
         source: PAYROLL_ADJUSTMENT_SOURCES.MANUAL,
-        category: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY
-          ? PAYROLL_PENALTY_CATEGORIES.OTHER
-          : PAYROLL_PENALTY_CATEGORIES.OTHER,
+        category: PAYROLL_PENALTY_CATEGORIES.OTHER,
       }, locks)
       createdId = saved.id
     }
@@ -362,8 +436,6 @@ export async function saveAdminPayrollBoardEdits({
       extra: {
         note: note || '',
         setOfficialTotal: true,
-        attendancePenalty: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY ? attendancePart : undefined,
-        manualPenaltyOnly: type === PAYROLL_ADJUSTMENT_TYPES.PENALTY ? true : undefined,
       },
     })
     await writeAuditLog({

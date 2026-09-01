@@ -1,0 +1,57 @@
+{
+  "at": "2026-09-01T16:44:02.690Z",
+  "passed": true,
+  "failed": 0,
+  "total": 12,
+  "results": [
+    {
+      "id": "UAT_2_advances_sum",
+      "pass": true
+    },
+    {
+      "id": "UAT_add_advance_keeps_existing",
+      "pass": true
+    },
+    {
+      "id": "UAT_3_advances_sum",
+      "pass": true
+    },
+    {
+      "id": "UAT_multiple_penalties_sum",
+      "pass": true
+    },
+    {
+      "id": "UAT_edit_one_line_updates_total",
+      "pass": true
+    },
+    {
+      "id": "UAT_void_one_line_decreases_total",
+      "pass": true
+    },
+    {
+      "id": "UAT_delete_does_not_duplicate",
+      "pass": true
+    },
+    {
+      "id": "UAT_attendance_penalty_not_mixed",
+      "pass": true
+    },
+    {
+      "id": "UAT_period_list_date_format",
+      "pass": true
+    },
+    {
+      "id": "UAT_no_allow_signed_penalty_in_db_row",
+      "pass": true
+    },
+    {
+      "id": "UAT_service_does_not_set_advance_penalty_totals",
+      "pass": true
+    },
+    {
+      "id": "UAT_modal_has_add_buttons_not_set_inputs",
+      "pass": true
+    }
+  ],
+  "note": "Offline line-item SoT. Không ghi Production. Không commit/deploy khi FAIL."
+}

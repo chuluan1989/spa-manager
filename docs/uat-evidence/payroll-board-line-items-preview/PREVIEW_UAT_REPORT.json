@@ -1,0 +1,108 @@
+{
+  "at": "2026-09-01T16:44:03.006Z",
+  "base": "http://127.0.0.1:5173",
+  "marker": "UAT-LINE-1788281043006",
+  "steps": [
+    {
+      "name": "admin_login",
+      "at": "2026-09-01T16:44:13.792Z"
+    },
+    {
+      "name": "open_uat_employee",
+      "at": "2026-09-01T16:44:17.815Z"
+    },
+    {
+      "name": "ui_no_set_inputs",
+      "at": "2026-09-01T16:44:19.571Z",
+      "failed": false,
+      "penaltySet": 0,
+      "advanceSet": 0
+    },
+    {
+      "name": "ui_add_buttons",
+      "at": "2026-09-01T16:44:19.571Z",
+      "failed": false,
+      "hasAdvanceAdd": 1,
+      "hasPenaltyAdd": 1,
+      "hasAtt": true
+    },
+    {
+      "name": "baseline",
+      "at": "2026-09-01T16:44:19.574Z",
+      "advance": 0,
+      "penalty": 0
+    },
+    {
+      "name": "advance_add_1",
+      "at": "2026-09-01T16:44:20.982Z",
+      "failed": false,
+      "before": 0,
+      "after": 1000000,
+      "expected": 1000000
+    },
+    {
+      "name": "advance_add_2_sum",
+      "at": "2026-09-01T16:44:22.516Z",
+      "failed": false,
+      "after": 3000000,
+      "expected": 3000000,
+      "note": "2 lần ứng phải cộng, không ghi đè"
+    },
+    {
+      "name": "advance_add_3_sum",
+      "at": "2026-09-01T16:44:23.935Z",
+      "failed": false,
+      "after": 3500000,
+      "expected": 3500000
+    },
+    {
+      "name": "penalty_multi_sum",
+      "at": "2026-09-01T16:44:26.890Z",
+      "failed": false,
+      "after": 600000,
+      "expected": 600000
+    },
+    {
+      "name": "attendance_readonly",
+      "at": "2026-09-01T16:44:27.007Z",
+      "failed": false,
+      "attReadonly": 1
+    },
+    {
+      "name": "edit_one_line",
+      "at": "2026-09-01T16:44:27.752Z",
+      "failed": false,
+      "after": 3700000,
+      "expected": 3700000
+    },
+    {
+      "name": "void_one_line",
+      "at": "2026-09-01T16:44:29.255Z",
+      "failed": false,
+      "after": 1700000,
+      "expected": 1700000,
+      "note": "void 2tr → còn 1.2tr + 0.5tr"
+    },
+    {
+      "name": "no_allow_signed_penalty_error",
+      "at": "2026-09-01T16:44:29.416Z",
+      "failed": false
+    },
+    {
+      "name": "cleanup",
+      "at": "2026-09-01T16:44:34.943Z",
+      "failed": false,
+      "leftover": 0
+    },
+    {
+      "name": "restored_baseline",
+      "at": "2026-09-01T16:44:35.307Z",
+      "failed": false,
+      "restoredAdvance": 0,
+      "restoredPenalty": 0,
+      "beforeAdvance": 0,
+      "beforePenalty": 0
+    }
+  ],
+  "ok": true
+}

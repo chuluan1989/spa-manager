@@ -183,8 +183,10 @@ try {
   // Ensure attendance field is not an editable input for "Phạt chấm công"
   const attReadonly = await page.locator('.salary-edit-totals__row--readonly').count()
   const attInput = await page.locator('[data-testid="edit-input-penalty"]').count()
+  const addPenalty = await page.locator('[data-testid="add-penalty-btn"]').count()
   check('UI_BOARD_ATT_READONLY_ROW', attReadonly >= 1, { attReadonly })
-  check('UI_BOARD_MANUAL_INPUT_EXISTS', attInput >= 1, { attInput })
+  check('UI_BOARD_NO_PENALTY_SET_INPUT', attInput === 0, { attInput })
+  check('UI_BOARD_ADD_PENALTY_EXISTS', addPenalty >= 1, { addPenalty })
 
   await page.keyboard.press('Escape')
   await page.waitForTimeout(500)

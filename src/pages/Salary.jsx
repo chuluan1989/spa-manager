@@ -30,9 +30,13 @@ import { collectEmployeeIdsWithRecordBranchActivity, employeeCurrentlyAtBranch }
 import { buildWalletTimeline, isPayrollMonthLocked } from '../utils/payrollEngine'
 import {
   addPayrollAdjustment,
+  addPayrollBoardLine,
+  deletePayrollBoardLine,
+  editPayrollBoardLine,
   lockPayrollMonth,
   saveAdminPayrollBoardEdits,
   unlockPayrollMonth,
+  voidPayrollBoardLine,
 } from '../utils/payrollService'
 import { aggregateBranchSummaries, mergeEmployeePayrollRows } from '../utils/payrollViewHelpers'
 import {
@@ -309,6 +313,57 @@ function SalaryPage() {
     } catch (err) {
       window.alert(err?.message ?? 'Không thể sửa bảng lương.')
       throw err
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const boardLineContext = () => ({
+    employeeId: profileRow?.employeeId,
+    employeeName: profileRow?.employeeName,
+    branchId: profileRow?.branchId || employees.find((emp) => emp.id === profileRow?.employeeId)?.branchId || '',
+    month,
+    payrollCycle: cycle,
+  })
+
+  const handleAddBoardLine = async (payload) => {
+    setSaving(true)
+    try {
+      await addPayrollBoardLine({
+        ...boardLineContext(),
+        ...payload,
+      }, locks)
+      await reload()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEditBoardLine = async (record, updates) => {
+    setSaving(true)
+    try {
+      await editPayrollBoardLine(record, updates, locks)
+      await reload()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleVoidBoardLine = async (record, reason) => {
+    setSaving(true)
+    try {
+      await voidPayrollBoardLine(record, reason, locks)
+      await reload()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteBoardLine = async (record, reason) => {
+    setSaving(true)
+    try {
+      await deletePayrollBoardLine(record, reason, locks)
+      await reload()
     } finally {
       setSaving(false)
     }
@@ -599,6 +654,10 @@ function SalaryPage() {
           open={editBoardOpen}
           onClose={() => setEditBoardOpen(false)}
           onSave={handleSaveEditBoard}
+          onAddLine={handleAddBoardLine}
+          onEditLine={handleEditBoardLine}
+          onVoidLine={handleVoidBoardLine}
+          onDeleteLine={handleDeleteBoardLine}
           employee={employees.find((emp) => emp.id === profileRow.employeeId)}
           payrollRow={profileRow}
           month={month}

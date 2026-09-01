@@ -54,6 +54,38 @@ function isMissingColumnError(error) {
   return error?.code === 'PGRST204' || /column .* does not exist|Could not find the/i.test(message)
 }
 
+/** Cột thật của payroll_adjustments — không gửi flag JS (vd. allowSignedPenalty). */
+const ADJUSTMENT_DB_FIELDS = new Set([
+  'id',
+  'date',
+  'month',
+  'branchId',
+  'employeeId',
+  'employeeName',
+  'type',
+  'amount',
+  'reason',
+  'note',
+  'createdBy',
+  'createdByName',
+  'createdAt',
+  'updatedAt',
+  'expenseId',
+  'payrollCycle',
+  'source',
+  'category',
+])
+
+export function sanitizePayrollAdjustmentRecord(record) {
+  const next = {}
+  for (const [key, value] of Object.entries(record || {})) {
+    if (!ADJUSTMENT_DB_FIELDS.has(key)) continue
+    if (value === undefined) continue
+    next[key] = value
+  }
+  return next
+}
+
 function stripOptionalPenaltyMeta(row) {
   const next = { ...row }
   delete next.source
@@ -61,9 +93,16 @@ function stripOptionalPenaltyMeta(row) {
   return next
 }
 
+function toAdjustmentDbRow(record) {
+  const row = objectToSnakeRow(sanitizePayrollAdjustmentRecord(record))
+  delete row.allow_signed_penalty
+  delete row.allowSignedPenalty
+  return row
+}
+
 export async function insertPayrollAdjustment(record) {
   if (!isSupabaseConfigured) throw new Error('Supabase chưa cấu hình.')
-  const row = objectToSnakeRow({
+  const row = toAdjustmentDbRow({
     ...record,
     createdAt: record.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -82,7 +121,7 @@ export async function insertPayrollAdjustment(record) {
 
 export async function updatePayrollAdjustment(record) {
   if (!isSupabaseConfigured) throw new Error('Supabase chưa cấu hình.')
-  const row = objectToSnakeRow({ ...record, updatedAt: new Date().toISOString() })
+  const row = toAdjustmentDbRow({ ...record, updatedAt: new Date().toISOString() })
   let { data, error } = await supabase.from(ADJUSTMENTS_TABLE).update(row).eq('id', record.id).select('*').single()
   if (error && isMissingColumnError(error) && (row.source != null || row.category != null)) {
     ;({ data, error } = await supabase

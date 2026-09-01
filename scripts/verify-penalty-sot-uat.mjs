@@ -135,12 +135,15 @@ check('U6_pnl_equals_payroll_no_blind_dedupe', () => {
   assert.ok(pnl.duplicateWarnings.length >= 1)
 })
 
-check('U7_ui_hint_present', () => {
-  const board = readFileSync('src/components/salary/PayrollEditBoardModal.jsx', 'utf8')
-  assert.ok(board.includes('Phạt chấm công'))
-  assert.ok(board.includes('ATTENDANCE_PENALTY_READONLY_HINT') || board.includes(ATTENDANCE_PENALTY_READONLY_HINT.slice(0, 20)))
-  assert.ok(board.includes('manualPenalty'))
-})
+  check('U7_ui_hint_present', () => {
+    const board = readFileSync('src/components/salary/PayrollEditBoardModal.jsx', 'utf8')
+    const lines = readFileSync('src/components/salary/PayrollBoardLineSection.jsx', 'utf8')
+    assert.ok(board.includes('Phạt chấm công'))
+    assert.ok(board.includes('ATTENDANCE_PENALTY_READONLY_HINT') || board.includes(ATTENDANCE_PENALTY_READONLY_HINT.slice(0, 20)))
+    assert.ok(board.includes('manualPenalty'))
+    assert.ok(lines.includes('+ Thêm phạt') || board.includes('+ Thêm phạt'))
+    assert.ok(!board.includes('edit-input-penalty'))
+  })
 
 check('U8_allow_service_penalty', () => {
   const gate = assertManualPenaltyNotAttendanceMirror({
