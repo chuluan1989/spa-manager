@@ -5,6 +5,7 @@
 import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import { SYNC_EVENT } from './dataSyncEvents'
 import { currentMonthYm, monthBounds } from './employeeKpiView'
+import { getPayCycleLabel, getPayPeriodRange, PAY_CYCLES } from './salaryReport'
 
 /** @type {Map<string, { invoices: any[], fromDate: string, toDate: string, fetchedAt: number }>} */
 const scopeCache = new Map()
@@ -64,6 +65,31 @@ export function resolveKpiMonthRange(monthYm, { now = new Date() } = {}) {
     rangeLabel: clippedHint
       ? `${fromDate} → ${calendarToDate} (tháng đủ Kỳ 1+2; HĐ thực tế đến ${today})`
       : `${fromDate} → ${calendarToDate}`,
+  }
+}
+
+/**
+ * Phạm vi KPI theo kỳ lương (Kỳ 1 = 01–15, Kỳ 2 = 16–cuối tháng).
+ * Không gộp cả tháng.
+ */
+export function resolveKpiPayCycleRange(monthYm, cycle = PAY_CYCLES.PERIOD_1, { now = new Date() } = {}) {
+  const resolvedCycle = cycle === PAY_CYCLES.PERIOD_2 ? PAY_CYCLES.PERIOD_2 : PAY_CYCLES.PERIOD_1
+  const { fromDate, toDate: cycleToDate } = getPayPeriodRange(monthYm, resolvedCycle)
+  const today = todayYmAsiaHoChiMinh(now)
+  const isCurrentMonth = monthYm === currentMonthYm(now)
+  const clippedHint = Boolean(isCurrentMonth && today && cycleToDate && today < cycleToDate)
+  const cycleLabel = getPayCycleLabel(resolvedCycle)
+  return {
+    monthYm,
+    cycle: resolvedCycle,
+    fromDate,
+    toDate: cycleToDate,
+    calendarToDate: cycleToDate,
+    clippedToToday: false,
+    dataAsOfHint: clippedHint ? today : null,
+    rangeLabel: clippedHint
+      ? `${fromDate} → ${cycleToDate} (${cycleLabel}; HĐ thực tế đến ${today})`
+      : `${fromDate} → ${cycleToDate} (${cycleLabel})`,
   }
 }
 

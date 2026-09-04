@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { fetchAttendanceFiltered } from '../repositories/attendanceRepository'
 import { fetchEmployeesFiltered } from '../repositories/employeesRepository'
 import { fetchPayrollAdjustments } from '../repositories/payrollRepository'
+import { fetchKpiBranchPolicies } from '../repositories/kpiPolicyRepository'
 import { normalizeEmployee } from './employeeStorage'
 import { computePayrollReport } from './payrollEngine'
 import {
@@ -62,7 +63,7 @@ export async function loadPayrollCostForFilters(filters, invoices = []) {
     : { fromDate: filters.fromDate || '', toDate: filters.toDate || '' }
 
   const months = matched ? [matched.month] : monthsInRange(filters.fromDate, filters.toDate)
-  const [attendanceRows, employeeRows, ...adjustmentBatches] = await Promise.all([
+  const [attendanceRows, employeeRows, kpiPolicies, ...adjustmentBatches] = await Promise.all([
     fetchAttendanceFiltered({
       fromDate: attendanceRange.fromDate || '',
       toDate: attendanceRange.toDate || '',
@@ -70,6 +71,7 @@ export async function loadPayrollCostForFilters(filters, invoices = []) {
       employeeId: filters.employeeId || '',
     }).catch(() => []),
     fetchEmployeesFiltered({}).catch(() => []),
+    fetchKpiBranchPolicies().catch(() => []),
     ...months.map((month) =>
       fetchPayrollAdjustments({ month, branchId: filters.branchId || '' }).catch(() => []),
     ),
@@ -89,6 +91,7 @@ export async function loadPayrollCostForFilters(filters, invoices = []) {
       invoices: invoices ?? [],
       attendanceRecords: attendanceRows ?? [],
       adjustments,
+      kpiPolicies: kpiPolicies ?? [],
     })
     payrollByBranch = aggregatePayrollCostFromReport(report, { branchId: filters.branchId || '' })
   } else {
@@ -100,6 +103,7 @@ export async function loadPayrollCostForFilters(filters, invoices = []) {
       invoices: invoices ?? [],
       attendanceRecords: attendanceRows ?? [],
       adjustments,
+      kpiPolicies: kpiPolicies ?? [],
     })
   }
 

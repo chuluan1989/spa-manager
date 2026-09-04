@@ -43,6 +43,8 @@ function exportRows(rows = []) {
       duration90Status: duration90.status,
       score: row.scoreLabel,
       status: row.rowStatusLabel,
+      totalMissing: row.totalKpiMissing ?? 0,
+      kpiPenalty: row.kpiPenalty ?? 0,
     }
   })
 }
@@ -80,6 +82,8 @@ const HEADERS = [
   'TT 90 phút',
   'Kết quả',
   'Trạng thái',
+  'Tổng thiếu',
+  'Phạt KPI',
 ]
 
 function toMatrix(rows) {
@@ -119,6 +123,8 @@ function toMatrix(rows) {
       r.duration90Status,
       r.score,
       r.status,
+      r.totalMissing,
+      r.kpiPenalty,
     ]),
   ]
 }

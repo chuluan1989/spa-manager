@@ -156,7 +156,7 @@ check(15, 'Recompute deterministic (refresh)', (() => {
 {
   const payroll = readFileSync(join(ROOT, 'src/utils/payrollEngine.js'), 'utf8')
   const page = readFileSync(join(ROOT, 'src/pages/EmployeeKpi.jsx'), 'utf8')
-  check(16, 'Không ảnh hưởng payroll/commission', !page.includes('payrollEngine') && !page.includes('PayrollKpiModal') && !payroll.includes('employeeKpiEngine'), {})
+  check(16, 'Employee KPI page không ghi payroll; payroll engine đọc KPI penalty', !page.includes('payrollEngine') && !page.includes('PayrollKpiModal') && payroll.includes('computeKpiPenaltyFromModel'), {})
 }
 
 {

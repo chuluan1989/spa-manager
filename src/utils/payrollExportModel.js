@@ -34,6 +34,7 @@ export function computeGrossIncome(row) {
     + (row.tips ?? 0)
     + (row.bonus ?? 0)
     + (row.kpi ?? 0)
+    - (row.kpiPenalty ?? 0)
     - (row.reduction ?? 0)
     // otherAdjustment legacy — không còn trong gross vận hành
   )
@@ -51,6 +52,7 @@ export function mapPayrollRowForExport(row, month = '') {
     baseSalary: row.baseSalary ?? 0,
     bonus: row.bonus ?? 0,
     kpi: row.kpi ?? 0,
+    kpiPenalty: row.kpiPenalty ?? 0,
     penalty: row.penalty ?? 0,
     attendancePenalty: row.attendancePenalty ?? 0,
     manualPenalty: row.manualPenalty ?? 0,
@@ -249,6 +251,7 @@ export function reconcilePayrollExport({ payrollRow, invoiceLines }) {
     tips: payrollRow.tips ?? 0,
     bonus: payrollRow.bonus ?? 0,
     kpi: payrollRow.kpi ?? 0,
+    kpiPenalty: payrollRow.kpiPenalty ?? 0,
     reduction: payrollRow.reduction ?? 0,
     penalty: payrollRow.penalty ?? 0,
     advance: payrollRow.advance ?? 0,
@@ -282,7 +285,12 @@ export function buildEmployeePayrollExportData({
   fromDate,
   toDate,
 }) {
-  const row = payrollRow ?? computeEmployeePayrollRow(employee, invoices, attendanceRecords, adjustments)
+      const row = payrollRow ?? computeEmployeePayrollRow(employee, invoices, attendanceRecords, adjustments, {
+        fromDate,
+        toDate,
+        month,
+        cycle,
+      })
   const periodFilter = { fromDate, toDate }
   const scopedInvoices = filterSalaryInvoices(invoices, { ...periodFilter, employeeId: row.employeeId })
   const scopedAdjustments = (adjustments ?? []).filter((item) => {

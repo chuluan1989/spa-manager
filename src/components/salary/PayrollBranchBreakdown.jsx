@@ -8,6 +8,7 @@ const SECTION_ROWS = [
   ['tips', 'tips'],
   ['bonus', 'bonus'],
   ['kpi', 'neutral'],
+  ['kpiPenalty', 'penalty'],
   ['penalty', 'penalty'],
   ['reduction', 'reduction'],
   ['advance', 'advance'],

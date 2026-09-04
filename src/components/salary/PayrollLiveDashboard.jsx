@@ -10,6 +10,7 @@ const KPI_ROWS = [
   ['tips', 'tips'],
   ['bonus', 'bonus'],
   ['kpi', 'bonus'],
+  ['kpiPenalty', 'penalty'],
   ['penalty', 'penalty'],
   ['reduction', 'reduction'],
   ['advance', 'advance'],

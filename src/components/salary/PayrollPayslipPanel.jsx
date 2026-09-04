@@ -11,6 +11,7 @@ export default function PayrollPayslipPanel({ payslip, onClose }) {
     ['tips', payslip.tips],
     ['bonus', payslip.bonus],
     ['kpi', payslip.kpi],
+    ['kpiPenalty', payslip.kpiPenalty],
     ['penalty', payslip.penalty],
     ['reduction', payslip.reduction],
     ['advance', payslip.advance],

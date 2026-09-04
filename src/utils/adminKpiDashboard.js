@@ -52,6 +52,9 @@ export function buildAdminEmployeeKpiRow(model, { homeBranchId = '', homeBranchN
           : rowStatus === 'NO_POLICY' ? 'Chưa có chính sách KPI kỳ này'
             : `Đạt ${summary.met}/${summary.total} KPI`,
     model,
+    totalKpiMissing: model?.penalty?.totalMissing ?? 0,
+    kpiPenalty: model?.penalty?.kpiPenalty ?? 0,
+    kpiPenaltyApplied: Boolean(model?.penalty?.applied),
   }
 }
 

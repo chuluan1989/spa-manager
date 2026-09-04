@@ -3,6 +3,7 @@ import { isSupabaseConfigured } from '../../lib/supabaseClient'
 import { fetchEmployeesFiltered } from '../../repositories/employeesRepository'
 import { fetchAttendanceFiltered } from '../../repositories/attendanceRepository'
 import { fetchInvoicesFiltered } from '../../repositories/invoicesRepository'
+import { fetchKpiBranchPolicies } from '../../repositories/kpiPolicyRepository'
 import {
   fetchPayrollAdjustments,
   fetchPayrollAuditLogs,
@@ -24,6 +25,7 @@ export function useBranchPayrollData({ month, branchId = '', employeeId = '' }) 
   const [error, setError] = useState('')
   const mountedRef = useRef(true)
   const [employees, setEmployees] = useState([])
+  const [kpiPolicies, setKpiPolicies] = useState([])
 
   const reload = useCallback(async () => {
     if (!mountedRef.current) return
@@ -36,13 +38,14 @@ export function useBranchPayrollData({ month, branchId = '', employeeId = '' }) 
 
       const { fromDate, toDate } = getPayPeriodRange(month, PAY_CYCLES.FULL)
       const scope = { fromDate, toDate, branchId, employeeId }
-      const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows, remoteEmployees] = await Promise.all([
+      const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows, remoteEmployees, kpiPolicyRows] = await Promise.all([
         fetchInvoicesFiltered(scope),
         fetchAttendanceFiltered(scope),
         fetchPayrollAdjustments({ month, branchId, employeeId }),
         fetchPayrollLocks({ month }),
         fetchPayrollAuditLogs({ limit: 300 }),
         fetchEmployeesFiltered({}),
+        fetchKpiBranchPolicies().catch(() => []),
       ])
       if (!mountedRef.current) return
 
@@ -54,6 +57,7 @@ export function useBranchPayrollData({ month, branchId = '', employeeId = '' }) 
       setAdjustments(adjustmentRows ?? [])
       setLocks(lockRows ?? [])
       setAuditLogs(auditRows ?? [])
+      setKpiPolicies(Array.isArray(kpiPolicyRows) ? kpiPolicyRows : [])
     } catch (err) {
       if (!mountedRef.current) return
       setError(err?.message ?? 'Không thể tải dữ liệu lương.')
@@ -84,8 +88,9 @@ export function useBranchPayrollData({ month, branchId = '', employeeId = '' }) 
       invoices,
       attendanceRecords: attendance,
       adjustments,
+      kpiPolicies,
     }),
-    [month, branchId, employeeId, employees, invoices, attendance, adjustments],
+    [month, branchId, employeeId, employees, invoices, attendance, adjustments, kpiPolicies],
   )
 
   return {

@@ -38,11 +38,14 @@ import {
   formatKpiPercent,
   formatMonthLabel,
   KPI_GROUP_LABELS,
+  monthBounds,
 } from '../utils/employeeKpiView'
 import {
   fetchKpiInvoicesForScope,
-  resolveKpiMonthRange,
+  resolveKpiPayCycleRange,
 } from '../utils/kpiInvoiceScope'
+import { getDefaultPayCycleForVietnamDate, PAY_CYCLES } from '../utils/salaryReport'
+import { formatCurrency } from '../utils/invoice'
 import './AdminKpi.css'
 import '../components/erp/erp.css'
 
@@ -84,6 +87,7 @@ export default function AdminKpi() {
   const syncVersion = useDataSyncVersion()
   const [tab, setTab] = useState('dashboard') // dashboard | policy | audit
   const [month, setMonth] = useState(() => currentMonthYm())
+  const [cycle, setCycle] = useState(() => getDefaultPayCycleForVietnamDate())
   const [branchId, setBranchId] = useState('')
   const [employeeId, setEmployeeId] = useState('')
   const [status, setStatus] = useState('')
@@ -125,7 +129,8 @@ export default function AdminKpi() {
     reloadPolicies()
   }, [syncVersion])
 
-  const monthRange = useMemo(() => resolveKpiMonthRange(month), [month])
+  const monthRange = useMemo(() => resolveKpiPayCycleRange(month, cycle), [month, cycle])
+  const fetchRange = useMemo(() => monthBounds(month), [month])
   const employees = useMemo(() => loadEmployees(), [syncVersion])
 
   useEffect(() => {
@@ -135,8 +140,8 @@ export default function AdminKpi() {
       setInvoiceError('')
       try {
         const result = await fetchKpiInvoicesForScope({
-          fromDate: monthRange.fromDate,
-          toDate: monthRange.toDate,
+          fromDate: fetchRange.fromDate,
+          toDate: fetchRange.toDate,
         })
         if (cancelled) return
         setInvoices(result.invoices)
@@ -155,7 +160,7 @@ export default function AdminKpi() {
       }
     })()
     return () => { cancelled = true }
-  }, [monthRange.fromDate, monthRange.toDate, syncVersion])
+  }, [fetchRange.fromDate, fetchRange.toDate, syncVersion])
 
   const dashboard = useMemo(() => buildAdminKpiDashboard(invoices, {
     fromDate: monthRange.fromDate,
@@ -259,7 +264,7 @@ export default function AdminKpi() {
     <div className="erp-page admin-kpi-page">
       <ErpPageHeader
         title={`KPI Admin · ${formatMonthLabel(month)}`}
-        subtitle={`6 chi nhánh · Cloud HĐ full tháng · ${monthRange.rangeLabel}`}
+        subtitle={`6 chi nhánh · Cloud HĐ theo kỳ lương · ${monthRange.rangeLabel}`}
         badge={{
           value: `${dashboard.system.employeesMetAll}/${dashboard.system.employeeCount}`,
           label: 'NV đạt đủ KPI',
@@ -284,7 +289,7 @@ export default function AdminKpi() {
       {invoicesLoading && <p className="admin-kpi-muted">Đang tải hóa đơn KPI từ cloud…</p>}
       {scopeMeta && !invoicesLoading && (
         <p className="admin-kpi-muted">
-          Phạm vi: {scopeMeta.rangeLabel} · {scopeMeta.invoiceCount} HĐ cloud
+          Phạm vi: {monthRange.rangeLabel} · {scopeMeta.invoiceCount} HĐ cloud (tháng)
           {scopeMeta.dataAsOfHint ? ` · HĐ thực tế đến ${scopeMeta.dataAsOfHint}` : ''}
         </p>
       )}
@@ -304,6 +309,13 @@ export default function AdminKpi() {
             <label>
               Tháng
               <input type="month" value={month} max={currentMonthYm()} onChange={(e) => setMonth(e.target.value)} />
+            </label>
+            <label>
+              Kỳ lương
+              <select value={cycle} onChange={(e) => setCycle(e.target.value)}>
+                <option value={PAY_CYCLES.PERIOD_1}>Kỳ 1 (01–15)</option>
+                <option value={PAY_CYCLES.PERIOD_2}>Kỳ 2 (16–cuối)</option>
+              </select>
             </label>
             <label>
               Chi nhánh
@@ -394,12 +406,13 @@ export default function AdminKpi() {
                   <th>Chuyên sâu</th>
                   <th>Khách yêu cầu</th>
                   <th>90 phút</th>
+                  <th>Phạt KPI</th>
                   <th>Kết quả</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length === 0 && (
-                  <tr><td colSpan={8}>Không có dữ liệu KPI trong bộ lọc.</td></tr>
+                  <tr><td colSpan={9}>Không có dữ liệu KPI trong bộ lọc.</td></tr>
                 )}
                 {filteredRows.map((row) => (
                   <tr
@@ -414,6 +427,7 @@ export default function AdminKpi() {
                     <td><AdminKpiMetricCell card={row.cards.advanced} /></td>
                     <td><AdminKpiMetricCell card={row.cards.requested} /></td>
                     <td><AdminKpiMetricCell card={row.cards.duration90} /></td>
+                    <td>{row.kpiPenaltyApplied ? formatCurrency(row.kpiPenalty || 0) : '—'}</td>
                     <td><ResultCell row={row} /></td>
                   </tr>
                 ))}

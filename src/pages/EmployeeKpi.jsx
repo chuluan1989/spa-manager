@@ -11,14 +11,17 @@ import {
   currentMonthYm,
   filterKpiServiceLineRows,
   formatMonthLabel,
+  monthBounds,
   summarizeOverallKpis,
   EMPLOYEE_KPI_CARD_DEFS,
 } from '../utils/employeeKpiView'
 import {
   fetchKpiInvoicesForScope,
-  resolveKpiMonthRange,
+  resolveKpiPayCycleRange,
 } from '../utils/kpiInvoiceScope'
 import { KPI_STATUS } from '../constants/kpiPolicy'
+import { formatCurrency } from '../utils/invoice'
+import { getDefaultPayCycleForVietnamDate, PAY_CYCLES } from '../utils/salaryReport'
 import './EmployeeKpi.css'
 import '../components/erp/erp.css'
 
@@ -107,7 +110,7 @@ function DrillPanel({ filterKey, rows, onClose, onFilter }) {
         <header>
           <div>
             <h3>Chi tiết dịch vụ</h3>
-            <p>1 dòng = 1 dịch vụ · Chỉ hóa đơn của bạn trong tháng đang xem</p>
+            <p>1 dòng = 1 dịch vụ · Chỉ hóa đơn của bạn trong kỳ đang xem</p>
           </div>
           <button type="button" onClick={onClose}>Đóng</button>
         </header>
@@ -171,6 +174,7 @@ export default function EmployeeKpi() {
   const syncVersion = useDataSyncVersion()
   const employeeId = getCurrentUserEmployeeId()
   const [month, setMonth] = useState(() => currentMonthYm())
+  const [cycle, setCycle] = useState(() => getDefaultPayCycleForVietnamDate())
   const [policies, setPolicies] = useState([])
   const [policyError, setPolicyError] = useState('')
   const [invoiceError, setInvoiceError] = useState('')
@@ -196,7 +200,8 @@ export default function EmployeeKpi() {
     return () => { cancelled = true }
   }, [syncVersion])
 
-  const monthRange = useMemo(() => resolveKpiMonthRange(month), [month])
+  const monthRange = useMemo(() => resolveKpiPayCycleRange(month, cycle), [month, cycle])
+  const fetchRange = useMemo(() => monthBounds(month), [month])
 
   useEffect(() => {
     let cancelled = false
@@ -207,8 +212,8 @@ export default function EmployeeKpi() {
       try {
         // Full month scope 1 lần — không dùng cache 100. Filter attribution trong engine.
         const result = await fetchKpiInvoicesForScope({
-          fromDate: monthRange.fromDate,
-          toDate: monthRange.toDate,
+          fromDate: fetchRange.fromDate,
+          toDate: fetchRange.toDate,
         })
         if (cancelled) return
         setInvoices(result.invoices)
@@ -221,7 +226,7 @@ export default function EmployeeKpi() {
       }
     })()
     return () => { cancelled = true }
-  }, [employeeId, monthRange.fromDate, monthRange.toDate, syncVersion])
+  }, [employeeId, fetchRange.fromDate, fetchRange.toDate, syncVersion])
 
   const model = useMemo(() => {
     if (!employeeId) return null
@@ -263,21 +268,30 @@ export default function EmployeeKpi() {
     <div className="erp-page emp-kpi-page">
       <ErpPageHeader
         title={`KPI ${formatMonthLabel(month)}`}
-        subtitle={`Theo hóa đơn cloud · ${monthRange.rangeLabel} · Không gắn thưởng/phạt lương`}
+        subtitle={`Theo hóa đơn cloud · ${monthRange.rangeLabel} · Phạt KPI trừ vào lương kỳ này`}
         badge={{
           value: summary.noPolicy ? '—' : `${summary.met}/${summary.total}`,
           label: summary.headline,
         }}
         actions={(
-          <label className="emp-kpi-month">
-            <span>Tháng</span>
-            <input
-              type="month"
-              value={month}
-              max={currentMonthYm()}
-              onChange={(e) => setMonth(e.target.value)}
-            />
-          </label>
+          <div className="emp-kpi-month">
+            <label>
+              <span>Tháng</span>
+              <input
+                type="month"
+                value={month}
+                max={currentMonthYm()}
+                onChange={(e) => setMonth(e.target.value)}
+              />
+            </label>
+            <label>
+              <span>Kỳ lương</span>
+              <select value={cycle} onChange={(e) => setCycle(e.target.value)}>
+                <option value={PAY_CYCLES.PERIOD_1}>Kỳ 1 (01–15)</option>
+                <option value={PAY_CYCLES.PERIOD_2}>Kỳ 2 (16–cuối)</option>
+              </select>
+            </label>
+          </div>
         )}
       />
 
@@ -305,6 +319,13 @@ export default function EmployeeKpi() {
           {' '}· 90' {model?.overall?.counts?.duration90 ?? 0}
           {' '}· HĐ {model?.overall?.counts?.totalInvoices ?? 0} · YC {model?.overall?.counts?.requestedInvoices ?? 0}
         </p>
+        {model?.penalty?.applied ? (
+          <p className="emp-kpi-muted">
+            Thiếu {model.penalty.totalMissing} lượt
+            {' · '}Phạt KPI {formatCurrency(model.penalty.kpiPenalty)}
+            {' '}(50.000đ × thiếu, trừ vào lương kỳ này)
+          </p>
+        ) : null}
       </section>
 
       <section className="emp-kpi-grid">
@@ -323,10 +344,10 @@ export default function EmployeeKpi() {
       <section className="emp-kpi-branches">
         <h2>Chi tiết theo chi nhánh phục vụ</h2>
         <p className="emp-kpi-branches__hint">
-          Policy theo chi nhánh phục vụ + ngày HĐ. Không lấy trung bình target giữa các CN.
+          Policy theo chi nhánh phục vụ + ngày HĐ. KPI phạt gộp mọi CN theo employeeId trong kỳ — không cộng missing từng CN.
         </p>
         {(model?.servingBranchSegments || []).length === 0 && (
-          <p className="emp-kpi-empty">Chưa có hóa đơn KPI trong tháng này.</p>
+          <p className="emp-kpi-empty">Chưa có hóa đơn KPI trong kỳ này.</p>
         )}
         {(model?.servingBranchSegments || []).map((seg) => (
           <BranchSegment

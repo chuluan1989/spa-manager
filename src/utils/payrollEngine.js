@@ -15,6 +15,7 @@ import {
   computeAttendanceStats,
   computePayrollPaymentSummary,
 } from './payrollLiveHelpers'
+import { computeEmployeeKpi, computeKpiPenaltyFromModel } from './employeeKpiEngine'
 import {
   filterSalaryInvoices,
   getPayPeriodRange,
@@ -76,12 +77,55 @@ export function computeNetSalary(parts) {
     + parts.tips
     + parts.bonus
     + (parts.kpi ?? 0)
+    - (parts.kpiPenalty ?? 0)
     - parts.reduction
     - parts.penalty
     - parts.advance
     // otherAdjustment (Điều chỉnh khác) — legacy: vẫn tính trên payrollRow để audit,
     // KHÔNG còn cộng vào lương thực nhận vận hành.
   )
+}
+
+function computeRowKpiPenalty(employeeId, invoices, {
+  kpiPolicies = [],
+  fromDate = '',
+  toDate = '',
+  month = '',
+  cycle = '',
+} = {}) {
+  const empty = {
+    kpiPenalty: 0,
+    totalMissing: 0,
+    applied: false,
+    breakdown: null,
+  }
+  if (!employeeId) return empty
+
+  const runPeriod = (periodFrom, periodTo) => {
+    if (!periodFrom || !periodTo) return empty
+    const model = computeEmployeeKpi(invoices, {
+      employeeId,
+      fromDate: periodFrom,
+      toDate: periodTo,
+      policies: kpiPolicies,
+    })
+    return computeKpiPenaltyFromModel(model, { fromDate: periodFrom, toDate: periodTo })
+  }
+
+  if (cycle === PAY_CYCLES.FULL && month) {
+    const p1 = getPayPeriodRange(month, PAY_CYCLES.PERIOD_1)
+    const p2 = getPayPeriodRange(month, PAY_CYCLES.PERIOD_2)
+    const a = runPeriod(p1.fromDate, p1.toDate)
+    const b = runPeriod(p2.fromDate, p2.toDate)
+    return {
+      kpiPenalty: (a.kpiPenalty || 0) + (b.kpiPenalty || 0),
+      totalMissing: (a.totalMissing || 0) + (b.totalMissing || 0),
+      applied: Boolean(a.applied || b.applied),
+      breakdown: { period1: a.breakdown, period2: b.breakdown },
+    }
+  }
+
+  return runPeriod(fromDate, toDate)
 }
 
 function collectEmployeeRecordBranchIds(invoices, attendanceRecords, adjustments, employeeId) {
@@ -150,6 +194,7 @@ function computeEmployeePayrollBranchSection(employee, invoices, attendanceRecor
     tips: invoiceTotals.tips,
     bonus,
     kpi,
+    kpiPenalty: 0,
     reduction,
     penalty: attendancePenalty + manualPenalty,
     attendancePenalty,
@@ -201,7 +246,7 @@ export function computeEmployeePayrollBranchSections(employee, invoices, attenda
     })
 }
 
-export function computeEmployeePayrollRow(employee, invoices, attendanceRecords, adjustments) {
+export function computeEmployeePayrollRow(employee, invoices, attendanceRecords, adjustments, options = {}) {
   const employeeId = employee.id
   const scopedInvoices = invoices.filter(
     (invoice) => invoice.employeeId === employeeId || invoice.supportEmployeeId === employeeId,
@@ -215,6 +260,15 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
   const otherAdjustment = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT)
   const kpi = sumAdjustments(adjustments, employeeId, PAYROLL_ADJUSTMENT_TYPES.KPI)
   const baseSalary = parseBaseSalary(employee.salaryRate)
+  const invoicesForKpi = options.kpiInvoices ?? invoices
+  const kpiResult = computeRowKpiPenalty(employeeId, invoicesForKpi, {
+    kpiPolicies: options.kpiPolicies ?? [],
+    fromDate: options.fromDate ?? '',
+    toDate: options.toDate ?? '',
+    month: options.month ?? '',
+    cycle: options.cycle ?? '',
+  })
+  const kpiPenalty = kpiResult.kpiPenalty || 0
 
   const parts = {
     baseSalary,
@@ -223,6 +277,7 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     tips: invoiceTotals.tips,
     bonus,
     kpi,
+    kpiPenalty,
     reduction,
     penalty: attendancePenalty + manualPenalty,
     attendancePenalty,
@@ -234,7 +289,7 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
   const netSalary = computeNetSalary(parts)
   const grossBeforeDeduction = (
     parts.baseSalary + parts.commission + parts.tips + parts.bonus + (parts.kpi ?? 0)
-    - parts.reduction - parts.penalty
+    - (parts.kpiPenalty ?? 0) - parts.reduction - parts.penalty
   )
   const paymentSummary = computePayrollPaymentSummary(adjustments, employeeId, netSalary)
   const { workDays } = computeAttendanceStats(attendanceRecords, employeeId)
@@ -255,6 +310,9 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     invoiceCount: invoiceTotals.invoiceCount,
     workDays,
     branchSections,
+    kpiMissing: kpiResult.totalMissing || 0,
+    kpiPenaltyApplied: Boolean(kpiResult.applied),
+    kpiPenaltyBreakdown: kpiResult.breakdown,
     ...parts,
     grossBeforeDeduction,
     netSalary,
@@ -271,9 +329,11 @@ export function computePayrollReport({
   invoices,
   attendanceRecords,
   adjustments,
+  kpiPolicies = [],
 }) {
   const { fromDate, toDate } = getPayPeriodRange(month, cycle)
   const scopedInvoices = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId })
+  const periodInvoices = filterSalaryInvoices(invoices, { fromDate, toDate, employeeId })
   const scopedAttendance = (attendanceRecords ?? []).filter((row) => {
     if (branchId && !recordBelongsToBranch(row, branchId)) return false
     if (employeeId && row.employeeId !== employeeId) return false
@@ -305,8 +365,23 @@ export function computePayrollReport({
 
   // AttendanceRecords đã được hook lọc theo đúng logic Kỳ 1/Kỳ 2.
 
+  const payrollOptions = {
+    kpiPolicies,
+    fromDate,
+    toDate,
+    month,
+    cycle,
+    kpiInvoices: periodInvoices,
+  }
+
   const rows = scopedEmployees
-    .map((employee) => computeEmployeePayrollRow(employee, scopedInvoices, scopedAttendance, scopedAdjustments))
+    .map((employee) => computeEmployeePayrollRow(
+      employee,
+      scopedInvoices,
+      scopedAttendance,
+      scopedAdjustments,
+      payrollOptions,
+    ))
     .sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'vi'))
 
   const dashboard = rows.reduce(
@@ -317,6 +392,7 @@ export function computePayrollReport({
       acc.tips += row.tips
       acc.bonus += row.bonus
       acc.kpi += row.kpi ?? 0
+      acc.kpiPenalty += row.kpiPenalty ?? 0
       acc.reduction += row.reduction
       acc.penalty += row.penalty
       acc.advance += row.advance
@@ -332,6 +408,7 @@ export function computePayrollReport({
       tips: 0,
       bonus: 0,
       kpi: 0,
+      kpiPenalty: 0,
       reduction: 0,
       penalty: 0,
       advance: 0,

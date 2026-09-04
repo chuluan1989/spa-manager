@@ -46,6 +46,11 @@ export const SEP2026_KPI_TARGETS = {
 
 export const KPI_DURATION90_EFFECTIVE_FROM = '2026-09-01'
 
+/** Phạt KPI missing — hiệu lực cùng policy Sep 2026. Không áp dụng dữ liệu trước ngày này. */
+export const KPI_PENALTY_EFFECTIVE_FROM = '2026-09-01'
+export const KPI_PENALTY_PER_MISSING = 50_000
+export const KPI_PENALTY_KEYS = ['addon', 'advanced', 'combo', 'duration90', 'requested']
+
 export const KPI_POLICY_STATUS = {
   ACTIVE: 'active',
   SUPERSEDED: 'superseded',

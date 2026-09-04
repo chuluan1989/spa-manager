@@ -1,5 +1,8 @@
 import {
   KPI_GROUPS,
+  KPI_PENALTY_EFFECTIVE_FROM,
+  KPI_PENALTY_KEYS,
+  KPI_PENALTY_PER_MISSING,
   KPI_STATUS,
   isKpiExcludedBranch,
   isKpiScopeBranch,
@@ -339,6 +342,7 @@ function aggregateKpiAcrossSegments(segments, kpiKey, countsKey) {
       if (kpiKey === 'requested') return sum + s.counts.totalInvoices
       return sum + s.counts.main
     }, 0)
+    const noInvoices = segments.length === 0
     return {
       kind: kpiKey,
       actual: totalActual,
@@ -347,10 +351,10 @@ function aggregateKpiAcrossSegments(segments, kpiKey, countsKey) {
       rate: totalBase > 0 ? totalActual / totalBase : null,
       targets: [],
       mixedTargets: false,
-      status: KPI_STATUS.NOT_APPLICABLE,
+      status: noInvoices ? KPI_STATUS.INSUFFICIENT_DATA : KPI_STATUS.NOT_APPLICABLE,
       missing: null,
-      aggregateAlgorithm: 'per-segment-obligation',
-      note: 'KPI không thuộc policy kỳ này',
+      aggregateAlgorithm: 'employee-blended',
+      note: noInvoices ? '' : 'KPI không thuộc policy kỳ này',
     }
   }
   const totalActual = applicable.reduce((sum, s) => {
@@ -395,32 +399,102 @@ function aggregateKpiAcrossSegments(segments, kpiKey, countsKey) {
       mixedTargets,
       status: KPI_STATUS.INSUFFICIENT_DATA,
       missing: null,
-      aggregateAlgorithm: 'per-segment-obligation',
+      aggregateAlgorithm: mixedTargets ? 'per-segment-obligation' : 'employee-blended',
     }
   }
 
-  const missingSum = evaluable.reduce((sum, s) => {
-    const m = s.kpis[kpiKey].missing
-    return sum + (m == null ? 0 : m)
-  }, 0)
-  const anyNotMet = evaluable.some((s) => s.kpis[kpiKey].status === KPI_STATUS.NOT_MET)
-  const status = anyNotMet ? KPI_STATUS.NOT_MET : KPI_STATUS.MET
+  // Target khác nhau giữa CN: không average. Vẫn đánh giá từng segment rồi cộng missing.
+  if (mixedTargets) {
+    const missingSum = evaluable.reduce((sum, s) => {
+      const m = s.kpis[kpiKey].missing
+      return sum + (m == null ? 0 : m)
+    }, 0)
+    const anyNotMet = evaluable.some((s) => s.kpis[kpiKey].status === KPI_STATUS.NOT_MET)
+    return {
+      kind: kpiKey,
+      actual: totalActual,
+      main: kpiKey === 'requested' ? undefined : totalBase,
+      total: kpiKey === 'requested' ? totalBase : undefined,
+      rate,
+      targets,
+      mixedTargets: true,
+      informationalBlendedTarget: null,
+      status: anyNotMet ? KPI_STATUS.NOT_MET : KPI_STATUS.MET,
+      missing: missingSum,
+      aggregateAlgorithm: 'per-segment-obligation',
+      note: 'Không lấy trung bình target %. Đánh giá từng segment rồi cộng missing; MET overall chỉ khi mọi segment có dữ liệu đều MET.',
+    }
+  }
+
+  // Cùng target: gộp toàn bộ activity employeeId trong kỳ rồi tính MỘT bộ missing.
+  const blendedCounts = withPolicy.reduce((acc, s) => addCounts(acc, s.counts), emptyCounts())
+  const evaluated = kpiKey === 'requested'
+    ? evaluateRequestedKpi({
+      requested: blendedCounts.requestedInvoices,
+      total: blendedCounts.totalInvoices,
+      target: targets[0],
+    })
+    : evaluateRatioKpi({
+      actual: blendedCounts[countsKey],
+      main: blendedCounts.main,
+      target: targets[0],
+      kind: kpiKey,
+    })
 
   return {
-    kind: kpiKey,
+    ...evaluated,
     actual: totalActual,
     main: kpiKey === 'requested' ? undefined : totalBase,
     total: kpiKey === 'requested' ? totalBase : undefined,
     rate,
     targets,
-    mixedTargets,
-    informationalBlendedTarget: mixedTargets ? null : targets[0],
-    status,
-    missing: missingSum,
-    aggregateAlgorithm: 'per-segment-obligation',
-    note: mixedTargets
-      ? 'Không lấy trung bình target %. Đánh giá từng segment rồi cộng missing; MET overall chỉ khi mọi segment có dữ liệu đều MET.'
-      : '',
+    mixedTargets: false,
+    informationalBlendedTarget: targets[0],
+    aggregateAlgorithm: 'employee-blended',
+    note: '',
+  }
+}
+
+export function kpiMissingBreakdown(kpis = {}) {
+  const breakdown = {}
+  let totalMissing = 0
+  for (const key of KPI_PENALTY_KEYS) {
+    const kpi = kpis[key] || {}
+    const missingCharged = kpi.missing == null ? 0 : Number(kpi.missing) || 0
+    breakdown[key] = {
+      actual: kpi.actual ?? 0,
+      main: kpi.main,
+      total: kpi.total,
+      target: kpi.target ?? kpi.informationalBlendedTarget ?? null,
+      status: kpi.status || null,
+      missing: kpi.missing ?? null,
+      missingCharged,
+    }
+    totalMissing += missingCharged
+  }
+  return { breakdown, totalMissing }
+}
+
+export function computeKpiPenaltyFromModel(model, { fromDate, toDate } = {}) {
+  const periodTo = String(toDate || model?.toDate || '').slice(0, 10)
+  const applied = Boolean(periodTo && periodTo >= KPI_PENALTY_EFFECTIVE_FROM)
+  const { breakdown, totalMissing } = kpiMissingBreakdown(model?.overall?.kpis)
+  return {
+    applied,
+    effectiveFrom: KPI_PENALTY_EFFECTIVE_FROM,
+    unit: KPI_PENALTY_PER_MISSING,
+    rawTotalMissing: totalMissing,
+    totalMissing: applied ? totalMissing : 0,
+    kpiPenalty: applied ? totalMissing * KPI_PENALTY_PER_MISSING : 0,
+    breakdown,
+  }
+}
+
+export function computeEmployeeKpiPenalty(invoices = [], options = {}) {
+  const model = computeEmployeeKpi(invoices, options)
+  return {
+    model,
+    ...computeKpiPenaltyFromModel(model, options),
   }
 }
 
@@ -539,19 +613,22 @@ export function computeEmployeeKpi(invoices = [], {
   })
 
   const overallCounts = policySegments.reduce((acc, seg) => addCounts(acc, seg.counts), emptyCounts())
+  const overallKpis = {
+    addon: aggregateKpiAcrossSegments(policySegments, 'addon', 'addon'),
+    advanced: aggregateKpiAcrossSegments(policySegments, 'advanced', 'advanced'),
+    combo: aggregateKpiAcrossSegments(policySegments, 'combo', 'combo'),
+    requested: aggregateKpiAcrossSegments(policySegments, 'requested', 'requestedInvoices'),
+    duration90: aggregateKpiAcrossSegments(policySegments, 'duration90', 'duration90'),
+  }
   const overall = {
     counts: overallCounts,
-    kpis: {
-      addon: aggregateKpiAcrossSegments(policySegments, 'addon', 'addon'),
-      advanced: aggregateKpiAcrossSegments(policySegments, 'advanced', 'advanced'),
-      combo: aggregateKpiAcrossSegments(policySegments, 'combo', 'combo'),
-      requested: aggregateKpiAcrossSegments(policySegments, 'requested', 'requestedInvoices'),
-      duration90: aggregateKpiAcrossSegments(policySegments, 'duration90', 'duration90'),
-    },
-    aggregateAlgorithm: 'per-segment-obligation',
+    kpis: overallKpis,
+    aggregateAlgorithm: Object.values(overallKpis).some((kpi) => kpi?.mixedTargets)
+      ? 'mixed-targets-per-segment'
+      : 'employee-blended',
   }
 
-  return {
+  const result = {
     employeeId,
     fromDate,
     toDate,
@@ -563,6 +640,10 @@ export function computeEmployeeKpi(invoices = [], {
     excludedGiaLaiInvoices,
     excludedOutOfScopeInvoices,
     skippedOtherEmployee,
+  }
+  return {
+    ...result,
+    penalty: computeKpiPenaltyFromModel(result),
   }
 }
 

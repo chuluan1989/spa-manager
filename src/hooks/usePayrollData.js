@@ -3,6 +3,7 @@ import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { fetchEmployeesFiltered, subscribeEmployeesChanges } from '../repositories/employeesRepository'
 import { fetchAttendanceFiltered, subscribeAttendanceChanges } from '../repositories/attendanceRepository'
 import { fetchInvoicesFiltered, subscribeInvoicesChanges } from '../repositories/invoicesRepository'
+import { fetchKpiBranchPolicies } from '../repositories/kpiPolicyRepository'
 import {
   fetchPayrollAdjustments,
   fetchPayrollAuditLogs,
@@ -46,6 +47,7 @@ export function usePayrollData({
   const mountedRef = useRef(true)
 
   const [employees, setEmployees] = useState([])
+  const [kpiPolicies, setKpiPolicies] = useState([])
 
   const reload = useCallback(async ({ silent = false } = {}) => {
     if (!mountedRef.current) return
@@ -84,7 +86,7 @@ export function usePayrollData({
         branchId: recordBranchFilter,
         employeeId: scopedEmployeeId || employeeId,
       }
-      const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows, remoteEmployees] = await Promise.all([
+      const [remoteInvoices, attendanceRows, adjustmentRows, lockRows, auditRows, remoteEmployees, kpiPolicyRows] = await Promise.all([
         fetchInvoicesFiltered(scope),
         fetchAttendanceFiltered(attendanceScope),
         fetchPayrollAdjustments({
@@ -95,6 +97,7 @@ export function usePayrollData({
         fetchPayrollLocks({ month }),
         fetchPayrollAuditLogs({ limit: 300 }),
         fetchEmployeesFiltered({}),
+        fetchKpiBranchPolicies().catch(() => []),
       ])
       if (!mountedRef.current) return
 
@@ -136,6 +139,7 @@ export function usePayrollData({
       setAdjustments(adjustmentRows ?? [])
       setLocks(lockRows ?? [])
       setAuditLogs(auditRows ?? [])
+      setKpiPolicies(Array.isArray(kpiPolicyRows) ? kpiPolicyRows : [])
       setLiveUpdatedAt(new Date())
     } catch (err) {
       if (!mountedRef.current) return
@@ -192,8 +196,9 @@ export function usePayrollData({
       invoices,
       attendanceRecords: attendance,
       adjustments,
+      kpiPolicies,
     }),
-    [month, cycle, reportBranchFilter, employeeId, keepBranchRoster, employees, invoices, attendance, adjustments],
+    [month, cycle, reportBranchFilter, employeeId, keepBranchRoster, employees, invoices, attendance, adjustments, kpiPolicies],
   )
 
   return {

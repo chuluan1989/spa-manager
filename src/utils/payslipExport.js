@@ -20,6 +20,7 @@ function buildPayslipHtml(payslip) {
     ['tips', payslip.tips],
     ['bonus', payslip.bonus],
     ['kpi', payslip.kpi],
+    ['kpiPenalty', -(payslip.kpiPenalty ?? 0)],
     ['penalty', -(payslip.penalty ?? 0)],
     ['reduction', -(payslip.reduction ?? 0)],
     ['advance', -(payslip.advance ?? 0)],

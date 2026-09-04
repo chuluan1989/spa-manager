@@ -443,7 +443,7 @@ function runThreeWay(invoices, policies, tag) {
   const payroll = readFileSync(join(ROOT, 'src/utils/payrollEngine.js'), 'utf8')
   const commission = readFileSync(join(ROOT, 'src/utils/officialCommissionRules.js'), 'utf8')
   const invoice = readFileSync(join(ROOT, 'src/utils/invoice.js'), 'utf8')
-  check('15a', 'payrollEngine không import KPI module', !payroll.includes('employeeKpi') && !payroll.includes('adminKpi'), {})
+  check('15a', 'payrollEngine tính kpiPenalty từ employeeKpiEngine, không ghi payroll_adjustment', payroll.includes('computeKpiPenaltyFromModel') && !payroll.includes('addPayrollAdjustment') && !payroll.includes('adminKpi'), {})
   check('15b', 'commission không import KPI module', !commission.includes('employeeKpi'), {})
   check('15c', 'invoice commission SoT không bị KPI ghi đè', invoice.includes('resolveNewInvoiceCommission')
     || invoice.includes('commissionPercent'), { hasCommission: invoice.includes('commission') })

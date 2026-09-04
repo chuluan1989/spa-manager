@@ -20,6 +20,7 @@ export function exportPayrollCsv(rows, month = '', branchId = '', cycle = '') {
       'Lương cơ bản',
       'Thưởng',
       'KPI',
+      'Phạt KPI',
       'Phạt',
       'Ứng',
       'Tổng thu nhập',
@@ -39,6 +40,7 @@ export function exportPayrollCsv(rows, month = '', branchId = '', cycle = '') {
       row.baseSalary,
       row.bonus,
       row.kpi ?? 0,
+      row.kpiPenalty ?? 0,
       row.penalty,
       row.advance,
       row.grossIncome,
@@ -59,6 +61,7 @@ export function exportPayrollPdf(rows, month = '', cycle = '') {
       <td>${formatCurrency(row.ticketRevenue)}</td>
       <td>${formatCurrency(row.commission)}</td>
       <td>${formatCurrency(row.tips)}</td>
+      <td>${formatCurrency(row.kpiPenalty ?? 0)}</td>
       <td>${formatCurrency(row.penalty)}</td>
       <td>${formatCurrency(row.netSalary)}</td>
     </tr>`).join('')
@@ -67,7 +70,7 @@ export function exportPayrollPdf(rows, month = '', cycle = '') {
     `Bang-luong-${month}`,
     `<h1>Bảng lương ${month} · ${getPayCycleLabel(cycle)}</h1>
     <table>
-      <thead><tr><th>Nhân viên</th><th>Chi nhánh</th><th>Doanh số</th><th>Hoa hồng</th><th>Tips</th><th>Phạt</th><th>Thực nhận</th></tr></thead>
+      <thead><tr><th>Nhân viên</th><th>Chi nhánh</th><th>Doanh số</th><th>Hoa hồng</th><th>Tips</th><th>Phạt KPI</th><th>Phạt</th><th>Thực nhận</th></tr></thead>
       <tbody>${tableRows}</tbody>
     </table>`,
   )

@@ -6,6 +6,7 @@ import { computeEmployeePayrollRow } from '../payrollEngine'
 import { fetchInvoicesFiltered } from '../../repositories/invoicesRepository'
 import { fetchAttendanceFiltered } from '../../repositories/attendanceRepository'
 import { fetchPayrollAdjustments } from '../../repositories/payrollRepository'
+import { fetchKpiBranchPolicies } from '../../repositories/kpiPolicyRepository'
 import { fetchPayrollCycleClose } from '../../repositories/payrollCycleCloseRepository'
 import { CLOSE_CYCLES, getCloseCycleRange, shiftMonthValue } from './payCycleCalendar'
 import {
@@ -114,7 +115,7 @@ export async function buildCloseCyclePreview({
     ? [billingMonth, shiftMonthValue(billingMonth, -1)]
     : [billingMonth]
 
-  const [invoices, attendance, ...adjustmentGroups] = await Promise.all([
+  const [invoices, attendance, kpiPolicies, ...adjustmentGroups] = await Promise.all([
     fetchInvoicesFiltered({
       fromDate: range.fromDate,
       toDate: range.toDate,
@@ -125,6 +126,7 @@ export async function buildCloseCyclePreview({
       toDate: range.toDate,
       employeeId,
     }),
+    fetchKpiBranchPolicies().catch(() => []),
     ...adjustmentMonths.map((month) => fetchPayrollAdjustments({ month, employeeId })),
   ])
 
@@ -147,6 +149,13 @@ export async function buildCloseCyclePreview({
     invoices ?? [],
     attendance ?? [],
     scopedAdjustments,
+    {
+      kpiPolicies: kpiPolicies ?? [],
+      fromDate: range.fromDate,
+      toDate: range.toDate,
+      month: billingMonth,
+      cycle,
+    },
   )
 
   const correctionRequests = await loadCorrectionRequestsForEmployeeRange(
