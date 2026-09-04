@@ -1,6 +1,8 @@
 import { KPI_GROUPS, KPI_SCOPE_BRANCH_IDS, isKpiExcludedBranch } from '../constants/kpiPolicy'
 
 export const KPI_MAIN_TOKENS = ['body-60', 'body-75', 'body-90', 'co-vai-gay', 'foot']
+/** MAIN 90 phút theo catalog 6 CN (durationMinutes === 90, duration_id). Không gồm Combo / CS / Thái. */
+export const KPI_MAIN_90_TOKENS = ['body-90']
 export const KPI_COMBO_TOKENS = ['combo-1', 'combo-2', 'combo-3']
 export const KPI_ADVANCED_TOKENS = ['chuyen-sau']
 export const KPI_ADDON_TOKENS = [
@@ -119,6 +121,40 @@ function classifyByNameFallback(name) {
 
 export function classifyCatalogDuration(durationId, serviceName = '') {
   return classifyKpiServiceLine({ id: durationId, name: serviceName })
+}
+
+export function isKpiMain90Line(line = {}, classified = null) {
+  const result = classified || classifyKpiServiceLine(line)
+  if (result.group !== KPI_GROUPS.MAIN) return false
+  const minutes = Number(line?.durationMinutes ?? line?.duration_minutes)
+  if (minutes === 90) return true
+  return KPI_MAIN_90_TOKENS.includes(result.token)
+}
+
+/**
+ * Audit duration catalog: MAIN + durationMinutes === 90.
+ * Không dùng tên mơ hồ. Combo / Chuyên sâu / Massage Thái bị loại vì không thuộc MAIN.
+ */
+export function auditMain90CatalogDurations(rows = []) {
+  const main90 = []
+  const other90 = []
+  for (const row of rows) {
+    const durationId = row.durationId || row.duration_id || row.id
+    const minutes = Number(row.durationMinutes ?? row.duration_minutes)
+    if (minutes !== 90) continue
+    const classified = classifyCatalogDuration(durationId, row.serviceName || row.name)
+    const item = {
+      branchId: row.branchId || row.branch_id,
+      durationId,
+      durationMinutes: minutes,
+      group: classified.group,
+      token: classified.token,
+    }
+    if (classified.group === KPI_GROUPS.MAIN) main90.push(item)
+    else other90.push(item)
+  }
+  const tokens = [...new Set(main90.map((r) => r.token).filter(Boolean))].sort()
+  return { main90, other90, tokens }
 }
 
 /**

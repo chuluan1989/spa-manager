@@ -217,6 +217,7 @@
         "addon": 1,
         "advanced": 0,
         "combo": 0,
+        "duration90": 0,
         "unmapped": 0,
         "totalInvoices": 1,
         "requestedInvoices": 0
@@ -231,6 +232,7 @@
         "addon": 3,
         "advanced": 0,
         "combo": 0,
+        "duration90": 0,
         "unmapped": 0,
         "totalInvoices": 1,
         "requestedInvoices": 0
@@ -1026,6 +1028,7 @@
           "addon": 0,
           "advanced": 0,
           "combo": 0,
+          "duration90": 0,
           "unmapped": 0,
           "totalInvoices": 0,
           "requestedInvoices": 0
@@ -1112,6 +1115,7 @@
         "addon": 0,
         "advanced": 0,
         "combo": 0,
+        "duration90": 0,
         "unmapped": 0,
         "totalInvoices": 2,
         "requestedInvoices": 1
@@ -1126,6 +1130,7 @@
         "addon": 0,
         "advanced": 0,
         "combo": 0,
+        "duration90": 0,
         "unmapped": 0,
         "totalInvoices": 2,
         "requestedInvoices": 1
@@ -1146,13 +1151,15 @@
             "addon": 0.9,
             "advanced": 0.1,
             "combo": 0.3,
-            "requested": 0.2
+            "requested": 0.2,
+            "duration90": null
           },
           "counts": {
             "main": 1,
             "addon": 0,
             "advanced": 0,
             "combo": 0,
+            "duration90": 0,
             "unmapped": 0,
             "totalInvoices": 1,
             "requestedInvoices": 0
@@ -1196,6 +1203,18 @@
               "target": 0.2,
               "status": "NOT_MET",
               "missing": 1
+            },
+            "duration90": {
+              "kind": "duration90",
+              "actual": 0,
+              "main": 1,
+              "rate": 0,
+              "target": null,
+              "targets": [],
+              "mixedTargets": false,
+              "status": "NOT_APPLICABLE",
+              "missing": null,
+              "note": "KPI không thuộc policy kỳ này"
             }
           }
         }
@@ -1240,6 +1259,7 @@
           "addon": 0,
           "advanced": 0,
           "combo": 0,
+          "duration90": 0,
           "unmapped": 0,
           "totalInvoices": 0,
           "requestedInvoices": 0
@@ -1249,6 +1269,7 @@
           "addon": 1,
           "advanced": 0,
           "combo": 0,
+          "duration90": 0,
           "unmapped": 0,
           "totalInvoices": 1,
           "requestedInvoices": 0
@@ -1265,6 +1286,7 @@
           "addon": 0,
           "advanced": 0,
           "combo": 0,
+          "duration90": 0,
           "unmapped": 0,
           "totalInvoices": 1,
           "requestedInvoices": 0
@@ -1274,6 +1296,7 @@
           "addon": 0,
           "advanced": 1,
           "combo": 1,
+          "duration90": 0,
           "unmapped": 0,
           "totalInvoices": 1,
           "requestedInvoices": 1
@@ -1289,6 +1312,7 @@
         "addon": 0,
         "advanced": 0,
         "combo": 0,
+        "duration90": 0,
         "unmapped": 0,
         "totalInvoices": 0,
         "requestedInvoices": 0
@@ -1300,7 +1324,7 @@
       "pass": true,
       "detail": {
         "payrollBytes": 18392,
-        "commissionBytes": 2698
+        "commissionBytes": 3320
       }
     },
     {
@@ -1309,7 +1333,7 @@
       "pass": true,
       "detail": {
         "closed": {
-          "id": "kpi-pol-1786910905402-sumjwf",
+          "id": "kpi-pol-1788490093137-nhv3zi",
           "branchId": "soc-trang",
           "effectiveFrom": "2026-08-01",
           "effectiveTo": "2026-08-14",
@@ -1317,18 +1341,19 @@
           "advancedTarget": 0.1,
           "comboTarget": 0.3,
           "requestedTarget": 0.2,
+          "duration90Target": null,
           "status": "superseded",
           "createdBy": "admin",
-          "createdAt": "2026-08-16T20:08:25.402Z",
+          "createdAt": "2026-09-04T02:48:13.137Z",
           "updatedBy": "admin",
-          "updatedAt": "2026-08-16T20:08:25.403Z",
+          "updatedAt": "2026-09-04T02:48:13.138Z",
           "changeReason": "seed"
         },
         "log": {
-          "id": "kpi-log-1786910905404-s75mob",
+          "id": "kpi-log-1788490093139-g01qhx",
           "branchId": "soc-trang",
           "oldPolicy": {
-            "id": "kpi-pol-1786910905402-sumjwf",
+            "id": "kpi-pol-1788490093137-nhv3zi",
             "branchId": "soc-trang",
             "effectiveFrom": "2026-08-01",
             "effectiveTo": null,
@@ -1336,15 +1361,16 @@
             "advancedTarget": 0.1,
             "comboTarget": 0.3,
             "requestedTarget": 0.2,
+            "duration90Target": null,
             "status": "active",
             "createdBy": "admin",
-            "createdAt": "2026-08-16T20:08:25.402Z",
+            "createdAt": "2026-09-04T02:48:13.137Z",
             "updatedBy": "admin",
-            "updatedAt": "2026-08-16T20:08:25.403Z",
+            "updatedAt": "2026-09-04T02:48:13.138Z",
             "changeReason": "seed"
           },
           "newPolicy": {
-            "id": "kpi-pol-1786910905403-hdewhb",
+            "id": "kpi-pol-1788490093138-p1jkq4",
             "branchId": "soc-trang",
             "effectiveFrom": "2026-08-15",
             "effectiveTo": null,
@@ -1352,18 +1378,19 @@
             "advancedTarget": 0.1,
             "comboTarget": 0.3,
             "requestedTarget": 0.2,
+            "duration90Target": null,
             "status": "active",
             "createdBy": "admin",
-            "createdAt": "2026-08-16T20:08:25.403Z",
+            "createdAt": "2026-09-04T02:48:13.138Z",
             "updatedBy": "admin",
-            "updatedAt": "2026-08-16T20:08:25.403Z",
+            "updatedAt": "2026-09-04T02:48:13.138Z",
             "changeReason": "mid-month"
           },
           "effectiveFrom": "2026-08-15",
           "effectiveTo": null,
           "actorId": "admin",
           "reason": "mid-month",
-          "timestamp": "2026-08-16T20:08:25.404Z"
+          "timestamp": "2026-09-04T02:48:13.139Z"
         }
       }
     },
@@ -1377,6 +1404,7 @@
           "addon": 1,
           "advanced": 0,
           "combo": 0,
+          "duration90": 0,
           "unmapped": 0,
           "totalInvoices": 1,
           "requestedInvoices": 0
@@ -1429,6 +1457,18 @@
             "missing": null,
             "aggregateAlgorithm": "per-segment-obligation",
             "note": "Chưa có chính sách KPI kỳ này"
+          },
+          "duration90": {
+            "kind": "duration90",
+            "actual": 0,
+            "main": 1,
+            "rate": 0,
+            "targets": [],
+            "mixedTargets": false,
+            "status": "NOT_APPLICABLE",
+            "missing": null,
+            "aggregateAlgorithm": "per-segment-obligation",
+            "note": "KPI không thuộc policy kỳ này"
           }
         },
         "aggregateAlgorithm": "per-segment-obligation"
@@ -1443,9 +1483,121 @@
         "addon": 1,
         "advanced": 0,
         "combo": 0,
+        "duration90": 0,
         "unmapped": 0,
         "totalInvoices": 1,
         "requestedInvoices": 0
+      }
+    },
+    {
+      "id": "D90-1",
+      "name": "Catalog MAIN 90 = body-90 only",
+      "pass": true,
+      "detail": {
+        "main90": [
+          {
+            "branchId": "soc-trang",
+            "durationId": "body-90",
+            "durationMinutes": 90,
+            "group": "MAIN",
+            "token": "body-90"
+          }
+        ],
+        "other90": [
+          {
+            "branchId": "soc-trang",
+            "durationId": "combo-1",
+            "durationMinutes": 90,
+            "group": "COMBO",
+            "token": "combo-1"
+          },
+          {
+            "branchId": "soc-trang",
+            "durationId": "chuyen-sau",
+            "durationMinutes": 90,
+            "group": "ADVANCED",
+            "token": "chuyen-sau"
+          },
+          {
+            "branchId": "tram-spa",
+            "durationId": "massage-thai",
+            "durationMinutes": 90,
+            "group": "UNMAPPED",
+            "token": ""
+          }
+        ],
+        "tokens": [
+          "body-90"
+        ]
+      }
+    },
+    {
+      "id": "D90-2",
+      "name": "duration90 đếm body-90 MAIN, loại Combo/CS/Thái",
+      "pass": true,
+      "detail": {
+        "main": 2,
+        "addon": 0,
+        "advanced": 1,
+        "combo": 1,
+        "duration90": 1,
+        "unmapped": 1,
+        "totalInvoices": 1,
+        "requestedInvoices": 0
+      }
+    },
+    {
+      "id": "D90-3",
+      "name": "Aug ẩn KPI 90 phút, target vẫn 70/10/30/20",
+      "pass": true,
+      "detail": {
+        "total": 4,
+        "targets": {
+          "addon": 0.7,
+          "advanced": 0.1,
+          "combo": 0.3,
+          "requested": 0.2,
+          "duration90": null
+        },
+        "d90": "NOT_APPLICABLE"
+      }
+    },
+    {
+      "id": "D90-4",
+      "name": "Sep hiện KPI 90 phút target 30%",
+      "pass": true,
+      "detail": {
+        "total": 5,
+        "targets": {
+          "addon": 0.8,
+          "advanced": 0.2,
+          "combo": 0.3,
+          "requested": 0.2,
+          "duration90": 0.3
+        },
+        "d90": {
+          "kind": "duration90",
+          "actual": 1,
+          "main": 2,
+          "rate": 0.5,
+          "targets": [
+            0.3
+          ],
+          "mixedTargets": false,
+          "informationalBlendedTarget": 0.3,
+          "status": "MET",
+          "missing": 0,
+          "aggregateAlgorithm": "per-segment-obligation",
+          "note": ""
+        }
+      }
+    },
+    {
+      "id": "D90-5",
+      "name": "Missing 90 phút ceil(2*0.3-1)=0",
+      "pass": true,
+      "detail": {
+        "missing90": 0
       }
     }
   ]

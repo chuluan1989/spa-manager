@@ -10,6 +10,8 @@ import {
   TIERED_COMMISSION_BRANCH_IDS,
   TIERED_TEN_SERVICE_IDS,
   TIERED_TEN_SERVICE_NAMES,
+  TIERED_TWENTY_SERVICE_IDS,
+  TIERED_TWENTY_SERVICE_NAMES,
   TIERED_ZERO_SERVICE_IDS,
   TIERED_ZERO_SERVICE_NAMES,
 } from './commissionPolicyTypes'
@@ -29,6 +31,13 @@ function buildTieredGroups() {
       rate: 10,
       serviceIds: [...TIERED_TEN_SERVICE_IDS],
       serviceNames: [...TIERED_TEN_SERVICE_NAMES],
+    },
+    {
+      id: 'rate-20',
+      label: '20%',
+      rate: 20,
+      serviceIds: [...TIERED_TWENTY_SERVICE_IDS],
+      serviceNames: [...TIERED_TWENTY_SERVICE_NAMES],
     },
   ]
 }

@@ -63,9 +63,9 @@ function KpiCard({ card, onOpen }) {
 }
 
 function BranchSegment({ segment, expanded, onToggle }) {
-  const cards = EMPLOYEE_KPI_CARD_DEFS.map((def) =>
-    buildKpiCardModel(def, segment.kpis?.[def.key], segment.counts),
-  )
+  const cards = EMPLOYEE_KPI_CARD_DEFS
+    .map((def) => buildKpiCardModel(def, segment.kpis?.[def.key], segment.counts))
+    .filter((card) => card.status !== KPI_STATUS.NOT_APPLICABLE)
   return (
     <article className="emp-kpi-branch">
       <button type="button" className="emp-kpi-branch__head" onClick={onToggle}>
@@ -73,6 +73,7 @@ function BranchSegment({ segment, expanded, onToggle }) {
           <strong>{getBranchName(segment.servingBranchId) || segment.servingBranchId}</strong>
           <span>
             {segment.counts.totalInvoices} HĐ · MAIN {segment.counts.main} · ADDON {segment.counts.addon}
+            {' · '}90' {segment.counts.duration90 || 0}
           </span>
         </div>
         <em>{expanded ? 'Thu gọn' : 'Xem chi tiết'}</em>
@@ -117,6 +118,7 @@ function DrillPanel({ filterKey, rows, onClose, onFilter }) {
             ['addon', 'DV phụ'],
             ['advanced', 'Chuyên sâu'],
             ['combo', 'Combo'],
+            ['duration90', '90 phút'],
             ['requested', 'Khách yêu cầu'],
           ].map(([key, label]) => (
             <button
@@ -300,6 +302,7 @@ export default function EmployeeKpi() {
         <p className="emp-kpi-muted">
           MAIN {model?.overall?.counts?.main ?? 0} · ADDON {model?.overall?.counts?.addon ?? 0}
           {' '}· ADV {model?.overall?.counts?.advanced ?? 0} · COMBO {model?.overall?.counts?.combo ?? 0}
+          {' '}· 90' {model?.overall?.counts?.duration90 ?? 0}
           {' '}· HĐ {model?.overall?.counts?.totalInvoices ?? 0} · YC {model?.overall?.counts?.requestedInvoices ?? 0}
         </p>
       </section>

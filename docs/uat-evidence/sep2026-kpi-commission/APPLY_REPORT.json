@@ -1,0 +1,646 @@
+{
+  "mode": "APPLY",
+  "generatedAt": "2026-09-04T02:45:12.525Z",
+  "ok": true,
+  "gates": {
+    "catalog_main90_is_body-90": {
+      "ok": true,
+      "tokens": [
+        "body-90"
+      ],
+      "main90": [
+        {
+          "branchId": "soc-trang",
+          "durationId": "body-90",
+          "durationMinutes": 90,
+          "group": "MAIN",
+          "token": "body-90"
+        },
+        {
+          "branchId": "bac-lieu",
+          "durationId": "body-90",
+          "durationMinutes": 90,
+          "group": "MAIN",
+          "token": "body-90"
+        },
+        {
+          "branchId": "tra-vinh",
+          "durationId": "body-90",
+          "durationMinutes": 90,
+          "group": "MAIN",
+          "token": "body-90"
+        },
+        {
+          "branchId": "tram-spa",
+          "durationId": "body-90",
+          "durationMinutes": 90,
+          "group": "MAIN",
+          "token": "body-90"
+        },
+        {
+          "branchId": "vinh-long",
+          "durationId": "body-90",
+          "durationMinutes": 90,
+          "group": "MAIN",
+          "token": "body-90"
+        },
+        {
+          "branchId": "song-khoe-spa",
+          "durationId": "body-90",
+          "durationMinutes": 90,
+          "group": "MAIN",
+          "token": "body-90"
+        }
+      ],
+      "other90": [
+        "tram-spa:combo-1:COMBO"
+      ]
+    },
+    "gia_lai_catalog_not_in_this_batch": {
+      "ok": true,
+      "count": 2
+    },
+    "catalog_ambiguous_zero": {
+      "ok": true,
+      "ambiguous": []
+    },
+    "gia_lai_commission_changed_zero": {
+      "ok": true,
+      "giaLaiChanges": []
+    },
+    "tram_spa_catalog_price_untouched": {
+      "ok": true,
+      "tramChanges": [],
+      "note": "Không re-backfill bảng giá Trạm. Nếu % lệch sẽ FAIL để xem tay."
+    },
+    "tram_body90_still_10": {
+      "ok": true,
+      "body90Ok": 4,
+      "body90Wrong": []
+    },
+    "unmapped_zero": {
+      "ok": true,
+      "unmapped": 0
+    },
+    "approved_lock_zero": {
+      "ok": true,
+      "lockedChanged": []
+    },
+    "gia_lai_invoices_not_selected": {
+      "ok": true,
+      "note": "query không gồm gia-lai-*"
+    },
+    "aug_policy_70_10_30_20": {
+      "ok": true,
+      "aug": [
+        {
+          "branch": "bac-lieu",
+          "addon": "0.7",
+          "advanced": "0.1",
+          "combo": "0.3",
+          "requested": "0.2",
+          "duration90": null,
+          "to": null,
+          "status": "active"
+        },
+        {
+          "branch": "soc-trang",
+          "addon": "0.7",
+          "advanced": "0.1",
+          "combo": "0.3",
+          "requested": "0.2",
+          "duration90": null,
+          "to": "2026-08-31T00:00:00.000Z",
+          "status": "superseded"
+        },
+        {
+          "branch": "song-khoe-spa",
+          "addon": "0.7",
+          "advanced": "0.1",
+          "combo": "0.3",
+          "requested": "0.2",
+          "duration90": null,
+          "to": null,
+          "status": "active"
+        },
+        {
+          "branch": "tra-vinh",
+          "addon": "0.7",
+          "advanced": "0.1",
+          "combo": "0.3",
+          "requested": "0.2",
+          "duration90": null,
+          "to": "2026-08-31T00:00:00.000Z",
+          "status": "superseded"
+        },
+        {
+          "branch": "tram-spa",
+          "addon": "0.7",
+          "advanced": "0.1",
+          "combo": "0.3",
+          "requested": "0.2",
+          "duration90": null,
+          "to": "2026-08-31T00:00:00.000Z",
+          "status": "superseded"
+        },
+        {
+          "branch": "vinh-long",
+          "addon": "0.7",
+          "advanced": "0.1",
+          "combo": "0.3",
+          "requested": "0.2",
+          "duration90": null,
+          "to": null,
+          "status": "active"
+        }
+      ]
+    },
+    "gia_lai_kpi_policy_zero": {
+      "ok": true,
+      "giaLaiPol": []
+    }
+  },
+  "catalog": {
+    "changes": [
+      {
+        "branchId": "song-khoe-spa",
+        "durationId": "body-90",
+        "name": "body-90",
+        "currentPercent": 0,
+        "plannedPercent": 10,
+        "status": "CHANGE",
+        "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Sep 2026"
+      },
+      {
+        "branchId": "song-khoe-spa",
+        "durationId": "chuyen-sau",
+        "name": "chuyen-sau",
+        "currentPercent": 10,
+        "plannedPercent": 20,
+        "status": "CHANGE",
+        "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Sep 2026"
+      }
+    ],
+    "changeCount": 2,
+    "keyPercents": [
+      {
+        "branchId": "tra-vinh",
+        "durationId": "body-90",
+        "currentPercent": 20,
+        "plannedPercent": 20,
+        "status": "UNCHANGED"
+      },
+      {
+        "branchId": "soc-trang",
+        "durationId": "chuyen-sau",
+        "currentPercent": 20,
+        "plannedPercent": 20,
+        "status": "UNCHANGED"
+      },
+      {
+        "branchId": "soc-trang",
+        "durationId": "body-90",
+        "currentPercent": 10,
+        "plannedPercent": 10,
+        "status": "UNCHANGED"
+      },
+      {
+        "branchId": "tra-vinh",
+        "durationId": "chuyen-sau",
+        "currentPercent": 30,
+        "plannedPercent": 30,
+        "status": "UNCHANGED"
+      },
+      {
+        "branchId": "vinh-long",
+        "durationId": "body-90",
+        "currentPercent": 20,
+        "plannedPercent": 20,
+        "status": "UNCHANGED"
+      },
+      {
+        "branchId": "vinh-long",
+        "durationId": "chuyen-sau",
+        "currentPercent": 30,
+        "plannedPercent": 30,
+        "status": "UNCHANGED"
+      },
+      {
+        "branchId": "song-khoe-spa",
+        "durationId": "body-90",
+        "currentPercent": 0,
+        "plannedPercent": 10,
+        "status": "CHANGE"
+      },
+      {
+        "branchId": "song-khoe-spa",
+        "durationId": "chuyen-sau",
+        "currentPercent": 10,
+        "plannedPercent": 20,
+        "status": "CHANGE"
+      },
+      {
+        "branchId": "tram-spa",
+        "durationId": "body-90",
+        "currentPercent": 10,
+        "plannedPercent": 10,
+        "status": "UNCHANGED"
+      },
+      {
+        "branchId": "bac-lieu",
+        "durationId": "body-90",
+        "currentPercent": 20,
+        "plannedPercent": 20,
+        "status": "UNCHANGED"
+      },
+      {
+        "branchId": "bac-lieu",
+        "durationId": "chuyen-sau",
+        "currentPercent": 30,
+        "plannedPercent": 30,
+        "status": "UNCHANGED"
+      }
+    ],
+    "giaLaiBlocked": 68
+  },
+  "invoices": {
+    "scanned": 118,
+    "affectedInvoices": 10,
+    "affectedLines": 10,
+    "commissionBefore": 539910,
+    "commissionAfter": 826623,
+    "delta": 286713
+  },
+  "payroll": [
+    {
+      "employeeId": "soc-trang-bao-tran",
+      "employeeName": "Bảo Trân",
+      "affectedLines": 2,
+      "commissionBefore": 0,
+      "commissionAfter": 49800,
+      "delta": 49800
+    },
+    {
+      "employeeId": "tra-vinh-mai-nhi",
+      "employeeName": "Mai Nhi",
+      "affectedLines": 1,
+      "commissionBefore": 69800,
+      "commissionAfter": 104700,
+      "delta": 34900
+    },
+    {
+      "employeeId": "soc-trang-chi-7",
+      "employeeName": "Chị 7",
+      "affectedLines": 1,
+      "commissionBefore": 34900,
+      "commissionAfter": 69800,
+      "delta": 34900
+    },
+    {
+      "employeeId": "vinh-long-bo",
+      "employeeName": "Hồng Thương",
+      "affectedLines": 1,
+      "commissionBefore": 69800,
+      "commissionAfter": 104700,
+      "delta": 34900
+    },
+    {
+      "employeeId": "vinh-long-tram",
+      "employeeName": "Ngọc Trâm",
+      "affectedLines": 1,
+      "commissionBefore": 69800,
+      "commissionAfter": 104700,
+      "delta": 34900
+    },
+    {
+      "employeeId": "vinh-long-dieu",
+      "employeeName": "Ngọc Diệu",
+      "affectedLines": 1,
+      "commissionBefore": 69800,
+      "commissionAfter": 104700,
+      "delta": 34900
+    },
+    {
+      "employeeId": "tra-vinh-diem-trinh",
+      "employeeName": "Diễm Trinh",
+      "affectedLines": 1,
+      "commissionBefore": 68046,
+      "commissionAfter": 102069,
+      "delta": 34023
+    },
+    {
+      "employeeId": "tram-spa-truc-ly",
+      "employeeName": "Trúc Ly",
+      "affectedLines": 1,
+      "commissionBefore": 0,
+      "commissionAfter": 24900,
+      "delta": 24900
+    },
+    {
+      "employeeId": "bac-lieu-thanh-thu",
+      "employeeName": "Thanh Thư",
+      "affectedLines": 1,
+      "commissionBefore": 101210,
+      "commissionAfter": 104700,
+      "delta": 3490
+    }
+  ],
+  "kpiSepExisting": [
+    {
+      "id": "kpi-pol-dbe7beda-b1ff-41f7-ab80-a257d81bfbc6",
+      "branch": "soc-trang",
+      "addon": "0.7",
+      "advanced": "0.11",
+      "combo": "0.3",
+      "requested": "0.2",
+      "duration90": null,
+      "action": "UPDATE_TO_80_20_30_20_30"
+    },
+    {
+      "id": "kpi-pol-fe604fb1-4984-4509-8af2-0bf45f83c1e7",
+      "branch": "tra-vinh",
+      "addon": "0.7",
+      "advanced": "0.1",
+      "combo": "0.3",
+      "requested": "0.2",
+      "duration90": null,
+      "action": "UPDATE_TO_80_20_30_20_30"
+    },
+    {
+      "id": "kpi-pol-bf171378-107e-427e-b051-5ad54b9c05b6",
+      "branch": "tram-spa",
+      "addon": "0.7",
+      "advanced": "0.2",
+      "combo": "0.3",
+      "requested": "0.2",
+      "duration90": null,
+      "action": "UPDATE_TO_80_20_30_20_30"
+    }
+  ],
+  "kpiPoliciesBefore": [
+    {
+      "id": "kpi-pol-seed-bac-lieu-2026-08-01",
+      "branch_id": "bac-lieu",
+      "effective_from": "2026-08-01T00:00:00.000Z",
+      "effective_to": null,
+      "addon_target": "0.7",
+      "advanced_target": "0.1",
+      "combo_target": "0.3",
+      "requested_target": "0.2",
+      "status": "active",
+      "duration90_target": null
+    },
+    {
+      "id": "kpi-pol-seed-soc-trang-2026-08-01",
+      "branch_id": "soc-trang",
+      "effective_from": "2026-08-01T00:00:00.000Z",
+      "effective_to": "2026-08-31T00:00:00.000Z",
+      "addon_target": "0.7",
+      "advanced_target": "0.1",
+      "combo_target": "0.3",
+      "requested_target": "0.2",
+      "status": "superseded",
+      "duration90_target": null
+    },
+    {
+      "id": "kpi-pol-dbe7beda-b1ff-41f7-ab80-a257d81bfbc6",
+      "branch_id": "soc-trang",
+      "effective_from": "2026-09-01T00:00:00.000Z",
+      "effective_to": null,
+      "addon_target": "0.7",
+      "advanced_target": "0.11",
+      "combo_target": "0.3",
+      "requested_target": "0.2",
+      "status": "active",
+      "duration90_target": null
+    },
+    {
+      "id": "kpi-pol-seed-song-khoe-spa-2026-08-01",
+      "branch_id": "song-khoe-spa",
+      "effective_from": "2026-08-01T00:00:00.000Z",
+      "effective_to": null,
+      "addon_target": "0.7",
+      "advanced_target": "0.1",
+      "combo_target": "0.3",
+      "requested_target": "0.2",
+      "status": "active",
+      "duration90_target": null
+    },
+    {
+      "id": "kpi-pol-seed-tra-vinh-2026-08-01",
+      "branch_id": "tra-vinh",
+      "effective_from": "2026-08-01T00:00:00.000Z",
+      "effective_to": "2026-08-31T00:00:00.000Z",
+      "addon_target": "0.7",
+      "advanced_target": "0.1",
+      "combo_target": "0.3",
+      "requested_target": "0.2",
+      "status": "superseded",
+      "duration90_target": null
+    },
+    {
+      "id": "kpi-pol-fe604fb1-4984-4509-8af2-0bf45f83c1e7",
+      "branch_id": "tra-vinh",
+      "effective_from": "2026-09-01T00:00:00.000Z",
+      "effective_to": null,
+      "addon_target": "0.7",
+      "advanced_target": "0.1",
+      "combo_target": "0.3",
+      "requested_target": "0.2",
+      "status": "active",
+      "duration90_target": null
+    },
+    {
+      "id": "kpi-pol-seed-tram-spa-2026-08-01",
+      "branch_id": "tram-spa",
+      "effective_from": "2026-08-01T00:00:00.000Z",
+      "effective_to": "2026-08-31T00:00:00.000Z",
+      "addon_target": "0.7",
+      "advanced_target": "0.1",
+      "combo_target": "0.3",
+      "requested_target": "0.2",
+      "status": "superseded",
+      "duration90_target": null
+    },
+    {
+      "id": "kpi-pol-bf171378-107e-427e-b051-5ad54b9c05b6",
+      "branch_id": "tram-spa",
+      "effective_from": "2026-09-01T00:00:00.000Z",
+      "effective_to": null,
+      "addon_target": "0.7",
+      "advanced_target": "0.2",
+      "combo_target": "0.3",
+      "requested_target": "0.2",
+      "status": "active",
+      "duration90_target": null
+    },
+    {
+      "id": "kpi-pol-seed-vinh-long-2026-08-01",
+      "branch_id": "vinh-long",
+      "effective_from": "2026-08-01T00:00:00.000Z",
+      "effective_to": null,
+      "addon_target": "0.7",
+      "advanced_target": "0.1",
+      "combo_target": "0.3",
+      "requested_target": "0.2",
+      "status": "active",
+      "duration90_target": null
+    }
+  ],
+  "kpiSep": {
+    "effectiveFrom": "2026-09-01",
+    "targets": {
+      "addon": 0.8,
+      "advanced": 0.2,
+      "combo": 0.3,
+      "requested": 0.2,
+      "duration90": 0.3
+    },
+    "branches": [
+      "tram-spa",
+      "soc-trang",
+      "song-khoe-spa",
+      "bac-lieu",
+      "tra-vinh",
+      "vinh-long"
+    ]
+  },
+  "applied": {
+    "catalogRows": 2,
+    "invoices": 10,
+    "kpiPolicies": [
+      {
+        "branch_id": "bac-lieu",
+        "effective_from": "2026-08-01T00:00:00.000Z",
+        "effective_to": "2026-08-31T00:00:00.000Z",
+        "addon_target": "0.7",
+        "advanced_target": "0.1",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": null,
+        "status": "superseded"
+      },
+      {
+        "branch_id": "bac-lieu",
+        "effective_from": "2026-09-01T00:00:00.000Z",
+        "effective_to": null,
+        "addon_target": "0.8",
+        "advanced_target": "0.2",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": "0.3",
+        "status": "active"
+      },
+      {
+        "branch_id": "soc-trang",
+        "effective_from": "2026-08-01T00:00:00.000Z",
+        "effective_to": "2026-08-31T00:00:00.000Z",
+        "addon_target": "0.7",
+        "advanced_target": "0.1",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": null,
+        "status": "superseded"
+      },
+      {
+        "branch_id": "soc-trang",
+        "effective_from": "2026-09-01T00:00:00.000Z",
+        "effective_to": null,
+        "addon_target": "0.8",
+        "advanced_target": "0.2",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": "0.3",
+        "status": "active"
+      },
+      {
+        "branch_id": "song-khoe-spa",
+        "effective_from": "2026-08-01T00:00:00.000Z",
+        "effective_to": "2026-08-31T00:00:00.000Z",
+        "addon_target": "0.7",
+        "advanced_target": "0.1",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": null,
+        "status": "superseded"
+      },
+      {
+        "branch_id": "song-khoe-spa",
+        "effective_from": "2026-09-01T00:00:00.000Z",
+        "effective_to": null,
+        "addon_target": "0.8",
+        "advanced_target": "0.2",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": "0.3",
+        "status": "active"
+      },
+      {
+        "branch_id": "tra-vinh",
+        "effective_from": "2026-08-01T00:00:00.000Z",
+        "effective_to": "2026-08-31T00:00:00.000Z",
+        "addon_target": "0.7",
+        "advanced_target": "0.1",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": null,
+        "status": "superseded"
+      },
+      {
+        "branch_id": "tra-vinh",
+        "effective_from": "2026-09-01T00:00:00.000Z",
+        "effective_to": null,
+        "addon_target": "0.8",
+        "advanced_target": "0.2",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": "0.3",
+        "status": "active"
+      },
+      {
+        "branch_id": "tram-spa",
+        "effective_from": "2026-08-01T00:00:00.000Z",
+        "effective_to": "2026-08-31T00:00:00.000Z",
+        "addon_target": "0.7",
+        "advanced_target": "0.1",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": null,
+        "status": "superseded"
+      },
+      {
+        "branch_id": "tram-spa",
+        "effective_from": "2026-09-01T00:00:00.000Z",
+        "effective_to": null,
+        "addon_target": "0.8",
+        "advanced_target": "0.2",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": "0.3",
+        "status": "active"
+      },
+      {
+        "branch_id": "vinh-long",
+        "effective_from": "2026-08-01T00:00:00.000Z",
+        "effective_to": "2026-08-31T00:00:00.000Z",
+        "addon_target": "0.7",
+        "advanced_target": "0.1",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": null,
+        "status": "superseded"
+      },
+      {
+        "branch_id": "vinh-long",
+        "effective_from": "2026-09-01T00:00:00.000Z",
+        "effective_to": null,
+        "addon_target": "0.8",
+        "advanced_target": "0.2",
+        "combo_target": "0.3",
+        "requested_target": "0.2",
+        "duration90_target": "0.3",
+        "status": "active"
+      }
+    ]
+  }
+}

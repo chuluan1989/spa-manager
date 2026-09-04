@@ -66,6 +66,9 @@ export function appendKpiPolicyVersion({
     advancedTarget: targets.advanced,
     comboTarget: targets.combo,
     requestedTarget: targets.requested,
+    duration90Target: targets.duration90 == null || targets.duration90 === ''
+      ? null
+      : Number(targets.duration90),
     status: KPI_POLICY_STATUS.ACTIVE,
     createdBy: actorId,
     createdAt: new Date().toISOString(),
@@ -105,6 +108,7 @@ export function defaultFallbackPolicy(branchId) {
     advancedTarget: DEFAULT_KPI_TARGETS.advanced,
     comboTarget: DEFAULT_KPI_TARGETS.combo,
     requestedTarget: DEFAULT_KPI_TARGETS.requested,
+    duration90Target: null,
     source: 'fallback',
   }
 }

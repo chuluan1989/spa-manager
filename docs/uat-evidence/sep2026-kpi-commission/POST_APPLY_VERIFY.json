@@ -1,0 +1,457 @@
+{
+  "generatedAt": "2026-09-04T02:48:18.691Z",
+  "bundle": "/assets/index-C2KqZdor.js",
+  "ok": true,
+  "results": [
+    {
+      "id": "catalog_key_percents",
+      "pass": true,
+      "detail": {
+        "catalogFails": []
+      }
+    },
+    {
+      "id": "catalog_no_remaining_change_in_scope",
+      "pass": true,
+      "detail": {
+        "leftoverChange": []
+      }
+    },
+    {
+      "id": "gia_lai_still_blocked_not_changed",
+      "pass": true,
+      "detail": {
+        "giaLaiChange": []
+      }
+    },
+    {
+      "id": "invoice_count_reread",
+      "pass": true,
+      "detail": {
+        "expected": 10,
+        "got": 10
+      }
+    },
+    {
+      "id": "invoice_snapshots_match_rules",
+      "pass": true,
+      "detail": {
+        "snapshotFails": []
+      }
+    },
+    {
+      "id": "invoice_header_equals_line_sum",
+      "pass": true,
+      "detail": {
+        "headerFails": []
+      }
+    },
+    {
+      "id": "invoice_commission_total_after",
+      "pass": true,
+      "detail": {
+        "expected": 826623,
+        "got": 826623
+      }
+    },
+    {
+      "id": "no_pre_sep_invoice_touch",
+      "pass": true,
+      "detail": {
+        "touched": []
+      }
+    },
+    {
+      "id": "gia_lai_invoices_untouched",
+      "pass": true,
+      "detail": {
+        "giaLaiInv": []
+      }
+    },
+    {
+      "id": "payroll_live_follows_snapshot",
+      "pass": true,
+      "detail": {
+        "payrollLive": [
+          {
+            "employeeId": "soc-trang-bao-tran",
+            "employeeName": "Bảo Trân",
+            "affectedLines": 2,
+            "commissionBefore": 0,
+            "commissionAfter": 49800,
+            "delta": 49800,
+            "payrollLiveFromSnapshot": 69400
+          },
+          {
+            "employeeId": "tra-vinh-mai-nhi",
+            "employeeName": "Mai Nhi",
+            "affectedLines": 1,
+            "commissionBefore": 69800,
+            "commissionAfter": 104700,
+            "delta": 34900,
+            "payrollLiveFromSnapshot": 112500
+          },
+          {
+            "employeeId": "soc-trang-chi-7",
+            "employeeName": "Chị 7",
+            "affectedLines": 1,
+            "commissionBefore": 34900,
+            "commissionAfter": 69800,
+            "delta": 34900,
+            "payrollLiveFromSnapshot": 69800
+          },
+          {
+            "employeeId": "vinh-long-bo",
+            "employeeName": "Hồng Thương",
+            "affectedLines": 1,
+            "commissionBefore": 69800,
+            "commissionAfter": 104700,
+            "delta": 34900,
+            "payrollLiveFromSnapshot": 104700
+          },
+          {
+            "employeeId": "vinh-long-tram",
+            "employeeName": "Ngọc Trâm",
+            "affectedLines": 1,
+            "commissionBefore": 69800,
+            "commissionAfter": 104700,
+            "delta": 34900,
+            "payrollLiveFromSnapshot": 114500
+          },
+          {
+            "employeeId": "vinh-long-dieu",
+            "employeeName": "Ngọc Diệu",
+            "affectedLines": 1,
+            "commissionBefore": 69800,
+            "commissionAfter": 104700,
+            "delta": 34900,
+            "payrollLiveFromSnapshot": 114500
+          },
+          {
+            "employeeId": "tra-vinh-diem-trinh",
+            "employeeName": "Diễm Trinh",
+            "affectedLines": 1,
+            "commissionBefore": 68046,
+            "commissionAfter": 102069,
+            "delta": 34023,
+            "payrollLiveFromSnapshot": 111623
+          },
+          {
+            "employeeId": "tram-spa-truc-ly",
+            "employeeName": "Trúc Ly",
+            "affectedLines": 1,
+            "commissionBefore": 0,
+            "commissionAfter": 24900,
+            "delta": 24900,
+            "payrollLiveFromSnapshot": 24900
+          },
+          {
+            "employeeId": "bac-lieu-thanh-thu",
+            "employeeName": "Thanh Thư",
+            "affectedLines": 1,
+            "commissionBefore": 101210,
+            "commissionAfter": 104700,
+            "delta": 3490,
+            "payrollLiveFromSnapshot": 104700
+          }
+        ]
+      }
+    },
+    {
+      "id": "aug_still_70_10_30_20_null90",
+      "pass": true,
+      "detail": {
+        "aug": [
+          {
+            "b": "bac-lieu",
+            "a": "0.7",
+            "adv": "0.1",
+            "d90": null,
+            "to": "2026-08-31T00:00:00.000Z"
+          },
+          {
+            "b": "soc-trang",
+            "a": "0.7",
+            "adv": "0.1",
+            "d90": null,
+            "to": "2026-08-31T00:00:00.000Z"
+          },
+          {
+            "b": "song-khoe-spa",
+            "a": "0.7",
+            "adv": "0.1",
+            "d90": null,
+            "to": "2026-08-31T00:00:00.000Z"
+          },
+          {
+            "b": "tra-vinh",
+            "a": "0.7",
+            "adv": "0.1",
+            "d90": null,
+            "to": "2026-08-31T00:00:00.000Z"
+          },
+          {
+            "b": "tram-spa",
+            "a": "0.7",
+            "adv": "0.1",
+            "d90": null,
+            "to": "2026-08-31T00:00:00.000Z"
+          },
+          {
+            "b": "vinh-long",
+            "a": "0.7",
+            "adv": "0.1",
+            "d90": null,
+            "to": "2026-08-31T00:00:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sep_80_20_30_20_30",
+      "pass": true,
+      "detail": {
+        "sep": [
+          {
+            "b": "bac-lieu",
+            "a": "0.8",
+            "adv": "0.2",
+            "d90": "0.3"
+          },
+          {
+            "b": "soc-trang",
+            "a": "0.8",
+            "adv": "0.2",
+            "d90": "0.3"
+          },
+          {
+            "b": "song-khoe-spa",
+            "a": "0.8",
+            "adv": "0.2",
+            "d90": "0.3"
+          },
+          {
+            "b": "tra-vinh",
+            "a": "0.8",
+            "adv": "0.2",
+            "d90": "0.3"
+          },
+          {
+            "b": "tram-spa",
+            "a": "0.8",
+            "adv": "0.2",
+            "d90": "0.3"
+          },
+          {
+            "b": "vinh-long",
+            "a": "0.8",
+            "adv": "0.2",
+            "d90": "0.3"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gia_lai_kpi_still_zero",
+      "pass": true,
+      "detail": {}
+    },
+    {
+      "id": "aug_kpi_hides_duration90",
+      "pass": true,
+      "detail": {
+        "keys": [
+          "addon",
+          "advanced",
+          "combo",
+          "requested"
+        ],
+        "duration90": {
+          "kind": "duration90",
+          "actual": 2,
+          "main": 38,
+          "rate": 0.05263157894736842,
+          "targets": [],
+          "mixedTargets": false,
+          "status": "NOT_APPLICABLE",
+          "missing": null,
+          "aggregateAlgorithm": "per-segment-obligation",
+          "note": "KPI không thuộc policy kỳ này"
+        }
+      }
+    },
+    {
+      "id": "aug_kpi_four_cards",
+      "pass": true,
+      "detail": {
+        "keys": [
+          "addon",
+          "advanced",
+          "combo",
+          "requested"
+        ]
+      }
+    },
+    {
+      "id": "sep_kpi_shows_duration90",
+      "pass": true,
+      "detail": {
+        "keys": [
+          "addon",
+          "advanced",
+          "combo",
+          "requested",
+          "duration90"
+        ],
+        "duration90": {
+          "kind": "duration90",
+          "actual": 1,
+          "main": 3,
+          "rate": 0.3333333333333333,
+          "targets": [
+            0.3
+          ],
+          "mixedTargets": false,
+          "informationalBlendedTarget": 0.3,
+          "status": "MET",
+          "missing": 0,
+          "aggregateAlgorithm": "per-segment-obligation",
+          "note": ""
+        }
+      }
+    },
+    {
+      "id": "sep_duration90_target_30",
+      "pass": true,
+      "detail": {
+        "overall": {
+          "kind": "duration90",
+          "actual": 1,
+          "main": 3,
+          "rate": 0.3333333333333333,
+          "targets": [
+            0.3
+          ],
+          "mixedTargets": false,
+          "informationalBlendedTarget": 0.3,
+          "status": "MET",
+          "missing": 0,
+          "aggregateAlgorithm": "per-segment-obligation",
+          "note": ""
+        },
+        "segment": {
+          "addon": 0.8,
+          "advanced": 0.2,
+          "combo": 0.3,
+          "requested": 0.2,
+          "duration90": 0.3
+        }
+      }
+    },
+    {
+      "id": "employee_admin_export_duration90_equal",
+      "pass": true,
+      "detail": {
+        "employeeId": "tram-spa-truc-ly",
+        "empCount": 1,
+        "empActual": 1,
+        "empStatus": "MET",
+        "adminCard": {
+          "actual": 1,
+          "target": 0.3,
+          "status": "MET"
+        },
+        "exportHas90": true
+      }
+    }
+  ],
+  "catalogRowsApplied": 2,
+  "invoicesApplied": 10,
+  "commissionBefore": 539910,
+  "commissionAfter": 826623,
+  "payroll": [
+    {
+      "employeeId": "soc-trang-bao-tran",
+      "employeeName": "Bảo Trân",
+      "affectedLines": 2,
+      "commissionBefore": 0,
+      "commissionAfter": 49800,
+      "delta": 49800,
+      "payrollLiveFromSnapshot": 69400
+    },
+    {
+      "employeeId": "tra-vinh-mai-nhi",
+      "employeeName": "Mai Nhi",
+      "affectedLines": 1,
+      "commissionBefore": 69800,
+      "commissionAfter": 104700,
+      "delta": 34900,
+      "payrollLiveFromSnapshot": 112500
+    },
+    {
+      "employeeId": "soc-trang-chi-7",
+      "employeeName": "Chị 7",
+      "affectedLines": 1,
+      "commissionBefore": 34900,
+      "commissionAfter": 69800,
+      "delta": 34900,
+      "payrollLiveFromSnapshot": 69800
+    },
+    {
+      "employeeId": "vinh-long-bo",
+      "employeeName": "Hồng Thương",
+      "affectedLines": 1,
+      "commissionBefore": 69800,
+      "commissionAfter": 104700,
+      "delta": 34900,
+      "payrollLiveFromSnapshot": 104700
+    },
+    {
+      "employeeId": "vinh-long-tram",
+      "employeeName": "Ngọc Trâm",
+      "affectedLines": 1,
+      "commissionBefore": 69800,
+      "commissionAfter": 104700,
+      "delta": 34900,
+      "payrollLiveFromSnapshot": 114500
+    },
+    {
+      "employeeId": "vinh-long-dieu",
+      "employeeName": "Ngọc Diệu",
+      "affectedLines": 1,
+      "commissionBefore": 69800,
+      "commissionAfter": 104700,
+      "delta": 34900,
+      "payrollLiveFromSnapshot": 114500
+    },
+    {
+      "employeeId": "tra-vinh-diem-trinh",
+      "employeeName": "Diễm Trinh",
+      "affectedLines": 1,
+      "commissionBefore": 68046,
+      "commissionAfter": 102069,
+      "delta": 34023,
+      "payrollLiveFromSnapshot": 111623
+    },
+    {
+      "employeeId": "tram-spa-truc-ly",
+      "employeeName": "Trúc Ly",
+      "affectedLines": 1,
+      "commissionBefore": 0,
+      "commissionAfter": 24900,
+      "delta": 24900,
+      "payrollLiveFromSnapshot": 24900
+    },
+    {
+      "employeeId": "bac-lieu-thanh-thu",
+      "employeeName": "Thanh Thư",
+      "affectedLines": 1,
+      "commissionBefore": 101210,
+      "commissionAfter": 104700,
+      "delta": 3490,
+      "payrollLiveFromSnapshot": 104700
+    }
+  ],
+  "augPolicies": 6,
+  "sepPolicies": 6
+}

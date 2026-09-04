@@ -19,7 +19,10 @@ export function planOfficialCommissionCatalogSync({
     const durationId = row.durationId ?? row.duration_id
     const name = nameByKey[`${branchId}:${durationId}`] || durationId
     const current = parseOptionalCommissionPercent(row.commissionPercent ?? row.commission_percent)
-    const resolved = resolveOfficialCatalogCommissionPercent(branchId, durationId, name)
+    const minutes = Number(row.durationMinutes ?? row.duration_minutes)
+    const resolved = resolveOfficialCatalogCommissionPercent(branchId, durationId, name, {
+      durationMinutes: Number.isFinite(minutes) ? minutes : undefined,
+    })
 
     if (resolved.blocked) {
       giaLai.push({

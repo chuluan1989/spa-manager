@@ -1,0 +1,84 @@
+{
+  "invoices": [
+    {
+      "id": "5380c992-dd53-4dd2-bdef-4fbe7d4a0814",
+      "date": "2026-09-01",
+      "branchId": "tra-vinh",
+      "commission": 77600
+    },
+    {
+      "id": "17e293fe-68fe-40eb-a0b4-a6442e54bf5f",
+      "date": "2026-09-01",
+      "branchId": "bac-lieu",
+      "commission": 101210
+    },
+    {
+      "id": "05e446e3-4fad-4707-8219-3fc239cc6754",
+      "date": "2026-09-01",
+      "branchId": "soc-trang",
+      "commission": 0
+    },
+    {
+      "id": "f30d8af4-7e9d-4047-8ad8-86ef991bafe4",
+      "date": "2026-09-02",
+      "branchId": "soc-trang",
+      "commission": 9800
+    },
+    {
+      "id": "29e7b249-f1c3-4166-b100-d1a9ad5ddc7d",
+      "date": "2026-09-02",
+      "branchId": "soc-trang",
+      "commission": 34900
+    },
+    {
+      "id": "0bbeb363-a960-4370-a257-b3f829a08028",
+      "date": "2026-09-02",
+      "branchId": "vinh-long",
+      "commission": 69800
+    },
+    {
+      "id": "c5d66c13-7974-47ce-ac30-8dcd2c074447",
+      "date": "2026-09-03",
+      "branchId": "vinh-long",
+      "commission": 79600
+    },
+    {
+      "id": "9f10898a-14a9-452a-97ea-4021df939fec",
+      "date": "2026-09-03",
+      "branchId": "vinh-long",
+      "commission": 79600
+    },
+    {
+      "id": "e0e029a7-9fff-47e0-a5ba-1ab2682ae958",
+      "date": "2026-09-03",
+      "branchId": "soc-trang",
+      "commission": 9800
+    },
+    {
+      "id": "aec0c44d-b3ef-4795-a325-a7585eebdece",
+      "date": "2026-09-03",
+      "branchId": "tra-vinh",
+      "commission": 77600
+    }
+  ],
+  "catalog": [
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "body-90",
+      "name": "body-90",
+      "currentPercent": 0,
+      "plannedPercent": 10,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Sep 2026"
+    },
+    {
+      "branchId": "song-khoe-spa",
+      "durationId": "chuyen-sau",
+      "name": "chuyen-sau",
+      "currentPercent": 10,
+      "plannedPercent": 20,
+      "status": "CHANGE",
+      "reason": "Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Sep 2026"
+    }
+  ]
+}

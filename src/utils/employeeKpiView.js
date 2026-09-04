@@ -1,6 +1,6 @@
 import { KPI_STATUS } from '../constants/kpiPolicy'
 import { KPI_GROUPS } from '../constants/kpiPolicy'
-import { classifyKpiServiceLine } from './kpiServiceClassifier'
+import { classifyKpiServiceLine, isKpiMain90Line, KPI_MAIN_90_TOKENS } from './kpiServiceClassifier'
 
 export function monthBounds(monthYm) {
   const [y, m] = String(monthYm || '').split('-').map(Number)
@@ -90,6 +90,14 @@ export const EMPLOYEE_KPI_CARD_DEFS = [
     missingUnit: 'khách yêu cầu',
     formula: 'REQUESTED / TOTAL',
   },
+  {
+    key: 'duration90',
+    title: '90 phút',
+    numeratorLabel: '90 phút',
+    denominatorLabel: 'chính',
+    missingUnit: 'lượt',
+    formula: 'MAIN 90 / MAIN',
+  },
 ]
 
 export function resolveDisplayTarget(kpi) {
@@ -148,9 +156,9 @@ export function buildKpiCardModel(def, kpi, counts) {
 }
 
 export function summarizeOverallKpis(overall) {
-  const cards = EMPLOYEE_KPI_CARD_DEFS.map((def) =>
-    buildKpiCardModel(def, overall?.kpis?.[def.key], overall?.counts),
-  )
+  const cards = EMPLOYEE_KPI_CARD_DEFS
+    .map((def) => buildKpiCardModel(def, overall?.kpis?.[def.key], overall?.counts))
+    .filter((c) => c.status !== KPI_STATUS.NOT_APPLICABLE)
   const evaluable = cards.filter((c) => c.status === KPI_STATUS.MET || c.status === KPI_STATUS.NOT_MET)
   const met = cards.filter((c) => c.status === KPI_STATUS.MET).length
   const total = cards.length
@@ -212,6 +220,9 @@ export function buildKpiServiceLineRows(includedInvoices = []) {
 export function filterKpiServiceLineRows(rows = [], filterKey = 'all') {
   if (!filterKey || filterKey === 'all') return rows
   if (filterKey === 'requested') return rows.filter((r) => r.customerRequested)
+  if (filterKey === 'duration90') {
+    return rows.filter((r) => r.group === KPI_GROUPS.MAIN && KPI_MAIN_90_TOKENS.includes(r.token))
+  }
   const groupMap = {
     main: KPI_GROUPS.MAIN,
     addon: KPI_GROUPS.ADDON,
@@ -245,6 +256,12 @@ export function buildDrillRows(includedInvoices = [], kpiKey) {
         if (kpiKey === 'addon') return lines.filter((l) => l.group === KPI_GROUPS.ADDON)
         if (kpiKey === 'advanced') return lines.filter((l) => l.group === KPI_GROUPS.ADVANCED)
         if (kpiKey === 'combo') return lines.filter((l) => l.group === KPI_GROUPS.COMBO)
+        if (kpiKey === 'duration90') {
+          return lines.filter((l, idx) => {
+            const svc = Array.isArray(inv.services) ? inv.services[idx] : {}
+            return isKpiMain90Line(svc, l)
+          })
+        }
         return []
       })()
       return {

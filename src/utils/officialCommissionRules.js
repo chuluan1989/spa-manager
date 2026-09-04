@@ -4,15 +4,18 @@
  */
 
 export const COMMISSION_CATALOG_SYNC_REASON =
-  'Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Aug 2026'
+  'Đồng bộ % hoa hồng bảng Dịch vụ với chính sách lương hiện hành - Sep 2026'
 
 export const TIERED_COMMISSION_SYNC_BRANCH_IDS = ['tram-spa', 'soc-trang', 'song-khoe-spa']
+export const CHUYEN_SAU_30_SYNC_BRANCH_IDS = ['bac-lieu', 'tra-vinh', 'vinh-long']
 export const BAC_LIEU_SYNC_BRANCH_IDS = ['bac-lieu']
-export const FLAT_20_SYNC_BRANCH_IDS = ['tra-vinh', 'vinh-long']
+export const FLAT_20_SYNC_BRANCH_IDS = []
 export const GIA_LAI_BLOCKED_BRANCH_IDS = ['gia-lai-1', 'gia-lai-2']
+export const SOC_TRANG_SONG_KHOE_BRANCH_IDS = ['soc-trang', 'song-khoe-spa']
 
-const TIERED_ZERO_IDS = new Set(['body-60', 'body-75', 'body-90', 'foot', 'co-vai-gay'])
-const TIERED_TEN_IDS = new Set(['combo-1', 'combo-2', 'combo-3', 'chuyen-sau'])
+const TIERED_ZERO_IDS = new Set(['body-60', 'body-75', 'foot', 'co-vai-gay'])
+const TIERED_TEN_IDS = new Set(['combo-1', 'combo-2', 'combo-3'])
+const MAIN_90_IDS = new Set(['body-90'])
 
 function norm(value) {
   return String(value ?? '')
@@ -55,9 +58,13 @@ export function isGiaLaiCommissionSyncBlocked(branchId) {
 }
 
 /**
+ * @param {string} branchId
+ * @param {string} durationId
+ * @param {string} [serviceName]
+ * @param {{ durationMinutes?: number }} [options]
  * @returns {{ percent: number } | { blocked: true, reason: string } | { missing: true }}
  */
-export function resolveOfficialCatalogCommissionPercent(branchId, durationId, serviceName = '') {
+export function resolveOfficialCatalogCommissionPercent(branchId, durationId, serviceName = '', options = {}) {
   if (!branchId) return { missing: true }
   if (isGiaLaiCommissionSyncBlocked(branchId)) {
     return {
@@ -68,28 +75,28 @@ export function resolveOfficialCatalogCommissionPercent(branchId, durationId, se
 
   const id = String(durationId ?? '')
   const hay = haystack(durationId, serviceName)
+  void options
 
   if (TIERED_COMMISSION_SYNC_BRANCH_IDS.includes(branchId)) {
-    // Trạm Spa từ 01/09/2026: Body 90 = 10%, Massage Thái = 20% (gắn catalog, không fallback).
     if (branchId === 'tram-spa') {
       if (id === 'body-90' || isBody90(hay)) return { percent: 10 }
       if (id === 'massage-thai' || /massage[\s_-]*thai/.test(hay)) return { percent: 20 }
     }
-    if (TIERED_ZERO_IDS.has(id) || isBody60(hay) || isBody75(hay) || isBody90(hay) || isCvg(hay) || isFoot(hay)) {
+    if (SOC_TRANG_SONG_KHOE_BRANCH_IDS.includes(branchId)) {
+      if (id === 'chuyen-sau' || isChuyenSau(hay)) return { percent: 20 }
+      if (MAIN_90_IDS.has(id) || id === 'body-90') return { percent: 10 }
+    }
+    if (TIERED_ZERO_IDS.has(id) || isBody60(hay) || isBody75(hay) || isCvg(hay) || isFoot(hay)) {
       return { percent: 0 }
     }
-    if (TIERED_TEN_IDS.has(id) || isCombo(hay) || isChuyenSau(hay)) {
+    if (TIERED_TEN_IDS.has(id) || isCombo(hay)) {
       return { percent: 10 }
     }
     return { percent: 20 }
   }
 
-  if (BAC_LIEU_SYNC_BRANCH_IDS.includes(branchId)) {
+  if (CHUYEN_SAU_30_SYNC_BRANCH_IDS.includes(branchId)) {
     if (id === 'chuyen-sau' || isChuyenSau(hay)) return { percent: 30 }
-    return { percent: 20 }
-  }
-
-  if (FLAT_20_SYNC_BRANCH_IDS.includes(branchId)) {
     return { percent: 20 }
   }
 

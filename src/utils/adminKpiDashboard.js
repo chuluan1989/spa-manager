@@ -47,7 +47,7 @@ export function buildAdminEmployeeKpiRow(model, { homeBranchId = '', homeBranchN
     headline: summary.headline,
     rowStatus,
     rowStatusLabel:
-      rowStatus === 'MET' ? 'Đạt 4/4 KPI'
+      rowStatus === 'MET' ? `Đạt ${summary.met}/${summary.total} KPI`
         : rowStatus === 'INSUFFICIENT_DATA' ? 'Chưa đủ dữ liệu'
           : rowStatus === 'NO_POLICY' ? 'Chưa có chính sách KPI kỳ này'
             : `Đạt ${summary.met}/${summary.total} KPI`,
@@ -105,6 +105,7 @@ export function buildAdminKpiDashboard(invoices = [], {
         advanced: avg(branchRows.map((r) => r.cards.advanced?.rate)),
         combo: avg(branchRows.map((r) => r.cards.combo?.rate)),
         requested: avg(branchRows.map((r) => r.cards.requested?.rate)),
+        duration90: avg(branchRows.map((r) => r.cards.duration90?.rate)),
       },
       note: 'avgRates chỉ tham khảo — pass/fail theo engine segment, không average target',
     }
@@ -115,9 +116,10 @@ export function buildAdminKpiDashboard(invoices = [], {
     addon: acc.addon + (r.counts.addon || 0),
     advanced: acc.advanced + (r.counts.advanced || 0),
     combo: acc.combo + (r.counts.combo || 0),
+    duration90: acc.duration90 + (r.counts.duration90 || 0),
     totalInvoices: acc.totalInvoices + (r.counts.totalInvoices || 0),
     requestedInvoices: acc.requestedInvoices + (r.counts.requestedInvoices || 0),
-  }), { main: 0, addon: 0, advanced: 0, combo: 0, totalInvoices: 0, requestedInvoices: 0 })
+  }), { main: 0, addon: 0, advanced: 0, combo: 0, duration90: 0, totalInvoices: 0, requestedInvoices: 0 })
 
   return {
     fromDate,
@@ -134,6 +136,7 @@ export function buildAdminKpiDashboard(invoices = [], {
         addon: systemCounts.main ? systemCounts.addon / systemCounts.main : null,
         advanced: systemCounts.main ? systemCounts.advanced / systemCounts.main : null,
         combo: systemCounts.main ? systemCounts.combo / systemCounts.main : null,
+        duration90: systemCounts.main ? systemCounts.duration90 / systemCounts.main : null,
         requested: systemCounts.totalInvoices
           ? systemCounts.requestedInvoices / systemCounts.totalInvoices
           : null,

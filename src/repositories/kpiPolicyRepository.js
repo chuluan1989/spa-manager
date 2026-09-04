@@ -25,6 +25,12 @@ function normalizePolicyRow(row) {
     advancedTarget: Number(row.advancedTarget ?? row.advanced_target),
     comboTarget: Number(row.comboTarget ?? row.combo_target),
     requestedTarget: Number(row.requestedTarget ?? row.requested_target),
+    duration90Target: (() => {
+      const raw = row.duration90Target ?? row.duration90_target
+      if (raw == null || raw === '') return null
+      const n = Number(raw)
+      return Number.isFinite(n) ? n : null
+    })(),
   }
 }
 
@@ -91,6 +97,9 @@ export async function insertKpiBranchPolicy({
     advancedTarget: targets.advanced,
     comboTarget: targets.combo,
     requestedTarget: targets.requested,
+    duration90Target: targets.duration90 == null || targets.duration90 === ''
+      ? null
+      : Number(targets.duration90),
     status: 'active',
     createdBy: actorId,
     updatedBy: actorId,

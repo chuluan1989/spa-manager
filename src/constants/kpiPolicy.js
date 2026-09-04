@@ -35,6 +35,17 @@ export const DEFAULT_KPI_TARGETS = {
   requested: 0.2,
 }
 
+/** Policy từ 2026-09-01. duration90 chỉ có trên version này. */
+export const SEP2026_KPI_TARGETS = {
+  addon: 0.8,
+  advanced: 0.2,
+  combo: 0.3,
+  requested: 0.2,
+  duration90: 0.3,
+}
+
+export const KPI_DURATION90_EFFECTIVE_FROM = '2026-09-01'
+
 export const KPI_POLICY_STATUS = {
   ACTIVE: 'active',
   SUPERSEDED: 'superseded',

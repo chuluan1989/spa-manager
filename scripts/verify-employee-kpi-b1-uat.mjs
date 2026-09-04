@@ -10,6 +10,7 @@ import { KPI_SCOPE_BRANCH_IDS, KPI_STATUS } from '../src/constants/kpiPolicy.js'
 import {
   ALL_KPI_SERVICE_TOKENS,
   auditKpiCatalogRows,
+  auditMain90CatalogDurations,
   classifyKpiServiceLine,
 } from '../src/utils/kpiServiceClassifier.js'
 import {
@@ -21,6 +22,7 @@ import {
   resolveKpiPolicy,
 } from '../src/utils/employeeKpiEngine.js'
 import { appendKpiPolicyVersion } from '../src/utils/kpiPolicyStorage.js'
+import { summarizeOverallKpis } from '../src/utils/employeeKpiView.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(ROOT, 'docs/uat-evidence/EMPLOYEE_KPI_B1_UAT.json')
@@ -434,6 +436,87 @@ for (const [id, name, token, group] of CLASS_CASES) {
     inv({ id: 's1', services: [line('body-60'), line('phong-don')] }),
   ])
   check('P2', 'Phòng đơn trong ADDON system', scope.system.counts.addon === 1, scope.system.counts)
+}
+
+{
+  const catalogAudit = auditMain90CatalogDurations([
+    { branchId: 'soc-trang', durationId: 'body-90', durationMinutes: 90 },
+    { branchId: 'soc-trang', durationId: 'combo-1', durationMinutes: 90 },
+    { branchId: 'soc-trang', durationId: 'chuyen-sau', durationMinutes: 90 },
+    { branchId: 'tram-spa', durationId: 'massage-thai', durationMinutes: 90 },
+    { branchId: 'tram-spa', durationId: 'body-60', durationMinutes: 60 },
+  ])
+  check(
+    'D90-1',
+    'Catalog MAIN 90 = body-90 only',
+    catalogAudit.tokens.join(',') === 'body-90' && catalogAudit.main90.length === 1 && catalogAudit.other90.length === 3,
+    catalogAudit,
+  )
+}
+
+{
+  const aug = [{
+    id: 'aug',
+    branchId: 'soc-trang',
+    effectiveFrom: '2026-08-01',
+    effectiveTo: '2026-08-31',
+    addonTarget: 0.7,
+    advancedTarget: 0.1,
+    comboTarget: 0.3,
+    requestedTarget: 0.2,
+  }]
+  const sep = [{
+    id: 'sep',
+    branchId: 'soc-trang',
+    effectiveFrom: '2026-09-01',
+    addonTarget: 0.8,
+    advancedTarget: 0.2,
+    comboTarget: 0.3,
+    requestedTarget: 0.2,
+    duration90Target: 0.3,
+  }]
+  const invoices = [
+    inv({
+      id: 'sep1',
+      date: '2026-09-02',
+      services: [line('body-90'), line('body-60'), line('combo-1'), line('chuyen-sau'), line('massage-thai')],
+    }),
+  ]
+  const augModel = kpisOf([inv({ id: 'aug1', date: '2026-08-10', services: [line('body-90'), line('body-60')] })], { policies: aug, fromDate: '2026-08-01', toDate: '2026-08-31' })
+  const sepModel = kpisOf(invoices, { policies: sep, fromDate: '2026-09-01', toDate: '2026-09-30' })
+  const augCards = summarizeOverallKpis(augModel.overall)
+  const sepCards = summarizeOverallKpis(sepModel.overall)
+  check(
+    'D90-2',
+    'duration90 đếm body-90 MAIN, loại Combo/CS/Thái',
+    sepModel.overall.counts.main === 2
+      && sepModel.overall.counts.duration90 === 1
+      && sepModel.overall.counts.combo === 1
+      && sepModel.overall.counts.advanced === 1,
+    sepModel.overall.counts,
+  )
+  check(
+    'D90-3',
+    'Aug ẩn KPI 90 phút, target vẫn 70/10/30/20',
+    augCards.total === 4
+      && augModel.policySegments[0]?.targets.addon === 0.7
+      && augModel.policySegments[0]?.targets.advanced === 0.1
+      && augModel.overall.kpis.duration90.status === 'NOT_APPLICABLE',
+    { total: augCards.total, targets: augModel.policySegments[0]?.targets, d90: augModel.overall.kpis.duration90.status },
+  )
+  check(
+    'D90-4',
+    'Sep hiện KPI 90 phút target 30%',
+    sepCards.total === 5
+      && sepCards.cards.some((c) => c.key === 'duration90')
+      && sepModel.policySegments[0]?.targets.duration90 === 0.3
+      && sepModel.policySegments[0]?.targets.addon === 0.8
+      && sepModel.policySegments[0]?.targets.advanced === 0.2
+      && sepModel.overall.kpis.duration90.informationalBlendedTarget === 0.3,
+    { total: sepCards.total, targets: sepModel.policySegments[0]?.targets, d90: sepModel.overall.kpis.duration90 },
+  )
+  const missing90 = missingServiceLines(1, 2, 0.3)
+  check('D90-5', 'Missing 90 phút ceil(2*0.3-1)=0', missing90 === 0, { missing90 })
 }
 
 mkdirSync(dirname(OUT), { recursive: true })

@@ -21,7 +21,8 @@ assert.equal(prices['goi-sach'].price, 60000)
 
 assert.equal(resolveOfficialCatalogCommissionPercent('tram-spa', 'body-90', 'Body').percent, 10)
 assert.equal(resolveOfficialCatalogCommissionPercent('tram-spa', 'massage-thai', 'Massage Thái').percent, 20)
-assert.equal(resolveOfficialCatalogCommissionPercent('song-khoe-spa', 'body-90', 'Body').percent, 0)
+assert.equal(resolveOfficialCatalogCommissionPercent('song-khoe-spa', 'body-90', 'Body').percent, 10)
+assert.equal(resolveOfficialCatalogCommissionPercent('soc-trang', 'chuyen-sau', 'Chuyên sâu').percent, 20)
 assert.equal(calculateCommissionAmount(220000, 10), 22000)
 assert.equal(calculateCommissionAmount(350000, 20), 70000)
 

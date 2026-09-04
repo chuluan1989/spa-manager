@@ -104,6 +104,7 @@ export default function AdminKpi() {
     advanced: '10',
     combo: '30',
     requested: '20',
+    duration90: '30',
     reason: '',
   })
   const [policyMsg, setPolicyMsg] = useState('')
@@ -223,6 +224,7 @@ export default function AdminKpi() {
       advanced: percentInputToDecimal(policyForm.advanced),
       combo: percentInputToDecimal(policyForm.combo),
       requested: percentInputToDecimal(policyForm.requested),
+      duration90: percentInputToDecimal(policyForm.duration90),
     }
     if (Object.values(targets).some((v) => !Number.isFinite(v) || v < 0 || v > 1)) {
       setPolicyMsg('Target phải từ 0–100%.')
@@ -260,7 +262,7 @@ export default function AdminKpi() {
         subtitle={`6 chi nhánh · Cloud HĐ full tháng · ${monthRange.rangeLabel}`}
         badge={{
           value: `${dashboard.system.employeesMetAll}/${dashboard.system.employeeCount}`,
-          label: 'NV đạt 4/4',
+          label: 'NV đạt đủ KPI',
         }}
         actions={(
           <div className="admin-kpi-tabs">
@@ -325,8 +327,8 @@ export default function AdminKpi() {
               Trạng thái
               <select value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="">Tất cả</option>
-                <option value="MET">Đạt 4/4 KPI</option>
-                <option value="NOT_MET">Chưa đạt đủ 4 KPI</option>
+                <option value="MET">Đạt đủ KPI</option>
+                <option value="NOT_MET">Chưa đạt đủ KPI</option>
                 <option value="INSUFFICIENT_DATA">Chưa đủ dữ liệu</option>
                 <option value="NO_POLICY">Chưa có chính sách KPI</option>
               </select>
@@ -351,13 +353,14 @@ export default function AdminKpi() {
                 {' · '}Dịch vụ phụ {dashboard.system.counts.addon}
                 {' · '}Chuyên sâu {dashboard.system.counts.advanced}
                 {' · '}Combo {dashboard.system.counts.combo}
+                {' · '}90 phút {dashboard.system.counts.duration90 || 0}
               </p>
               <p>
                 Khách yêu cầu {dashboard.system.counts.requestedInvoices}/{dashboard.system.counts.totalInvoices}
                 {' '}({formatKpiPercent(dashboard.system.rates.requested)})
               </p>
               <p>
-                Đạt 4/4: {dashboard.system.employeesMetAll}
+                Đạt đủ KPI: {dashboard.system.employeesMetAll}
                 {' · '}Chưa đạt đủ: {dashboard.system.employeesNotMet}
                 {' · '}Chưa đủ dữ liệu: {dashboard.system.employeesInsufficient}
               </p>
@@ -366,12 +369,13 @@ export default function AdminKpi() {
               {dashboard.branches.map((b) => (
                 <article key={b.branchId} className="admin-kpi-branch-card">
                   <h4>{b.branchName}</h4>
-                  <p>{b.employeeCount} NV · Đạt 4/4: {b.employeesMetAll} ({formatKpiPercent(b.metRate)})</p>
+                  <p>{b.employeeCount} NV · Đạt đủ KPI: {b.employeesMetAll} ({formatKpiPercent(b.metRate)})</p>
                   <p className="admin-kpi-muted">
                     TB DV phụ {formatKpiPercent(b.avgRates.addon)}
                     {' · '}CS {formatKpiPercent(b.avgRates.advanced)}
                     {' · '}Combo {formatKpiPercent(b.avgRates.combo)}
                     {' · '}YC {formatKpiPercent(b.avgRates.requested)}
+                    {' · '}90' {formatKpiPercent(b.avgRates.duration90)}
                   </p>
                   <p className="admin-kpi-note">Theo chi nhánh hiện tại của NV — TB chỉ tham khảo</p>
                 </article>
@@ -389,12 +393,13 @@ export default function AdminKpi() {
                   <th>Combo</th>
                   <th>Chuyên sâu</th>
                   <th>Khách yêu cầu</th>
+                  <th>90 phút</th>
                   <th>Kết quả</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length === 0 && (
-                  <tr><td colSpan={7}>Không có dữ liệu KPI trong bộ lọc.</td></tr>
+                  <tr><td colSpan={8}>Không có dữ liệu KPI trong bộ lọc.</td></tr>
                 )}
                 {filteredRows.map((row) => (
                   <tr
@@ -408,6 +413,7 @@ export default function AdminKpi() {
                     <td><AdminKpiMetricCell card={row.cards.combo} /></td>
                     <td><AdminKpiMetricCell card={row.cards.advanced} /></td>
                     <td><AdminKpiMetricCell card={row.cards.requested} /></td>
+                    <td><AdminKpiMetricCell card={row.cards.duration90} /></td>
                     <td><ResultCell row={row} /></td>
                   </tr>
                 ))}
@@ -469,6 +475,10 @@ export default function AdminKpi() {
                 KPI Khách yêu cầu (%)
                 <input value={policyForm.requested} onChange={(e) => setPolicyForm((f) => ({ ...f, requested: e.target.value }))} />
               </label>
+              <label>
+                KPI 90 phút (%)
+                <input value={policyForm.duration90} onChange={(e) => setPolicyForm((f) => ({ ...f, duration90: e.target.value }))} />
+              </label>
               <label className="admin-kpi-policy__reason">
                 Lý do thay đổi
                 <textarea
@@ -496,6 +506,7 @@ export default function AdminKpi() {
                   <th>CS</th>
                   <th>Combo</th>
                   <th>YC</th>
+                  <th>90'</th>
                   <th>Trạng thái</th>
                   <th>Lý do</th>
                 </tr>
@@ -514,6 +525,7 @@ export default function AdminKpi() {
                       <td>{decimalToPercentInput(p.advancedTarget)}%</td>
                       <td>{decimalToPercentInput(p.comboTarget)}%</td>
                       <td>{decimalToPercentInput(p.requestedTarget)}%</td>
+                      <td>{p.duration90Target == null ? '—' : `${decimalToPercentInput(p.duration90Target)}%`}</td>
                       <td>{p.status}</td>
                       <td>{p.changeReason || '—'}</td>
                     </tr>
@@ -570,7 +582,9 @@ function summarizePolicySnap(policy) {
   const adv = p.advancedTarget ?? p.advanced_target
   const c = p.comboTarget ?? p.combo_target
   const r = p.requestedTarget ?? p.requested_target
-  return `${decimalToPercentInput(a)}/${decimalToPercentInput(adv)}/${decimalToPercentInput(c)}/${decimalToPercentInput(r)}`
+  const d90 = p.duration90Target ?? p.duration90_target
+  const d90Label = d90 == null || d90 === '' ? '—' : decimalToPercentInput(d90)
+  return `${decimalToPercentInput(a)}/${decimalToPercentInput(adv)}/${decimalToPercentInput(c)}/${decimalToPercentInput(r)}/${d90Label}`
 }
 
 function resolveLinePolicy(row, line) {
@@ -601,7 +615,8 @@ function formatPolicyLabel(seg) {
     `CS ${decimalToPercentInput(seg.targets.advanced)}%`,
     `Combo ${decimalToPercentInput(seg.targets.combo)}%`,
     `YC ${decimalToPercentInput(seg.targets.requested)}%`,
-  ].join(' · ')
+    seg.targets.duration90 != null ? `90' ${decimalToPercentInput(seg.targets.duration90)}%` : null,
+  ].filter(Boolean).join(' · ')
 }
 
 function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabel }) {
@@ -666,6 +681,7 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
             {' · '}Dịch vụ phụ {row.counts.addon}
             {' · '}Chuyên sâu {row.counts.advanced}
             {' · '}Combo {row.counts.combo}
+            {' · '}90 phút {row.counts.duration90 || 0}
             {' · '}HĐ {row.counts.totalInvoices}
             {' · '}Khách yêu cầu {row.counts.requestedInvoices}
           </p>
@@ -674,6 +690,7 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
         <div className="admin-kpi-drill__cards">
           {EMPLOYEE_KPI_CARD_DEFS.map((def) => {
             const card = row.cards[def.key]
+            if (!card || card.status === 'NOT_APPLICABLE') return null
             const display = formatAdminKpiMetricCell(card)
             return (
               <div key={def.key} className={`admin-kpi-drill__card is-${display.tone}`}>
@@ -694,6 +711,7 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
               {' — '}
               Dịch vụ chính {seg.counts.main}, Dịch vụ phụ {seg.counts.addon},
               {' '}Chuyên sâu {seg.counts.advanced}, Combo {seg.counts.combo},
+              {' '}90 phút {seg.counts.duration90 || 0},
               {' '}HĐ {seg.counts.totalInvoices}, Khách yêu cầu {seg.counts.requestedInvoices}
             </li>
           ))}
@@ -712,6 +730,9 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
                     {' / '}CS {decimalToPercentInput(seg.targets?.advanced)}%
                     {' / '}Combo {decimalToPercentInput(seg.targets?.combo)}%
                     {' / '}YC {decimalToPercentInput(seg.targets?.requested)}%
+                    {seg.targets?.duration90 != null
+                      ? ` / 90' ${decimalToPercentInput(seg.targets.duration90)}%`
+                      : ''}
                   </>
                 )
                 : 'Chưa có chính sách KPI kỳ này'}
@@ -729,6 +750,7 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
             ['addon', 'Dịch vụ phụ'],
             ['advanced', 'Chuyên sâu'],
             ['combo', 'Combo'],
+            ['duration90', '90 phút'],
             ['requested', 'Khách yêu cầu'],
           ].map(([key, label]) => (
             <button

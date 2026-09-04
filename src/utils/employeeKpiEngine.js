@@ -4,9 +4,15 @@ import {
   isKpiExcludedBranch,
   isKpiScopeBranch,
 } from '../constants/kpiPolicy'
-import { classifyKpiServiceLine } from './kpiServiceClassifier'
+import { classifyKpiServiceLine, isKpiMain90Line } from './kpiServiceClassifier'
 
 const EPS = 1e-9
+
+function parseOptionalTarget(value) {
+  if (value == null || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
 
 function invoiceDate(invoice) {
   return String(invoice?.date || '').slice(0, 10)
@@ -82,6 +88,7 @@ export function resolveKpiPolicy(branchId, date, policies = []) {
         advanced: Number(policy.advancedTarget ?? policy.advanced_target),
         combo: Number(policy.comboTarget ?? policy.combo_target),
         requested: Number(policy.requestedTarget ?? policy.requested_target),
+        duration90: parseOptionalTarget(policy.duration90Target ?? policy.duration90_target),
       },
       policy,
     }
@@ -141,6 +148,7 @@ function emptyCounts() {
     addon: 0,
     advanced: 0,
     combo: 0,
+    duration90: 0,
     unmapped: 0,
     totalInvoices: 0,
     requestedInvoices: 0,
@@ -153,6 +161,7 @@ function addCounts(a, b) {
     addon: a.addon + b.addon,
     advanced: a.advanced + b.advanced,
     combo: a.combo + b.combo,
+    duration90: a.duration90 + b.duration90,
     unmapped: a.unmapped + b.unmapped,
     totalInvoices: a.totalInvoices + b.totalInvoices,
     requestedInvoices: a.requestedInvoices + b.requestedInvoices,
@@ -231,7 +240,10 @@ function classifyInvoiceLines(invoice) {
   for (const line of invoiceServices(invoice)) {
     const classified = classifyKpiServiceLine(line)
     lines.push(classified)
-    if (classified.group === KPI_GROUPS.MAIN) counts.main += 1
+    if (classified.group === KPI_GROUPS.MAIN) {
+      counts.main += 1
+      if (isKpiMain90Line(line, classified)) counts.duration90 += 1
+    }
     else if (classified.group === KPI_GROUPS.ADDON) counts.addon += 1
     else if (classified.group === KPI_GROUPS.ADVANCED) counts.advanced += 1
     else if (classified.group === KPI_GROUPS.COMBO) counts.combo += 1
@@ -258,6 +270,21 @@ function noPolicyKpi({ actual, main, total, kind }) {
   }
 }
 
+function notApplicableKpi({ actual, main, kind }) {
+  return {
+    kind,
+    actual,
+    main,
+    rate: main > 0 ? actual / main : null,
+    target: null,
+    targets: [],
+    mixedTargets: false,
+    status: KPI_STATUS.NOT_APPLICABLE,
+    missing: null,
+    note: 'KPI không thuộc policy kỳ này',
+  }
+}
+
 function evaluateSegment(counts, targets) {
   if (!targets) {
     return {
@@ -269,8 +296,10 @@ function evaluateSegment(counts, targets) {
         total: counts.totalInvoices,
         kind: 'requested',
       }),
+      duration90: notApplicableKpi({ actual: counts.duration90, main: counts.main, kind: 'duration90' }),
     }
   }
+  const duration90Target = parseOptionalTarget(targets.duration90)
   return {
     addon: evaluateRatioKpi({ actual: counts.addon, main: counts.main, target: targets.addon, kind: 'addon' }),
     advanced: evaluateRatioKpi({ actual: counts.advanced, main: counts.main, target: targets.advanced, kind: 'advanced' }),
@@ -280,19 +309,50 @@ function evaluateSegment(counts, targets) {
       total: counts.totalInvoices,
       target: targets.requested,
     }),
+    duration90: duration90Target == null
+      ? notApplicableKpi({ actual: counts.duration90, main: counts.main, kind: 'duration90' })
+      : evaluateRatioKpi({
+        actual: counts.duration90,
+        main: counts.main,
+        target: duration90Target,
+        kind: 'duration90',
+      }),
   }
 }
 
 function uniqueTargets(segments, key) {
   return [...new Set(
     segments
-      .filter((s) => s.targets && s.targets[key] != null)
+      .filter((s) => s.targets && s.targets[key] != null && Number.isFinite(Number(s.targets[key])))
       .map((s) => s.targets[key]),
   )]
 }
 
 function aggregateKpiAcrossSegments(segments, kpiKey, countsKey) {
   const applicable = segments.filter((s) => s.kpis[kpiKey].status !== KPI_STATUS.NOT_APPLICABLE)
+  if (applicable.length === 0) {
+    const totalActual = segments.reduce((sum, s) => {
+      if (kpiKey === 'requested') return sum + s.counts.requestedInvoices
+      return sum + (s.counts[countsKey] || 0)
+    }, 0)
+    const totalBase = segments.reduce((sum, s) => {
+      if (kpiKey === 'requested') return sum + s.counts.totalInvoices
+      return sum + s.counts.main
+    }, 0)
+    return {
+      kind: kpiKey,
+      actual: totalActual,
+      main: kpiKey === 'requested' ? undefined : totalBase,
+      total: kpiKey === 'requested' ? totalBase : undefined,
+      rate: totalBase > 0 ? totalActual / totalBase : null,
+      targets: [],
+      mixedTargets: false,
+      status: KPI_STATUS.NOT_APPLICABLE,
+      missing: null,
+      aggregateAlgorithm: 'per-segment-obligation',
+      note: 'KPI không thuộc policy kỳ này',
+    }
+  }
   const totalActual = applicable.reduce((sum, s) => {
     if (kpiKey === 'requested') return sum + s.counts.requestedInvoices
     return sum + s.counts[countsKey]
@@ -461,12 +521,14 @@ export function computeEmployeeKpi(invoices = [], {
       || uniqueTargets(related, 'advanced').length > 1
       || uniqueTargets(related, 'combo').length > 1
       || uniqueTargets(related, 'requested').length > 1
+      || uniqueTargets(related, 'duration90').length > 1
     const kpis = mixed
       ? {
           addon: aggregateKpiAcrossSegments(related, 'addon', 'addon'),
           advanced: aggregateKpiAcrossSegments(related, 'advanced', 'advanced'),
           combo: aggregateKpiAcrossSegments(related, 'combo', 'combo'),
           requested: aggregateKpiAcrossSegments(related, 'requested', 'requestedInvoices'),
+          duration90: aggregateKpiAcrossSegments(related, 'duration90', 'duration90'),
         }
       : evaluateSegment(seg.counts, related[0]?.targets ?? null)
     return {
@@ -484,6 +546,7 @@ export function computeEmployeeKpi(invoices = [], {
       advanced: aggregateKpiAcrossSegments(policySegments, 'advanced', 'advanced'),
       combo: aggregateKpiAcrossSegments(policySegments, 'combo', 'combo'),
       requested: aggregateKpiAcrossSegments(policySegments, 'requested', 'requestedInvoices'),
+      duration90: aggregateKpiAcrossSegments(policySegments, 'duration90', 'duration90'),
     },
     aggregateAlgorithm: 'per-segment-obligation',
   }
@@ -549,6 +612,7 @@ export function computeScopeKpi(invoices = [], options = {}) {
         advanced: empModels.filter((m) => m.overall.kpis.advanced.status === KPI_STATUS.MET).length,
         combo: empModels.filter((m) => m.overall.kpis.combo.status === KPI_STATUS.MET).length,
         requested: empModels.filter((m) => m.overall.kpis.requested.status === KPI_STATUS.MET).length,
+        duration90: empModels.filter((m) => m.overall.kpis.duration90?.status === KPI_STATUS.MET).length,
       },
     }
   })
@@ -564,6 +628,7 @@ export function computeScopeKpi(invoices = [], options = {}) {
         addon: systemCounts.main ? systemCounts.addon / systemCounts.main : null,
         advanced: systemCounts.main ? systemCounts.advanced / systemCounts.main : null,
         combo: systemCounts.main ? systemCounts.combo / systemCounts.main : null,
+        duration90: systemCounts.main ? systemCounts.duration90 / systemCounts.main : null,
         requested: systemCounts.totalInvoices
           ? systemCounts.requestedInvoices / systemCounts.totalInvoices
           : null,
@@ -573,6 +638,7 @@ export function computeScopeKpi(invoices = [], options = {}) {
         advanced: employees.filter((m) => m.overall.kpis.advanced.status === KPI_STATUS.MET).length,
         combo: employees.filter((m) => m.overall.kpis.combo.status === KPI_STATUS.MET).length,
         requested: employees.filter((m) => m.overall.kpis.requested.status === KPI_STATUS.MET).length,
+        duration90: employees.filter((m) => m.overall.kpis.duration90?.status === KPI_STATUS.MET).length,
       },
       employeeCount: employees.length,
       missingTotals: {
@@ -580,6 +646,7 @@ export function computeScopeKpi(invoices = [], options = {}) {
         advanced: employees.reduce((s, m) => s + (m.overall.kpis.advanced.missing || 0), 0),
         combo: employees.reduce((s, m) => s + (m.overall.kpis.combo.missing || 0), 0),
         requested: employees.reduce((s, m) => s + (m.overall.kpis.requested.missing || 0), 0),
+        duration90: employees.reduce((s, m) => s + (m.overall.kpis.duration90?.missing || 0), 0),
       },
     },
     branches,
@@ -595,6 +662,12 @@ export function validatePolicyTargets(targets = {}) {
     const v = Number(targets[key])
     if (!Number.isFinite(v) || v < 0 || v > 1) {
       return { ok: false, error: `${key} must be decimal in [0, 1], got ${targets[key]}` }
+    }
+  }
+  if (targets.duration90 != null && targets.duration90 !== '') {
+    const v = Number(targets.duration90)
+    if (!Number.isFinite(v) || v < 0 || v > 1) {
+      return { ok: false, error: `duration90 must be decimal in [0, 1], got ${targets.duration90}` }
     }
   }
   return { ok: true }

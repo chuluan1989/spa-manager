@@ -90,6 +90,7 @@ export function buildEmployeeKpiDetailExportBundle(row, {
       combo: filterKpiServiceLineRows(serviceLines, 'combo'),
       advanced: filterKpiServiceLineRows(serviceLines, 'advanced'),
       requested: filterKpiServiceLineRows(serviceLines, 'requested'),
+      duration90: filterKpiServiceLineRows(serviceLines, 'duration90'),
     },
     /** Snapshot parity — copy từ engine, không tính lại. */
     parity: {
@@ -97,6 +98,7 @@ export function buildEmployeeKpiDetailExportBundle(row, {
       addon: row.counts?.addon ?? 0,
       advanced: row.counts?.advanced ?? 0,
       combo: row.counts?.combo ?? 0,
+      duration90: row.counts?.duration90 ?? 0,
       totalInvoices: row.counts?.totalInvoices ?? 0,
       requestedInvoices: row.counts?.requestedInvoices ?? 0,
       rates: Object.fromEntries(cards.map((c) => [c.key, c.rate])),
@@ -137,11 +139,11 @@ function linesMatrix(rows) {
 }
 
 function policyMatrix(bundle) {
-  const rows = [['Chi nhánh phục vụ', 'Policy', 'Nguồn', 'Hiệu lực', 'Target DV phụ/CS/Combo/YC', 'MAIN', 'ADDON', 'ADV', 'COMBO', 'HĐ', 'YC']]
+  const rows = [['Chi nhánh phục vụ', 'Policy', 'Nguồn', 'Hiệu lực', 'Target DV phụ/CS/Combo/YC/90', 'MAIN', 'ADDON', 'ADV', 'COMBO', '90\'', 'HĐ', 'YC']]
   for (const seg of bundle.policySegments) {
     const t = seg.targets
     const targetLabel = t
-      ? `${formatTargetPercent(t.addon)} / ${formatTargetPercent(t.advanced)} / ${formatTargetPercent(t.combo)} / ${formatTargetPercent(t.requested)}`
+      ? `${formatTargetPercent(t.addon)} / ${formatTargetPercent(t.advanced)} / ${formatTargetPercent(t.combo)} / ${formatTargetPercent(t.requested)}${t.duration90 != null ? ` / ${formatTargetPercent(t.duration90)}` : ''}`
       : 'Chưa có chính sách KPI kỳ này'
     rows.push([
       seg.servingBranchName,
@@ -153,6 +155,7 @@ function policyMatrix(bundle) {
       seg.counts?.addon ?? 0,
       seg.counts?.advanced ?? 0,
       seg.counts?.combo ?? 0,
+      seg.counts?.duration90 ?? 0,
       seg.counts?.totalInvoices ?? 0,
       seg.counts?.requestedInvoices ?? 0,
     ])
@@ -189,6 +192,7 @@ export async function exportEmployeeKpiDetailExcel(bundle) {
     ['Tổng ADDON', bundle.counts.addon],
     ['Tổng ADVANCED', bundle.counts.advanced],
     ['Tổng COMBO', bundle.counts.combo],
+    ['Tổng 90 phút', bundle.counts.duration90 || 0],
     ['Tổng HĐ', bundle.counts.totalInvoices],
     ['Khách yêu cầu', bundle.counts.requestedInvoices],
     [],
@@ -210,6 +214,7 @@ export async function exportEmployeeKpiDetailExcel(bundle) {
   addSheet('DV phu', linesMatrix(bundle.sheets.addon))
   addSheet('Combo', linesMatrix(bundle.sheets.combo))
   addSheet('Chuyen sau', linesMatrix(bundle.sheets.advanced))
+  addSheet('90 phut', linesMatrix(bundle.sheets.duration90))
   addSheet('Khach yeu cau', linesMatrix(bundle.sheets.requested))
 
   const buffer = await wb.xlsx.writeBuffer()
@@ -237,7 +242,7 @@ export function exportEmployeeKpiDetailPdf(bundle) {
   const policyRows = bundle.policySegments.map((seg) => {
     const t = seg.targets
     const targetLabel = t
-      ? `${Math.round(t.addon * 100)}% / ${Math.round(t.advanced * 100)}% / ${Math.round(t.combo * 100)}% / ${Math.round(t.requested * 100)}%`
+      ? `${Math.round(t.addon * 100)}% / ${Math.round(t.advanced * 100)}% / ${Math.round(t.combo * 100)}% / ${Math.round(t.requested * 100)}%${t.duration90 != null ? ` / ${Math.round(t.duration90 * 100)}%` : ''}`
       : 'Chưa có chính sách KPI kỳ này'
     return `<tr>
       <td>${seg.servingBranchName}</td>
@@ -265,7 +270,7 @@ export function exportEmployeeKpiDetailPdf(bundle) {
     <p><strong>Chi nhánh phục vụ:</strong> ${(meta.servingBranchNames || []).join(', ') || '—'}</p>
     <p><strong>Trạng thái:</strong> ${meta.statusLabel} · ${meta.scoreLabel}</p>
     <h2>Tổng quan KPI</h2>
-    <p>MAIN ${bundle.counts.main} · ADDON ${bundle.counts.addon} · ADV ${bundle.counts.advanced} · COMBO ${bundle.counts.combo} · HĐ ${bundle.counts.totalInvoices} · YC ${bundle.counts.requestedInvoices}</p>
+    <p>MAIN ${bundle.counts.main} · ADDON ${bundle.counts.addon} · ADV ${bundle.counts.advanced} · COMBO ${bundle.counts.combo} · 90' ${bundle.counts.duration90 || 0} · HĐ ${bundle.counts.totalInvoices} · YC ${bundle.counts.requestedInvoices}</p>
     <table>
       <thead><tr><th>KPI</th><th>Thực tế</th><th>Tỷ lệ</th><th>Mục tiêu</th><th>Còn thiếu</th><th>Kết quả</th></tr></thead>
       <tbody>${cardRows}</tbody>

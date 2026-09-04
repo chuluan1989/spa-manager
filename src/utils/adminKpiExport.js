@@ -9,6 +9,7 @@ function exportRows(rows = []) {
     const advanced = formatAdminKpiCell(row.cards.advanced)
     const combo = formatAdminKpiCell(row.cards.combo)
     const requested = formatAdminKpiCell(row.cards.requested)
+    const duration90 = formatAdminKpiCell(row.cards.duration90)
     return {
       employeeName: row.employeeName,
       homeBranch: row.homeBranchName,
@@ -35,6 +36,11 @@ function exportRows(rows = []) {
       requestedTarget: requested.target,
       requestedMissing: requested.missing,
       requestedStatus: requested.status,
+      duration90Count: row.counts.duration90 || 0,
+      duration90Rate: duration90.rate,
+      duration90Target: duration90.target,
+      duration90Missing: duration90.missing,
+      duration90Status: duration90.status,
       score: row.scoreLabel,
       status: row.rowStatusLabel,
     }
@@ -67,6 +73,11 @@ const HEADERS = [
   'Mục tiêu YC',
   'Còn thiếu YC',
   'TT YC',
+  '90 phút',
+  'Tỷ lệ 90 phút',
+  'Mục tiêu 90 phút',
+  'Còn thiếu 90 phút',
+  'TT 90 phút',
   'Kết quả',
   'Trạng thái',
 ]
@@ -101,6 +112,11 @@ function toMatrix(rows) {
       r.requestedTarget,
       r.requestedMissing,
       r.requestedStatus,
+      r.duration90Count,
+      r.duration90Rate,
+      r.duration90Target,
+      r.duration90Missing,
+      r.duration90Status,
       r.score,
       r.status,
     ]),
