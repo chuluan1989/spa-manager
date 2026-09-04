@@ -2,8 +2,8 @@ import { COMMISSION } from './services'
 
 const C = COMMISSION
 
-/** Bảng giá Trạm Spa — CN1 Cần Thơ (4 nhóm: Combo, Massage Body, Gội đầu, Dịch vụ khác). */
-export const TRAM_SPA_CATALOG_VERSION = 1
+/** Bảng giá Trạm Spa — hiệu lực nghiệp vụ từ 2026-09-01. */
+export const TRAM_SPA_CATALOG_VERSION = 2
 
 export const TRAM_SPA_SERVICE_CATALOG = {
   version: TRAM_SPA_CATALOG_VERSION,
@@ -14,16 +14,16 @@ export const TRAM_SPA_SERVICE_CATALOG = {
       services: [
         {
           id: 'combo-1',
-          name: 'Combo 1',
+          name: "Combo Body 60' + Gội 30'",
           durationMinutes: 90,
-          price: 220000,
+          price: 240000,
           commissionPercent: C.TEN,
         },
         {
           id: 'combo-2',
-          name: 'Combo 2',
+          name: "Combo Body 90' + Gội 30'",
           durationMinutes: 120,
-          price: 260000,
+          price: 280000,
           commissionPercent: C.TEN,
         },
       ],
@@ -37,8 +37,8 @@ export const TRAM_SPA_SERVICE_CATALOG = {
           name: 'Body',
           commissionPercent: C.NONE,
           variants: [
-            { id: 'body-60', durationMinutes: 60, price: 160000 },
-            { id: 'body-90', durationMinutes: 90, price: 200000 },
+            { id: 'body-60', durationMinutes: 60, price: 180000 },
+            { id: 'body-90', durationMinutes: 90, price: 220000, commissionPercent: C.TEN },
           ],
         },
         {
@@ -46,7 +46,7 @@ export const TRAM_SPA_SERVICE_CATALOG = {
           name: 'Foot',
           commissionPercent: C.NONE,
           variants: [
-            { id: 'foot', durationMinutes: 60, price: 150000 },
+            { id: 'foot', durationMinutes: 60, price: 180000 },
           ],
         },
         {
@@ -54,8 +54,16 @@ export const TRAM_SPA_SERVICE_CATALOG = {
           name: 'Cổ Vai Gáy',
           commissionPercent: C.NONE,
           variants: [
-            { id: 'co-vai-gay', durationMinutes: 60, price: 150000 },
+            { id: 'co-vai-gay', durationMinutes: 60, price: 180000 },
           ],
+        },
+      ],
+      services: [
+        {
+          id: 'massage-thai',
+          name: 'Massage Thái',
+          price: 350000,
+          commissionPercent: C.TWENTY,
         },
       ],
     },
@@ -64,7 +72,7 @@ export const TRAM_SPA_SERVICE_CATALOG = {
       name: 'GỘI ĐẦU',
       services: [
         { id: 'goi-sach', name: 'Gội sạch', durationMinutes: 30, price: 60000, commissionPercent: C.TWENTY },
-        { id: 'goi-duong-sinh', name: 'Gội dưỡng sinh', durationMinutes: 60, price: 120000, commissionPercent: C.TWENTY },
+        { id: 'goi-duong-sinh', name: 'Gội dưỡng sinh', durationMinutes: 60, price: 130000, commissionPercent: C.TWENTY },
       ],
     },
     {

@@ -70,6 +70,11 @@ export function resolveOfficialCatalogCommissionPercent(branchId, durationId, se
   const hay = haystack(durationId, serviceName)
 
   if (TIERED_COMMISSION_SYNC_BRANCH_IDS.includes(branchId)) {
+    // Trạm Spa từ 01/09/2026: Body 90 = 10%, Massage Thái = 20% (gắn catalog, không fallback).
+    if (branchId === 'tram-spa') {
+      if (id === 'body-90' || isBody90(hay)) return { percent: 10 }
+      if (id === 'massage-thai' || /massage[\s_-]*thai/.test(hay)) return { percent: 20 }
+    }
     if (TIERED_ZERO_IDS.has(id) || isBody60(hay) || isBody75(hay) || isBody90(hay) || isCvg(hay) || isFoot(hay)) {
       return { percent: 0 }
     }

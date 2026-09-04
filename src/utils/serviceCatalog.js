@@ -13,6 +13,7 @@ export { isGiaLaiCatalogBranch, GIA_LAI_CATALOG_BRANCH_IDS, isGroupedCatalogBran
 
 export function formatCatalogServiceName(baseName, durationMinutes) {
   if (!durationMinutes) return baseName
+  if (String(baseName).includes("'")) return baseName
   return `${baseName} ${durationMinutes}'`
 }
 
@@ -43,17 +44,21 @@ function normalizeFlatService({
 }
 
 function flattenFamily(group, family) {
-  const commission = family.commissionPercent ?? 0
-  return (family.variants ?? []).map((variant) => normalizeFlatService({
-    id: variant.id,
-    name: family.name,
-    price: variant.price,
-    durationMinutes: variant.durationMinutes,
-    commissionPercent: commission,
-    groupId: group.id,
-    groupName: group.name,
-    familyId: family.id,
-  }))
+  return (family.variants ?? []).map((variant) => {
+    const variantPct = Number(variant.commissionPercent)
+    return normalizeFlatService({
+      id: variant.id,
+      name: family.name,
+      price: variant.price,
+      durationMinutes: variant.durationMinutes,
+      commissionPercent: Number.isFinite(variantPct)
+        ? variantPct
+        : (family.commissionPercent ?? 0),
+      groupId: group.id,
+      groupName: group.name,
+      familyId: family.id,
+    })
+  })
 }
 
 function flattenServiceEntry(group, entry) {

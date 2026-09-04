@@ -119,9 +119,12 @@ function collectGroupedPrices(catalog) {
   for (const group of catalog.groups ?? []) {
     for (const family of group.families ?? []) {
       for (const variant of family.variants ?? []) {
+        const variantPct = Number(variant.commissionPercent)
         prices[variant.id] = {
           price: Number(variant.price) || 0,
-          commissionPercent: Number(family.commissionPercent) || 0,
+          commissionPercent: Number.isFinite(variantPct)
+            ? variantPct
+            : Number(family.commissionPercent) || 0,
         }
       }
     }

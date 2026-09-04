@@ -2749,19 +2749,27 @@ test('branch pricing isolation: mỗi chi nhánh có bảng giá riêng, không 
   assert.equal(tramGroups[3].name, 'DỊCH VỤ KHÁC')
 
   const tramServices = getActiveServicesForBranch('tram-spa')
-  assert.equal(tramServices.find((s) => s.id === 'body-60')?.price, 160000)
-  assert.equal(tramServices.find((s) => s.id === 'combo-1')?.price, 220000)
+  assert.equal(tramServices.find((s) => s.id === 'body-60')?.price, 180000)
+  assert.equal(tramServices.find((s) => s.id === 'body-90')?.price, 220000)
+  assert.equal(tramServices.find((s) => s.id === 'body-90')?.commissionPercent, 10)
+  assert.equal(tramServices.find((s) => s.id === 'combo-1')?.price, 240000)
   assert.equal(tramServices.find((s) => s.id === 'goi-sach')?.price, 60000)
   assert.equal(tramServices.find((s) => s.id === 'dap-thuoc')?.price, 30000)
+  assert.equal(tramServices.find((s) => s.id === 'massage-thai')?.price, 350000)
+  assert.equal(tramServices.find((s) => s.id === 'massage-thai')?.commissionPercent, 20)
   assert.ok(!tramServices.some((s) => s.id.startsWith('gl-')), 'Trạm Spa không được lẫn catalog Gia Lai')
 
   const tramTotals = calculateInvoiceTotals(['combo-1', 'body-60'], 0, 'tram-spa', [], '', '')
-  assert.equal(tramTotals.originalServiceTotal, 220000 + 160000)
+  assert.equal(tramTotals.originalServiceTotal, 240000 + 180000)
+  const body90Totals = calculateInvoiceTotals(['body-90'], 0, 'tram-spa', [], '', '')
+  assert.equal(body90Totals.commission, 22000)
+  const thaiTotals = calculateInvoiceTotals(['massage-thai'], 0, 'tram-spa', [], '', '')
+  assert.equal(thaiTotals.commission, 70000)
 
   setBranchDurationPrice('tram-spa', 'body-60', { price: 355000, commissionPercent: 0 }, { log: false, skipOnlineGuard: true, skipRemote: true })
   const updated = calculateInvoiceTotals(['body-60'], 0, 'tram-spa', [], '', '')
   assert.equal(updated.originalServiceTotal, 355000, 'Đổi giá chi nhánh phải cập nhật hóa đơn ngay')
-  setBranchDurationPrice('tram-spa', 'body-60', { price: 160000, commissionPercent: 0 }, { log: false, skipOnlineGuard: true, skipRemote: true })
+  setBranchDurationPrice('tram-spa', 'body-60', { price: 180000, commissionPercent: 0 }, { log: false, skipOnlineGuard: true, skipRemote: true })
 })
 
 test('service catalog v2: admin thêm nhóm và giá có hiệu lực trên hóa đơn', async () => {
