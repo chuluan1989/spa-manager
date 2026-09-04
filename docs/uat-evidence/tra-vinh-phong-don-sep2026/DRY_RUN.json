@@ -1,0 +1,67 @@
+{
+  "mode": "DRY-RUN",
+  "generatedAt": "2026-09-04T03:55:35.636Z",
+  "ok": true,
+  "gates": {
+    "catalog_phong_don_id_unique": {
+      "ok": true,
+      "durationId": "phong-don",
+      "serviceId": "tra-vinh-svc-phong-don",
+      "serviceName": "Phòng đơn",
+      "nameHits": [
+        "tra-vinh-svc-phong-don:Phòng đơn"
+      ]
+    },
+    "catalog_price_row_exists": {
+      "ok": true,
+      "priceRow": {
+        "branch_id": "tra-vinh",
+        "duration_id": "phong-don",
+        "price": 39000,
+        "commission_percent": 20,
+        "updated_at": "2026-09-04T03:55:11.01+00:00"
+      }
+    },
+    "unmapped_zero": {
+      "ok": true,
+      "unmapped": 0
+    },
+    "ambiguous_zero": {
+      "ok": true,
+      "ambiguous": 0
+    },
+    "approved_lock_zero": {
+      "ok": true,
+      "locked": []
+    },
+    "other_branches_not_in_write_set": {
+      "ok": true,
+      "otherPhongDonCount": 5,
+      "note": "Chỉ đọc; không ghi CN khác"
+    }
+  },
+  "catalog": {
+    "durationId": "phong-don",
+    "serviceId": "tra-vinh-svc-phong-don",
+    "name": "Phòng đơn",
+    "oldPrice": 39000,
+    "newPrice": 39000,
+    "commissionPercentUnchanged": 20
+  },
+  "invoices": {
+    "scanned": 20,
+    "affectedInvoices": 0,
+    "affectedLines": 0,
+    "currentPrices": [
+      39000
+    ],
+    "serviceTotalBefore": 0,
+    "serviceTotalAfter": 0,
+    "commissionBefore": 0,
+    "commissionAfter": 0,
+    "items": [],
+    "serviceDelta": 0,
+    "commissionDelta": 0
+  },
+  "payroll": []
+}

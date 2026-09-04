@@ -1,0 +1,9 @@
+{
+  "catalog": {
+    "branchId": "tra-vinh",
+    "durationId": "phong-don",
+    "price": 39000,
+    "percent": 20
+  },
+  "invoices": []
+}

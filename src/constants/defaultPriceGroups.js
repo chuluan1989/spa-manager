@@ -56,3 +56,8 @@ export const DEFAULT_PRICE_GROUPS = {
     { id: 'phong-don', name: 'Phụ thu phòng đơn', price: 40000, commissionPercent: C.TWENTY },
   ],
 }
+
+/** Trà Vinh — Phòng đơn 39.000đ từ 2026-09-01. Không đổi STANDARD các CN khác. */
+export const TRA_VINH_PRICE_OVERRIDES = {
+  'phong-don': 39000,
+}

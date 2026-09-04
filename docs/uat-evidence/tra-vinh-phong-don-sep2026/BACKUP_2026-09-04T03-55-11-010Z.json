@@ -1,0 +1,24 @@
+{
+  "catalog": {
+    "branchId": "tra-vinh",
+    "durationId": "phong-don",
+    "price": 39000,
+    "percent": 20
+  },
+  "invoices": [
+    {
+      "id": "7786cc4f-7161-4802-b558-a8a5b916fb21",
+      "date": "2026-09-01",
+      "serviceTotal": 297000,
+      "commission": 59400,
+      "total": 400000
+    },
+    {
+      "id": "aec0c44d-b3ef-4795-a325-a7585eebdece",
+      "date": "2026-09-03",
+      "serviceTotal": 388000,
+      "commission": 111623,
+      "total": 700000
+    }
+  ]
+}

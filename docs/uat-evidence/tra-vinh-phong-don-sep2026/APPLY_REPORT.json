@@ -1,0 +1,103 @@
+{
+  "mode": "APPLY",
+  "generatedAt": "2026-09-04T03:55:09.353Z",
+  "ok": true,
+  "gates": {
+    "catalog_phong_don_id_unique": {
+      "ok": true,
+      "durationId": "phong-don",
+      "serviceId": "tra-vinh-svc-phong-don",
+      "serviceName": "Phòng đơn",
+      "nameHits": [
+        "tra-vinh-svc-phong-don:Phòng đơn"
+      ]
+    },
+    "catalog_price_row_exists": {
+      "ok": true,
+      "priceRow": {
+        "branch_id": "tra-vinh",
+        "duration_id": "phong-don",
+        "price": 39000,
+        "commission_percent": 20,
+        "updated_at": "2026-09-04T03:52:51.742+00:00"
+      }
+    },
+    "unmapped_zero": {
+      "ok": true,
+      "unmapped": 0
+    },
+    "ambiguous_zero": {
+      "ok": true,
+      "ambiguous": 0
+    },
+    "approved_lock_zero": {
+      "ok": true,
+      "locked": []
+    },
+    "other_branches_not_in_write_set": {
+      "ok": true,
+      "otherPhongDonCount": 5,
+      "note": "Chỉ đọc; không ghi CN khác"
+    }
+  },
+  "catalog": {
+    "durationId": "phong-don",
+    "serviceId": "tra-vinh-svc-phong-don",
+    "name": "Phòng đơn",
+    "oldPrice": 39000,
+    "newPrice": 39000,
+    "commissionPercentUnchanged": 20
+  },
+  "invoices": {
+    "scanned": 20,
+    "affectedInvoices": 2,
+    "affectedLines": 2,
+    "currentPrices": [
+      47404,
+      39000,
+      47769
+    ],
+    "serviceTotalBefore": 685000,
+    "serviceTotalAfter": 667827,
+    "commissionBefore": 171023,
+    "commissionAfter": 167588,
+    "items": [
+      {
+        "id": "7786cc4f-7161-4802-b558-a8a5b916fb21",
+        "date": "2026-09-01",
+        "employeeName": "Diễm Trinh",
+        "lineHits": 1,
+        "serviceTotalBefore": 297000,
+        "serviceTotalAfter": 288596,
+        "commissionBefore": 59400,
+        "commissionAfter": 57719
+      },
+      {
+        "id": "aec0c44d-b3ef-4795-a325-a7585eebdece",
+        "date": "2026-09-03",
+        "employeeName": "Diễm Trinh",
+        "lineHits": 1,
+        "serviceTotalBefore": 388000,
+        "serviceTotalAfter": 379231,
+        "commissionBefore": 111623,
+        "commissionAfter": 109869
+      }
+    ],
+    "serviceDelta": -17173,
+    "commissionDelta": -3435
+  },
+  "payroll": [
+    {
+      "employeeId": "tra-vinh-diem-trinh",
+      "employeeName": "Diễm Trinh",
+      "lines": 2,
+      "commissionBefore": 19035,
+      "commissionAfter": 15600,
+      "delta": -3435
+    }
+  ],
+  "applied": {
+    "catalogPrice": 39000,
+    "invoices": 2
+  }
+}

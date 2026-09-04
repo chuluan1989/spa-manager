@@ -1,7 +1,7 @@
 import { GIA_LAI_SERVICE_CATALOG } from '../constants/giaLaiServiceCatalog'
 import { TRAM_SPA_SERVICE_CATALOG } from '../constants/tramSpaServiceCatalog'
 import { isGiaLaiCatalogBranch, isGroupedCatalogBranch } from '../constants/giaLaiBranches'
-import { DEFAULT_PRICE_GROUPS } from '../constants/defaultPriceGroups'
+import { DEFAULT_PRICE_GROUPS, TRA_VINH_PRICE_OVERRIDES } from '../constants/defaultPriceGroups'
 import { PRICE_GROUP_IDS } from '../constants/priceGroupIds'
 import { getBranchById } from './branchStorage'
 
@@ -212,8 +212,9 @@ export function buildFlatBranchCatalogPackage(branchId) {
     })
 
     const legacyOverride = legacyRecord?.overrides?.[item.id]
+    const branchPrice = branchId === 'tra-vinh' ? TRA_VINH_PRICE_OVERRIDES[item.id] : undefined
     prices[item.id] = {
-      price: Number(legacyOverride?.price ?? item.price) || 0,
+      price: Number(branchPrice ?? legacyOverride?.price ?? item.price) || 0,
       commissionPercent: Number(legacyOverride?.commissionPercent ?? item.commissionPercent) || 0,
     }
   })

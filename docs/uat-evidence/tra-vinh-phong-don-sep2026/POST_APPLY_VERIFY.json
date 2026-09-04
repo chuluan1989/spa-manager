@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-09-04T03:56:00.000Z",
+  "ok": true,
+  "catalogPrice": 39000,
+  "catalogPercent": 20,
+  "remainingWrongPriceLines": 0,
+  "phongDonLinePricesAfter": [39000],
+  "affectedInvoicesApplied": 2,
+  "affectedLinesApplied": 2,
+  "preSepUntouched": "query apply chỉ date >= 2026-09-01",
+  "otherBranchesUntouched": true
+}
