@@ -19,6 +19,21 @@ export const KPI_GROUPS = {
   UNMAPPED: 'UNMAPPED',
 }
 
+/** Home branch dùng Massage Thái làm KPI Chuyên sâu (20%). Các CN Khoẻ dùng service Chuyên sâu. */
+export const KPI_TRAM_SPA_HOME_BRANCH_ID = 'tram-spa'
+export const KPI_ADVANCED_TOKEN_KHOE = 'chuyen-sau'
+export const KPI_ADVANCED_TOKEN_TRAM = 'massage-thai'
+
+export function resolveKpiAdvancedToken(homeBranchId) {
+  return String(homeBranchId || '') === KPI_TRAM_SPA_HOME_BRANCH_ID
+    ? KPI_ADVANCED_TOKEN_TRAM
+    : KPI_ADVANCED_TOKEN_KHOE
+}
+
+export function isTramSpaKpiHome(homeBranchId) {
+  return String(homeBranchId || '') === KPI_TRAM_SPA_HOME_BRANCH_ID
+}
+
 export const KPI_STATUS = {
   MET: 'MET',
   NOT_MET: 'NOT_MET',

@@ -181,6 +181,15 @@ let live = [
 
 const { fromDate, toDate } = monthBounds('2026-08')
 
+function kpiOpts(employeeId, extra = {}) {
+  const emp = employees.find((row) => row.id === employeeId)
+  return {
+    employeeId,
+    homeBranchId: emp?.branchId || '',
+    ...extra,
+  }
+}
+
 function runThreeWay(invoices, policies, tag) {
   const admin = buildAdminKpiDashboard(invoices, {
     fromDate, toDate, policies, employees,
@@ -192,7 +201,7 @@ function runThreeWay(invoices, policies, tag) {
   )]
   const parityFails = []
   for (const employeeId of employeeIds) {
-    const empModel = computeEmployeeKpi(invoices, { employeeId, fromDate, toDate, policies })
+    const empModel = computeEmployeeKpi(invoices, kpiOpts(employeeId, { fromDate, toDate, policies }))
     const adminRow = admin.rows.find((r) => r.employeeId === employeeId)
     if (!adminRow) {
       if (empModel.overall.counts.totalInvoices === 0) continue
@@ -246,20 +255,20 @@ function runThreeWay(invoices, policies, tag) {
 // ——— 5. customerRequested pipeline ———
 {
   const base = [inv({ id: 'cr', services: [line('body-60')], customerRequested: false })]
-  let m = computeEmployeeKpi(base, { employeeId: 'emp-lyly', fromDate, toDate, policies: augPolicies })
+  let m = computeEmployeeKpi(base, kpiOpts('emp-lyly', { fromDate, toDate, policies: augPolicies }))
   let admin = buildAdminKpiDashboard(base, { fromDate, toDate, policies: augPolicies, employees })
   check('5a', 'FALSE → requested 0', m.overall.counts.requestedInvoices === 0
     && admin.rows[0].counts.requestedInvoices === 0, {})
 
   base[0] = { ...base[0], customerRequested: true }
-  m = computeEmployeeKpi(base, { employeeId: 'emp-lyly', fromDate, toDate, policies: augPolicies })
+  m = computeEmployeeKpi(base, kpiOpts('emp-lyly', { fromDate, toDate, policies: augPolicies }))
   admin = buildAdminKpiDashboard(base, { fromDate, toDate, policies: augPolicies, employees })
   check('5b', 'TRUE → requested +1 + parity', m.overall.counts.requestedInvoices === 1
     && admin.rows[0].counts.requestedInvoices === 1
     && assertParity('cr-true', m, admin.rows[0]).ok, {})
 
   base[0] = { ...base[0], customerRequested: false }
-  m = computeEmployeeKpi(base, { employeeId: 'emp-lyly', fromDate, toDate, policies: augPolicies })
+  m = computeEmployeeKpi(base, kpiOpts('emp-lyly', { fromDate, toDate, policies: augPolicies }))
   admin = buildAdminKpiDashboard(base, { fromDate, toDate, policies: augPolicies, employees })
   check('5c', 'TRUE→FALSE giảm đúng + parity', m.overall.counts.requestedInvoices === 0
     && assertParity('cr-false', m, admin.rows[0]).ok, {})
@@ -279,12 +288,12 @@ function runThreeWay(invoices, policies, tag) {
   const overlap = assertNoPolicyOverlap(policies.filter((p) => p.branchId === 'soc-trang'))
   const augInv = inv({ id: 'pol-aug', date: '2026-08-20', services: [line('body-60')] })
   const sepInv = inv({ id: 'pol-sep', date: '2026-09-05', services: [line('body-60')] })
-  const mAug = computeEmployeeKpi([augInv], {
-    employeeId: 'emp-lyly', fromDate: '2026-08-01', toDate: '2026-08-31', policies,
-  })
-  const mSep = computeEmployeeKpi([sepInv], {
-    employeeId: 'emp-lyly', fromDate: '2026-09-01', toDate: '2026-09-30', policies,
-  })
+  const mAug = computeEmployeeKpi([augInv], kpiOpts('emp-lyly', {
+    fromDate: '2026-08-01', toDate: '2026-08-31', policies,
+  }))
+  const mSep = computeEmployeeKpi([sepInv], kpiOpts('emp-lyly', {
+    fromDate: '2026-09-01', toDate: '2026-09-30', policies,
+  }))
   check('6a', 'Policy Sep fixture không overlap', overlap.ok, overlap)
   check('6b', 'Aug invoice → Aug target 0.70', mAug.policySegments[0]?.targets.addon === 0.7, mAug.policySegments)
   check('6c', 'Sep invoice → Sep target 0.80', mSep.policySegments[0]?.targets.addon === 0.8, mSep.policySegments)
@@ -294,10 +303,10 @@ function runThreeWay(invoices, policies, tag) {
 
 // ——— 7. Cross-branch ———
 {
-  const m = computeEmployeeKpi(live, { employeeId: 'emp-lyly', fromDate, toDate, policies: augPolicies })
+  const m = computeEmployeeKpi(live, kpiOpts('emp-lyly', { fromDate, toDate, policies: augPolicies }))
   const admin = buildAdminKpiDashboard(live, { fromDate, toDate, policies: augPolicies, employees })
   const row = admin.rows.find((r) => r.employeeId === 'emp-lyly')
-  check('7', 'Cross-branch: attribution employeeId, policy serving branch', row.homeBranchId === 'soc-trang'
+  check('7', 'Cross-branch: attribution employeeId, policy home branch', row.homeBranchId === 'soc-trang'
     && row.servingBranchIds.includes('tram-spa')
     && row.servingBranchIds.includes('soc-trang')
     && m.policySegments.every((s) => s.servingBranchId === 'soc-trang' || s.servingBranchId === 'tram-spa')
@@ -336,7 +345,7 @@ function runThreeWay(invoices, policies, tag) {
 
 // ——— 9. MAIN=0 ———
 {
-  const m = computeEmployeeKpi(live, { employeeId: 'emp-zero', fromDate, toDate, policies: augPolicies })
+  const m = computeEmployeeKpi(live, kpiOpts('emp-zero', { fromDate, toDate, policies: augPolicies }))
   check('9a', 'MAIN=0 ADDON>0 → INSUFFICIENT (not MET)', m.overall.counts.main === 0
     && m.overall.counts.addon > 0
     && m.overall.kpis.addon.status === KPI_STATUS.INSUFFICIENT_DATA
@@ -344,13 +353,13 @@ function runThreeWay(invoices, policies, tag) {
     && m.overall.kpis.combo.status === KPI_STATUS.INSUFFICIENT_DATA, m.overall)
   check('9b', 'MAIN=0 nhưng có HĐ → Requested vẫn tính', m.overall.counts.totalInvoices > 0
     && m.overall.kpis.requested.status !== KPI_STATUS.INSUFFICIENT_DATA, m.overall.kpis.requested)
-  const empty = computeEmployeeKpi([], { employeeId: 'emp-zero', fromDate, toDate, policies: augPolicies })
+  const empty = computeEmployeeKpi([], kpiOpts('emp-zero', { fromDate, toDate, policies: augPolicies }))
   check('9c', '0 invoice → Requested INSUFFICIENT', empty.overall.kpis.requested.status === KPI_STATUS.INSUFFICIENT_DATA, {})
 }
 
 // ——— 10. Gia Lai hard exclusion ———
 {
-  const m = computeEmployeeKpi(live, { employeeId: 'emp-lyly', fromDate, toDate, policies: augPolicies })
+  const m = computeEmployeeKpi(live, kpiOpts('emp-lyly', { fromDate, toDate, policies: augPolicies }))
   const admin = buildAdminKpiDashboard(live, { fromDate, toDate, policies: augPolicies, employees })
   const adminSrc = readFileSync(join(ROOT, 'src/pages/AdminKpi.jsx'), 'utf8')
   const empSrc = readFileSync(join(ROOT, 'src/pages/EmployeeKpi.jsx'), 'utf8')
@@ -413,7 +422,7 @@ function runThreeWay(invoices, policies, tag) {
 
 // ——— Support employee ———
 {
-  const asSupport = computeEmployeeKpi(live, { employeeId: 'emp-lyly', fromDate, toDate, policies: augPolicies })
+  const asSupport = computeEmployeeKpi(live, kpiOpts('emp-lyly', { fromDate, toDate, policies: augPolicies }))
   check('S1', 'supportEmployee không cộng KPI', !asSupport.includedInvoices.some((i) => i.invoiceId === 'sup1'), {})
 }
 

@@ -182,7 +182,7 @@ export function buildKpiServiceLineRows(includedInvoices = []) {
     const n = Math.max(services.length, classified.length, 1)
     for (let i = 0; i < n; i += 1) {
       const svc = services[i] || {}
-      const c = classified[i] || (svc.serviceId || svc.id ? classifyKpiServiceLine(svc) : null)
+      const c = classified[i] || (svc.serviceId || svc.id ? classifyKpiServiceLine(svc, { homeBranchId: inv.homeBranchId }) : null)
       if (!c && services.length === 0) {
         rows.push({
           date: inv.date,
@@ -242,7 +242,7 @@ export function buildDrillRows(includedInvoices = [], kpiKey) {
       const classified = Array.isArray(inv.classified) ? inv.classified : []
       const lines = Array.isArray(inv.services)
         ? inv.services.map((svc, idx) => {
-            const c = classified[idx] || classifyKpiServiceLine(svc)
+            const c = classified[idx] || classifyKpiServiceLine(svc, { homeBranchId: inv.homeBranchId })
             return {
               serviceId: svc.serviceId || svc.id || '',
               name: svc.serviceName || svc.name || c.token || '',

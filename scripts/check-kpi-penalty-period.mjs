@@ -42,6 +42,7 @@ const sepPolicies = KPI_SCOPE_BRANCH_IDS.map((branchId) => ({
 function kpisOf(invoices, extra = {}) {
   return computeEmployeeKpi(invoices, {
     employeeId: extra.employeeId || 'emp-a',
+    homeBranchId: extra.homeBranchId || '',
     fromDate: extra.fromDate || '2026-09-01',
     toDate: extra.toDate || '2026-09-15',
     policies: extra.policies || sepPolicies,
@@ -245,6 +246,121 @@ function check(name, pass, detail = {}) {
       && row.kpi === 0
       && row.penalty === 0,
     { kpiPenalty: row.kpiPenalty, net: row.netSalary, missing: row.kpiMissing },
+  )
+}
+
+{
+  const tramHome = { employeeId: 'emp-tram', homeBranchId: 'tram-spa' }
+  const khoeHome = { employeeId: 'emp-khoe', homeBranchId: 'soc-trang' }
+
+  const caseA = kpisOf([
+    inv({
+      id: 'a-thai',
+      employeeId: 'emp-tram',
+      branchId: 'tram-spa',
+      services: [line('body-60'), line('massage-thai')],
+    }),
+  ], tramHome)
+  check(
+    'CASE A: NV Trạm tại Trạm — Massage Thái = Advanced +1',
+    caseA.overall.counts.advanced === 1 && caseA.overall.counts.main === 1,
+    caseA.overall.counts,
+  )
+
+  const caseB = kpisOf([
+    inv({
+      id: 'b-thai',
+      employeeId: 'emp-tram',
+      branchId: 'soc-trang',
+      services: [line('body-60'), line('massage-thai')],
+    }),
+  ], tramHome)
+  check(
+    'CASE B: NV Trạm tour Khoẻ — Massage Thái vẫn Advanced +1',
+    caseB.overall.counts.advanced === 1
+      && caseB.homeBranchId === 'tram-spa'
+      && caseB.policySegments.every((s) => s.homeBranchId === 'tram-spa'),
+    caseB.overall.counts,
+  )
+
+  const caseC = kpisOf([
+    inv({
+      id: 'c-cs',
+      employeeId: 'emp-tram',
+      branchId: 'soc-trang',
+      services: [line('body-60'), line('chuyen-sau')],
+    }),
+  ], tramHome)
+  check(
+    'CASE C: NV Trạm tour Khoẻ — Chuyên sâu không phải Advanced',
+    caseC.overall.counts.advanced === 0 && caseC.overall.counts.main === 1,
+    caseC.overall.counts,
+  )
+
+  const caseD = kpisOf([
+    inv({
+      id: 'd-thai',
+      employeeId: 'emp-khoe',
+      branchId: 'tram-spa',
+      services: [line('body-60'), line('massage-thai')],
+    }),
+  ], khoeHome)
+  const caseDcs = kpisOf([
+    inv({
+      id: 'd-cs',
+      employeeId: 'emp-khoe',
+      branchId: 'tram-spa',
+      services: [line('body-60'), line('chuyen-sau')],
+    }),
+  ], khoeHome)
+  check(
+    'CASE D: NV Khoẻ tại Trạm — Massage Thái không phải Advanced; Chuyên sâu mới là Advanced',
+    caseD.overall.counts.advanced === 0 && caseDcs.overall.counts.advanced === 1,
+    { thai: caseD.overall.counts, cs: caseDcs.overall.counts },
+  )
+
+  const caseE = kpisOf([
+    inv({
+      id: 'e-home',
+      employeeId: 'emp-tram',
+      branchId: 'tram-spa',
+      services: [line('body-60')],
+    }),
+    inv({
+      id: 'e-tour',
+      employeeId: 'emp-tram',
+      branchId: 'soc-trang',
+      services: [line('body-60')],
+    }),
+  ], tramHome)
+  const perHome = kpisOf([
+    inv({
+      id: 'e-home',
+      employeeId: 'emp-tram',
+      branchId: 'tram-spa',
+      services: [line('body-60')],
+    }),
+  ], tramHome)
+  const perTour = kpisOf([
+    inv({
+      id: 'e-tour',
+      employeeId: 'emp-tram',
+      branchId: 'soc-trang',
+      services: [line('body-60')],
+    }),
+  ], tramHome)
+  const summed = (perHome.overall.kpis.advanced.missing || 0) + (perTour.overall.kpis.advanced.missing || 0)
+  check(
+    'CASE E: Cross-branch gộp employeeId trước khi missing',
+    caseE.overall.counts.main === 2
+      && caseE.servingBranchSegments.length === 2
+      && caseE.overall.kpis.advanced.missing === 1
+      && summed === 2,
+    {
+      blended: caseE.overall.kpis.advanced.missing,
+      summed,
+      algorithm: caseE.overall.aggregateAlgorithm,
+    },
   )
 }
 

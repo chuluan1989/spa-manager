@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import ErpPageHeader from '../components/erp/ErpPageHeader'
-import { canAccessEmployeeKpiPage, getCurrentUserEmployeeId, isEmployee } from '../constants/auth'
+import { canAccessEmployeeKpiPage, getCurrentUserBranch, getCurrentUserEmployeeId, isEmployee } from '../constants/auth'
 import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import { fetchKpiBranchPolicies } from '../repositories/kpiPolicyRepository'
-import { getBranchName } from '../utils/branchStorage'
+import { getEmployeeById } from '../utils/employeeStorage'
 import { computeEmployeeKpi } from '../utils/employeeKpiEngine'
 import {
   buildKpiCardModel,
@@ -173,6 +173,7 @@ function DrillPanel({ filterKey, rows, onClose, onFilter }) {
 export default function EmployeeKpi() {
   const syncVersion = useDataSyncVersion()
   const employeeId = getCurrentUserEmployeeId()
+  const homeBranchId = getEmployeeById(employeeId)?.branchId || getCurrentUserBranch() || ''
   const [month, setMonth] = useState(() => currentMonthYm())
   const [cycle, setCycle] = useState(() => getDefaultPayCycleForVietnamDate())
   const [policies, setPolicies] = useState([])
@@ -232,11 +233,12 @@ export default function EmployeeKpi() {
     if (!employeeId) return null
     return computeEmployeeKpi(invoices, {
       employeeId,
+      homeBranchId,
       fromDate: monthRange.fromDate,
       toDate: monthRange.toDate,
       policies,
     })
-  }, [employeeId, invoices, monthRange.fromDate, monthRange.toDate, policies])
+  }, [employeeId, homeBranchId, invoices, monthRange.fromDate, monthRange.toDate, policies])
 
   const summary = useMemo(() => summarizeOverallKpis(model?.overall), [model])
   const allLines = useMemo(
@@ -344,7 +346,7 @@ export default function EmployeeKpi() {
       <section className="emp-kpi-branches">
         <h2>Chi tiết theo chi nhánh phục vụ</h2>
         <p className="emp-kpi-branches__hint">
-          Policy theo chi nhánh phục vụ + ngày HĐ. KPI phạt gộp mọi CN theo employeeId trong kỳ — không cộng missing từng CN.
+          Policy theo chi nhánh nhà của NV + ngày HĐ. Chuyên sâu: Trạm = Massage Thái, CN Khoẻ = Chuyên sâu. KPI phạt gộp mọi CN theo employeeId trong kỳ — không cộng missing từng CN.
         </p>
         {(model?.servingBranchSegments || []).length === 0 && (
           <p className="emp-kpi-empty">Chưa có hóa đơn KPI trong kỳ này.</p>

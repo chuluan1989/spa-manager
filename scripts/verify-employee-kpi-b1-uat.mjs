@@ -89,6 +89,22 @@ for (const [id, name, token, group] of CLASS_CASES) {
 }
 
 {
+  const tramThai = classifyKpiServiceLine(line('massage-thai'), { homeBranchId: 'tram-spa' })
+  const tramCs = classifyKpiServiceLine(line('chuyen-sau'), { homeBranchId: 'tram-spa' })
+  const khoeThai = classifyKpiServiceLine(line('massage-thai'), { homeBranchId: 'soc-trang' })
+  const khoeCs = classifyKpiServiceLine(line('chuyen-sau'), { homeBranchId: 'soc-trang' })
+  check(
+    '5h',
+    'Advanced theo home NV: Trạm=Massage Thái, Khoẻ=Chuyên sâu',
+    tramThai.group === 'ADVANCED' && tramThai.token === 'massage-thai'
+      && tramCs.group === 'UNMAPPED'
+      && khoeThai.group === 'UNMAPPED'
+      && khoeCs.group === 'ADVANCED' && khoeCs.token === 'chuyen-sau',
+    { tramThai, tramCs, khoeThai, khoeCs },
+  )
+}
+
+{
   const legacy = classifyKpiServiceLine({ serviceId: 'body', serviceName: "Body 60'" })
   const blocked = classifyKpiServiceLine({ serviceId: 'mystery-svc', serviceName: "Body 60'" })
   check('1b', 'Legacy id body + name → MAIN; id lạ không fallback name', legacy.group === 'MAIN' && legacy.token === 'body-60' && blocked.group === 'UNMAPPED', { legacy, blocked })

@@ -623,8 +623,9 @@ function formatLineContribution(line) {
 function formatPolicyLabel(seg) {
   if (!seg) return '—'
   if (!seg.targets) return 'Chưa có chính sách KPI'
+  const policyBranch = seg.homeBranchId || seg.servingBranchId
   return [
-    getBranchName(seg.servingBranchId) || seg.servingBranchId,
+    getBranchName(policyBranch) || policyBranch,
     `DV phụ ${decimalToPercentInput(seg.targets.addon)}%`,
     `CS ${decimalToPercentInput(seg.targets.advanced)}%`,
     `Combo ${decimalToPercentInput(seg.targets.combo)}%`,

@@ -85,7 +85,14 @@ export function buildAdminKpiDashboard(invoices = [], {
 
   const rows = [...byEmployee.entries()].map(([employeeId, list]) => {
     const emp = empIndex.get(employeeId) || getEmployeeById(employeeId) || {}
-    const model = computeEmployeeKpi(list, { employeeId, fromDate, toDate, policies })
+    const model = computeEmployeeKpi(list, {
+      employeeId,
+      fromDate,
+      toDate,
+      policies,
+      homeBranchId: emp.branchId || '',
+      employee: emp,
+    })
     return buildAdminEmployeeKpiRow(model, {
       homeBranchId: emp.branchId || '',
       homeBranchName: getBranchName(emp.branchId || '') || emp.branchName || '',

@@ -92,6 +92,8 @@ function computeRowKpiPenalty(employeeId, invoices, {
   toDate = '',
   month = '',
   cycle = '',
+  homeBranchId = '',
+  employee = null,
 } = {}) {
   const empty = {
     kpiPenalty: 0,
@@ -108,6 +110,8 @@ function computeRowKpiPenalty(employeeId, invoices, {
       fromDate: periodFrom,
       toDate: periodTo,
       policies: kpiPolicies,
+      homeBranchId,
+      employee,
     })
     return computeKpiPenaltyFromModel(model, { fromDate: periodFrom, toDate: periodTo })
   }
@@ -267,6 +271,8 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     toDate: options.toDate ?? '',
     month: options.month ?? '',
     cycle: options.cycle ?? '',
+    homeBranchId: employee.branchId ?? '',
+    employee,
   })
   const kpiPenalty = kpiResult.kpiPenalty || 0
 

@@ -1,4 +1,11 @@
-import { KPI_GROUPS, KPI_SCOPE_BRANCH_IDS, isKpiExcludedBranch } from '../constants/kpiPolicy'
+import {
+  KPI_ADVANCED_TOKEN_KHOE,
+  KPI_ADVANCED_TOKEN_TRAM,
+  KPI_GROUPS,
+  KPI_SCOPE_BRANCH_IDS,
+  isKpiExcludedBranch,
+  resolveKpiAdvancedToken,
+} from '../constants/kpiPolicy'
 
 export const KPI_MAIN_TOKENS = ['body-60', 'body-75', 'body-90', 'co-vai-gay', 'foot']
 /** MAIN 90 phút theo catalog 6 CN (durationMinutes === 90, duration_id). Không gồm Combo / CS / Thái. */
@@ -40,17 +47,21 @@ function normName(value) {
  */
 const LEGACY_AMBIGUOUS_TOKENS = new Set(['body'])
 
+function isKnownKpiToken(token) {
+  return Boolean(TOKEN_TO_GROUP[token]) || token === KPI_ADVANCED_TOKEN_TRAM
+}
+
 export function normalizeKpiServiceToken(rawId) {
   const id = String(rawId ?? '').trim().toLowerCase()
   if (!id) return ''
   if (id.startsWith('gl-') || id.includes('gia-lai')) return ''
-  if (TOKEN_TO_GROUP[id]) return id
+  if (isKnownKpiToken(id)) return id
   if (id.includes('-svc-')) {
     const tail = id.split('-svc-').pop()
-    if (TOKEN_TO_GROUP[tail]) return tail
+    if (isKnownKpiToken(tail)) return tail
     if (LEGACY_AMBIGUOUS_TOKENS.has(tail)) return ''
   }
-  for (const token of ALL_KPI_SERVICE_TOKENS) {
+  for (const token of [...ALL_KPI_SERVICE_TOKENS, KPI_ADVANCED_TOKEN_TRAM]) {
     if (id === token || id.endsWith(`-${token}`)) return token
   }
   return ''
@@ -63,26 +74,43 @@ function isLegacyAmbiguousServiceId(rawId) {
   return false
 }
 
-export function classifyKpiServiceLine(line = {}) {
+function applyHomeAdvancedMapping(classified, homeBranchId) {
+  const token = classified?.token || ''
+  if (token !== KPI_ADVANCED_TOKEN_KHOE && token !== KPI_ADVANCED_TOKEN_TRAM) {
+    return classified
+  }
+  const advancedToken = resolveKpiAdvancedToken(homeBranchId)
+  if (token === advancedToken) {
+    return { ...classified, group: KPI_GROUPS.ADVANCED }
+  }
+  return {
+    ...classified,
+    group: KPI_GROUPS.UNMAPPED,
+    reason: 'advanced-home-mismatch',
+  }
+}
+
+export function classifyKpiServiceLine(line = {}, options = {}) {
+  const homeBranchId = options.homeBranchId || line.homeBranchId || ''
   const rawId = line.serviceId || line.id || line.durationId || ''
   const name = line.serviceName || line.name || ''
   const tokenFromId = normalizeKpiServiceToken(rawId)
   if (tokenFromId) {
-    return {
-      group: TOKEN_TO_GROUP[tokenFromId],
+    return applyHomeAdvancedMapping({
+      group: TOKEN_TO_GROUP[tokenFromId] || KPI_GROUPS.UNMAPPED,
       token: tokenFromId,
       source: 'serviceId',
-    }
+    }, homeBranchId)
   }
   const allowName = !String(rawId).trim() || isLegacyAmbiguousServiceId(rawId)
   if (allowName) {
     const tokenFromName = classifyByNameFallback(name)
     if (tokenFromName) {
-      return {
-        group: TOKEN_TO_GROUP[tokenFromName],
+      return applyHomeAdvancedMapping({
+        group: TOKEN_TO_GROUP[tokenFromName] || KPI_GROUPS.UNMAPPED,
         token: tokenFromName,
         source: String(rawId).trim() ? 'legacyId+name' : 'nameFallback',
-      }
+      }, homeBranchId)
     }
   }
   return {
@@ -99,7 +127,8 @@ function classifyByNameFallback(name) {
   if (/\bcombo 1\b|\bcombo-1\b/.test(hay)) return 'combo-1'
   if (/\bcombo 2\b|\bcombo-2\b/.test(hay)) return 'combo-2'
   if (/\bcombo 3\b|\bcombo-3\b/.test(hay)) return 'combo-3'
-  if (/\bchuyen sau\b/.test(hay) && !/\bgoi\b/.test(hay)) return 'chuyen-sau'
+  if (/\bmassage thai\b/.test(hay)) return KPI_ADVANCED_TOKEN_TRAM
+  if (/\bchuyen sau\b/.test(hay) && !/\bgoi\b/.test(hay)) return KPI_ADVANCED_TOKEN_KHOE
   if (/\bbody 60\b|\bmassage body 60/.test(hay)) return 'body-60'
   if (/\bbody 75\b|\bmassage body 75/.test(hay)) return 'body-75'
   if (/\bbody 90\b|\bmassage body 90/.test(hay)) return 'body-90'

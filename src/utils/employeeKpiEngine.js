@@ -235,13 +235,13 @@ function evaluateRequestedKpi({ requested, total, target }) {
   }
 }
 
-function classifyInvoiceLines(invoice) {
+function classifyInvoiceLines(invoice, homeBranchId = '') {
   const counts = emptyCounts()
   counts.totalInvoices = 1
   if (isCustomerRequested(invoice)) counts.requestedInvoices = 1
   const lines = []
   for (const line of invoiceServices(invoice)) {
-    const classified = classifyKpiServiceLine(line)
+    const classified = classifyKpiServiceLine(line, { homeBranchId })
     lines.push(classified)
     if (classified.group === KPI_GROUPS.MAIN) {
       counts.main += 1
@@ -502,14 +502,18 @@ export function computeEmployeeKpiPenalty(invoices = [], options = {}) {
  * Engine thuần: KPI = f(invoices live). Không cache aggregate.
  *
  * Attribution: invoice.employeeId only.
- * Policy: invoice.branchId (phục vụ) + invoice.date.
+ * Policy + Advanced mapping: HOME BRANCH của NV (employee profile), không theo serving branch.
+ * Serving branch chỉ để exclude Gia Lai / ngoài scope và hiển thị tour.
  */
 export function computeEmployeeKpi(invoices = [], {
   employeeId,
   fromDate = '',
   toDate = '',
   policies = [],
+  homeBranchId = '',
+  employee = null,
 } = {}) {
+  const resolvedHomeBranchId = homeBranchId || employee?.branchId || employee?.branch_id || ''
   const servingBranchMap = new Map()
   const policySegmentMap = new Map()
   let excludedGiaLaiInvoices = 0
@@ -536,8 +540,9 @@ export function computeEmployeeKpi(invoices = [], {
       continue
     }
 
-    const resolved = resolveKpiPolicy(branchId, date, policies)
-    const { counts, lines } = classifyInvoiceLines(invoice)
+    const policyBranchId = resolvedHomeBranchId || branchId
+    const resolved = resolveKpiPolicy(policyBranchId, date, policies)
+    const { counts, lines } = classifyInvoiceLines(invoice, resolvedHomeBranchId)
     for (const line of lines) {
       if (line.group === KPI_GROUPS.UNMAPPED) {
         unmappedLines.push({ invoiceId: invoice.id, branchId, date, ...line })
@@ -547,6 +552,7 @@ export function computeEmployeeKpi(invoices = [], {
     includedInvoices.push({
       invoiceId: invoice.id,
       employeeId,
+      homeBranchId: resolvedHomeBranchId,
       branchId,
       date,
       customerRequested: isCustomerRequested(invoice),
@@ -570,6 +576,7 @@ export function computeEmployeeKpi(invoices = [], {
     if (!policySegmentMap.has(policyKey)) {
       policySegmentMap.set(policyKey, {
         servingBranchId: branchId,
+        homeBranchId: resolvedHomeBranchId || policyBranchId,
         policyId: resolved.policyId,
         source: resolved.source,
         effectiveFrom: resolved.effectiveFrom,
@@ -630,6 +637,7 @@ export function computeEmployeeKpi(invoices = [], {
 
   const result = {
     employeeId,
+    homeBranchId: resolvedHomeBranchId,
     fromDate,
     toDate,
     overall,
@@ -648,7 +656,8 @@ export function computeEmployeeKpi(invoices = [], {
 }
 
 export function computeScopeKpi(invoices = [], options = {}) {
-  const { fromDate = '', toDate = '', policies = [] } = options
+  const { fromDate = '', toDate = '', policies = [], employees: employeeRoster = [] } = options
+  const homeByEmployee = new Map((employeeRoster || []).map((e) => [e.id, e.branchId || e.branch_id || '']))
   const byEmployee = new Map()
   const byBranch = new Map()
   let excludedGiaLaiInvoices = 0
@@ -675,13 +684,25 @@ export function computeScopeKpi(invoices = [], options = {}) {
   }
 
   const employees = [...byEmployee.keys()].map((employeeId) =>
-    computeEmployeeKpi(byEmployee.get(employeeId), { employeeId, fromDate, toDate, policies }),
+    computeEmployeeKpi(byEmployee.get(employeeId), {
+      employeeId,
+      fromDate,
+      toDate,
+      policies,
+      homeBranchId: homeByEmployee.get(employeeId) || '',
+    }),
   )
 
   const branches = [...byBranch.entries()].map(([branchId, list]) => {
     const employeeIds = [...new Set(list.map(invoiceEmployeeId))]
     const empModels = employeeIds.map((employeeId) =>
-      computeEmployeeKpi(list, { employeeId, fromDate, toDate, policies }),
+      computeEmployeeKpi(list, {
+        employeeId,
+        fromDate,
+        toDate,
+        policies,
+        homeBranchId: homeByEmployee.get(employeeId) || '',
+      }),
     )
     const counts = empModels.reduce((acc, m) => addCounts(acc, m.overall.counts), emptyCounts())
     return {
