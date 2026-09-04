@@ -3,8 +3,8 @@ import {
   KPI_ADVANCED_TOKEN_TRAM,
   KPI_GROUPS,
   KPI_SCOPE_BRANCH_IDS,
+  isKpiAdvancedServiceToken,
   isKpiExcludedBranch,
-  resolveKpiAdvancedToken,
 } from '../constants/kpiPolicy'
 
 export const KPI_MAIN_TOKENS = ['body-60', 'body-75', 'body-90', 'co-vai-gay', 'foot']
@@ -74,19 +74,18 @@ function isLegacyAmbiguousServiceId(rawId) {
   return false
 }
 
-function applyHomeAdvancedMapping(classified, homeBranchId) {
+function applyAdvancedMapping(classified, homeBranchId) {
   const token = classified?.token || ''
   if (token !== KPI_ADVANCED_TOKEN_KHOE && token !== KPI_ADVANCED_TOKEN_TRAM) {
     return classified
   }
-  const advancedToken = resolveKpiAdvancedToken(homeBranchId)
-  if (token === advancedToken) {
+  if (isKpiAdvancedServiceToken(token, homeBranchId)) {
     return { ...classified, group: KPI_GROUPS.ADVANCED }
   }
   return {
     ...classified,
     group: KPI_GROUPS.UNMAPPED,
-    reason: 'advanced-home-mismatch',
+    reason: 'advanced-outside-cluster',
   }
 }
 
@@ -96,7 +95,7 @@ export function classifyKpiServiceLine(line = {}, options = {}) {
   const name = line.serviceName || line.name || ''
   const tokenFromId = normalizeKpiServiceToken(rawId)
   if (tokenFromId) {
-    return applyHomeAdvancedMapping({
+    return applyAdvancedMapping({
       group: TOKEN_TO_GROUP[tokenFromId] || KPI_GROUPS.UNMAPPED,
       token: tokenFromId,
       source: 'serviceId',
@@ -106,7 +105,7 @@ export function classifyKpiServiceLine(line = {}, options = {}) {
   if (allowName) {
     const tokenFromName = classifyByNameFallback(name)
     if (tokenFromName) {
-      return applyHomeAdvancedMapping({
+      return applyAdvancedMapping({
         group: TOKEN_TO_GROUP[tokenFromName] || KPI_GROUPS.UNMAPPED,
         token: tokenFromName,
         source: String(rawId).trim() ? 'legacyId+name' : 'nameFallback',

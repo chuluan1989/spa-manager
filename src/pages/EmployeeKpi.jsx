@@ -346,7 +346,7 @@ export default function EmployeeKpi() {
       <section className="emp-kpi-branches">
         <h2>Chi tiết theo chi nhánh phục vụ</h2>
         <p className="emp-kpi-branches__hint">
-          Policy theo chi nhánh nhà của NV + ngày HĐ. Chuyên sâu: Trạm = Massage Thái, CN Khoẻ = Chuyên sâu. KPI phạt gộp mọi CN theo employeeId trong kỳ — không cộng missing từng CN.
+          Policy theo chi nhánh nhà của NV + ngày HĐ. Trong cụm Trạm / Sóc Trăng / Sống Khoẻ: Massage Thái = Chuyên sâu = ADVANCED. KPI phạt gộp mọi CN theo employeeId trong kỳ — không cộng missing từng CN.
         </p>
         {(model?.servingBranchSegments || []).length === 0 && (
           <p className="emp-kpi-empty">Chưa có hóa đơn KPI trong kỳ này.</p>

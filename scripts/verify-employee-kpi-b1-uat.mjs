@@ -91,16 +91,17 @@ for (const [id, name, token, group] of CLASS_CASES) {
 {
   const tramThai = classifyKpiServiceLine(line('massage-thai'), { homeBranchId: 'tram-spa' })
   const tramCs = classifyKpiServiceLine(line('chuyen-sau'), { homeBranchId: 'tram-spa' })
-  const khoeThai = classifyKpiServiceLine(line('massage-thai'), { homeBranchId: 'soc-trang' })
-  const khoeCs = classifyKpiServiceLine(line('chuyen-sau'), { homeBranchId: 'soc-trang' })
+  const stThai = classifyKpiServiceLine(line('massage-thai'), { homeBranchId: 'soc-trang' })
+  const skCs = classifyKpiServiceLine(line('chuyen-sau'), { homeBranchId: 'song-khoe-spa' })
+  const tvThai = classifyKpiServiceLine(line('massage-thai'), { homeBranchId: 'tra-vinh' })
+  const tvCs = classifyKpiServiceLine(line('chuyen-sau'), { homeBranchId: 'tra-vinh' })
   check(
     '5h',
-    'Advanced theo home NV: Trạm=Massage Thái, Khoẻ=Chuyên sâu',
-    tramThai.group === 'ADVANCED' && tramThai.token === 'massage-thai'
-      && tramCs.group === 'UNMAPPED'
-      && khoeThai.group === 'UNMAPPED'
-      && khoeCs.group === 'ADVANCED' && khoeCs.token === 'chuyen-sau',
-    { tramThai, tramCs, khoeThai, khoeCs },
+    'Cụm 3 CN: Massage Thái = Chuyên sâu = ADVANCED; TV giữ Chuyên sâu',
+    tramThai.group === 'ADVANCED' && tramCs.group === 'ADVANCED'
+      && stThai.group === 'ADVANCED' && skCs.group === 'ADVANCED'
+      && tvThai.group === 'UNMAPPED' && tvCs.group === 'ADVANCED',
+    { tramThai, tramCs, stThai, skCs, tvThai, tvCs },
   )
 }
 

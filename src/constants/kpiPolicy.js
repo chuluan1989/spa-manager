@@ -19,13 +19,31 @@ export const KPI_GROUPS = {
   UNMAPPED: 'UNMAPPED',
 }
 
-/** Home branch dùng Massage Thái làm KPI Chuyên sâu (20%). Các CN Khoẻ dùng service Chuyên sâu. */
+/** Cụm 3 CN hỗ trợ nhau: Massage Thái = Chuyên sâu = ADVANCED. Không theo home exclusive. */
+export const KPI_ADVANCED_EQUIVALENCE_BRANCH_IDS = [
+  'tram-spa',
+  'soc-trang',
+  'song-khoe-spa',
+]
+
 export const KPI_TRAM_SPA_HOME_BRANCH_ID = 'tram-spa'
 export const KPI_ADVANCED_TOKEN_KHOE = 'chuyen-sau'
 export const KPI_ADVANCED_TOKEN_TRAM = 'massage-thai'
 
+export function isKpiAdvancedEquivalenceBranch(branchId) {
+  return KPI_ADVANCED_EQUIVALENCE_BRANCH_IDS.includes(String(branchId || ''))
+}
+
+/** TV / BL / VL: chỉ Chuyên sâu. Cụm 3 CN: Massage Thái và Chuyên sâu đều ADVANCED. */
+export function isKpiAdvancedServiceToken(token, homeBranchId = '') {
+  const t = String(token || '')
+  if (t === KPI_ADVANCED_TOKEN_KHOE) return true
+  if (t === KPI_ADVANCED_TOKEN_TRAM) return isKpiAdvancedEquivalenceBranch(homeBranchId)
+  return false
+}
+
 export function resolveKpiAdvancedToken(homeBranchId) {
-  return String(homeBranchId || '') === KPI_TRAM_SPA_HOME_BRANCH_ID
+  return isKpiAdvancedEquivalenceBranch(homeBranchId)
     ? KPI_ADVANCED_TOKEN_TRAM
     : KPI_ADVANCED_TOKEN_KHOE
 }
