@@ -3,6 +3,7 @@ import AttendanceMonthMatrix from '../attendance/AttendanceMonthMatrix'
 import { getCurrentMonthValue } from '../../utils/salaryReport'
 import { buildAttendanceMonthMatrix } from '../../utils/attendanceViewHelpers'
 import { buildAttendanceStats } from '../../utils/attendancePenalties'
+import { getAttendanceHolidayDates } from '../../utils/attendanceHolidayDates'
 import { employeeBelongsToBranch } from '../../utils/branchEmployeeMatch'
 import { formatCurrency } from '../../utils/invoice'
 import { getAttendanceStatusLabel } from '../../constants/attendanceTypes'
@@ -40,7 +41,10 @@ export default function BranchAttendanceTab({ branchId }) {
     [records, employees, month],
   )
 
-  const stats = useMemo(() => buildAttendanceStats(records), [records])
+  const stats = useMemo(
+    () => buildAttendanceStats(records, { holidays: getAttendanceHolidayDates() }),
+    [records],
+  )
 
   return (
     <div className="admin-branches__attendance">

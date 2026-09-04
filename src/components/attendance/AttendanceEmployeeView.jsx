@@ -6,6 +6,7 @@ import { getTodayDate } from '../../utils/invoiceStorage'
 import { useAttendanceData } from '../../hooks/useAttendanceData'
 import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import { buildAttendanceStats } from '../../utils/attendancePenalties'
+import { getAttendanceHolidayDates } from '../../utils/attendanceHolidayDates'
 import { getBranchName } from '../../utils/branchStorage'
 import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import { getEmployeeById } from '../../utils/employeeStorage'
@@ -106,7 +107,10 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
   }), [range, employee?.id])
 
   const { records, loading, error, reload } = useAttendanceData(filters)
-  const stats = useMemo(() => buildAttendanceStats(records), [records])
+  const stats = useMemo(
+    () => buildAttendanceStats(records, { holidays: getAttendanceHolidayDates() }),
+    [records],
+  )
   const month = todayDate.slice(0, 7)
   const matrix = useMemo(
     () => buildAttendanceMonthMatrix(employee ? [employee] : [], records, month),

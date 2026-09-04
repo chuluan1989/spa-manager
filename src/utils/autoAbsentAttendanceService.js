@@ -1,5 +1,6 @@
 import { ATTENDANCE_STATUS, getAttendanceStatusConfig } from '../constants/attendanceTypes'
 import { calculatePenaltyForNewRecord, getMonthPrefixFromDate } from './attendancePenalties'
+import { getAttendanceHolidayDates } from './attendanceHolidayDates'
 import {
   buildAutoAbsentRecord,
   canAutoAbsentOnDate,
@@ -99,6 +100,7 @@ export async function createAutoAbsentRecordsForDate({
           ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED,
           monthRecords,
           targetDate,
+          { holidays: getAttendanceHolidayDates() },
         ) || fallbackPenalty)
 
       const record = buildAutoAbsentRecord({

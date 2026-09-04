@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-09-04T08:04:27.369Z",
+  "mode": "DRY-RUN",
+  "engine": "src/utils/attendancePenalties.js",
+  "holidays": [],
+  "totals": {
+    "attendance": 1776,
+    "mismatchedRecords": 37,
+    "employeesAffected": 14,
+    "employeeMonthsAffected": 17,
+    "storedTotal": 8640000,
+    "expectedV2Total": 11740000,
+    "delta": 3100000
+  },
+  "backupPath": "/Users/chuluan/Spa-manager/docs/uat-evidence/attendance-penalty-v2/BACKUP_2026-09-04T08-04-25-806Z.json",
+  "applied": false,
+  "updated": 0,
+  "skippedUnchanged": 0,
+  "errors": [],
+  "remainingMismatches": null
+}

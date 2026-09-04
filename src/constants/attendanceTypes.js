@@ -17,22 +17,27 @@ export const ATTENDANCE_STATUS = {
   INVALID: 'invalid',
 }
 
-/** Cấu hình trừ tiền: none | fixed | monthly_free */
+/**
+ * Nhãn + nhóm thống kê. Tiền phạt V2 do `attendancePenalties` tính theo lịch:
+ * - Ngày thường, nghỉ có phép: hạn mức 3 ngày/tháng (nửa ngày = 0.5); vượt = 100.000đ/ngày.
+ * - T7/CN/Lễ (lịch, không theo status): 200.000đ cả ngày / 100.000đ nửa ngày; không ăn hạn mức.
+ * - Đi trễ/về sớm không phép: 20.000đ. Không tính là ngày nghỉ.
+ */
 export const ATTENDANCE_STATUS_OPTIONS = [
   { id: ATTENDANCE_STATUS.ON_TIME, label: 'Đi làm đúng giờ', statGroup: 'on_time', penaltyType: 'none' },
   { id: ATTENDANCE_STATUS.LATE_2H_PERMITTED, label: 'Đi trễ 2 tiếng (Có phép)', statGroup: 'late_permitted', penaltyType: 'none' },
   { id: ATTENDANCE_STATUS.LATE_2H_UNPERMITTED, label: 'Đi trễ 2 tiếng (Không phép)', statGroup: 'late', penaltyType: 'fixed', penaltyAmount: 20000 },
   { id: ATTENDANCE_STATUS.EARLY_2H_PERMITTED, label: 'Về sớm 2 tiếng (Có phép)', statGroup: 'early_permitted', penaltyType: 'none' },
   { id: ATTENDANCE_STATUS.EARLY_2H_UNPERMITTED, label: 'Về sớm 2 tiếng (Không phép)', statGroup: 'early', penaltyType: 'fixed', penaltyAmount: 20000 },
-  { id: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, label: 'Nghỉ 1/2 buổi sáng (Có phép)', statGroup: 'half_off_permitted', penaltyType: 'monthly_free', freePerMonth: 3, penaltyAmount: 50000 },
-  { id: ATTENDANCE_STATUS.HALF_MORNING_UNPERMITTED, label: 'Nghỉ 1/2 buổi sáng (Không phép)', statGroup: 'half_off_unpermitted', penaltyType: 'fixed', penaltyAmount: 50000 },
-  { id: ATTENDANCE_STATUS.HALF_EVENING_PERMITTED, label: 'Nghỉ 1/2 buổi tối (Có phép)', statGroup: 'half_off_permitted', penaltyType: 'monthly_free', freePerMonth: 3, penaltyAmount: 50000 },
-  { id: ATTENDANCE_STATUS.HALF_EVENING_UNPERMITTED, label: 'Nghỉ 1/2 buổi tối (Không phép)', statGroup: 'half_off_unpermitted', penaltyType: 'fixed', penaltyAmount: 50000 },
-  { id: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, label: 'Nghỉ nguyên ngày (Có phép)', statGroup: 'full_off_permitted', penaltyType: 'monthly_free', freePerMonth: 3, penaltyAmount: 100000 },
-  { id: ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED, label: 'Nghỉ nguyên ngày (Không phép)', statGroup: 'full_off_unpermitted', penaltyType: 'fixed', penaltyAmount: 100000 },
-  { id: ATTENDANCE_STATUS.FULL_DAY_WEEKEND, label: 'Nghỉ nguyên ngày (Thứ 7 - Chủ nhật - Lễ)', statGroup: 'weekend', penaltyType: 'fixed', penaltyAmount: 200000 },
-  { id: ATTENDANCE_STATUS.HALF_MORNING_WEEKEND, label: 'Nghỉ 1/2 buổi sáng (Thứ 7 - Chủ nhật - Lễ)', statGroup: 'weekend', penaltyType: 'fixed', penaltyAmount: 100000 },
-  { id: ATTENDANCE_STATUS.HALF_EVENING_WEEKEND, label: 'Nghỉ 1/2 buổi tối (Thứ 7 - Chủ nhật - Lễ)', statGroup: 'weekend', penaltyType: 'fixed', penaltyAmount: 100000 },
+  { id: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, label: 'Nghỉ 1/2 buổi sáng (Có phép)', statGroup: 'half_off_permitted', penaltyType: 'weekday_quota', leaveDays: 0.5, penaltyAmount: 50000 },
+  { id: ATTENDANCE_STATUS.HALF_MORNING_UNPERMITTED, label: 'Nghỉ 1/2 buổi sáng (Không phép)', statGroup: 'half_off_unpermitted', penaltyType: 'fixed', leaveDays: 0.5, penaltyAmount: 50000 },
+  { id: ATTENDANCE_STATUS.HALF_EVENING_PERMITTED, label: 'Nghỉ 1/2 buổi tối (Có phép)', statGroup: 'half_off_permitted', penaltyType: 'weekday_quota', leaveDays: 0.5, penaltyAmount: 50000 },
+  { id: ATTENDANCE_STATUS.HALF_EVENING_UNPERMITTED, label: 'Nghỉ 1/2 buổi tối (Không phép)', statGroup: 'half_off_unpermitted', penaltyType: 'fixed', leaveDays: 0.5, penaltyAmount: 50000 },
+  { id: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, label: 'Nghỉ nguyên ngày (Có phép)', statGroup: 'full_off_permitted', penaltyType: 'weekday_quota', leaveDays: 1, penaltyAmount: 100000 },
+  { id: ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED, label: 'Nghỉ nguyên ngày (Không phép)', statGroup: 'full_off_unpermitted', penaltyType: 'fixed', leaveDays: 1, penaltyAmount: 100000 },
+  { id: ATTENDANCE_STATUS.FULL_DAY_WEEKEND, label: 'Nghỉ nguyên ngày (Thứ 7 - Chủ nhật - Lễ)', statGroup: 'weekend', penaltyType: 'special_day', leaveDays: 1, penaltyAmount: 200000 },
+  { id: ATTENDANCE_STATUS.HALF_MORNING_WEEKEND, label: 'Nghỉ 1/2 buổi sáng (Thứ 7 - Chủ nhật - Lễ)', statGroup: 'weekend', penaltyType: 'special_day', leaveDays: 0.5, penaltyAmount: 100000 },
+  { id: ATTENDANCE_STATUS.HALF_EVENING_WEEKEND, label: 'Nghỉ 1/2 buổi tối (Thứ 7 - Chủ nhật - Lễ)', statGroup: 'weekend', penaltyType: 'special_day', leaveDays: 0.5, penaltyAmount: 100000 },
   { id: ATTENDANCE_STATUS.CANCELLED, label: 'Đã hủy', statGroup: 'void', penaltyType: 'none' },
   { id: ATTENDANCE_STATUS.INVALID, label: 'Không hợp lệ', statGroup: 'void', penaltyType: 'none' },
 ]

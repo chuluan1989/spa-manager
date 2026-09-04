@@ -18,7 +18,8 @@ import PayrollAttendanceStats, {
 import PayrollLiveDashboard from './PayrollLiveDashboard'
 import PayrollPayslipPanel from './PayrollPayslipPanel'
 import PayrollWallet from './PayrollWallet'
-import { ATTENDANCE_STATUS } from '../../constants/attendanceTypes'
+import { computeAttendanceLeaveBreakdown } from '../../utils/attendancePenalties'
+import { getAttendanceHolidayDates } from '../../utils/attendanceHolidayDates'
 
 const PROFILE_VIEWS = [
   { id: 'overview', label: 'Tổng quan' },
@@ -121,70 +122,8 @@ export default function PayrollEmployeeProfile({
   const attendanceUnitBreakdown = useMemo(() => {
     if (!attendance || !employeeId) return null
     if (cycle !== PAY_CYCLES.PERIOD_2) return null
-
-    // Quy đổi sang đơn vị nửa ngày như quy định chấm công.
-    const unitByStatus = {
-      [ATTENDANCE_STATUS.FULL_DAY_PERMITTED]: 2,
-      [ATTENDANCE_STATUS.HALF_MORNING_PERMITTED]: 1,
-      [ATTENDANCE_STATUS.HALF_EVENING_PERMITTED]: 1,
-      [ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED]: 2,
-      [ATTENDANCE_STATUS.HALF_MORNING_UNPERMITTED]: 1,
-      [ATTENDANCE_STATUS.HALF_EVENING_UNPERMITTED]: 1,
-    }
-
-    const permittedStatuses = new Set([
-      ATTENDANCE_STATUS.FULL_DAY_PERMITTED,
-      ATTENDANCE_STATUS.HALF_MORNING_PERMITTED,
-      ATTENDANCE_STATUS.HALF_EVENING_PERMITTED,
-    ])
-    const unpermittedStatuses = new Set([
-      ATTENDANCE_STATUS.FULL_DAY_UNPERMITTED,
-      ATTENDANCE_STATUS.HALF_MORNING_UNPERMITTED,
-      ATTENDANCE_STATUS.HALF_EVENING_UNPERMITTED,
-    ])
-
-    const isPermitted = (s) => permittedStatuses.has(s)
-    const isUnpermitted = (s) => unpermittedStatuses.has(s)
-
-    let permittedUnits = 0
-    let unpermittedUnits = 0
-    let lateCount = 0
-    let earlyCount = 0
-    let weekendHolidayCount = 0
-    let totalPenalty = 0
-
-    // attendance đang là tập đã lọc theo khoảng ngày đúng cho Kỳ 2 (01–lastDay)
-    for (const row of attendance) {
-      if (!row || row.employeeId !== employeeId) continue
-      totalPenalty += Number(row.penaltyAmount ?? 0)
-
-      const status = row.status
-      const unit = unitByStatus[status] ?? 0
-      if (unit > 0) {
-        if (isPermitted(status)) permittedUnits += unit
-        if (isUnpermitted(status)) unpermittedUnits += unit
-      }
-
-      if (status === ATTENDANCE_STATUS.LATE_2H_UNPERMITTED) lateCount += 1
-      if (status === ATTENDANCE_STATUS.EARLY_2H_UNPERMITTED) earlyCount += 1
-      if ([ATTENDANCE_STATUS.FULL_DAY_WEEKEND, ATTENDANCE_STATUS.HALF_MORNING_WEEKEND, ATTENDANCE_STATUS.HALF_EVENING_WEEKEND].includes(status)) {
-        weekendHolidayCount += 1
-      }
-    }
-
-    const permittedFreeUnits = Math.min(6, permittedUnits)
-    const permittedExceedUnits = Math.max(0, permittedUnits - 6)
-
-    return {
-      permittedUnits,
-      permittedFreeUnits,
-      permittedExceedUnits,
-      unpermittedUnits,
-      lateCount,
-      earlyCount,
-      weekendHolidayCount,
-      totalPenalty,
-    }
+    const rows = attendance.filter((row) => row && row.employeeId === employeeId)
+    return computeAttendanceLeaveBreakdown(rows, { holidays: getAttendanceHolidayDates() })
   }, [attendance, employeeId, cycle])
 
   const revenueRows = useMemo(

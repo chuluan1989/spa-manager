@@ -21,20 +21,20 @@ export default function PayrollAttendanceStats({ stats, cycle, breakdown }) {
 
   if (period === 'period2' && breakdown) {
     rows.push(
-      { label: 'Tổng nghỉ có phép (đơn vị nửa ngày)', value: breakdown.permittedUnits },
-      { label: 'Số đơn vị được miễn (tối đa 6)', value: breakdown.permittedFreeUnits },
-      { label: 'Số đơn vị vượt mức', value: breakdown.permittedExceedUnits },
-      { label: 'Nghỉ không phép (đơn vị nửa ngày)', value: breakdown.unpermittedUnits },
+      { label: 'Nghỉ có phép ngày thường (ngày)', value: breakdown.permittedDays },
+      { label: 'Được miễn (tối đa 3 ngày)', value: breakdown.permittedFreeDays },
+      { label: 'Vượt hạn mức (ngày)', value: breakdown.permittedExceedDays },
+      { label: 'Nghỉ không phép ngày thường (ngày)', value: breakdown.unpermittedDays },
     )
   } else {
     rows.push(
-      { label: 'Nghỉ có phép', value: stats.permittedLeave },
-      { label: 'Nghỉ không phép', value: stats.unpermittedLeave },
+      { label: 'Nghỉ có phép ngày thường (ngày)', value: stats.permittedLeave },
+      { label: 'Nghỉ không phép ngày thường (ngày)', value: stats.unpermittedLeave },
     )
   }
 
   rows.push(
-    { label: 'Nghỉ T7-CN-Lễ', value: stats.weekendHoliday },
+    { label: 'Nghỉ T7-CN-Lễ (ngày)', value: stats.weekendHoliday },
     {
       label: period === 'period1' ? 'Khấu trừ chấm công' : 'Tổng tiền bị trừ',
       value: formatCurrency(stats.penaltyAmount ?? 0),

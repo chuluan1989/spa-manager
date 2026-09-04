@@ -3,6 +3,7 @@ import {
   calculatePenaltyForNewRecord,
   recomputeMonthlyPenalties,
 } from './attendancePenalties'
+import { getAttendanceHolidayDates } from './attendanceHolidayDates'
 import { notifyDataSynced } from './dataSyncEvents'
 import { getBranchById, getBranchName } from './branchStorage'
 import { getEmployeeBranchAtDate } from './employeeBranchTimeline'
@@ -208,7 +209,7 @@ export async function submitEmployeeAttendance({
 
         const monthPrefix = getMonthPrefixFromDate(date)
         const monthRecords = await fetchAttendanceForEmployeeMonth(employee.id, monthPrefix)
-        const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+        const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date, getPenaltyOptions())
 
         return insertAttendanceRecord({
           id: createAttendanceId(),
@@ -292,7 +293,7 @@ export async function submitEmployeeAttendanceBackfill({
 
         const monthPrefix = getMonthPrefixFromDate(date)
         const monthRecords = await fetchAttendanceForEmployeeMonth(employee.id, monthPrefix)
-        const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+        const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date, getPenaltyOptions())
 
         return insertAttendanceRecord({
           id: createAttendanceId(),
@@ -340,8 +341,12 @@ function assertCanEditAttendanceRecordBranch(record, options = {}) {
   return assertCanEditAttendanceRecord(record, options)
 }
 
+function getPenaltyOptions() {
+  return { holidays: getAttendanceHolidayDates() }
+}
+
 async function recomputeAndPersistMonthPenalties(employeeId, monthPrefix, draftRecords) {
-  const recomputed = recomputeMonthlyPenalties(draftRecords, monthPrefix)
+  const recomputed = recomputeMonthlyPenalties(draftRecords, monthPrefix, getPenaltyOptions())
   const originalMap = new Map(draftRecords.map((row) => [row.id, row]))
   for (const row of recomputed) {
     const original = originalMap.get(row.id)
@@ -394,7 +399,7 @@ export async function adminCreateAttendance({
 
   const monthPrefix = getMonthPrefixFromDate(date)
   const monthRecords = await fetchAttendanceForEmployeeMonth(employeeId, monthPrefix)
-  const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date)
+  const penaltyAmount = calculatePenaltyForNewRecord(status, monthRecords, date, getPenaltyOptions())
 
   const now = new Date().toISOString()
   const resolvedSubmittedAt = submittedAt || now
@@ -512,7 +517,7 @@ export async function adminUpdateAttendance({
 
   let penaltyAmount = record.penaltyAmount ?? 0
   if (oldMonthPrefix === newMonthPrefix) {
-    const recomputed = recomputeMonthlyPenalties(oldDraft, oldMonthPrefix)
+    const recomputed = recomputeMonthlyPenalties(oldDraft, oldMonthPrefix, getPenaltyOptions())
     penaltyAmount = recomputed.find((row) => row.id === record.id)?.penaltyAmount ?? 0
   } else {
     const oldWithoutRecord = oldMonthRecords.filter((row) => row.id !== record.id)
@@ -531,7 +536,7 @@ export async function adminUpdateAttendance({
         updatedAt: resolvedUpdatedAt,
       },
     ]
-    const recomputedNew = recomputeMonthlyPenalties(newDraft, newMonthPrefix)
+    const recomputedNew = recomputeMonthlyPenalties(newDraft, newMonthPrefix, getPenaltyOptions())
     penaltyAmount = recomputedNew.find((row) => row.id === record.id)?.penaltyAmount ?? 0
   }
 
@@ -562,6 +567,7 @@ export async function adminUpdateAttendance({
     const recomputed = recomputeMonthlyPenalties(
       oldDraft.map((row) => (row.id === record.id ? saved : row)),
       oldMonthPrefix,
+      getPenaltyOptions(),
     )
     for (const sibling of recomputed.filter((row) => row.id !== record.id)) {
       const original = oldMonthRecords.find((row) => row.id === sibling.id)

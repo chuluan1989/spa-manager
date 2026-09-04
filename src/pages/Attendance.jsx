@@ -19,7 +19,8 @@ import { formatCurrency } from '../utils/invoice'
 import { getTodayDate } from '../utils/invoiceStorage'
 import { useAttendanceData } from '../hooks/useAttendanceData'
 import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
-import { buildAttendanceStats } from '../utils/attendancePenalties'
+import { buildAttendanceStats, formatAttendanceDays } from '../utils/attendancePenalties'
+import { getAttendanceHolidayDates } from '../utils/attendanceHolidayDates'
 import { getBranchName } from '../utils/branchStorage'
 import {
   buildAttendanceDayRoster,
@@ -234,7 +235,10 @@ function AttendancePage() {
 
   const { records, loading, error, reload } = useAttendanceData(filters)
 
-  const stats = useMemo(() => buildAttendanceStats(records), [records])
+  const stats = useMemo(
+    () => buildAttendanceStats(records, { holidays: getAttendanceHolidayDates() }),
+    [records],
+  )
 
   const employees = useMemo(() => {
     void syncVersion
@@ -512,9 +516,9 @@ function AttendancePage() {
         <article><span>Đúng giờ</span><strong>{stats.onTime}</strong></article>
         <article><span>Đi trễ</span><strong>{stats.late}</strong></article>
         <article><span>Về sớm</span><strong>{stats.early}</strong></article>
-        <article><span>Nghỉ có phép</span><strong>{stats.offPermitted}</strong></article>
-        <article><span>Nghỉ không phép</span><strong>{stats.offUnpermitted}</strong></article>
-        <article><span>T7-CN-Lễ</span><strong>{stats.weekend}</strong></article>
+        <article><span>Nghỉ có phép (ngày thường)</span><strong>{formatAttendanceDays(stats.offPermitted)}</strong></article>
+        <article><span>Nghỉ không phép (ngày thường)</span><strong>{formatAttendanceDays(stats.offUnpermitted)}</strong></article>
+        <article><span>T7-CN-Lễ (ngày)</span><strong>{formatAttendanceDays(stats.weekend)}</strong></article>
         <article className="is-penalty"><span>Tổng trừ</span><strong>{formatCurrency(stats.totalPenalty)}</strong></article>
       </section>
 

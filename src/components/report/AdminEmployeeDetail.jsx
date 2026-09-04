@@ -113,13 +113,13 @@ export default function AdminEmployeeDetail({
         <div className="salary-report__period-total">
           <h4 className="salary-report__period-total-title">Khấu trừ chấm công — Kỳ 2</h4>
           <div className="salary-report__period-total-grid">
-            <div><span>Tổng nghỉ có phép (đơn vị nửa ngày)</span><strong>{attendanceBreakdown.permittedUnits}</strong></div>
-            <div><span>Miễn trừ (tối đa 6)</span><strong>{attendanceBreakdown.permittedFreeUnits}</strong></div>
-            <div><span>Vượt mức</span><strong>{attendanceBreakdown.permittedExceedUnits}</strong></div>
-            <div><span>Nghỉ không phép (đơn vị nửa ngày)</span><strong>{attendanceBreakdown.unpermittedUnits}</strong></div>
+            <div><span>Nghỉ có phép ngày thường (ngày)</span><strong>{attendanceBreakdown.permittedDays}</strong></div>
+            <div><span>Miễn trừ (tối đa 3 ngày)</span><strong>{attendanceBreakdown.permittedFreeDays}</strong></div>
+            <div><span>Vượt hạn mức (ngày)</span><strong>{attendanceBreakdown.permittedExceedDays}</strong></div>
+            <div><span>Nghỉ không phép ngày thường (ngày)</span><strong>{attendanceBreakdown.unpermittedDays}</strong></div>
             <div><span>Đi trễ (2h không phép)</span><strong>{attendanceBreakdown.lateUnpermittedCount}</strong></div>
             <div><span>Về sớm (2h không phép)</span><strong>{attendanceBreakdown.earlyUnpermittedCount}</strong></div>
-            <div><span>Nghỉ Th7/CN/Lễ (số lần)</span><strong>{attendanceBreakdown.weekendRecordCount}</strong></div>
+            <div><span>Nghỉ T7/CN/Lễ (ngày)</span><strong>{attendanceBreakdown.weekendHolidayDays}</strong></div>
             <div><span>Tổng khấu trừ chấm công</span><strong>{formatCurrency(attendanceBreakdown.totalPenalty)}</strong></div>
             <div><span>Thực nhận Kỳ 2</span><strong>{formatCurrency(attendanceBreakdown.netSalary)}</strong></div>
           </div>

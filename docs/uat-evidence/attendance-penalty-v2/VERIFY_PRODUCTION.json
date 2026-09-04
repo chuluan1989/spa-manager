@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-09-04T08:10:14.973Z",
+  "mode": "READ-ONLY",
+  "holidays": [],
+  "attendance": 1776,
+  "storedTotal": 11740000,
+  "expectedV2Total": 11740000,
+  "mismatch": 0,
+  "delta": 0,
+  "payrollAdjustments": {
+    "total": 165,
+    "updated_since_sep4": 3
+  },
+  "approvedCloses": 8,
+  "approvedCloseSnapshotHash": "708f0db63ff5ce6efe7a9a3b1d1339313bfda864a0673544ac5ab037c2dccddd",
+  "pass": true
+}

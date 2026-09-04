@@ -433,8 +433,8 @@ test('live payroll cycle split (Kỳ 1/Kỳ 2)', async () => {
   monthRecords4.push(mkAttendance({ id: 'f2', date: '2026-07-02', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: full2P }))
   const full3P = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.FULL_DAY_PERMITTED, monthRecords4, '2026-07-03')
   monthRecords4.push(mkAttendance({ id: 'f3', date: '2026-07-03', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: full3P }))
-  const halfP = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, monthRecords4, '2026-07-04')
-  monthRecords4.push(mkAttendance({ id: 'h1', date: '2026-07-04', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: halfP }))
+  const halfP = calculatePenaltyForNewRecord(ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, monthRecords4, '2026-07-06')
+  monthRecords4.push(mkAttendance({ id: 'h1', date: '2026-07-06', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: halfP }))
 
   const r2PermittedExceed = computePayrollReport({
     month: '2026-07',
@@ -2472,12 +2472,15 @@ test('customer CRM: remarketing inactive buckets', async () => {
   assert.equal(lists[REMARKETING_LISTS.INACTIVE_90].length, 1)
 })
 
-test('attendance penalties: fixed and monthly free allowance', async () => {
+test('attendance penalties V2: weekday quota days and T7/CN split', async () => {
   const {
     calculatePenaltyForNewRecord,
     recomputeMonthlyPenalties,
     mergeAttendanceIntoEmployeeReports,
+    computeAttendanceLeaveBreakdown,
+    buildAttendanceStats,
   } = await import('../src/utils/attendancePenalties.js')
+  const { computeAttendanceStats } = await import('../src/utils/payrollLiveHelpers.js')
   const { ATTENDANCE_STATUS } = await import('../src/constants/attendanceTypes.js')
 
   assert.equal(
@@ -2485,24 +2488,107 @@ test('attendance penalties: fixed and monthly free allowance', async () => {
     20000,
   )
 
-  const monthRecords = [
+  const weekdayHalves = [
     { id: '1', date: '2026-07-01', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
-    { id: '2', date: '2026-07-05', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
-    { id: '3', date: '2026-07-10', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
-    { id: '4', date: '2026-07-11', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
-    { id: '5', date: '2026-07-12', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
-    { id: '6', date: '2026-07-13', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '2', date: '2026-07-02', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '3', date: '2026-07-03', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '4', date: '2026-07-06', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '5', date: '2026-07-07', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { id: '6', date: '2026-07-08', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
   ]
   assert.equal(
-    calculatePenaltyForNewRecord(ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, monthRecords, '2026-07-15'),
+    calculatePenaltyForNewRecord(ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, weekdayHalves, '2026-07-09'),
     50000,
   )
 
   const recomputed = recomputeMonthlyPenalties([
-    ...monthRecords,
-    { id: '7', date: '2026-07-15', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
+    ...weekdayHalves,
+    { id: '7', date: '2026-07-09', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
   ], '2026-07')
   assert.equal(recomputed[6].penaltyAmount, 50000)
+  assert.equal(recomputed.slice(0, 6).every((row) => row.penaltyAmount === 0), true)
+
+  const satPermitted = calculatePenaltyForNewRecord(
+    ATTENDANCE_STATUS.FULL_DAY_PERMITTED,
+    weekdayHalves,
+    '2026-07-04',
+  )
+  assert.equal(satPermitted, 200000, 'Nghỉ có phép Thứ 7 = 200k, không ăn hạn mức')
+
+  const sunHalf = calculatePenaltyForNewRecord(
+    ATTENDANCE_STATUS.HALF_MORNING_PERMITTED,
+    [],
+    '2026-07-05',
+  )
+  assert.equal(sunHalf, 100000, 'Nửa ngày Chủ nhật = 100k')
+
+  const straddle = recomputeMonthlyPenalties([
+    { id: 'a', date: '2026-07-01', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED },
+    { id: 'b', date: '2026-07-02', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED },
+    { id: 'c', date: '2026-07-03', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED },
+    { id: 'd', date: '2026-07-06', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED },
+    { id: 'e', date: '2026-07-04', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED },
+  ], '2026-07')
+  const byId = Object.fromEntries(straddle.map((row) => [row.id, row.penaltyAmount]))
+  assert.equal(byId.a, 0)
+  assert.equal(byId.b, 0)
+  assert.equal(byId.c, 0)
+  assert.equal(byId.d, 100000)
+  assert.equal(byId.e, 200000)
+
+  const halfThenFull = recomputeMonthlyPenalties([
+    { id: 'h1', date: '2026-07-01', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
+    { id: 'h2', date: '2026-07-02', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
+    { id: 'h3', date: '2026-07-03', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
+    { id: 'h4', date: '2026-07-06', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
+    { id: 'h5', date: '2026-07-07', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED },
+    { id: 'full', date: '2026-07-08', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED },
+  ], '2026-07')
+  assert.equal(halfThenFull.find((row) => row.id === 'full').penaltyAmount, 50000)
+
+  const holiday = recomputeMonthlyPenalties([
+    { id: 'hol', date: '2026-09-02', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED },
+  ], '2026-09', { holidays: ['2026-09-02'] })
+  assert.equal(holiday[0].penaltyAmount, 200000)
+
+  const notHolidayUntilListed = recomputeMonthlyPenalties([
+    { id: 'hol', date: '2026-09-02', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED },
+  ], '2026-09', { holidays: [] })
+  assert.equal(notHolidayUntilListed[0].penaltyAmount, 0)
+
+  const latePermitted = [
+    { id: 'lp', employeeId: 'e1', date: '2026-07-08', status: ATTENDANCE_STATUS.LATE_2H_PERMITTED, penaltyAmount: 0 },
+  ]
+  const payrollStats = computeAttendanceStats(latePermitted, 'e1', { holidays: [] })
+  assert.equal(payrollStats.late, 1)
+  assert.equal(payrollStats.permittedLeave, 0)
+
+  const weekendHalfStats = computeAttendanceStats([
+    { id: 'wh', employeeId: 'e1', date: '2026-07-04', status: ATTENDANCE_STATUS.HALF_MORNING_WEEKEND, penaltyAmount: 100000 },
+  ], 'e1', { holidays: [] })
+  assert.equal(weekendHalfStats.weekendHoliday, 0.5)
+
+  const uiStats = buildAttendanceStats([
+    { date: '2026-07-01', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: 0 },
+    { date: '2026-07-06', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 0 },
+    { date: '2026-07-04', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: 200000 },
+    { date: '2026-07-08', status: ATTENDANCE_STATUS.LATE_2H_PERMITTED, penaltyAmount: 0 },
+  ], { holidays: [] })
+  assert.equal(uiStats.offPermitted, 1.5)
+  assert.equal(uiStats.weekend, 1)
+  assert.equal(uiStats.late, 1)
+
+  const breakdown = computeAttendanceLeaveBreakdown([
+    { date: '2026-07-01', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: 0 },
+    { date: '2026-07-02', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: 0 },
+    { date: '2026-07-03', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: 0 },
+    { date: '2026-07-06', status: ATTENDANCE_STATUS.HALF_MORNING_PERMITTED, penaltyAmount: 50000 },
+    { date: '2026-07-04', status: ATTENDANCE_STATUS.FULL_DAY_PERMITTED, penaltyAmount: 200000 },
+  ], { holidays: [] })
+  assert.equal(breakdown.permittedDays, 3.5)
+  assert.equal(breakdown.permittedFreeDays, 3)
+  assert.equal(breakdown.permittedExceedDays, 0.5)
+  assert.equal(breakdown.weekendHolidayDays, 1)
 
   const merged = mergeAttendanceIntoEmployeeReports({
     employees: [{ employeeId: 'e1', totalSalary: 1000000 }],
@@ -2835,7 +2921,7 @@ test('live payroll: attendance stats, tips breakdown, payment summary', async ()
   const attendance = [
     { id: 'a1', employeeId: 'e1', date: '2026-07-05', status: ATTENDANCE_STATUS.ON_TIME, penaltyAmount: 0 },
     { id: 'a2', employeeId: 'e1', date: '2026-07-06', status: ATTENDANCE_STATUS.LATE_2H_UNPERMITTED, penaltyAmount: 20000 },
-    { id: 'a3', employeeId: 'e1', date: '2026-07-07', status: ATTENDANCE_STATUS.FULL_DAY_WEEKEND, penaltyAmount: 200000 },
+    { id: 'a3', employeeId: 'e1', date: '2026-07-04', status: ATTENDANCE_STATUS.FULL_DAY_WEEKEND, penaltyAmount: 200000 },
   ]
   const stats = computeAttendanceStats(attendance, 'e1')
   assert.equal(stats.onTime, 1)

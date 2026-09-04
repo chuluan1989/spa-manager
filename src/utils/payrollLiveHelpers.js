@@ -1,6 +1,8 @@
-import { getAttendanceStatusConfig, isVoidAttendanceStatus } from '../constants/attendanceTypes'
+import { isVoidAttendanceStatus } from '../constants/attendanceTypes'
 import { PAYROLL_ADJUSTMENT_TYPES } from '../constants/payrollTypes'
 import { SALARY_ROLES, SUPPORT_EMPLOYEE_COMMISSION_RATE } from '../constants/salary'
+import { classifyAttendanceRecord } from './attendancePenalties'
+import { getAttendanceHolidayDates } from './attendanceHolidayDates'
 import { recordBelongsToBranch } from './branchEmployeeMatch'
 import { getInvoiceServiceDetails, getInvoiceServiceCommission, getInvoiceServiceTotal, getServiceLineCommissionAmount } from './invoice'
 
@@ -20,7 +22,8 @@ function getInvoiceCommission(invoice, employeeId) {
   return scaleCommission(base, role)
 }
 
-export function computeAttendanceStats(attendanceRecords, employeeId) {
+export function computeAttendanceStats(attendanceRecords, employeeId, options = {}) {
+  const holidays = options.holidays ?? getAttendanceHolidayDates()
   const stats = {
     onTime: 0,
     late: 0,
@@ -37,42 +40,32 @@ export function computeAttendanceStats(attendanceRecords, employeeId) {
     if (isVoidAttendanceStatus(record.status)) continue
     stats.totalRecords += 1
     stats.penaltyAmount += Number(record.penaltyAmount ?? 0)
-    const config = getAttendanceStatusConfig(record.status)
-    if (!config) continue
+    const classified = classifyAttendanceRecord(record.status, record.date, holidays)
 
-    switch (config.statGroup) {
-      case 'on_time':
-        stats.onTime += 1
-        stats.workDays += 1
-        break
-      case 'late':
-        stats.late += 1
-        break
-      case 'early':
-        stats.early += 1
-        break
-      case 'late_permitted':
-      case 'early_permitted':
-        stats.permittedLeave += 1
-        break
-      case 'half_off_permitted':
-        stats.permittedLeave += 0.5
-        stats.workDays += 0.5
-        break
-      case 'full_off_permitted':
-        stats.permittedLeave += 1
-        break
-      case 'half_off_unpermitted':
-        stats.unpermittedLeave += 0.5
-        break
-      case 'full_off_unpermitted':
-        stats.unpermittedLeave += 1
-        break
-      case 'weekend':
-        stats.weekendHoliday += 1
-        break
-      default:
-        break
+    if (classified.kind === 'on_time') {
+      stats.onTime += 1
+      stats.workDays += 1
+      continue
+    }
+    if (classified.kind === 'late') {
+      stats.late += 1
+      continue
+    }
+    if (classified.kind === 'early') {
+      stats.early += 1
+      continue
+    }
+    if (classified.kind === 'weekday_permitted') {
+      stats.permittedLeave += classified.days
+      if (classified.days === 0.5) stats.workDays += 0.5
+      continue
+    }
+    if (classified.kind === 'weekday_unpermitted') {
+      stats.unpermittedLeave += classified.days
+      continue
+    }
+    if (classified.kind === 'special_leave') {
+      stats.weekendHoliday += classified.days
     }
   }
 
