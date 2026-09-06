@@ -29,6 +29,7 @@ import {
   updateExpense,
   voidExpense,
 } from '../utils/expenseStorage'
+import { fetchExpenseReceiptImage } from '../repositories/expensesRepository'
 import { filterVariableExpenses } from '../utils/branchProfitBreakdown'
 import { computeFixedCostTotals } from '../utils/fixedCostStorage'
 import { formatCurrency } from '../utils/invoice'
@@ -197,9 +198,18 @@ export default function Expenses() {
     setFormOpen(true)
   }
 
-  const openEditForm = (expense) => {
+  const openEditForm = async (expense) => {
     setViewingExpense(null)
-    setEditingExpense(expense)
+    let next = expense
+    if (expense?.id && !expense.receiptImage) {
+      try {
+        const receiptImage = await fetchExpenseReceiptImage(expense.id)
+        next = { ...expense, receiptImage: receiptImage || '' }
+      } catch {
+        next = expense
+      }
+    }
+    setEditingExpense(next)
     setFormOpen(true)
   }
 

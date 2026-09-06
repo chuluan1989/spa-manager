@@ -17,6 +17,10 @@ import { isPayrollListEmployee } from '../utils/branchEmployeeMatch'
 import { getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
 import { getRecordFetchFilters, RECORD_FETCH_USE_CASES } from '../constants/auth'
+import {
+  changedEntitiesInclude,
+  createDebouncedLiveReload,
+} from '../utils/liveDataReload'
 
 /**
  * @param {object} params
@@ -168,13 +172,22 @@ export function usePayrollData({
   }, [reload])
 
   useEffect(() => {
-    const onLiveChange = () => reload({ silent: true })
-    const unsubPayroll = subscribePayrollChanges(onLiveChange)
-    const unsubAttendance = subscribeAttendanceChanges(onLiveChange)
-    const unsubInvoices = subscribeInvoicesChanges(onLiveChange)
-    const unsubEmployees = subscribeEmployeesChanges(onLiveChange)
-    const unsubDataSync = subscribeToDataSync(onLiveChange)
+    const debounced = createDebouncedLiveReload(() => reload({ silent: true }))
+    const onPayrollLive = () => debounced()
+    const onInvoiceLive = () => debounced()
+    const onAttendanceLive = () => debounced()
+    const onEmployeeLive = () => debounced()
+    const unsubPayroll = subscribePayrollChanges(onPayrollLive)
+    const unsubAttendance = subscribeAttendanceChanges(onAttendanceLive)
+    const unsubInvoices = subscribeInvoicesChanges(onInvoiceLive)
+    const unsubEmployees = subscribeEmployeesChanges(onEmployeeLive)
+    const unsubDataSync = subscribeToDataSync((detail) => {
+      if (changedEntitiesInclude(detail, ['invoices', 'attendance', 'payroll', 'employees'])) {
+        debounced()
+      }
+    })
     return () => {
+      debounced.cancel()
       unsubPayroll()
       unsubAttendance()
       unsubInvoices()

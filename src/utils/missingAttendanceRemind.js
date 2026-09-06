@@ -14,6 +14,7 @@ import { fetchAttendanceFiltered } from '../repositories/attendanceRepository'
 import { fetchPayrollCycleClose } from '../repositories/payrollCycleCloseRepository'
 import { loadCorrectionRequestsForEmployeeRange } from './attendanceEditRequestService'
 import { getEmployeeById } from './employeeStorage'
+import { ATTENDANCE_BACKEND_ERROR_MESSAGE } from '../constants/attendanceUi'
 
 /**
  * Kỳ đang diễn ra theo ngày hôm nay (VN):
@@ -110,18 +111,28 @@ export async function loadInProgressMissingAttendanceDates({
     return { missingDates: [], target, skippedReason: 'empty_range', employmentStartWarning }
   }
 
-  const [records, corrections] = await Promise.all([
-    fetchAttendanceFiltered({
+  let records
+  try {
+    records = await fetchAttendanceFiltered({
       fromDate: target.fromDate,
       toDate: scanTo,
       employeeId,
-    }).catch(() => []),
-    loadCorrectionRequestsForEmployeeRange(
-      employeeId,
-      target.fromDate,
-      scanTo,
-    ).catch(() => []),
-  ])
+    })
+  } catch {
+    return {
+      missingDates: [],
+      target,
+      skippedReason: 'backend_error',
+      error: ATTENDANCE_BACKEND_ERROR_MESSAGE,
+      employmentStartWarning,
+    }
+  }
+
+  const corrections = await loadCorrectionRequestsForEmployeeRange(
+    employeeId,
+    target.fromDate,
+    scanTo,
+  ).catch(() => [])
 
   const { summary } = buildEmployeeAttendancePeriodDays({
     employeeId,

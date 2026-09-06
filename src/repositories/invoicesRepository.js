@@ -6,6 +6,19 @@ const TABLE = 'invoices'
 /** PostgREST mặc định cắt ~1000 dòng — phải paginate để báo cáo Admin đủ dữ liệu. */
 export const INVOICE_FETCH_PAGE_SIZE = 1000
 
+export const INVOICE_SCOPE_REQUIRED_MESSAGE =
+  'Cần phạm vi ngày, chi nhánh hoặc nhân viên khi tải hóa đơn.'
+
+export function hasInvoiceFetchScope(filters = {}) {
+  return Boolean(
+    filters.fromDate
+    || filters.toDate
+    || filters.branchId
+    || filters.employeeId
+    || String(filters.customerSearch ?? '').trim(),
+  )
+}
+
 /** Cột có trên Supabase — không gửi field JS thừa (vd. serviceCommission). */
 const SUPABASE_INVOICE_FIELDS = [
   'id', 'date', 'branchId', 'branchName', 'employeeId', 'employeeName',
@@ -140,6 +153,9 @@ export async function fetchInvoicesFiltered(filters = {}) {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase chưa cấu hình. Không thể tải hóa đơn.')
   }
+  if (!hasInvoiceFetchScope(filters)) {
+    throw new Error(INVOICE_SCOPE_REQUIRED_MESSAGE)
+  }
 
   const {
     fromDate = '',
@@ -166,7 +182,10 @@ export async function fetchInvoicesFiltered(filters = {}) {
   return rowsToCamel(rows)
 }
 
-/** Lấy toàn bộ hóa đơn — paginate đến hết, không cắt 1000. */
+/**
+ * Lấy toàn bộ hóa đơn — chỉ recovery / migrate / verify.
+ * UI và auto-sync KHÔNG được gọi hàm này.
+ */
 export async function fetchInvoices() {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase chưa cấu hình. Không thể tải hóa đơn.')

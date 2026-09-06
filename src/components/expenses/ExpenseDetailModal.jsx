@@ -1,7 +1,33 @@
+import { useEffect, useState } from 'react'
 import { formatCurrency } from '../../utils/invoice'
+import { fetchExpenseReceiptImage } from '../../repositories/expensesRepository'
 import './ExpenseModules.css'
 
 export default function ExpenseDetailModal({ expense, onClose, onEdit, canEdit }) {
+  const [receiptImage, setReceiptImage] = useState(expense?.receiptImage || '')
+
+  useEffect(() => {
+    if (!expense?.id) {
+      setReceiptImage('')
+      return undefined
+    }
+    if (expense.receiptImage) {
+      setReceiptImage(expense.receiptImage)
+      return undefined
+    }
+    let cancelled = false
+    fetchExpenseReceiptImage(expense.id)
+      .then((url) => {
+        if (!cancelled) setReceiptImage(url || '')
+      })
+      .catch(() => {
+        if (!cancelled) setReceiptImage('')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [expense?.id, expense?.receiptImage])
+
   if (!expense) return null
 
   return (
@@ -22,10 +48,10 @@ export default function ExpenseDetailModal({ expense, onClose, onEdit, canEdit }
           <div><dt>Người nhập</dt><dd>{expense.enteredBy || '—'}</dd></div>
           <div><dt>Ghi chú</dt><dd>{expense.note || '—'}</dd></div>
         </dl>
-        {expense.receiptImage && (
+        {receiptImage && (
           <div className="exp-mod__receipt-box">
             <p>Ảnh hóa đơn</p>
-            <img src={expense.receiptImage} alt="Hóa đơn chi phí" />
+            <img src={receiptImage} alt="Hóa đơn chi phí" />
           </div>
         )}
         <div className="exp-mod__modal-actions">

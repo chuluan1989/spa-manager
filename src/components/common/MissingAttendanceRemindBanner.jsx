@@ -5,6 +5,7 @@ import {
 } from '../../utils/missingAttendanceRemindDismiss'
 import { useEffect, useState } from 'react'
 import { getCurrentUserEmployeeId, isEmployee } from '../../constants/auth'
+import { ATTENDANCE_BACKEND_ERROR_MESSAGE } from '../../constants/attendanceUi'
 import { getIctTodayDate } from '../../utils/ictTime'
 import { useDataSyncVersion } from '../../hooks/useDataSyncVersion'
 import {
@@ -26,6 +27,7 @@ export default function MissingAttendanceRemindBanner({
   const employeeId = getCurrentUserEmployeeId()
   const today = todayDateProp || getIctTodayDate()
   const [missingDates, setMissingDates] = useState([])
+  const [systemError, setSystemError] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,6 +35,7 @@ export default function MissingAttendanceRemindBanner({
     async function load() {
       if (!isEmployee() || !employeeId) {
         setMissingDates([])
+        setSystemError('')
         setLoading(false)
         return
       }
@@ -42,9 +45,19 @@ export default function MissingAttendanceRemindBanner({
           employeeId,
           todayDate: today,
         })
-        if (!cancelled) setMissingDates(result.missingDates ?? [])
+        if (cancelled) return
+        if (result.skippedReason === 'backend_error') {
+          setMissingDates([])
+          setSystemError(result.error || ATTENDANCE_BACKEND_ERROR_MESSAGE)
+          return
+        }
+        setSystemError('')
+        setMissingDates(result.missingDates ?? [])
       } catch {
-        if (!cancelled) setMissingDates([])
+        if (!cancelled) {
+          setMissingDates([])
+          setSystemError(ATTENDANCE_BACKEND_ERROR_MESSAGE)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -53,8 +66,30 @@ export default function MissingAttendanceRemindBanner({
     return () => { cancelled = true }
   }, [employeeId, today, syncVersion])
 
-  if (!isEmployee() || loading || missingDates.length === 0) return null
+  if (!isEmployee() || loading) return null
   if (isMissingAttendanceRemindDismissed(employeeId, today)) return null
+
+  if (systemError) {
+    return (
+      <div className="missing-att-remind" role="alert">
+        <div className="missing-att-remind__body">
+          <strong>Lỗi hệ thống</strong>
+          <p>{systemError}</p>
+        </div>
+        <div className="missing-att-remind__actions">
+          <button
+            type="button"
+            className="missing-att-remind__dismiss"
+            onClick={() => onDismiss?.()}
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (missingDates.length === 0) return null
 
   const message = formatDailyMissingAttendanceMessage(missingDates)
 

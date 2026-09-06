@@ -1,26 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import {
-  fetchInvoices,
   fetchInvoicesFiltered,
+  hasInvoiceFetchScope,
+  INVOICE_SCOPE_REQUIRED_MESSAGE,
   subscribeInvoicesChanges,
 } from '../repositories/invoicesRepository'
 import { replaceAllInvoices } from '../utils/invoiceStorage'
 import { subscribeToDataSync } from '../utils/supabaseSync'
-
-function hasInvoiceFetchScope(scope) {
-  return Boolean(
-    scope.fromDate
-    || scope.toDate
-    || scope.branchId
-    || scope.employeeId,
-  )
-}
+import { changedEntitiesInclude, createDebouncedLiveReload } from '../utils/liveDataReload'
 
 /**
  * Danh sách hóa đơn từ Supabase — nguồn duy nhất cho UI (Admin/Nhân viên).
  * localStorage chỉ là cache phụ sau khi ghi thành công.
- * Khi caller truyền fromDate/toDate: fetch đúng khoảng ngày đã chọn (không cắt theo kỳ hiện tại).
+ * Bắt buộc có scope ngày/chi nhánh/nhân viên — không tải toàn bộ lịch sử.
  */
 export function useInvoicesData(scope = {}) {
   const fromDate = scope.fromDate || ''
@@ -45,14 +38,14 @@ export function useInvoicesData(scope = {}) {
           throw new Error('Supabase chưa cấu hình. Không thể tải hóa đơn.')
         }
         const fetchScope = { fromDate, toDate, branchId, employeeId }
-        const rows = hasInvoiceFetchScope(fetchScope)
-          ? await fetchInvoicesFiltered(fetchScope)
-          : await fetchInvoices()
+        if (!hasInvoiceFetchScope(fetchScope)) {
+          throw new Error(INVOICE_SCOPE_REQUIRED_MESSAGE)
+        }
+        const rows = await fetchInvoicesFiltered(fetchScope)
         if (!cancelled) {
           const list = Array.isArray(rows) ? rows : []
           setInvoices(list)
           setError('')
-          // Cache phụ — lỗi localStorage không được coi là lỗi Supabase / không xóa UI.
           try {
             replaceAllInvoices(list)
           } catch (cacheError) {
@@ -65,7 +58,6 @@ export function useInvoicesData(scope = {}) {
       } catch (err) {
         if (!cancelled) {
           setError(err?.message ?? 'Không thể tải hóa đơn từ Supabase.')
-          // Giữ danh sách trước đó — không xóa UI khi fetch lỗi tạm thời.
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -77,13 +69,13 @@ export function useInvoicesData(scope = {}) {
   }, [refreshKey, fromDate, toDate, branchId, employeeId])
 
   useEffect(() => {
-    const onLiveChange = () => reload()
-    const unsubInvoices = subscribeInvoicesChanges(onLiveChange)
+    const debounced = createDebouncedLiveReload(reload)
+    const unsubInvoices = subscribeInvoicesChanges(() => debounced())
     const unsubSync = subscribeToDataSync((detail) => {
-      const changed = detail?.changedEntities ?? []
-      if (changed.includes('invoices')) reload()
+      if (changedEntitiesInclude(detail, ['invoices'])) debounced()
     })
     return () => {
+      debounced.cancel()
       unsubInvoices()
       unsubSync()
     }

@@ -11,6 +11,7 @@ import { getBranchName } from '../../utils/branchStorage'
 import { getPayrollBranchDisplayTitle } from '../../constants/branchPayrollDisplay'
 import { getEmployeeById } from '../../utils/employeeStorage'
 import { hasCheckedInToday } from '../../utils/attendanceService'
+import { ATTENDANCE_BACKEND_ERROR_MESSAGE } from '../../constants/attendanceUi'
 import {
   ATTENDANCE_EDIT_REQUEST_STATUS,
   loadOwnAttendanceEditRequests,
@@ -78,6 +79,7 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
   const [screen, setScreen] = useState('period')
   const todayDate = getTodayDate()
   const [checkedInToday, setCheckedInToday] = useState(null)
+  const [checkError, setCheckError] = useState('')
   const [justSaved, setJustSaved] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [createDate, setCreateDate] = useState('')
@@ -129,17 +131,23 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
 
   const refreshMeta = useCallback(async () => {
     if (!employee?.id) return
+    setCheckError('')
     try {
-      const [checked, requests, unseen] = await Promise.all([
-        hasCheckedInToday(employee.id).catch(() => false),
+      const checked = await hasCheckedInToday(employee.id)
+      setCheckedInToday(Boolean(checked))
+    } catch {
+      setCheckedInToday(null)
+      setCheckError(ATTENDANCE_BACKEND_ERROR_MESSAGE)
+    }
+    try {
+      const [requests, unseen] = await Promise.all([
         loadOwnAttendanceEditRequests().catch(() => []),
         loadOwnUnseenAttendanceReviews().catch(() => []),
       ])
-      setCheckedInToday(Boolean(checked))
       setOwnRequests(requests)
       setReviewNotices(unseen)
     } catch {
-      setCheckedInToday(false)
+      /* requests are secondary */
     }
   }, [employee?.id])
 
@@ -241,8 +249,20 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
 
       {toast && <div className="attendance-page__toast">{toast}</div>}
 
-      {/* Module điểm danh cũ: AttendanceCheckInForm — không viết UI mới */}
-      {checkedInToday === false && !justSaved && (
+      {checkError && (
+        <section className="attendance-page__checkin-block" role="alert">
+          <p className="attendance-page__error">{checkError}</p>
+          <button type="button" className="attendance-page__edit" onClick={() => refreshMeta()}>
+            Thử lại
+          </button>
+          <button type="button" className="attendance-page__continue-btn" onClick={handleContinueWorking}>
+            Tiếp tục làm việc
+          </button>
+        </section>
+      )}
+
+      {/* Điểm danh hôm nay — chỉ khi API xác nhận chưa có bản ghi. */}
+      {!checkError && checkedInToday === false && !justSaved && (
         <section className="attendance-page__checkin-block">
           <AttendanceCheckInForm
             onSuccess={async () => {
@@ -255,7 +275,7 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
         </section>
       )}
 
-      {(justSaved || checkedInToday === true) && (
+      {!checkError && (justSaved || checkedInToday === true) && (
         <section className="attendance-page__continue-block" role="status">
           <p className="attendance-page__continue-message">
             {justSaved ? 'Chấm công thành công.' : '✅ Hôm nay bạn đã điểm danh.'}
@@ -327,8 +347,10 @@ export default function AttendanceEmployeeView({ onNavigate } = {}) {
               {records.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="attendance-page__empty">
-                    Chưa có dữ liệu chấm công trong khoảng đã chọn.
-                    {screen !== 'today' && (
+                    {error
+                      ? ATTENDANCE_BACKEND_ERROR_MESSAGE
+                      : 'Chưa có dữ liệu chấm công trong khoảng đã chọn.'}
+                    {!error && screen !== 'today' && (
                       <>
                         {' '}
                         <button type="button" className="attendance-page__edit" onClick={() => openCreate(todayDate)}>

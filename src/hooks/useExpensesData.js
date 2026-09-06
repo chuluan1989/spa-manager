@@ -5,7 +5,7 @@ import {
   isAdmin,
 } from '../constants/auth'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { fetchExpenses } from '../repositories/expensesRepository'
+import { fetchExpensesFiltered } from '../repositories/expensesRepository'
 import { fetchInvoicesFiltered } from '../repositories/invoicesRepository'
 import { saveExpenses, normalizeExpense } from '../utils/expenseStorage'
 import { loadBranchFixedCosts } from '../utils/fixedCostStorage'
@@ -41,6 +41,8 @@ export function useExpensesData(filters) {
     if (!isAdmin()) {
       next.branchId = getCurrentUserBranch()
     }
+    if (!next.fromDate) next.fromDate = getMonthStartDate()
+    if (!next.toDate) next.toDate = getTodayDate()
     return next
   }, [filters])
 
@@ -57,7 +59,12 @@ export function useExpensesData(filters) {
         }
 
         const [expenseRows, invoiceRows, fixedRows, categoryRows] = await Promise.all([
-          fetchExpenses(),
+          fetchExpensesFiltered({
+            fromDate: scopedFilters.fromDate || '',
+            toDate: scopedFilters.toDate || '',
+            branchId: scopedFilters.branchId || '',
+            expenseType: scopedFilters.expenseType || '',
+          }),
           fetchInvoicesFiltered({
             fromDate: scopedFilters.fromDate || '',
             toDate: scopedFilters.toDate || '',
@@ -90,7 +97,14 @@ export function useExpensesData(filters) {
 
     load()
     return () => { cancelled = true }
-  }, [scopedFilters.fromDate, scopedFilters.toDate, scopedFilters.branchId, refreshKey, syncVersion])
+  }, [
+    scopedFilters.fromDate,
+    scopedFilters.toDate,
+    scopedFilters.branchId,
+    scopedFilters.expenseType,
+    refreshKey,
+    syncVersion,
+  ])
 
   const expenses = useMemo(
     () => filterByUserBranch(allExpenses),

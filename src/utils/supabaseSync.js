@@ -8,8 +8,8 @@ import {
   fetchEmployeesForLogin,
   upsertEmployees,
 } from '../repositories/employeesRepository'
-import { fetchInvoices, upsertInvoices } from '../repositories/invoicesRepository'
-import { fetchExpenses, upsertExpenses } from '../repositories/expensesRepository'
+import { upsertInvoices } from '../repositories/invoicesRepository'
+import { upsertExpenses } from '../repositories/expensesRepository'
 import { fetchServices, upsertServices } from '../repositories/servicesRepository'
 import {
   fetchBranchPricingMap,
@@ -23,8 +23,8 @@ import { fetchCommissionPolicyMap, upsertCommissionPolicyMap } from '../reposito
 
 import { loadBranches, normalizeBranch, saveBranches, sortBranchesForDisplay } from './branchStorage'
 import { loadEmployees, mergeEmployeesPreservingMedia, normalizeEmployee, saveEmployees } from './employeeStorage'
-import { loadInvoices, replaceAllInvoices } from './invoiceStorage'
-import { loadExpenses, normalizeExpense, saveExpenses } from './expenseStorage'
+import { loadInvoices } from './invoiceStorage'
+import { loadExpenses } from './expenseStorage'
 import { loadServices, normalizeService, saveServices } from './serviceStorage'
 import {
   fetchBranchCatalogsRemote,
@@ -85,23 +85,6 @@ function mergeRemoteWithLocal(localList, remoteList) {
   return [...map.values()]
 }
 
-/** Pull list: merge nếu remote ít hơn local; replace nếu remote đủ hoặc local trống. */
-function applyRemoteList(localList, remoteList, saveFn, entityName) {
-  if (!shouldApplyRemoteList(remoteList, localList)) {
-    console.warn(`[Supabase] Pull ${entityName} rỗng — giữ cache local`)
-    return
-  }
-  if (Array.isArray(localList) && localList.length > remoteList.length) {
-    const merged = mergeRemoteWithLocal(localList, remoteList)
-    console.warn(
-      `[Supabase] Pull ${entityName}: remote ${remoteList.length} < local ${localList.length} — merge ${merged.length} bản ghi`,
-    )
-    saveFn(merged)
-    return
-  }
-  saveFn(remoteList)
-}
-
 /** Không ghi đè cache local bằng object rỗng từ Supabase. */
 function shouldApplyRemoteMap(remoteMap, localMap) {
   if (!remoteMap || typeof remoteMap !== 'object') return false
@@ -111,18 +94,49 @@ function shouldApplyRemoteMap(remoteMap, localMap) {
 
 const MIGRATION_FLAG_KEY = 'spa-manager-supabase-migrated-v1'
 import { notifyDataSynced, SYNC_EVENT } from './dataSyncEvents'
-// Realtime lo phần "gần như tức thời"; interval này chỉ là lưới an toàn dự
-// phòng khi kênh Realtime bị rớt (mất mạng, hết phiên...).
-const DEFAULT_SYNC_INTERVAL_MS = 30000
-// Các bảng bật Realtime — khi có thay đổi (thiết bị khác ghi lên Supabase),
-// kéo lại dữ liệu gần như ngay lập tức thay vì chờ tới vòng polling kế tiếp.
-const REALTIME_TABLES = ['branches', 'employees', 'services', 'branch_pricing', 'branch_commission_policies', 'branch_catalogs', 'invoices', 'expenses', 'service_categories', 'catalog_services', 'service_durations', 'branch_service_prices']
+import { isDocumentVisible } from './liveDataReload'
+
+/** Safety fallback only — never 30s, never full invoice/expense history. */
+export const DEFAULT_SYNC_INTERVAL_MS = 5 * 60 * 1000
+
+/**
+ * Realtime cho bảng cấu hình nhỏ.
+ * invoices / expenses / attendance KHÔNG thuộc kênh này — màn hình scoped tự subscribe.
+ */
+export const REALTIME_REFERENCE_TABLES = [
+  'branches',
+  'employees',
+  'services',
+  'branch_pricing',
+  'branch_commission_policies',
+  'branch_catalogs',
+  'service_categories',
+  'catalog_services',
+  'service_durations',
+  'branch_service_prices',
+]
+
+export const GLOBAL_PULL_ENTITIES = [
+  'branches',
+  'employees',
+  'services',
+  'branchPricing',
+  'commissionPolicies',
+  'serviceCatalogV2',
+  'credentials',
+  'permissions',
+  'branchPermissions',
+  'accountMetadata',
+  'settings',
+]
+
 const REALTIME_DEBOUNCE_MS = 400
 
 let syncTimerId = null
 let syncInFlight = false
 let realtimeChannel = null
 let realtimeDebounceTimer = null
+let visibilityHandler = null
 
 // -------------------- Event bus (thông báo UI khi có dữ liệu mới) --------------------
 
@@ -139,9 +153,8 @@ export function subscribeToDataSync(callback) {
 // -------------------- Pull: Supabase -> LocalStorage (cache) --------------------
 
 /**
- * Kéo dữ liệu mới nhất từ Supabase về, ghi đè cache LocalStorage của thiết
- * bị hiện tại. Nếu bất kỳ bảng nào lỗi mạng/permission, giữ nguyên cache cũ
- * cho bảng đó (không xoá dữ liệu đang có) và tiếp tục với các bảng khác.
+ * Kéo dữ liệu cấu hình nhỏ từ Supabase về cache LocalStorage.
+ * KHÔNG kéo invoices / expenses / attendance (màn hình scoped tự fetch).
  */
 export async function pullAllFromSupabase() {
   if (!isSupabaseConfigured) return { success: false, reason: 'not_configured' }
@@ -231,22 +244,6 @@ export async function pullAllFromSupabase() {
         } catch {
           /* optional preview helper */
         }
-      },
-    },
-    {
-      name: 'invoices',
-      fetch: fetchInvoices,
-      apply: (data) => {
-        const local = loadInvoices()
-        applyRemoteList(local, data, replaceAllInvoices, 'invoices')
-      },
-    },
-    {
-      name: 'expenses',
-      fetch: fetchExpenses,
-      apply: (data) => {
-        const local = loadExpenses()
-        applyRemoteList(local, data, (merged) => saveExpenses(merged.map(normalizeExpense)), 'expenses')
       },
     },
     {
@@ -435,9 +432,11 @@ export async function autoMigrateIfNeeded() {
 // -------------------- Realtime (postgres_changes) --------------------
 
 function scheduleRealtimePull() {
+  if (!isDocumentVisible()) return
   if (realtimeDebounceTimer) clearTimeout(realtimeDebounceTimer)
   realtimeDebounceTimer = setTimeout(() => {
     realtimeDebounceTimer = null
+    if (!isDocumentVisible()) return
     pullAllFromSupabase()
   }, REALTIME_DEBOUNCE_MS)
 }
@@ -452,7 +451,7 @@ function startRealtimeSubscriptions() {
   if (!isSupabaseConfigured || !supabase || realtimeChannel) return
 
   let channel = supabase.channel('spa-manager-realtime')
-  for (const table of REALTIME_TABLES) {
+  for (const table of REALTIME_REFERENCE_TABLES) {
     channel = channel.on(
       'postgres_changes',
       { event: '*', schema: 'public', table },
@@ -518,9 +517,8 @@ export async function runInitialSync({ timeoutMs = 8000 } = {}) {
 // -------------------- Auto-sync theo chu kỳ (Realtime + polling dự phòng) --------------------
 
 /**
- * Khởi động đồng bộ liên tục: Realtime để cập nhật gần như tức thời +
- * polling định kỳ làm lưới an toàn. Không làm gì nếu Supabase chưa cấu
- * hình. Trả về hàm dừng đồng bộ (gọi khi unmount).
+ * Khởi động đồng bộ cấu hình: Realtime bảng nhỏ + polling ≥ 5 phút khi tab visible.
+ * Không kéo toàn bộ hóa đơn/chi phí.
  */
 export function startAutoSync({ intervalMs = DEFAULT_SYNC_INTERVAL_MS, skipInitialPull = false } = {}) {
   if (!isSupabaseConfigured) return () => {}
@@ -536,9 +534,20 @@ export function startAutoSync({ intervalMs = DEFAULT_SYNC_INTERVAL_MS, skipIniti
 
   startRealtimeSubscriptions()
 
+  const safeInterval = Math.max(Number(intervalMs) || DEFAULT_SYNC_INTERVAL_MS, DEFAULT_SYNC_INTERVAL_MS)
   syncTimerId = setInterval(() => {
+    if (!isDocumentVisible()) return
     pullAllFromSupabase()
-  }, intervalMs)
+  }, safeInterval)
+
+  if (typeof document !== 'undefined' && !visibilityHandler) {
+    visibilityHandler = () => {
+      if (document.visibilityState === 'visible') {
+        pullAllFromSupabase()
+      }
+    }
+    document.addEventListener('visibilitychange', visibilityHandler)
+  }
 
   return stopAutoSync
 }
@@ -547,6 +556,10 @@ export function stopAutoSync() {
   if (syncTimerId) {
     clearInterval(syncTimerId)
     syncTimerId = null
+  }
+  if (visibilityHandler && typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', visibilityHandler)
+    visibilityHandler = null
   }
   stopRealtimeSubscriptions()
 }

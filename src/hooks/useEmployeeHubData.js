@@ -6,6 +6,7 @@ import { normalizeEmployee } from '../utils/employeeStorage'
 import { filterEmployeesForBranchRoster } from '../contracts/recordFetchRoster'
 import { getCurrentMonthValue, getPayPeriodRange, PAY_CYCLES } from '../utils/salaryReport'
 import { subscribeToDataSync } from '../utils/supabaseSync'
+import { changedEntitiesInclude, createDebouncedLiveReload } from '../utils/liveDataReload'
 
 export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } = {}) {
   const [employees, setEmployees] = useState([])
@@ -64,11 +65,14 @@ export function useEmployeeHubData({ branchId, month = getCurrentMonthValue() } 
   }, [branchId, month, refreshKey])
 
   useEffect(() => {
-    const onLiveChange = () => reload()
-    const unsubEmployees = subscribeEmployeesChanges(onLiveChange)
-    const unsubInvoices = subscribeInvoicesChanges(onLiveChange)
-    const unsubDataSync = subscribeToDataSync(onLiveChange)
+    const debounced = createDebouncedLiveReload(reload)
+    const unsubEmployees = subscribeEmployeesChanges(() => debounced())
+    const unsubInvoices = subscribeInvoicesChanges(() => debounced())
+    const unsubDataSync = subscribeToDataSync((detail) => {
+      if (changedEntitiesInclude(detail, ['invoices', 'employees'])) debounced()
+    })
     return () => {
+      debounced.cancel()
       unsubEmployees()
       unsubInvoices()
       unsubDataSync()

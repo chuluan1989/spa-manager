@@ -149,4 +149,19 @@ console.log('\n=== UAT — Missing attendance remind (in-progress cycle) ===\n')
   console.log('  [PASS] Tách MissingAttendance vs PayrollClose / Today remind')
 }
 
+{
+  const src = read('src/utils/missingAttendanceRemind.js')
+  const view = read('src/components/attendance/AttendanceEmployeeView.jsx')
+  const gate = read('src/components/attendance/EmployeeAttendanceGate.jsx')
+  const banner = read('src/components/common/MissingAttendanceRemindBanner.jsx')
+  assert.match(src, /skippedReason: 'backend_error'/)
+  assert.match(src, /ATTENDANCE_BACKEND_ERROR_MESSAGE/)
+  assert.match(view, /ATTENDANCE_BACKEND_ERROR_MESSAGE/)
+  assert.match(view, /setCheckError/)
+  assert.match(gate, /setState\('ready'\)/)
+  assert.match(banner, /skippedReason === 'backend_error'/)
+  assert.doesNotMatch(view, /hasCheckedInToday\(employee\.id\)\.catch\(\(\) => false\)/)
+  console.log('  [PASS] Backend failure ≠ chưa chấm công')
+}
+
 console.log('\n=== DONE — missing attendance remind UAT PASS ===\n')

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { isEmployee, getCurrentUserEmployeeId } from '../../constants/auth'
+import { ATTENDANCE_BACKEND_ERROR_MESSAGE } from '../../constants/attendanceUi'
 import { getEmployeeById } from '../../utils/employeeStorage'
 import { isEmployeeProfileLocked } from '../../utils/employeeProfilePolicy'
 import { getTodayDate } from '../../utils/invoiceStorage'
@@ -35,22 +36,23 @@ export default function EmployeeAttendanceGate({ children }) {
         if (server?.date) date = server.date
       } catch {
         if (!cancelled) {
-          setWarning('Không lấy được ngày server — dùng ngày máy cục bộ.')
+          setWarning(ATTENDANCE_BACKEND_ERROR_MESSAGE)
+          setState('ready')
         }
+        return
       }
 
-      let existing = null
       try {
-        existing = await fetchAttendanceByEmployeeAndDate(getCurrentUserEmployeeId(), date)
+        const existing = await fetchAttendanceByEmployeeAndDate(getCurrentUserEmployeeId(), date)
+        if (cancelled) return
+        setServerDate(date)
+        setState(existing ? 'ready' : 'required')
       } catch {
-        if (!cancelled) {
-          setWarning('Không kiểm tra được điểm danh — vui lòng chấm công ngay.')
-        }
+        if (cancelled) return
+        setServerDate(date)
+        setWarning(ATTENDANCE_BACKEND_ERROR_MESSAGE)
+        setState('ready')
       }
-
-      if (cancelled) return
-      setServerDate(date)
-      setState(existing ? 'ready' : 'required')
     }
 
     checkAttendance()
@@ -70,7 +72,7 @@ export default function EmployeeAttendanceGate({ children }) {
   return (
     <>
       {warning && (
-        <div className="attendance-gate-warning" role="status">
+        <div className="attendance-gate-warning" role="alert">
           {warning}
         </div>
       )}

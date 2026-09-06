@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ATTENDANCE_BACKEND_ERROR_MESSAGE } from '../constants/attendanceUi'
 import { fetchAttendanceFiltered, subscribeAttendanceChanges } from '../repositories/attendanceRepository'
 import { subscribeToDataSync } from '../utils/supabaseSync'
+import { changedEntitiesInclude, createDebouncedLiveReload } from '../utils/liveDataReload'
 
 export function useAttendanceData(filters) {
   const [records, setRecords] = useState([])
@@ -14,8 +16,7 @@ export function useAttendanceData(filters) {
       const rows = await fetchAttendanceFiltered(filters)
       setRecords(rows)
     } catch (err) {
-      setError(err?.message ?? 'Không thể tải dữ liệu chấm công.')
-      setRecords([])
+      setError(err?.message || ATTENDANCE_BACKEND_ERROR_MESSAGE)
     } finally {
       setLoading(false)
     }
@@ -25,13 +26,18 @@ export function useAttendanceData(filters) {
     reload()
   }, [reload])
 
-  useEffect(() => subscribeAttendanceChanges(() => {
-    reload()
-  }), [reload])
-
-  useEffect(() => subscribeToDataSync(() => {
-    reload()
-  }), [reload])
+  useEffect(() => {
+    const debounced = createDebouncedLiveReload(reload)
+    const unsubAttendance = subscribeAttendanceChanges(() => debounced())
+    const unsubSync = subscribeToDataSync((detail) => {
+      if (changedEntitiesInclude(detail, ['attendance'])) debounced()
+    })
+    return () => {
+      debounced.cancel()
+      unsubAttendance()
+      unsubSync()
+    }
+  }, [reload])
 
   return { records, loading, error, reload }
 }

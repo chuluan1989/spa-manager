@@ -19,6 +19,39 @@ const OPTIONAL_LEGACY_COLUMNS = [
   'payroll_cycle',
 ]
 
+/** List/sync — không kéo receipt_image (blob). */
+export const EXPENSE_LIST_COLUMNS = [
+  'id',
+  'date',
+  'branch_id',
+  'branch_name',
+  'expense_type',
+  'expense_type_label',
+  'content',
+  'amount',
+  'entered_by',
+  'note',
+  'updated_at',
+  'expense_time',
+  'paid_by',
+  'entered_by_id',
+  'employee_id',
+  'payroll_adjustment_id',
+  'payroll_month',
+  'payroll_cycle',
+  'status',
+  'voided_at',
+  'voided_by',
+  'void_reason',
+].join(',')
+
+export const EXPENSE_SCOPE_REQUIRED_MESSAGE =
+  'Cần phạm vi ngày hoặc chi nhánh khi tải chi phí.'
+
+export function hasExpenseFetchScope(filters = {}) {
+  return Boolean(filters.fromDate || filters.toDate || filters.branchId || filters.expenseType)
+}
+
 function sortExpensesDesc(rows) {
   return [...rows].sort((a, b) => {
     const dateCmp = (b.date ?? '').localeCompare(a.date ?? '')
@@ -36,10 +69,13 @@ export async function fetchExpensesFiltered({
   expenseType = '',
 } = {}) {
   if (!isSupabaseConfigured) return null
+  if (!hasExpenseFetchScope({ fromDate, toDate, branchId, expenseType })) {
+    throw new Error(EXPENSE_SCOPE_REQUIRED_MESSAGE)
+  }
 
   let query = supabase
     .from(TABLE)
-    .select('*')
+    .select(EXPENSE_LIST_COLUMNS)
     .order('date', { ascending: false })
     .order('updated_at', { ascending: false })
 
@@ -53,15 +89,27 @@ export async function fetchExpensesFiltered({
   return sortExpensesDesc(rowsToCamel(data ?? []))
 }
 
+/** Recovery / migrate / verify only — UI list không được gọi. */
 export async function fetchExpenses() {
   if (!isSupabaseConfigured) return null
   const { data, error } = await supabase
     .from(TABLE)
-    .select('*')
+    .select(EXPENSE_LIST_COLUMNS)
     .order('date', { ascending: false })
     .order('updated_at', { ascending: false })
   if (error) throw error
   return sortExpensesDesc(rowsToCamel(data ?? []))
+}
+
+export async function fetchExpenseReceiptImage(id) {
+  if (!isSupabaseConfigured || !id) return ''
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('receipt_image')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) throw error
+  return data?.receipt_image ?? ''
 }
 
 async function upsertExpenseRow(row) {
