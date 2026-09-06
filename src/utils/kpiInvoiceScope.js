@@ -97,8 +97,11 @@ export function resolveKpiPayCycleRange(monthYm, cycle = PAY_CYCLES.PERIOD_1, { 
  * Fetch 1 lần cho toàn scope. Cache theo key scope (full result).
  * Không N+1 theo nhân viên.
  *
- * Lưu ý: không truyền employeeId vào repo khi cần SoT attribution thuần —
- * repo OR support_employee_id. Caller filter bằng engine (invoice.employeeId).
+ * Admin: omit employeeId (all HĐ in date range, then engine groups by employeeId).
+ * Employee KPI: MUST pass employeeId so the page does not depend on global
+ * invoice cache / unbounded fetchInvoices(). Repo ORs support_employee_id;
+ * engine still attributes by invoice.employeeId only.
+ * Do not pass home-branch branchId — that would drop tour activity.
  */
 export async function fetchKpiInvoicesForScope({
   fromDate = '',

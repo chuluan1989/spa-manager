@@ -3,7 +3,7 @@ import ErpPageHeader from '../components/erp/ErpPageHeader'
 import { canAccessEmployeeKpiPage, getCurrentUserBranch, getCurrentUserEmployeeId, isEmployee } from '../constants/auth'
 import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
 import { fetchKpiBranchPolicies } from '../repositories/kpiPolicyRepository'
-import { getEmployeeById } from '../utils/employeeStorage'
+import { getBranchName, getEmployeeById } from '../utils/employeeStorage'
 import { computeEmployeeKpi } from '../utils/employeeKpiEngine'
 import {
   buildKpiCardModel,
@@ -11,7 +11,6 @@ import {
   currentMonthYm,
   filterKpiServiceLineRows,
   formatMonthLabel,
-  monthBounds,
   summarizeOverallKpis,
   EMPLOYEE_KPI_CARD_DEFS,
 } from '../utils/employeeKpiView'
@@ -202,19 +201,20 @@ export default function EmployeeKpi() {
   }, [syncVersion])
 
   const monthRange = useMemo(() => resolveKpiPayCycleRange(month, cycle), [month, cycle])
-  const fetchRange = useMemo(() => monthBounds(month), [month])
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (!employeeId) return
+      if (!employeeId || !monthRange.fromDate || !monthRange.toDate) return
       setLoading(true)
       setInvoiceError('')
       try {
-        // Full month scope 1 lần — không dùng cache 100. Filter attribution trong engine.
+        // Scoped to this employee + pay period. Do not filter branchId
+        // (tour/support at another CN must still reach the engine).
         const result = await fetchKpiInvoicesForScope({
-          fromDate: fetchRange.fromDate,
-          toDate: fetchRange.toDate,
+          fromDate: monthRange.fromDate,
+          toDate: monthRange.toDate,
+          employeeId,
         })
         if (cancelled) return
         setInvoices(result.invoices)
@@ -227,7 +227,7 @@ export default function EmployeeKpi() {
       }
     })()
     return () => { cancelled = true }
-  }, [employeeId, fetchRange.fromDate, fetchRange.toDate, syncVersion])
+  }, [employeeId, monthRange.fromDate, monthRange.toDate, syncVersion])
 
   const model = useMemo(() => {
     if (!employeeId) return null

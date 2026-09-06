@@ -22,6 +22,8 @@ import {
   GLOBAL_PULL_ENTITIES,
   REALTIME_REFERENCE_TABLES,
 } from '../src/utils/supabaseSync.js'
+import { computeEmployeeKpi } from '../src/utils/employeeKpiEngine.js'
+import { KPI_SCOPE_BRANCH_IDS } from '../src/constants/kpiPolicy.js'
 import { changedEntitiesInclude } from '../src/utils/liveDataReload.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -113,6 +115,85 @@ pass('J. Payroll live: period-scoped + debounced; config sync does not refetch p
 
 assert.match(appSrc, /startAutoSync\(\{ skipInitialPull: true \}\)/)
 pass('App still starts auto-sync after initial pull (now reference-only)')
+
+const empKpiSrc = read('src/pages/EmployeeKpi.jsx')
+assert.match(empKpiSrc, /fetchKpiInvoicesForScope/)
+assert.match(empKpiSrc, /employeeId,/)
+assert.match(empKpiSrc, /fromDate: monthRange\.fromDate/)
+assert.match(empKpiSrc, /toDate: monthRange\.toDate/)
+assert.doesNotMatch(empKpiSrc, /monthBounds\(month\)/)
+assert.doesNotMatch(empKpiSrc, /fetchKpiInvoicesForScope\(\{[\s\S]*branchId/)
+assert.match(empKpiSrc, /import \{ getBranchName, getEmployeeById \}/)
+pass('K. Employee KPI fetch is employeeId + pay period; no home-branch filter; no month-wide dump')
+
+const policies = KPI_SCOPE_BRANCH_IDS.map((branchId) => ({
+  id: `uat-${branchId}`,
+  branchId,
+  effectiveFrom: '2026-01-01',
+  addonTarget: 0.8,
+  advancedTarget: 0.2,
+  comboTarget: 0.3,
+  requestedTarget: 0.2,
+  duration90Target: 0.3,
+}))
+const allInvoices = [
+  {
+    id: 'home',
+    date: '2026-09-03',
+    branchId: 'tram-spa',
+    employeeId: 'tram-spa-thanh',
+    supportEmployeeId: '',
+    customerRequested: false,
+    services: [{ serviceId: 'body-60', serviceName: 'Body 60' }, { serviceId: 'goi-sach', serviceName: 'Gội' }],
+  },
+  {
+    id: 'tour',
+    date: '2026-09-05',
+    branchId: 'soc-trang',
+    employeeId: 'tram-spa-thanh',
+    supportEmployeeId: '',
+    customerRequested: true,
+    services: [{ serviceId: 'chuyen-sau', serviceName: 'Chuyên sâu' }],
+  },
+  {
+    id: 'support-only',
+    date: '2026-09-06',
+    branchId: 'tram-spa',
+    employeeId: 'other-nv',
+    supportEmployeeId: 'tram-spa-thanh',
+    customerRequested: false,
+    services: [{ serviceId: 'combo-1', serviceName: 'Combo 1' }],
+  },
+  {
+    id: 'other',
+    date: '2026-09-04',
+    branchId: 'tram-spa',
+    employeeId: 'tram-spa-lan-anh',
+    supportEmployeeId: '',
+    customerRequested: false,
+    services: [{ serviceId: 'body-60', serviceName: 'Body 60' }],
+  },
+]
+const kpiOpts = {
+  employeeId: 'tram-spa-thanh',
+  homeBranchId: 'tram-spa',
+  fromDate: '2026-09-01',
+  toDate: '2026-09-15',
+  policies,
+}
+const fromAll = computeEmployeeKpi(allInvoices, kpiOpts)
+const scoped = allInvoices.filter((inv) =>
+  inv.employeeId === 'tram-spa-thanh' || inv.supportEmployeeId === 'tram-spa-thanh',
+)
+const fromScoped = computeEmployeeKpi(scoped, kpiOpts)
+assert.equal(fromAll.overall.counts.totalInvoices, fromScoped.overall.counts.totalInvoices)
+assert.equal(fromAll.overall.counts.main, fromScoped.overall.counts.main)
+assert.equal(fromAll.overall.counts.addon, fromScoped.overall.counts.addon)
+assert.equal(fromAll.overall.counts.advanced, fromScoped.overall.counts.advanced)
+assert.equal(fromAll.penalty.kpiPenalty, fromScoped.penalty.kpiPenalty)
+assert.equal(fromAll.includedInvoices.some((inv) => inv.branchId === 'soc-trang'), true)
+assert.equal(fromAll.includedInvoices.some((inv) => inv.invoiceId === 'support-only'), false)
+pass('L. Employee-scoped invoice set matches Admin engine for same employee; tour kept; support not attributed')
 
 const remainingUnbounded = []
 if (/fetchInvoices\(\)/.test(read('src/utils/dataRecovery.js'))) remainingUnbounded.push('dataRecovery.fetchInvoices')
