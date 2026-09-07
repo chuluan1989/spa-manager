@@ -186,8 +186,10 @@ export async function buildPayrollCloseRemindChecklist({
 }) {
   const [syncCheck, attendanceRows, corrections] = await Promise.all([
     checkUnsyncedLocalInvoices(user).catch((err) => ({
+      status: 'unknown',
       hasUnsynced: false,
       count: 0,
+      pending: [],
       error: err?.message ?? 'Không kiểm tra được hóa đơn.',
     })),
     fetchAttendanceFiltered({

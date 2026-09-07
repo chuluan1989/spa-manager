@@ -195,11 +195,18 @@ assert.equal(fromAll.includedInvoices.some((inv) => inv.branchId === 'soc-trang'
 assert.equal(fromAll.includedInvoices.some((inv) => inv.invoiceId === 'support-only'), false)
 pass('L. Employee-scoped invoice set matches Admin engine for same employee; tour kept; support not attributed')
 
+const migrateSrc = read('src/utils/invoiceLegacyMigrate.js')
+assert.doesNotMatch(migrateSrc, /fetchInvoices\(/)
+assert.match(migrateSrc, /fetchInvoicesByIds/)
+assert.match(migrateSrc, /scoped\.length === 0/)
+assert.match(invoicesRepo, /export async function fetchInvoicesByIds/)
+pass('M. Unsynced-local check uses ID fetch; never fetchInvoices() full history')
+
 const remainingUnbounded = []
 if (/fetchInvoices\(\)/.test(read('src/utils/dataRecovery.js'))) remainingUnbounded.push('dataRecovery.fetchInvoices')
 if (/fetchInvoices\(\)/.test(read('src/utils/legacyCloudSync.js'))) remainingUnbounded.push('legacyCloudSync.fetchInvoices')
 if (/fetchInvoices\(\)/.test(read('src/utils/invoiceLegacyMigrate.js'))) remainingUnbounded.push('invoiceLegacyMigrate.fetchInvoices')
-assert.ok(remainingUnbounded.length > 0)
+assert.deepEqual(remainingUnbounded, ['dataRecovery.fetchInvoices', 'legacyCloudSync.fetchInvoices'])
 pass(`Remaining unbounded (recovery/legacy only): ${remainingUnbounded.join(', ')}`)
 
 const BEFORE = {

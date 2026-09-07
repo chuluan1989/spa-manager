@@ -1,7 +1,11 @@
 import { isSupabaseConfigured } from '../lib/supabaseClient'
 import { ROLES } from '../constants/roles'
 import { normalizePaymentMethod } from '../constants/paymentMethods'
-import { fetchInvoices, upsertInvoice } from '../repositories/invoicesRepository'
+import {
+  fetchInvoicesByIds,
+  fetchInvoicesFiltered,
+  upsertInvoice,
+} from '../repositories/invoicesRepository'
 import { rowToCamel } from '../repositories/caseUtils'
 import { loadInvoices } from './invoiceStorage'
 import { notifyDataSynced } from './dataSyncEvents'
@@ -138,42 +142,94 @@ export function findUnsyncedLocalInvoices(localInvoices, remoteIndex) {
   return (localInvoices ?? []).filter((invoice) => !isInvoiceAlreadyOnRemote(invoice, remoteIndex))
 }
 
+function emptyUnsyncedResult(extra = {}) {
+  return {
+    status: 'ok',
+    hasUnsynced: false,
+    count: 0,
+    pending: [],
+    error: null,
+    localTotal: 0,
+    remoteTotal: 0,
+    remoteQueries: 0,
+    ...extra,
+  }
+}
+
+function unknownUnsyncedResult(error, extra = {}) {
+  return emptyUnsyncedResult({
+    status: 'unknown',
+    error: error?.message ?? (typeof error === 'string' ? error : 'Không thể kiểm tra hóa đơn trên Supabase.'),
+    ...extra,
+  })
+}
+
+async function fetchRemoteRowsForLocalCandidates(candidates, {
+  fetchInvoicesByIds: fetchByIds = fetchInvoicesByIds,
+  fetchInvoicesFiltered: fetchFiltered = fetchInvoicesFiltered,
+} = {}) {
+  const ids = candidates.map((invoice) => invoice?.id).filter(Boolean)
+  let remoteQueries = 0
+  const byId = await fetchByIds(ids)
+  remoteQueries += 1
+  const remoteIndex = buildRemoteInvoiceIndex(byId)
+  const unmatched = findUnsyncedLocalInvoices(candidates, remoteIndex)
+  if (unmatched.length === 0) {
+    return { remoteIndex, remoteQueries }
+  }
+
+  const peerKeys = new Set()
+  const extra = []
+  for (const invoice of unmatched) {
+    const employeeId = invoice.employeeId || ''
+    const date = invoice.date || ''
+    if (!employeeId || !date) continue
+    const key = `${employeeId}|${date}`
+    if (peerKeys.has(key)) continue
+    peerKeys.add(key)
+    extra.push(fetchFiltered({ fromDate: date, toDate: date, employeeId }))
+  }
+  const peerRows = extra.length > 0 ? (await Promise.all(extra)).flat() : []
+  remoteQueries += extra.length
+  return {
+    remoteIndex: buildRemoteInvoiceIndex([...byId, ...peerRows]),
+    remoteQueries,
+  }
+}
+
 /**
  * Kiểm tra hóa đơn local chưa có trên Supabase (theo phạm vi user).
- * Chỉ đọc localStorage + fetch Supabase — không ghi.
+ * Chỉ đọc localStorage + query ĐÚNG id/ngày của candidate — không tải lịch sử.
  */
-export async function checkUnsyncedLocalInvoices(user, storage = localStorage) {
-  if (!isSupabaseConfigured) {
-    return { hasUnsynced: false, count: 0, pending: [], error: 'Supabase chưa cấu hình.' }
+export async function checkUnsyncedLocalInvoices(user, storage = localStorage, options = {}) {
+  const hasInjectedFetch = typeof options.fetchInvoicesByIds === 'function'
+  if (!hasInjectedFetch && !isSupabaseConfigured) {
+    return unknownUnsyncedResult('Supabase chưa cấu hình.')
   }
   if (!user?.role) {
-    return { hasUnsynced: false, count: 0, pending: [], error: null }
+    return emptyUnsyncedResult()
   }
 
   const scoped = scopeInvoicesForUser(collectAllLocalInvoices(storage), user)
   if (scoped.length === 0) {
-    return { hasUnsynced: false, count: 0, pending: [], error: null }
+    return emptyUnsyncedResult()
   }
 
   try {
-    const remote = await fetchInvoices()
-    const remoteIndex = buildRemoteInvoiceIndex(remote)
+    const { remoteIndex, remoteQueries } = await fetchRemoteRowsForLocalCandidates(scoped, options)
     const pending = findUnsyncedLocalInvoices(scoped, remoteIndex)
     return {
+      status: 'ok',
       hasUnsynced: pending.length > 0,
       count: pending.length,
       pending,
       error: null,
       localTotal: scoped.length,
       remoteTotal: remoteIndex.total,
+      remoteQueries,
     }
   } catch (error) {
-    return {
-      hasUnsynced: false,
-      count: 0,
-      pending: [],
-      error: error?.message ?? 'Không thể kiểm tra hóa đơn trên Supabase.',
-    }
+    return unknownUnsyncedResult(error, { localTotal: scoped.length })
   }
 }
 
@@ -231,7 +287,7 @@ export async function migrateLocalInvoicesToSupabase(user, storage = localStorag
     }
   }
 
-  const remoteIndex = buildRemoteInvoiceIndex(await fetchInvoices())
+  const { remoteIndex } = await fetchRemoteRowsForLocalCandidates(pending)
   let imported = 0
   let skipped = 0
   let failed = 0

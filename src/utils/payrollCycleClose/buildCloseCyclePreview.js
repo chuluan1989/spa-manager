@@ -181,8 +181,10 @@ export async function buildCloseCyclePreview({
   const attendanceComplete = attendanceWaiver || attendanceReview.summary.isComplete
 
   const syncCheck = await checkUnsyncedLocalInvoices(getCurrentUser()).catch((err) => ({
+    status: 'unknown',
     hasUnsynced: false,
     count: 0,
+    pending: [],
     error: err?.message ?? 'Không kiểm tra được hóa đơn chưa đồng bộ.',
   }))
   const invoicesSynced = !syncCheck.error && !syncCheck.hasUnsynced

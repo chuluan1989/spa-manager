@@ -182,6 +182,39 @@ export async function fetchInvoicesFiltered(filters = {}) {
   return rowsToCamel(rows)
 }
 
+/** Chunk `.in('id', …)` — tránh URL PostgREST quá dài. */
+export const INVOICE_ID_FETCH_CHUNK = 100
+
+const UNSYNCED_CHECK_COLUMNS = 'id,date,employee_id,total,created_at'
+
+/**
+ * Lấy đúng các hóa đơn theo id — O(số id), không tải lịch sử.
+ * Live UI / unsynced-check PHẢI dùng hàm này hoặc fetchInvoicesFiltered.
+ */
+export async function fetchInvoicesByIds(ids = []) {
+  const unique = [...new Set(
+    (Array.isArray(ids) ? ids : [])
+      .map((id) => String(id ?? '').trim())
+      .filter(Boolean),
+  )]
+  if (unique.length === 0) return []
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase chưa cấu hình. Không thể tải hóa đơn.')
+  }
+
+  const all = []
+  for (let i = 0; i < unique.length; i += INVOICE_ID_FETCH_CHUNK) {
+    const chunk = unique.slice(i, i + INVOICE_ID_FETCH_CHUNK)
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select(UNSYNCED_CHECK_COLUMNS)
+      .in('id', chunk)
+    if (error) throw error
+    all.push(...(data ?? []))
+  }
+  return rowsToCamel(all)
+}
+
 /**
  * Lấy toàn bộ hóa đơn — chỉ recovery / migrate / verify.
  * UI và auto-sync KHÔNG được gọi hàm này.

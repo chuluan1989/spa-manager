@@ -24,7 +24,8 @@ export default function UnsyncedInvoicesBanner({ user, onSyncComplete }) {
 
     setChecking(true)
     const result = await checkUnsyncedLocalInvoices(user)
-    setPendingCount(result.count ?? 0)
+    const backendUnknown = Boolean(result.error) || result.status === 'unknown'
+    setPendingCount(backendUnknown ? 0 : (result.count ?? 0))
     setCheckError(result.error ?? '')
     setChecking(false)
     return result

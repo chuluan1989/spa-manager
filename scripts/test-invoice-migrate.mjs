@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {
   buildRemoteInvoiceIndex,
+  checkUnsyncedLocalInvoices,
   collectAllLocalInvoices,
   findUnsyncedLocalInvoices,
   isInvoiceAlreadyOnRemote,
@@ -60,5 +61,25 @@ const remoteIndex = buildRemoteInvoiceIndex([{
 }])
 assert.equal(isInvoiceAlreadyOnRemote(scoped[0], remoteIndex), true)
 assert.equal(findUnsyncedLocalInvoices(scoped, buildRemoteInvoiceIndex([])).length, 1)
+
+const byIdCalls = []
+const result = await checkUnsyncedLocalInvoices(employee, localStorage, {
+  fetchInvoicesByIds: async (ids) => {
+    byIdCalls.push([...(ids ?? [])])
+    return [{
+      id: 'inv-local-1',
+      date: '2026-07-05',
+      employeeId: 'vinh-long-linh',
+      total: 350000,
+      createdAt: '2026-07-05T10:00:00.000Z',
+    }]
+  },
+  fetchInvoicesFiltered: async () => {
+    throw new Error('fingerprint peer must not run when id matches')
+  },
+})
+assert.equal(result.hasUnsynced, false)
+assert.equal(byIdCalls.length, 1)
+assert.ok(byIdCalls[0].includes('inv-local-1'))
 
 console.log('invoice migrate tests OK')

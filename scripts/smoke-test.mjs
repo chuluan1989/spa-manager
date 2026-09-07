@@ -3184,6 +3184,8 @@ test('invoice legacy migrate: collect keys, dedup, and scope employee', async ()
 
   const migrateSource = fs.readFileSync(path.join(process.cwd(), 'src/utils/invoiceLegacyMigrate.js'), 'utf8')
   assert.match(migrateSource, /ROLES\.EMPLOYEE.*ROLES\.BRANCH_MANAGER/s)
+  assert.doesNotMatch(migrateSource, /fetchInvoices\(/)
+  assert.match(migrateSource, /fetchInvoicesByIds/)
 })
 
 test('invoice legacy migrate: banner text and App mount', async () => {
