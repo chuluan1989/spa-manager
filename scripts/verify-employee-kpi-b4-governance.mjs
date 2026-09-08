@@ -14,6 +14,7 @@ import { KPI_SCOPE_BRANCH_IDS, KPI_STATUS } from '../src/constants/kpiPolicy.js'
 import {
   canAccessAdminKpiPage,
   canAccessEmployeeKpiPage,
+  canManageKpiPolicy,
   getVisibleNavItems,
 } from '../src/constants/auth.js'
 import { saveCurrentUser, clearCurrentUser } from '../src/utils/authStorage.js'
@@ -405,9 +406,11 @@ function runThreeWay(invoices, policies, tag) {
     && !canAccessAdminKpiPage(ROLES.EMPLOYEE), {})
   check('12b', 'Admin canAccess admin-kpi only (not employee page)', canAccessAdminKpiPage(ROLES.ADMIN)
     && !canAccessEmployeeKpiPage(ROLES.ADMIN), {})
-  check('12c', 'Manager KHÔNG có Admin KPI', !canAccessAdminKpiPage(ROLES.BRANCH_MANAGER)
-    && !BRANCH_MANAGER_NAV_ORDER.includes('admin-kpi')
-    && !BRANCH_MANAGER_NAV_ORDER.includes('employee-kpi'), {
+  check('12c', 'Manager KPI: dashboard HOME-branch, không employee-kpi, không policy', canAccessAdminKpiPage(ROLES.BRANCH_MANAGER)
+    && BRANCH_MANAGER_NAV_ORDER.includes('admin-kpi')
+    && !BRANCH_MANAGER_NAV_ORDER.includes('employee-kpi')
+    && !canAccessEmployeeKpiPage(ROLES.BRANCH_MANAGER)
+    && !canManageKpiPolicy(ROLES.BRANCH_MANAGER), {
     order: BRANCH_MANAGER_NAV_ORDER,
   })
   const appSrc = readFileSync(join(ROOT, 'src/App.jsx'), 'utf8')

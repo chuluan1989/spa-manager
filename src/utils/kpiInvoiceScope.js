@@ -109,12 +109,36 @@ export async function fetchKpiInvoicesForScope({
   branchId = '',
   /** Chỉ dùng khi muốn thu hẹp mạng; engine vẫn lọc attribution. */
   employeeId = '',
+  /**
+   * Manager KPI: hóa đơn attributed (employee_id IN roster).
+   * Không filter serving branchId — tour vẫn vào KPI.
+   * [] → không fetch (tránh dump cả kỳ).
+   */
+  employeeIds,
   force = false,
 } = {}) {
   if (!fromDate || !toDate) {
     throw new Error('KPI scope cần fromDate và toDate')
   }
-  const key = kpiInvoiceScopeKey({ fromDate, toDate, branchId, employeeId })
+  const employeeIdList = Array.isArray(employeeIds)
+    ? [...new Set(employeeIds.map((id) => String(id ?? '').trim()).filter(Boolean))]
+    : null
+  if (employeeIdList && employeeIdList.length === 0) {
+    return {
+      invoices: [],
+      fromDate,
+      toDate,
+      branchId: branchId || '',
+      employeeId: employeeId || '',
+      employeeIds: [],
+      fetchedAt: Date.now(),
+      key: kpiInvoiceScopeKey({ fromDate, toDate, branchId, employeeId: 'roster-empty' }),
+      fromCache: false,
+    }
+  }
+
+  const rosterKey = employeeIdList ? `ids:${employeeIdList.slice().sort().join(',')}` : employeeId
+  const key = kpiInvoiceScopeKey({ fromDate, toDate, branchId, employeeId: rosterKey })
   if (!force && scopeCache.has(key)) {
     return { ...scopeCache.get(key), fromCache: true, key }
   }
@@ -124,6 +148,7 @@ export async function fetchKpiInvoicesForScope({
     toDate,
     ...(branchId ? { branchId } : {}),
     ...(employeeId ? { employeeId } : {}),
+    ...(employeeIdList ? { employeeIds: employeeIdList } : {}),
   })
 
   const payload = {
@@ -132,6 +157,7 @@ export async function fetchKpiInvoicesForScope({
     toDate,
     branchId: branchId || '',
     employeeId: employeeId || '',
+    employeeIds: employeeIdList || [],
     fetchedAt: Date.now(),
     key,
   }

@@ -3,12 +3,16 @@ import ErpFilterBar from '../components/erp/ErpFilterBar'
 import ErpPageHeader from '../components/erp/ErpPageHeader'
 import {
   canAccessAdminKpiPage,
+  canManageKpiPolicy,
+  getCurrentUserBranch,
   getCurrentUserEmployeeId,
   getCurrentUserName,
   isAdmin,
+  isBranchManager,
 } from '../constants/auth'
 import { KPI_SCOPE_BRANCH_IDS } from '../constants/kpiPolicy'
 import { useDataSyncVersion } from '../hooks/useDataSyncVersion'
+import { fetchEmployeesFiltered } from '../repositories/employeesRepository'
 import {
   fetchKpiBranchPolicies,
   fetchKpiPolicyChangeLogs,
@@ -30,7 +34,7 @@ import {
 } from '../utils/employeeKpiDetailExport'
 import { getBranchName } from '../utils/branchStorage'
 import { notifyDataSynced } from '../utils/dataSyncEvents'
-import { loadEmployees } from '../utils/employeeStorage'
+import { getActiveEmployeesByBranch, isEmployeeActive, loadEmployees } from '../utils/employeeStorage'
 import {
   buildKpiServiceLineRows,
   currentMonthYm,
@@ -85,10 +89,13 @@ function ResultCell({ row }) {
 
 export default function AdminKpi() {
   const syncVersion = useDataSyncVersion()
+  const managerMode = isBranchManager()
+  const managerBranchId = managerMode ? getCurrentUserBranch() : ''
+  const canEditPolicy = canManageKpiPolicy()
   const [tab, setTab] = useState('dashboard') // dashboard | policy | audit
   const [month, setMonth] = useState(() => currentMonthYm())
   const [cycle, setCycle] = useState(() => getDefaultPayCycleForVietnamDate())
-  const [branchId, setBranchId] = useState('')
+  const [branchId, setBranchId] = useState(() => (isBranchManager() ? getCurrentUserBranch() : ''))
   const [employeeId, setEmployeeId] = useState('')
   const [status, setStatus] = useState('')
   const [kpiKey, setKpiKey] = useState('')
@@ -98,6 +105,7 @@ export default function AdminKpi() {
   const [loadError, setLoadError] = useState('')
   const [invoiceError, setInvoiceError] = useState('')
   const [invoices, setInvoices] = useState([])
+  const [rosterEmployees, setRosterEmployees] = useState([])
   const [invoicesLoading, setInvoicesLoading] = useState(false)
   const [scopeMeta, setScopeMeta] = useState(null)
   const [exportBusy, setExportBusy] = useState(false)
@@ -131,7 +139,15 @@ export default function AdminKpi() {
 
   const monthRange = useMemo(() => resolveKpiPayCycleRange(month, cycle), [month, cycle])
   const fetchRange = useMemo(() => monthBounds(month), [month])
-  const employees = useMemo(() => loadEmployees(), [syncVersion])
+  const cachedEmployees = useMemo(() => loadEmployees(), [syncVersion])
+  const employees = managerMode ? rosterEmployees : cachedEmployees
+
+  useEffect(() => {
+    if (managerMode) {
+      setBranchId(managerBranchId)
+      setTab('dashboard')
+    }
+  }, [managerMode, managerBranchId])
 
   useEffect(() => {
     let cancelled = false
@@ -139,6 +155,44 @@ export default function AdminKpi() {
       setInvoicesLoading(true)
       setInvoiceError('')
       try {
+        if (managerMode) {
+          if (!managerBranchId || !monthRange.fromDate || !monthRange.toDate) {
+            if (!cancelled) {
+              setRosterEmployees([])
+              setInvoices([])
+              setScopeMeta(null)
+            }
+            return
+          }
+          let roster = []
+          try {
+            roster = await fetchEmployeesFiltered({ branchId: managerBranchId }) ?? []
+          } catch {
+            roster = getActiveEmployeesByBranch(managerBranchId)
+          }
+          const active = (Array.isArray(roster) ? roster : []).filter((emp) => (
+            (emp.branchId || emp.branch_id) === managerBranchId
+            && isEmployeeActive(emp)
+          ))
+          const employeeIds = active.map((emp) => emp.id).filter(Boolean)
+          const result = await fetchKpiInvoicesForScope({
+            fromDate: monthRange.fromDate,
+            toDate: monthRange.toDate,
+            employeeIds,
+          })
+          if (cancelled) return
+          setRosterEmployees(active)
+          setInvoices(result.invoices)
+          setScopeMeta({
+            ...monthRange,
+            invoiceCount: result.invoices.length,
+            fromCache: result.fromCache,
+            fetchedAt: result.fetchedAt,
+            rosterCount: employeeIds.length,
+          })
+          return
+        }
+
         const result = await fetchKpiInvoicesForScope({
           fromDate: fetchRange.fromDate,
           toDate: fetchRange.toDate,
@@ -154,20 +208,30 @@ export default function AdminKpi() {
       } catch (err) {
         if (cancelled) return
         setInvoices([])
+        if (managerMode) setRosterEmployees([])
         setInvoiceError(err.message || 'Không tải được hóa đơn KPI từ cloud')
       } finally {
         if (!cancelled) setInvoicesLoading(false)
       }
     })()
     return () => { cancelled = true }
-  }, [fetchRange.fromDate, fetchRange.toDate, syncVersion])
+  }, [
+    managerMode,
+    managerBranchId,
+    monthRange,
+    fetchRange.fromDate,
+    fetchRange.toDate,
+    syncVersion,
+  ])
 
   const dashboard = useMemo(() => buildAdminKpiDashboard(invoices, {
     fromDate: monthRange.fromDate,
     toDate: monthRange.toDate,
     policies,
     employees,
-  }), [invoices, monthRange.fromDate, monthRange.toDate, policies, employees])
+    restrictHomeBranchId: managerMode ? managerBranchId : '',
+    includeRosterWithoutInvoices: managerMode,
+  }), [invoices, monthRange.fromDate, monthRange.toDate, policies, employees, managerMode, managerBranchId])
 
   const filteredRows = useMemo(
     () => filterAdminKpiRows(dashboard.rows, {
@@ -203,13 +267,13 @@ export default function AdminKpi() {
   if (!canAccessAdminKpiPage()) {
     return (
       <div className="erp-page admin-kpi-page">
-        <ErpPageHeader title="KPI Admin" subtitle="Chỉ Admin được xem dashboard KPI." />
+        <ErpPageHeader title="KPI" subtitle="Không có quyền xem dashboard KPI." />
       </div>
     )
   }
 
   const onExportCsv = () => {
-    exportAdminKpiCsv(filteredRows, { month, branchId })
+    exportAdminKpiCsv(filteredRows, { month, branchId: managerMode ? managerBranchId : branchId })
   }
 
   const onExportExcel = async () => {
@@ -223,6 +287,7 @@ export default function AdminKpi() {
 
   const onCreatePolicy = async (e) => {
     e.preventDefault()
+    if (!canEditPolicy) return
     setPolicyMsg('')
     const targets = {
       addon: percentInputToDecimal(policyForm.addon),
@@ -263,13 +328,17 @@ export default function AdminKpi() {
   return (
     <div className="erp-page admin-kpi-page">
       <ErpPageHeader
-        title={`KPI Admin · ${formatMonthLabel(month)}`}
-        subtitle={`6 chi nhánh · Cloud HĐ theo kỳ lương · ${monthRange.rangeLabel}`}
+        title={managerMode
+          ? `KPI ${getBranchName(managerBranchId) || managerBranchId} · ${formatMonthLabel(month)}`
+          : `KPI Admin · ${formatMonthLabel(month)}`}
+        subtitle={managerMode
+          ? `NV thuộc chi nhánh (HOME) · Cloud HĐ theo kỳ lương · ${monthRange.rangeLabel}`
+          : `6 chi nhánh · Cloud HĐ theo kỳ lương · ${monthRange.rangeLabel}`}
         badge={{
           value: `${dashboard.system.employeesMetAll}/${dashboard.system.employeeCount}`,
           label: 'NV đạt đủ KPI',
         }}
-        actions={(
+        actions={canEditPolicy ? (
           <div className="admin-kpi-tabs">
             <button type="button" className={tab === 'dashboard' ? 'is-active' : ''} onClick={() => setTab('dashboard')}>
               Dashboard
@@ -281,7 +350,7 @@ export default function AdminKpi() {
               Lịch sử policy
             </button>
           </div>
-        )}
+        ) : null}
       />
 
       {loadError && <p className="admin-kpi-warn">{loadError}</p>}
@@ -289,7 +358,8 @@ export default function AdminKpi() {
       {invoicesLoading && <p className="admin-kpi-muted">Đang tải hóa đơn KPI từ cloud…</p>}
       {scopeMeta && !invoicesLoading && (
         <p className="admin-kpi-muted">
-          Phạm vi: {monthRange.rangeLabel} · {scopeMeta.invoiceCount} HĐ cloud (tháng)
+          Phạm vi: {monthRange.rangeLabel} · {scopeMeta.invoiceCount} HĐ cloud
+          {managerMode ? ` · ${scopeMeta.rosterCount ?? dashboard.system.employeeCount} NV HOME` : ' (tháng)'}
           {scopeMeta.dataAsOfHint ? ` · HĐ thực tế đến ${scopeMeta.dataAsOfHint}` : ''}
         </p>
       )}
@@ -319,12 +389,18 @@ export default function AdminKpi() {
             </label>
             <label>
               Chi nhánh
-              <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
-                <option value="">Tất cả 6 CN</option>
-                {KPI_SCOPE_BRANCH_IDS.map((id) => (
-                  <option key={id} value={id}>{getBranchName(id) || id}</option>
-                ))}
-              </select>
+              {managerMode ? (
+                <select value={managerBranchId} disabled>
+                  <option value={managerBranchId}>{getBranchName(managerBranchId) || managerBranchId}</option>
+                </select>
+              ) : (
+                <select value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+                  <option value="">Tất cả 6 CN</option>
+                  {KPI_SCOPE_BRANCH_IDS.map((id) => (
+                    <option key={id} value={id}>{getBranchName(id) || id}</option>
+                  ))}
+                </select>
+              )}
             </label>
             <label>
               Nhân viên
@@ -358,7 +434,7 @@ export default function AdminKpi() {
 
           <section className="admin-kpi-system">
             <article>
-              <h3>Hệ thống</h3>
+              <h3>{managerMode ? (getBranchName(managerBranchId) || 'Chi nhánh') : 'Hệ thống'}</h3>
               <p>{dashboard.system.employeeCount} NV · {dashboard.system.counts.totalInvoices} HĐ</p>
               <p>
                 Dịch vụ chính {dashboard.system.counts.main}
@@ -406,13 +482,14 @@ export default function AdminKpi() {
                   <th>Chuyên sâu</th>
                   <th>Khách yêu cầu</th>
                   <th>90 phút</th>
+                  <th>Tổng thiếu</th>
                   <th>Phạt KPI</th>
                   <th>Kết quả</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length === 0 && (
-                  <tr><td colSpan={9}>Không có dữ liệu KPI trong bộ lọc.</td></tr>
+                  <tr><td colSpan={10}>Không có dữ liệu KPI trong bộ lọc.</td></tr>
                 )}
                 {filteredRows.map((row) => (
                   <tr
@@ -427,6 +504,7 @@ export default function AdminKpi() {
                     <td><AdminKpiMetricCell card={row.cards.advanced} /></td>
                     <td><AdminKpiMetricCell card={row.cards.requested} /></td>
                     <td><AdminKpiMetricCell card={row.cards.duration90} /></td>
+                    <td>{row.totalKpiMissing ?? 0}</td>
                     <td>{row.kpiPenaltyApplied ? formatCurrency(row.kpiPenalty || 0) : '—'}</td>
                     <td><ResultCell row={row} /></td>
                   </tr>
@@ -448,7 +526,7 @@ export default function AdminKpi() {
         </>
       )}
 
-      {tab === 'policy' && (
+      {canEditPolicy && tab === 'policy' && (
         <section className="admin-kpi-policy">
           <div className="admin-kpi-policy__form-card">
             <h2>Cấu hình KPI</h2>
@@ -550,7 +628,7 @@ export default function AdminKpi() {
         </section>
       )}
 
-      {tab === 'audit' && (
+      {canEditPolicy && tab === 'audit' && (
         <section className="admin-kpi-audit">
           <h2>Lịch sử cấu hình KPI</h2>
           <table className="admin-kpi-table">

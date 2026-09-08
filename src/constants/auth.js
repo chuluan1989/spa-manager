@@ -300,8 +300,13 @@ export function canAccessEmployeeKpiPage(role = getCurrentUserRole()) {
   return role === ROLES.EMPLOYEE
 }
 
-/** B3: Admin KPI dashboard + cấu hình policy. */
+/** B3: Admin KPI dashboard. Manager xem cùng UI, khóa HOME branch. */
 export function canAccessAdminKpiPage(role = getCurrentUserRole()) {
+  return role === ROLES.ADMIN || role === ROLES.BRANCH_MANAGER
+}
+
+/** Chỉ Admin được tạo/sửa KPI policy. */
+export function canManageKpiPolicy(role = getCurrentUserRole()) {
   return role === ROLES.ADMIN
 }
 
@@ -468,6 +473,7 @@ export function getVisibleNavItems(role = getCurrentUserRole()) {
       if (item.id === 'customers') return canAccessCustomersPage(role, branchId)
       if (item.id === 'attendance') return canAccessAttendancePage(role, branchId)
       if (item.id === 'salary') return canAccessSalaryPage(role, branchId)
+      if (item.id === 'admin-kpi') return canAccessAdminKpiPage(role)
       return true
     })
   }

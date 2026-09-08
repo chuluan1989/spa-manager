@@ -67,6 +67,10 @@ export function buildAdminKpiDashboard(invoices = [], {
   toDate = '',
   policies = [],
   employees = [],
+  /** Manager: chỉ NV có HOME branch = CN quản lý. Không dùng invoice.branchId. */
+  restrictHomeBranchId = '',
+  /** Manager: hiện cả NV chi nhánh chưa có HĐ trong kỳ. */
+  includeRosterWithoutInvoices = false,
 } = {}) {
   const empIndex = new Map((employees || []).map((e) => [e.id, e]))
   const byEmployee = new Map()
@@ -85,22 +89,47 @@ export function buildAdminKpiDashboard(invoices = [], {
 
   const rows = [...byEmployee.entries()].map(([employeeId, list]) => {
     const emp = empIndex.get(employeeId) || getEmployeeById(employeeId) || {}
+    const homeBranchId = emp.branchId || emp.branch_id || ''
     const model = computeEmployeeKpi(list, {
       employeeId,
       fromDate,
       toDate,
       policies,
-      homeBranchId: emp.branchId || '',
+      homeBranchId,
       employee: emp,
     })
     return buildAdminEmployeeKpiRow(model, {
-      homeBranchId: emp.branchId || '',
-      homeBranchName: getBranchName(emp.branchId || '') || emp.branchName || '',
+      homeBranchId,
+      homeBranchName: getBranchName(homeBranchId) || emp.branchName || '',
       employeeName: emp.name || list[0]?.employeeName || employeeId,
     })
-  }).sort((a, b) => a.homeBranchName.localeCompare(b.homeBranchName) || a.employeeName.localeCompare(b.employeeName))
+  }).filter((row) => !restrictHomeBranchId || row.homeBranchId === restrictHomeBranchId)
 
-  const branches = KPI_SCOPE_BRANCH_IDS.map((branchId) => {
+  if (includeRosterWithoutInvoices) {
+    const have = new Set(rows.map((r) => r.employeeId))
+    for (const emp of employees || []) {
+      const homeBranchId = emp.branchId || emp.branch_id || ''
+      if (!emp?.id || have.has(emp.id)) continue
+      if (restrictHomeBranchId && homeBranchId !== restrictHomeBranchId) continue
+      const model = computeEmployeeKpi([], {
+        employeeId: emp.id,
+        fromDate,
+        toDate,
+        policies,
+        homeBranchId,
+        employee: emp,
+      })
+      rows.push(buildAdminEmployeeKpiRow(model, {
+        homeBranchId,
+        homeBranchName: getBranchName(homeBranchId) || emp.branchName || '',
+        employeeName: emp.name || emp.id,
+      }))
+    }
+  }
+
+  rows.sort((a, b) => a.homeBranchName.localeCompare(b.homeBranchName) || a.employeeName.localeCompare(b.employeeName))
+
+  const branches = (restrictHomeBranchId ? [restrictHomeBranchId] : KPI_SCOPE_BRANCH_IDS).map((branchId) => {
     // Roster CN = employee.branchId hiện tại (không dùng invoice serving)
     const branchRows = rows.filter((r) => r.homeBranchId === branchId)
     const metAll = branchRows.filter((r) => r.rowStatus === 'MET')

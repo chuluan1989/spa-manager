@@ -42,6 +42,7 @@ export const BRANCH_MANAGER_NAV_ORDER = [
   'dashboard',
   'reports',
   'invoices',
+  'admin-kpi',
   'customers',
   'employees',
   'salary',

@@ -52,6 +52,46 @@ export function hasExpenseFetchScope(filters = {}) {
   return Boolean(filters.fromDate || filters.toDate || filters.branchId || filters.expenseType)
 }
 
+/** Bỏ đúng 1 cột khỏi SELECT list — dùng khi Production thiếu cột optional. */
+export function stripExpenseSelectColumn(selectColumns, column) {
+  const drop = String(column || '').trim()
+  if (!drop) return selectColumns
+  return String(selectColumns || '')
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part && part !== drop)
+    .join(',')
+}
+
+function findMissingOptionalExpenseColumn(error, alreadyStripped = new Set()) {
+  return OPTIONAL_LEGACY_COLUMNS.find(
+    (col) => !alreadyStripped.has(col) && isMissingColumnError(error, col),
+  ) ?? null
+}
+
+/**
+ * SELECT với retry: Production có thể thiếu expense_time / paid_by / entered_by_id.
+ * Lọc ngày luôn dùng cột `date` (cột thật trên Production).
+ */
+export async function fetchExpenseRowsWithOptionalColumnRetry(buildQuery, selectColumns = EXPENSE_LIST_COLUMNS) {
+  let select = selectColumns
+  const stripped = new Set()
+  const maxAttempts = OPTIONAL_LEGACY_COLUMNS.length + 1
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const { data, error } = await buildQuery(select)
+    if (!error) return data ?? []
+
+    const missing = findMissingOptionalExpenseColumn(error, stripped)
+    if (!missing) throw error
+    stripped.add(missing)
+    select = stripExpenseSelectColumn(select, missing)
+    if (!select) throw error
+  }
+
+  throw new Error('Expense fetch: quá nhiều cột optional bị thiếu.')
+}
+
 function sortExpensesDesc(rows) {
   return [...rows].sort((a, b) => {
     const dateCmp = (b.date ?? '').localeCompare(a.date ?? '')
@@ -60,6 +100,20 @@ function sortExpensesDesc(rows) {
     if (timeCmp !== 0) return timeCmp
     return (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '')
   })
+}
+
+function buildScopedExpenseQuery(selectColumns, { fromDate, toDate, branchId, expenseType }) {
+  let query = supabase
+    .from(TABLE)
+    .select(selectColumns)
+    .order('date', { ascending: false })
+    .order('updated_at', { ascending: false })
+
+  if (fromDate) query = query.gte('date', fromDate)
+  if (toDate) query = query.lte('date', toDate)
+  if (branchId) query = query.eq('branch_id', branchId)
+  if (expenseType) query = query.eq('expense_type', expenseType)
+  return query
 }
 
 export async function fetchExpensesFiltered({
@@ -73,32 +127,25 @@ export async function fetchExpensesFiltered({
     throw new Error(EXPENSE_SCOPE_REQUIRED_MESSAGE)
   }
 
-  let query = supabase
-    .from(TABLE)
-    .select(EXPENSE_LIST_COLUMNS)
-    .order('date', { ascending: false })
-    .order('updated_at', { ascending: false })
-
-  if (fromDate) query = query.gte('date', fromDate)
-  if (toDate) query = query.lte('date', toDate)
-  if (branchId) query = query.eq('branch_id', branchId)
-  if (expenseType) query = query.eq('expense_type', expenseType)
-
-  const { data, error } = await query
-  if (error) throw error
-  return sortExpensesDesc(rowsToCamel(data ?? []))
+  const rows = await fetchExpenseRowsWithOptionalColumnRetry(
+    (selectColumns) => buildScopedExpenseQuery(selectColumns, {
+      fromDate, toDate, branchId, expenseType,
+    }),
+  )
+  return sortExpensesDesc(rowsToCamel(rows))
 }
 
 /** Recovery / migrate / verify only — UI list không được gọi. */
 export async function fetchExpenses() {
   if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select(EXPENSE_LIST_COLUMNS)
-    .order('date', { ascending: false })
-    .order('updated_at', { ascending: false })
-  if (error) throw error
-  return sortExpensesDesc(rowsToCamel(data ?? []))
+  const rows = await fetchExpenseRowsWithOptionalColumnRetry((selectColumns) => (
+    supabase
+      .from(TABLE)
+      .select(selectColumns)
+      .order('date', { ascending: false })
+      .order('updated_at', { ascending: false })
+  ))
+  return sortExpensesDesc(rowsToCamel(rows))
 }
 
 export async function fetchExpenseReceiptImage(id) {
@@ -108,7 +155,10 @@ export async function fetchExpenseReceiptImage(id) {
     .select('receipt_image')
     .eq('id', id)
     .maybeSingle()
-  if (error) throw error
+  if (error) {
+    if (isMissingColumnError(error, 'receipt_image')) return ''
+    throw error
+  }
   return data?.receipt_image ?? ''
 }
 

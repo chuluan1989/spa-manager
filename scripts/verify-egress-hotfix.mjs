@@ -72,6 +72,8 @@ assert.match(invoicesHook, /INVOICE_SCOPE_REQUIRED_MESSAGE/)
 assert.equal(hasInvoiceFetchScope({}), false)
 assert.equal(hasInvoiceFetchScope({ fromDate: '2026-09-01', toDate: '2026-09-06' }), true)
 assert.equal(hasInvoiceFetchScope({ employeeId: 'emp-1' }), true)
+assert.equal(hasInvoiceFetchScope({ employeeIds: ['emp-1', 'emp-2'] }), true)
+assert.equal(hasInvoiceFetchScope({ employeeIds: [] }), false)
 pass('D. Invoice page/hook requires scope; no unbounded fetchInvoices()')
 
 const p1 = getPayPeriodRange('2026-09', PAY_CYCLES.PERIOD_1)
@@ -87,7 +89,7 @@ const full = getPayPeriodRange('2026-07', PAY_CYCLES.FULL)
 assert.deepEqual(full, { fromDate: '2026-07-01', toDate: '2026-07-31' })
 const invoicesRepo = read('src/repositories/invoicesRepository.js')
 assert.match(invoicesRepo, /fetchAllInvoiceRows/)
-assert.match(invoicesRepo, /if \(fromDate\) query = query.gte\('date', fromDate\)/)
+assert.match(invoicesRepo, /if \(fromDate\) next = next\.gte\('date', fromDate\)/)
 pass('G. Historical report still paginates the requested date range')
 
 assert.equal(EXPENSE_LIST_COLUMNS.includes('receipt_image'), false)
@@ -96,7 +98,9 @@ assert.doesNotMatch(expensesHook, /fetchExpenses\(/)
 assert.equal(hasExpenseFetchScope({}), false)
 assert.equal(hasExpenseFetchScope({ fromDate: '2026-09-01' }), true)
 assert.match(expensesRepo, /fetchExpenseReceiptImage/)
-pass('H. Expenses list excludes receipt_image; receipt loaded by id')
+assert.match(expensesRepo, /fetchExpenseRowsWithOptionalColumnRetry/)
+assert.match(expensesRepo, /gte\('date', fromDate\)/)
+pass('H. Expenses list excludes receipt_image; receipt loaded by id; date-scoped; optional-column retry')
 
 assert.equal(
   ATTENDANCE_BACKEND_ERROR_MESSAGE,
@@ -125,6 +129,14 @@ assert.doesNotMatch(empKpiSrc, /monthBounds\(month\)/)
 assert.doesNotMatch(empKpiSrc, /fetchKpiInvoicesForScope\(\{[\s\S]*branchId/)
 assert.match(empKpiSrc, /import \{ getBranchName, getEmployeeById \}/)
 pass('K. Employee KPI fetch is employeeId + pay period; no home-branch filter; no month-wide dump')
+
+const adminKpiSrc = read('src/pages/AdminKpi.jsx')
+assert.match(adminKpiSrc, /employeeIds/)
+assert.match(adminKpiSrc, /fromDate: monthRange\.fromDate/)
+assert.match(adminKpiSrc, /restrictHomeBranchId: managerMode \? managerBranchId : ''/)
+assert.doesNotMatch(adminKpiSrc, /fetchInvoices\(/)
+assert.match(adminKpiSrc, /fetchEmployeesFiltered\(\{ branchId: managerBranchId \}\)/)
+pass('K2. Manager KPI fetch is home-branch roster + pay period employeeIds; no full-history invoices')
 
 const policies = KPI_SCOPE_BRANCH_IDS.map((branchId) => ({
   id: `uat-${branchId}`,

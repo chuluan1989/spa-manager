@@ -9,12 +9,21 @@ export const INVOICE_FETCH_PAGE_SIZE = 1000
 export const INVOICE_SCOPE_REQUIRED_MESSAGE =
   'Cần phạm vi ngày, chi nhánh hoặc nhân viên khi tải hóa đơn.'
 
+export function normalizeEmployeeIdList(ids = []) {
+  return [...new Set(
+    (Array.isArray(ids) ? ids : [])
+      .map((id) => String(id ?? '').trim())
+      .filter(Boolean),
+  )]
+}
+
 export function hasInvoiceFetchScope(filters = {}) {
   return Boolean(
     filters.fromDate
     || filters.toDate
     || filters.branchId
     || filters.employeeId
+    || normalizeEmployeeIdList(filters.employeeIds).length > 0
     || String(filters.customerSearch ?? '').trim(),
   )
 }
@@ -174,6 +183,9 @@ function buildOrderedInvoicesQuery(selectColumns = '*') {
     .order('date', { ascending: false })
 }
 
+/** Chunk `.in('id' | 'employee_id', …)` — tránh URL PostgREST quá dài. */
+export const INVOICE_ID_FETCH_CHUNK = 100
+
 /**
  * Lấy hóa đơn từ Supabase (có filter).
  * Sort: created_at DESC, date DESC — KHÔNG order theo invoice_time (cột có thể không tồn tại).
@@ -192,28 +204,49 @@ export async function fetchInvoicesFiltered(filters = {}) {
     toDate = '',
     branchId = '',
     employeeId = '',
+    employeeIds,
     customerSearch = '',
   } = filters
 
+  const employeeIdList = normalizeEmployeeIdList(employeeIds)
+  if (Array.isArray(employeeIds) && employeeIdList.length === 0) {
+    return []
+  }
+
+  const applyDateBranchSearch = (query) => {
+    let next = query
+    if (fromDate) next = next.gte('date', fromDate)
+    if (toDate) next = next.lte('date', toDate)
+    if (branchId) next = next.eq('branch_id', branchId)
+    if (customerSearch.trim()) {
+      next = next.ilike('customer_name', `%${customerSearch.trim()}%`)
+    }
+    return next
+  }
+
+  if (employeeIdList.length > 0) {
+    const all = []
+    for (let i = 0; i < employeeIdList.length; i += INVOICE_ID_FETCH_CHUNK) {
+      const chunk = employeeIdList.slice(i, i + INVOICE_ID_FETCH_CHUNK)
+      const rows = await fetchAllInvoiceRows(() => {
+        const query = applyDateBranchSearch(buildOrderedInvoicesQuery('*'))
+        return query.in('employee_id', chunk)
+      })
+      all.push(...rows)
+    }
+    return rowsToCamel(all)
+  }
+
   const rows = await fetchAllInvoiceRows(() => {
-    let query = buildOrderedInvoicesQuery('*')
-    if (fromDate) query = query.gte('date', fromDate)
-    if (toDate) query = query.lte('date', toDate)
-    if (branchId) query = query.eq('branch_id', branchId)
+    let query = applyDateBranchSearch(buildOrderedInvoicesQuery('*'))
     if (employeeId) {
       query = query.or(`employee_id.eq.${employeeId},support_employee_id.eq.${employeeId}`)
-    }
-    if (customerSearch.trim()) {
-      query = query.ilike('customer_name', `%${customerSearch.trim()}%`)
     }
     return query
   })
 
   return rowsToCamel(rows)
 }
-
-/** Chunk `.in('id', …)` — tránh URL PostgREST quá dài. */
-export const INVOICE_ID_FETCH_CHUNK = 100
 
 const UNSYNCED_CHECK_COLUMNS = 'id,date,employee_id,total,created_at'
 
