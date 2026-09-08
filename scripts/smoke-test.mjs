@@ -3073,6 +3073,9 @@ test('admin cloud data: không order invoice_time, không fallback local invoice
 
   assert.doesNotMatch(invoicesRepo, /\.order\(['"]invoice_time['"]/)
   assert.match(invoicesRepo, /\.order\(['"]created_at['"]/)
+  assert.match(invoicesRepo, /parseMissingInvoiceColumn/)
+  assert.doesNotMatch(invoicesRepo, /for \(const column of OPTIONAL_INVOICE_COLUMNS\)/)
+  assert.doesNotMatch(invoicesRepo, /delete next\.customer_requested/)
   assert.doesNotMatch(reportFetcher, /loadInvoices/)
   assert.doesNotMatch(reportFetcher, /local-fallback/)
   assert.doesNotMatch(invoiceFetcher, /loadInvoices/)

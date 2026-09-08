@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "test": "vite-node scripts/smoke-test.mjs",
     "verify:egress-hotfix": "vite-node scripts/verify-egress-hotfix.mjs",
+    "verify:invoice-customer-requested-upsert": "vite-node scripts/verify-invoice-customer-requested-upsert.mjs",
     "verify:service-management": "vite-node scripts/verify-service-management-center.mjs",
     "verify:operations-center": "vite-node scripts/verify-operations-center.mjs",
     "verify:business-copilot": "vite-node scripts/verify-business-copilot.mjs",

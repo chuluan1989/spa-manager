@@ -30,8 +30,11 @@ const SUPABASE_INVOICE_FIELDS = [
   'homeBranchId', 'homeBranchName', 'updatedBy',
 ]
 
-/** Cột có thể thiếu trên production — chỉ strip khi UPSERT, KHÔNG dùng trong ORDER BY. */
-const OPTIONAL_INVOICE_COLUMNS = [
+/**
+ * Cột có thể thiếu trên production — strip ĐÚNG 1 cột theo lỗi, rồi retry.
+ * Không xóa cả list. Không dùng trong ORDER BY.
+ */
+export const OPTIONAL_INVOICE_COLUMNS = [
   'customer_phone',
   'customer_requested',
   'invoice_time',
@@ -44,6 +47,7 @@ const OPTIONAL_INVOICE_COLUMNS = [
   'home_branch_id',
   'home_branch_name',
   'updated_by',
+  'updated_at',
 ]
 
 function toSupabaseInvoicePayload(invoice) {
@@ -54,7 +58,7 @@ function toSupabaseInvoicePayload(invoice) {
   return payload
 }
 
-function invoiceToRow(invoice) {
+export function invoiceToRow(invoice) {
   const now = new Date().toISOString()
   return objectToSnakeRow({
     ...toSupabaseInvoicePayload(invoice),
@@ -63,58 +67,84 @@ function invoiceToRow(invoice) {
   })
 }
 
-function stripOptionalInvoiceColumns(rows) {
+const MISSING_COLUMN_PATTERNS = [
+  /column\s+(?:[\w]+\.)?([a-z0-9_]+)\s+does not exist/i,
+  /could not find the ['"]([a-z0-9_]+)['"] column/i,
+  /['"]([a-z0-9_]+)['"] column of ['"]invoices['"]/i,
+]
+
+/**
+ * Lấy đúng 1 cột missing từ lỗi PostgREST/Postgres.
+ * Không suy ra cả OPTIONAL_INVOICE_COLUMNS.
+ */
+export function parseMissingInvoiceColumn(errorMessage, remainingColumns = OPTIONAL_INVOICE_COLUMNS) {
+  const text = String(errorMessage || '')
+  if (!text) return null
+  const remaining = remainingColumns.filter(Boolean)
+
+  for (const pattern of MISSING_COLUMN_PATTERNS) {
+    const match = text.match(pattern)
+    const column = match?.[1]
+    if (column && remaining.includes(column)) return column
+  }
+
+  const hits = remaining.filter((column) => text.includes(column))
+  if (hits.length === 1) return hits[0]
+  if (hits.length > 1) {
+    hits.sort((a, b) => b.length - a.length)
+    return hits[0]
+  }
+  return null
+}
+
+export function stripNamedInvoiceColumns(rows, columns = []) {
+  const drop = new Set((Array.isArray(columns) ? columns : [columns]).filter(Boolean))
   return rows.map((row) => {
     const next = { ...row }
-    for (const column of OPTIONAL_INVOICE_COLUMNS) {
-      delete next[column]
-    }
+    for (const column of drop) delete next[column]
     return next
   })
 }
 
-async function upsertInvoiceRows(rows) {
+function isMissingColumnError(error) {
+  return /column|schema cache|does not exist/i.test(String(error?.message || ''))
+}
+
+/**
+ * Upsert từng bước: lỗi cột missing → xóa ĐÚNG cột đó → retry.
+ * customer_requested chỉ bị bỏ khi error chỉ đúng cột đó (schema chưa có).
+ */
+export async function upsertInvoiceRowsWithRetry(rows, client = supabase) {
   let payload = rows
-  let { data, error } = await supabase.from(TABLE).upsert(payload, { onConflict: 'id' }).select('id')
+  const stripped = new Set()
+  const maxAttempts = OPTIONAL_INVOICE_COLUMNS.length + 2
 
-  if (
-    error
-    && OPTIONAL_INVOICE_COLUMNS.some((column) => String(error.message).includes(column))
-  ) {
-    payload = stripOptionalInvoiceColumns(rows)
-    ;({ data, error } = await supabase.from(TABLE).upsert(payload, { onConflict: 'id' }).select('id'))
-  }
-
-  // Production có thể thiếu updated_at hoặc cột mới — strip và thử lại.
-  if (error && /column|schema cache|does not exist/i.test(String(error.message))) {
-    const hadCustomerRequested = rows.some((row) => row.customer_requested != null)
-    payload = payload.map((row) => {
-      const next = { ...row }
-      delete next.updated_at
-      delete next.customer_requested
-      delete next.invoice_time
-      delete next.entered_by
-      delete next.discount_input
-      delete next.discount_type
-      delete next.discount_value
-      delete next.discount_amount
-      delete next.original_service_total
-      delete next.customer_phone
-      delete next.home_branch_id
-      delete next.home_branch_name
-      delete next.updated_by
-      return next
-    })
-    ;({ data, error } = await supabase.from(TABLE).upsert(payload, { onConflict: 'id' }).select('id'))
-    if (!error && hadCustomerRequested) {
-      console.warn(
-        '[Invoices] customer_requested bị bỏ khi sync — cần chạy migration 0012_invoice_customer_requested.sql trên Supabase.',
-      )
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const { data, error } = await client.from(TABLE).upsert(payload, { onConflict: 'id' }).select('id')
+    if (!error) {
+      if (stripped.has('customer_requested')) {
+        console.warn(
+          '[Invoices] customer_requested bị bỏ khi sync — cần chạy migration 0012_invoice_customer_requested.sql trên Supabase.',
+        )
+      }
+      return data
     }
+
+    if (!isMissingColumnError(error)) throw error
+
+    const remaining = OPTIONAL_INVOICE_COLUMNS.filter((column) => !stripped.has(column))
+    const missing = parseMissingInvoiceColumn(error.message, remaining)
+    if (!missing || stripped.has(missing)) throw error
+
+    stripped.add(missing)
+    payload = stripNamedInvoiceColumns(payload, [missing])
   }
 
-  if (error) throw error
-  return data
+  throw new Error('Invoice upsert: quá nhiều cột optional bị thiếu.')
+}
+
+async function upsertInvoiceRows(rows) {
+  return upsertInvoiceRowsWithRetry(rows)
 }
 
 /**
