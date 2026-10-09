@@ -5,6 +5,7 @@ import EmployeeRequestsPanel from '../components/report/EmployeeRequestsPanel'
 import ReportExplorer from '../components/report/ReportExplorer'
 import ManagementReports from '../components/report/ManagementReports'
 import BranchEfficiencyPanel from '../components/report/BranchEfficiencyPanel'
+import ServicePerformanceReport from '../components/report/ServicePerformanceReport'
 import {
   canViewReport,
   isAdmin,
@@ -107,6 +108,15 @@ export default function Report({ onNavigate }) {
         >
           Tổng hợp drill-down
         </button>
+        {isAdmin() && (
+          <button
+            type="button"
+            className={mode === 'service-performance' ? 'is-active' : ''}
+            onClick={() => setMode('service-performance')}
+          >
+            Dịch vụ & xếp hạng
+          </button>
+        )}
         {canHandleRequests && (
           <button
             type="button"
@@ -124,6 +134,10 @@ export default function Report({ onNavigate }) {
         <BranchEfficiencyPanel />
       ) : mode === 'employee-requests' ? (
         <EmployeeRequestsPanel focusRequestId={focusRequestId} />
+      ) : mode === 'service-performance' && isAdmin() ? (
+        <ServicePerformanceReport />
+      ) : mode === 'service-performance' ? (
+        <ManagementReports onNavigate={onNavigate} />
       ) : (
         <ReportExplorer onNavigate={onNavigate} initialPrefill={prefill} />
       )}

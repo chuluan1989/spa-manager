@@ -1,0 +1,139 @@
+.svc-perf {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.svc-perf__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.svc-perf__filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ks-text-muted);
+}
+
+.svc-perf__filters input,
+.svc-perf__filters select {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--ks-border-subtle);
+  border-radius: 8px;
+  background: var(--ks-card);
+  color: var(--ks-text);
+}
+
+.svc-perf__lock,
+.svc-perf__muted {
+  margin: 0;
+  color: var(--ks-text-muted);
+  font-size: 13px;
+}
+
+.svc-perf__error {
+  margin: 0;
+  color: var(--ks-danger);
+}
+
+.svc-perf__section h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.svc-perf__warn {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ks-border-subtle);
+  border-radius: 10px;
+  background: var(--ks-card);
+  font-size: 13px;
+}
+
+.svc-perf__warn ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.svc-perf__scroll {
+  overflow-x: auto;
+  border: 1px solid var(--ks-border-subtle);
+  border-radius: 12px;
+  background: var(--ks-card);
+}
+
+.svc-perf__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.svc-perf__table th,
+.svc-perf__table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--ks-border-subtle);
+  white-space: nowrap;
+  text-align: left;
+  background: var(--ks-card);
+}
+
+.svc-perf__table .is-num {
+  text-align: right;
+}
+
+.svc-perf__rank .is-rank {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 52px;
+  min-width: 52px;
+}
+
+.svc-perf__rank .is-name {
+  position: sticky;
+  left: 52px;
+  z-index: 2;
+  min-width: 160px;
+  border-right: 1px solid var(--ks-border-subtle);
+}
+
+.svc-perf__rank thead .is-rank,
+.svc-perf__rank thead .is-name {
+  z-index: 3;
+}
+
+.svc-perf__table button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.svc-perf__name {
+  font-weight: 650;
+  color: var(--ks-text);
+}
+
+.svc-perf__table tr.is-selected td {
+  background: var(--ks-surface, var(--ks-card));
+}
+
+.svc-perf__split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 800px) {
+  .svc-perf__split {
+    grid-template-columns: 1fr;
+  }
+}

@@ -248,6 +248,76 @@ export async function fetchInvoicesFiltered(filters = {}) {
   return rowsToCamel(rows)
 }
 
+/** Cột hẹp cho báo cáo dịch vụ — không select *, không tips, không note, không home_branch_id. */
+export const INVOICE_SERVICE_LINE_COLUMNS = [
+  'id',
+  'date',
+  'branch_id',
+  'branch_name',
+  'employee_id',
+  'employee_name',
+  'services',
+  'service_total',
+].join(',')
+
+/**
+ * Hóa đơn trong đúng khoảng ngày, chỉ các cột cần cho lượt dịch vụ và doanh thu vé.
+ * branchId = chi nhánh phục vụ. employeeIds = nhân viên chính, không lọc branch_id.
+ * Bắt buộc có fromDate và toDate. Phân trang 1000 dòng.
+ */
+export async function fetchInvoiceServiceLines(filters = {}) {
+  if (!isSupabaseConfigured) {
+    throw new Error('Supabase chưa cấu hình. Không thể tải báo cáo dịch vụ.')
+  }
+
+  const fromDate = String(filters.fromDate || '').slice(0, 10)
+  const toDate = String(filters.toDate || '').slice(0, 10)
+  if (!fromDate || !toDate) {
+    throw new Error('Cần khoảng ngày để tải báo cáo dịch vụ.')
+  }
+
+  const employeeIdList = Array.isArray(filters.employeeIds)
+    ? normalizeEmployeeIdList(filters.employeeIds)
+    : null
+  if (employeeIdList && employeeIdList.length === 0) return []
+
+  const branchId = String(filters.branchId || '').trim()
+
+  const load = async (selectColumns) => {
+    if (employeeIdList) {
+      const all = []
+      for (let i = 0; i < employeeIdList.length; i += INVOICE_ID_FETCH_CHUNK) {
+        const chunk = employeeIdList.slice(i, i + INVOICE_ID_FETCH_CHUNK)
+        const rows = await fetchAllInvoiceRows(() => (
+          supabase
+            .from(TABLE)
+            .select(selectColumns)
+            .gte('date', fromDate)
+            .lte('date', toDate)
+            .in('employee_id', chunk)
+            .order('id', { ascending: true })
+        ))
+        all.push(...rows)
+      }
+      return rowsToCamel(all)
+    }
+
+    const rows = await fetchAllInvoiceRows(() => {
+      let query = supabase
+        .from(TABLE)
+        .select(selectColumns)
+        .gte('date', fromDate)
+        .lte('date', toDate)
+        .order('id', { ascending: true })
+      if (branchId) query = query.eq('branch_id', branchId)
+      return query
+    })
+    return rowsToCamel(rows)
+  }
+
+  return load(INVOICE_SERVICE_LINE_COLUMNS)
+}
+
 const UNSYNCED_CHECK_COLUMNS = 'id,date,employee_id,total,created_at'
 
 /**
