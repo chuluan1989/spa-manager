@@ -19,7 +19,21 @@ function avg(nums) {
 
 export function buildAdminEmployeeKpiRow(model, { homeBranchId = '', homeBranchName = '', employeeName = '' } = {}) {
   const summary = summarizeOverallKpis(model?.overall)
-  const cards = Object.fromEntries(summary.cards.map((c) => [c.key, c]))
+  const cards = Object.fromEntries(summary.cards.map((c) => {
+    const review = model?.penalty?.breakdown?.[c.key] || null
+    return [c.key, {
+      ...c,
+      nearTarget: Boolean(review?.nearTarget),
+      warningLabel: review?.warningLabel || '',
+      gapPercentagePoints: review?.gapPercentagePoints ?? null,
+      originalMissing: review?.originalMissing ?? c.missing,
+      originalPenalty: review?.originalPenalty ?? 0,
+      chargeableMissing: review?.chargeableMissing ?? c.missing,
+      penaltyReduction: review?.penaltyReduction ?? 0,
+      reviewStatus: review?.reviewStatus || 'none',
+      reviewEligible: Boolean(review?.reviewEligible),
+    }]
+  }))
   const counts = model?.overall?.counts || {}
   let rowStatus = 'NOT_MET'
   if (summary.noPolicy) rowStatus = 'NO_POLICY'
@@ -54,6 +68,8 @@ export function buildAdminEmployeeKpiRow(model, { homeBranchId = '', homeBranchN
     model,
     totalKpiMissing: model?.penalty?.totalMissing ?? 0,
     kpiPenalty: model?.penalty?.kpiPenalty ?? 0,
+    originalKpiPenalty: model?.penalty?.originalKpiPenalty ?? 0,
+    kpiPenaltyReduction: model?.penalty?.kpiPenaltyReduction ?? 0,
     kpiPenaltyApplied: Boolean(model?.penalty?.applied),
   }
 }
@@ -66,6 +82,7 @@ export function buildAdminKpiDashboard(invoices = [], {
   fromDate = '',
   toDate = '',
   policies = [],
+  reviews = [],
   employees = [],
   /** Manager: chỉ NV có HOME branch = CN quản lý. Không dùng invoice.branchId. */
   restrictHomeBranchId = '',
@@ -97,6 +114,7 @@ export function buildAdminKpiDashboard(invoices = [], {
       policies,
       homeBranchId,
       employee: emp,
+      reviews,
     })
     return buildAdminEmployeeKpiRow(model, {
       homeBranchId,
@@ -118,6 +136,7 @@ export function buildAdminKpiDashboard(invoices = [], {
         policies,
         homeBranchId,
         employee: emp,
+        reviews,
       })
       rows.push(buildAdminEmployeeKpiRow(model, {
         homeBranchId,
@@ -222,6 +241,7 @@ export function formatAdminKpiMetricCell(card) {
       ratioLine: '—',
       targetLine: '',
       hintLine: '—',
+      warningLine: '',
       tone: 'neutral',
     }
   }
@@ -251,7 +271,13 @@ export function formatAdminKpiMetricCell(card) {
   } else {
     hintLine = card.missingText || card.statusLabel || '—'
   }
-  return { ratioLine, targetLine, hintLine, tone }
+  return {
+    ratioLine,
+    targetLine,
+    hintLine,
+    warningLine: card.nearTarget ? (card.warningLabel || '') : '',
+    tone,
+  }
 }
 
 export function percentInputToDecimal(value) {

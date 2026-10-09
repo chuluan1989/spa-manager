@@ -1,12 +1,19 @@
 import {
   KPI_GROUPS,
+  KPI_NEAR_TARGET_WARNING,
   KPI_PENALTY_EFFECTIVE_FROM,
   KPI_PENALTY_KEYS,
   KPI_PENALTY_PER_MISSING,
   KPI_STATUS,
+  OCT2026_KPI_EFFECTIVE_FROM,
+  OCT2026_KPI_TARGETS,
   isKpiExcludedBranch,
+  isKpiOct2026Period,
   isKpiScopeBranch,
+  isNearTargetKpi,
+  kpiGapPercentagePoints,
 } from '../constants/kpiPolicy'
+import { matchKpiPenaltyReview, resolveChargeableMissing } from './kpiPenaltyReview'
 import { classifyKpiServiceLine, isKpiMain90Line } from './kpiServiceClassifier'
 
 const EPS = 1e-9
@@ -72,10 +79,35 @@ export function resolveKpiPolicy(branchId, date, policies = []) {
       policy: null,
     }
   }
+  const d = String(date || '').slice(0, 10)
   const matches = (policies || []).filter(
     (p) => (p.branchId || p.branch_id) === branchId && dateInPolicyRange(date, p),
   )
   matches.sort((a, b) => String(b.effectiveFrom || b.effective_from).localeCompare(String(a.effectiveFrom || a.effective_from)))
+  // Kỳ từ 2026-10-01: không để policy Sep (effective_to mở) nuốt target mới.
+  // Ưu tiên versioned policy có effectiveFrom >= 2026-10-01; nếu chưa có trên DB thì dùng canonical Oct 2026.
+  if (d && isKpiOct2026Period(d)) {
+    const versionedOct = matches.filter((p) => {
+      const from = String(p.effectiveFrom || p.effective_from || '').slice(0, 10)
+      return from >= OCT2026_KPI_EFFECTIVE_FROM
+    })
+    if (versionedOct.length) {
+      matches.length = 0
+      matches.push(...versionedOct)
+    } else {
+      return {
+        applicable: true,
+        status: 'APPLICABLE',
+        source: 'canonical-oct2026',
+        branchId,
+        policyId: `canonical-oct2026:${branchId}`,
+        effectiveFrom: OCT2026_KPI_EFFECTIVE_FROM,
+        effectiveTo: null,
+        targets: { ...OCT2026_KPI_TARGETS },
+        policy: null,
+      }
+    }
+  }
   const policy = matches[0] || null
   if (policy) {
     return {
@@ -475,18 +507,77 @@ export function kpiMissingBreakdown(kpis = {}) {
   return { breakdown, totalMissing }
 }
 
-export function computeKpiPenaltyFromModel(model, { fromDate, toDate } = {}) {
+export function computeKpiPenaltyFromModel(model, { fromDate, toDate, reviews = [] } = {}) {
+  const periodFrom = String(fromDate || model?.fromDate || '').slice(0, 10)
   const periodTo = String(toDate || model?.toDate || '').slice(0, 10)
   const applied = Boolean(periodTo && periodTo >= KPI_PENALTY_EFFECTIVE_FROM)
+  const reviewEnabled = isKpiOct2026Period(periodTo)
   const { breakdown, totalMissing } = kpiMissingBreakdown(model?.overall?.kpis)
+  const employeeId = model?.employeeId || ''
+  let chargeableTotal = 0
+
+  for (const key of KPI_PENALTY_KEYS) {
+    const kpi = model?.overall?.kpis?.[key] || {}
+    const row = breakdown[key] || {}
+    const originalMissing = row.missingCharged || 0
+    const gap = kpiGapPercentagePoints(kpi.target ?? kpi.informationalBlendedTarget, kpi.rate)
+    const nearTarget = isNearTargetKpi({
+      rate: kpi.rate,
+      target: kpi.target ?? kpi.informationalBlendedTarget,
+      status: kpi.status,
+      periodTo,
+    })
+    const review = reviewEnabled
+      ? matchKpiPenaltyReview(reviews, {
+        employeeId,
+        periodFrom,
+        periodTo,
+        kpiCategory: key,
+      })
+      : null
+    const chargeableMissing = reviewEnabled
+      ? resolveChargeableMissing(originalMissing, review)
+      : originalMissing
+    let reviewStatus = 'none'
+    if (review && reviewEnabled) {
+      if (originalMissing <= 0 || chargeableMissing === originalMissing) reviewStatus = 'kept'
+      else if (chargeableMissing === 0) reviewStatus = 'waived'
+      else reviewStatus = 'reduced'
+    }
+    breakdown[key] = {
+      ...row,
+      rate: kpi.rate ?? null,
+      originalMissing,
+      chargeableMissing,
+      nearTarget,
+      gapPercentagePoints: gap,
+      warningLabel: nearTarget ? KPI_NEAR_TARGET_WARNING : '',
+      reviewEligible: nearTarget && originalMissing > 0,
+      reviewStatus,
+      reviewId: review?.id || null,
+      originalPenalty: originalMissing * KPI_PENALTY_PER_MISSING,
+      approvedPenalty: chargeableMissing * KPI_PENALTY_PER_MISSING,
+      penaltyReduction: (originalMissing - chargeableMissing) * KPI_PENALTY_PER_MISSING,
+    }
+    chargeableTotal += chargeableMissing
+  }
+
+  const originalPenalty = applied ? totalMissing * KPI_PENALTY_PER_MISSING : 0
+  const approvedPenalty = applied ? chargeableTotal * KPI_PENALTY_PER_MISSING : 0
   return {
     applied,
     effectiveFrom: KPI_PENALTY_EFFECTIVE_FROM,
     unit: KPI_PENALTY_PER_MISSING,
     rawTotalMissing: totalMissing,
-    totalMissing: applied ? totalMissing : 0,
-    kpiPenalty: applied ? totalMissing * KPI_PENALTY_PER_MISSING : 0,
+    originalTotalMissing: totalMissing,
+    totalMissing: applied ? chargeableTotal : 0,
+    chargeableTotalMissing: applied ? chargeableTotal : 0,
+    originalKpiPenalty: originalPenalty,
+    kpiPenaltyReduction: originalPenalty - approvedPenalty,
+    kpiPenalty: approvedPenalty,
     breakdown,
+    periodFrom,
+    periodTo,
   }
 }
 
@@ -512,6 +603,7 @@ export function computeEmployeeKpi(invoices = [], {
   policies = [],
   homeBranchId = '',
   employee = null,
+  reviews = [],
 } = {}) {
   const resolvedHomeBranchId = homeBranchId || employee?.branchId || employee?.branch_id || ''
   const servingBranchMap = new Map()
@@ -651,12 +743,12 @@ export function computeEmployeeKpi(invoices = [], {
   }
   return {
     ...result,
-    penalty: computeKpiPenaltyFromModel(result),
+    penalty: computeKpiPenaltyFromModel(result, { fromDate, toDate, reviews }),
   }
 }
 
 export function computeScopeKpi(invoices = [], options = {}) {
-  const { fromDate = '', toDate = '', policies = [], employees: employeeRoster = [] } = options
+  const { fromDate = '', toDate = '', policies = [], employees: employeeRoster = [], reviews = [] } = options
   const homeByEmployee = new Map((employeeRoster || []).map((e) => [e.id, e.branchId || e.branch_id || '']))
   const byEmployee = new Map()
   const byBranch = new Map()
@@ -690,6 +782,7 @@ export function computeScopeKpi(invoices = [], options = {}) {
       toDate,
       policies,
       homeBranchId: homeByEmployee.get(employeeId) || '',
+      reviews,
     }),
   )
 
@@ -702,6 +795,7 @@ export function computeScopeKpi(invoices = [], options = {}) {
         toDate,
         policies,
         homeBranchId: homeByEmployee.get(employeeId) || '',
+        reviews,
       }),
     )
     const counts = empModels.reduce((acc, m) => addCounts(acc, m.overall.counts), emptyCounts())

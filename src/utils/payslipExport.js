@@ -20,6 +20,8 @@ function buildPayslipHtml(payslip) {
     ['tips', payslip.tips],
     ['bonus', payslip.bonus],
     ['kpi', payslip.kpi],
+    ['originalKpiPenalty', payslip.originalKpiPenalty ?? 0],
+    ['kpiPenaltyReduction', payslip.kpiPenaltyReduction ?? 0],
     ['kpiPenalty', -(payslip.kpiPenalty ?? 0)],
     ['penalty', -(payslip.penalty ?? 0)],
     ['reduction', -(payslip.reduction ?? 0)],
@@ -64,6 +66,7 @@ function buildPayslipHtml(payslip) {
         <div><span>Kỳ lương</span><strong>${formatMonthLabel(payslip.month)}</strong></div>
         <div><span>Từ ngày</span><strong>${formatDisplayDate(payslip.fromDate)}</strong></div>
         <div><span>Đến ngày</span><strong>${formatDisplayDate(payslip.toDate)}</strong></div>
+        <div><span>${PAYROLL_DETAIL_LABELS.leaveDays}</span><strong>${payslip.leaveDays ?? 0}</strong></div>
       </div>
       <table>${lineItems}</table>
       <div class="total">

@@ -181,6 +181,13 @@
   color: #1f2937;
 }
 
+.emp-kpi-card__warn {
+  margin: 6px 0 0;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .emp-kpi-card__note {
   margin: 0;
   font-size: 12px;

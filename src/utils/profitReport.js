@@ -91,6 +91,7 @@ export function computePayrollCostByBranch({
   month = '',
   cycle = '',
   kpiPolicies = [],
+  kpiPenaltyReviews = [],
 }) {
   if (month && cycle) {
     const report = computePayrollReport({
@@ -103,6 +104,7 @@ export function computePayrollCostByBranch({
       attendanceRecords,
       adjustments,
       kpiPolicies,
+      kpiPenaltyReviews,
     })
     return aggregatePayrollCostFromReport(report, { branchId })
   }
@@ -134,7 +136,7 @@ export function computePayrollCostByBranch({
         scopedInvoices,
         scopedAttendance,
         scopedAdjustments,
-        { kpiPolicies, fromDate, toDate },
+        { kpiPolicies, kpiPenaltyReviews, fromDate, toDate },
       )
       total += row.netSalary
       byBranch.set(branchId, (byBranch.get(branchId) ?? 0) + row.netSalary)
@@ -165,7 +167,7 @@ export function computePayrollCostByBranch({
       empInvoices,
       empAttendance,
       empAdjustments,
-      { kpiPolicies, fromDate, toDate },
+      { kpiPolicies, kpiPenaltyReviews, fromDate, toDate },
     )
     total += row.netSalary
     const key = row.branchId || employee.branchId || 'unknown'

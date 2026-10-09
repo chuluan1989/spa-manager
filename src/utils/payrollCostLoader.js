@@ -92,6 +92,7 @@ export async function loadPayrollCostForFilters(filters, invoices = []) {
       attendanceRecords: attendanceRows ?? [],
       adjustments,
       kpiPolicies: kpiPolicies ?? [],
+      kpiPenaltyReviews: [],
     })
     payrollByBranch = aggregatePayrollCostFromReport(report, { branchId: filters.branchId || '' })
   } else {
@@ -104,6 +105,7 @@ export async function loadPayrollCostForFilters(filters, invoices = []) {
       attendanceRecords: attendanceRows ?? [],
       adjustments,
       kpiPolicies: kpiPolicies ?? [],
+      kpiPenaltyReviews: [],
     })
   }
 

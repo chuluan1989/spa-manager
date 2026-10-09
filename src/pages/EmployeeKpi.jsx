@@ -18,7 +18,8 @@ import {
   fetchKpiInvoicesForScope,
   resolveKpiPayCycleRange,
 } from '../utils/kpiInvoiceScope'
-import { KPI_STATUS } from '../constants/kpiPolicy'
+import { KPI_NEAR_TARGET_WARNING, KPI_STATUS } from '../constants/kpiPolicy'
+import { KPI_REVIEW_STATUS_LABELS } from '../utils/kpiPenaltyReview'
 import { formatCurrency } from '../utils/invoice'
 import { getDefaultPayCycleForVietnamDate, PAY_CYCLES } from '../utils/salaryReport'
 import './EmployeeKpi.css'
@@ -30,7 +31,7 @@ function formatDateVi(iso) {
   return `${d}/${m}/${y}`
 }
 
-function KpiCard({ card, onOpen }) {
+function KpiCard({ card, review, onOpen }) {
   const statusClass =
     card.status === KPI_STATUS.MET
       ? 'emp-kpi-card--met'
@@ -57,6 +58,17 @@ function KpiCard({ card, onOpen }) {
         <span style={{ width: `${Math.round(card.progress * 100)}%` }} />
       </div>
       <p className="emp-kpi-card__missing">{card.missingText}</p>
+      {review?.nearTarget ? (
+        <p className="emp-kpi-card__warn">
+          {KPI_NEAR_TARGET_WARNING}
+          {' · thiếu '}
+          {review.gapPercentagePoints}
+          {' điểm % · phạt gốc '}
+          {formatCurrency(review.originalPenalty || 0)}
+          {' · '}
+          {KPI_REVIEW_STATUS_LABELS[review.reviewStatus] || KPI_REVIEW_STATUS_LABELS.none}
+        </p>
+      ) : null}
       {card.mixedTargets && (
         <p className="emp-kpi-card__note">Target khác nhau theo chi nhánh — xem chi tiết bên dưới</p>
       )}
@@ -323,9 +335,10 @@ export default function EmployeeKpi() {
         </p>
         {model?.penalty?.applied ? (
           <p className="emp-kpi-muted">
-            Thiếu {model.penalty.totalMissing} lượt
-            {' · '}Phạt KPI {formatCurrency(model.penalty.kpiPenalty)}
-            {' '}(50.000đ × thiếu, trừ vào lương kỳ này)
+            Thiếu {model.penalty.chargeableTotalMissing ?? model.penalty.totalMissing} lượt tính lương
+            {' · '}Phạt KPI gốc {formatCurrency(model.penalty.originalKpiPenalty || 0)}
+            {' · '}Miễn/giảm {formatCurrency(model.penalty.kpiPenaltyReduction || 0)}
+            {' · '}Trừ lương {formatCurrency(model.penalty.kpiPenalty)}
           </p>
         ) : null}
       </section>
@@ -335,6 +348,7 @@ export default function EmployeeKpi() {
           <KpiCard
             key={card.key}
             card={card}
+            review={model?.penalty?.breakdown?.[card.key]}
             onOpen={(key) => {
               setLineFilter(key === 'requested' ? 'requested' : key)
               setDrillOpen(true)

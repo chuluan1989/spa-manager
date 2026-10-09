@@ -79,10 +79,48 @@ export const SEP2026_KPI_TARGETS = {
 
 export const KPI_DURATION90_EFFECTIVE_FROM = '2026-09-01'
 
+/**
+ * Policy KPI từ 2026-10-01 — chọn theo ngày HĐ / kỳ lương, không theo hôm nay.
+ * Kỳ lương kết thúc trước ngày này giữ SEP2026_KPI_TARGETS.
+ */
+export const OCT2026_KPI_EFFECTIVE_FROM = '2026-10-01'
+export const OCT2026_KPI_TARGETS = {
+  addon: 0.8,
+  advanced: 0.1,
+  combo: 0.3,
+  requested: 0.1,
+  duration90: 0.2,
+}
+
+export const KPI_NEAR_TARGET_GAP_PP = 5
+export const KPI_NEAR_TARGET_WARNING = '⚠️ Gần đạt KPI – Cần xem xét'
+
 /** Phạt KPI missing — hiệu lực cùng policy Sep 2026. Không áp dụng dữ liệu trước ngày này. */
 export const KPI_PENALTY_EFFECTIVE_FROM = '2026-09-01'
 export const KPI_PENALTY_PER_MISSING = 50_000
 export const KPI_PENALTY_KEYS = ['addon', 'advanced', 'combo', 'duration90', 'requested']
+
+export function isKpiOct2026Period(dateOrPeriodTo = '') {
+  return String(dateOrPeriodTo || '').slice(0, 10) >= OCT2026_KPI_EFFECTIVE_FROM
+}
+
+/**
+ * Gap tính bằng điểm phần trăm (percentage points), không phải 5% của target.
+ * Làm tròn nhiễu số thực (vd. 0.30 − 0.25 = 5 đúng) — không làm tròn % hiển thị.
+ */
+export function kpiGapPercentagePoints(target, rate) {
+  const t = Number(target)
+  const r = Number(rate)
+  if (!Number.isFinite(t) || !Number.isFinite(r)) return null
+  return Math.round((t - r) * 100 * 1e8) / 1e8
+}
+
+export function isNearTargetKpi({ rate, target, status, periodTo = '' } = {}) {
+  if (!isKpiOct2026Period(periodTo)) return false
+  if (status !== KPI_STATUS.NOT_MET) return false
+  const gap = kpiGapPercentagePoints(target, rate)
+  return gap != null && gap > 0 && gap < KPI_NEAR_TARGET_GAP_PP
+}
 
 export const KPI_POLICY_STATUS = {
   ACTIVE: 'active',

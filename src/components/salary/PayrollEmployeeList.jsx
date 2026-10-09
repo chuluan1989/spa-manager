@@ -7,11 +7,15 @@ const COLUMNS = [
   { key: 'stt', label: 'STT', type: 'stt', align: 'center' },
   { key: 'employeeName', label: 'Tên nhân viên', type: 'name', align: 'left' },
   { key: 'workDays', label: 'Ngày công', type: 'days', align: 'right' },
+  { key: 'leaveDays', label: 'Ngày nghỉ', type: 'days', align: 'right' },
   { key: 'ticketRevenue', label: 'Doanh thu tiền vé', type: 'money', align: 'right' },
   { key: 'tips', label: 'Tips', type: 'money', tone: 'tips', align: 'right' },
   { key: 'commission', label: 'Hoa hồng', type: 'money', tone: 'commission', align: 'right' },
   { key: 'bonus', label: 'Thưởng', type: 'money', tone: 'bonus', align: 'right' },
   { key: 'penalty', label: 'Phạt', type: 'money', tone: 'penalty', align: 'right' },
+  { key: 'originalKpiPenalty', label: 'Phạt KPI gốc', type: 'money', tone: 'penalty', align: 'right' },
+  { key: 'kpiPenaltyReduction', label: 'Miễn/giảm phạt KPI', type: 'money', tone: 'bonus', align: 'right' },
+  { key: 'kpiPenalty', label: 'Phạt KPI thực tế', type: 'money', tone: 'penalty', align: 'right' },
   { key: 'advance', label: 'Ứng lương', type: 'money', tone: 'advance', align: 'right' },
   { key: 'netSalary', label: 'Lương thực nhận', type: 'net', align: 'right' },
 ]
@@ -65,7 +69,7 @@ function renderTotalCell(column, totals) {
     case 'name':
       return 'Tổng'
     case 'days':
-      return formatWorkDays(totals.workDays)
+      return formatWorkDays(totals[column.key] ?? totals.workDays)
     case 'money':
     case 'net':
       return formatCurrency(totals[column.key] ?? 0)

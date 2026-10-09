@@ -5,11 +5,14 @@ import { PAYROLL_DETAIL_LABELS } from '../../constants/payrollTypes'
 const KPI_ROWS = [
   ['baseSalary', 'neutral'],
   ['workDays', 'neutral'],
+  ['leaveDays', 'neutral'],
   ['ticketRevenue', 'revenue'],
   ['commission', 'commission'],
   ['tips', 'tips'],
   ['bonus', 'bonus'],
   ['kpi', 'bonus'],
+  ['originalKpiPenalty', 'penalty'],
+  ['kpiPenaltyReduction', 'reduction'],
   ['kpiPenalty', 'penalty'],
   ['penalty', 'penalty'],
   ['reduction', 'reduction'],
@@ -29,7 +32,8 @@ export default function PayrollLiveDashboard({ stats, attendanceStats }) {
 
   const displayStats = {
     ...stats,
-    workDays: attendanceStats?.workDays ?? 0,
+    workDays: attendanceStats?.workDays ?? stats.workDays ?? 0,
+    leaveDays: stats.leaveDays ?? 0,
     paidAmount: stats.paidAmount ?? 0,
     remainingAmount: stats.remainingAmount ?? stats.netSalary ?? 0,
   }
@@ -39,10 +43,10 @@ export default function PayrollLiveDashboard({ stats, attendanceStats }) {
       <div className="salary-live-dashboard__grid">
         {KPI_ROWS.map(([key, tone]) => (
           <article key={key} className={`salary-live-dashboard__card salary-live-dashboard__card--${tone}`}>
-            <span>{key === 'workDays' ? 'Ngày công' : PAYROLL_DETAIL_LABELS[key] ?? key}</span>
+            <span>{PAYROLL_DETAIL_LABELS[key] ?? key}</span>
             <strong>
-              {key === 'workDays'
-                ? formatWorkDays(displayStats.workDays)
+              {key === 'workDays' || key === 'leaveDays'
+                ? formatWorkDays(displayStats[key])
                 : formatCurrency(displayStats[key] ?? 0)}
             </strong>
           </article>

@@ -1157,7 +1157,7 @@
 }
 
 .salary-emp-table-wrap {
-  overflow-x: visible;
+  overflow-x: auto;
   border-radius: 14px;
   border: 1px solid #eef0f3;
   background: #fff;
@@ -1171,7 +1171,11 @@
 }
 
 .salary-emp-table--summary {
-  min-width: 0;
+  min-width: 1280px;
+}
+
+.salary-emp-table.salary-emp-table--summary {
+  table-layout: auto;
 }
 
 .salary-emp-table--summary th,

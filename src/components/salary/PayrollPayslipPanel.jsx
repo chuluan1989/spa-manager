@@ -11,6 +11,8 @@ export default function PayrollPayslipPanel({ payslip, onClose }) {
     ['tips', payslip.tips],
     ['bonus', payslip.bonus],
     ['kpi', payslip.kpi],
+    ['originalKpiPenalty', payslip.originalKpiPenalty],
+    ['kpiPenaltyReduction', payslip.kpiPenaltyReduction],
     ['kpiPenalty', payslip.kpiPenalty],
     ['penalty', payslip.penalty],
     ['reduction', payslip.reduction],
@@ -34,6 +36,7 @@ export default function PayrollPayslipPanel({ payslip, onClose }) {
         <div className="salary-payslip__meta">
           <div><small>Chi nhánh</small><span>{payslip.branchName}</span></div>
           <div><small>Tháng</small><span>{payslip.month}</span></div>
+          <div><small>{PAYROLL_DETAIL_LABELS.leaveDays}</small><span>{payslip.leaveDays ?? 0}</span></div>
         </div>
 
         <ul className="salary-payslip__lines">

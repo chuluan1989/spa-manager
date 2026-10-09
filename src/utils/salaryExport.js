@@ -20,7 +20,7 @@ export function exportPayrollCsv(rows, month = '', branchId = '', cycle = '') {
       'Lương cơ bản',
       'Thưởng',
       'KPI',
-      'Phạt KPI',
+      'Phạt KPI thực tế',
       'Phạt',
       'Ứng',
       'Tổng thu nhập',
@@ -28,6 +28,9 @@ export function exportPayrollCsv(rows, month = '', branchId = '', cycle = '') {
       'Đã trả',
       'Còn lại',
       'Ngày công',
+      'Ngày nghỉ',
+      'Phạt KPI gốc',
+      'Miễn/giảm phạt KPI',
     ],
     ...mapped.map((row) => [
       month,
@@ -48,6 +51,9 @@ export function exportPayrollCsv(rows, month = '', branchId = '', cycle = '') {
       row.paidAmount,
       row.remainingAmount,
       row.workDays,
+      row.leaveDays ?? 0,
+      row.originalKpiPenalty ?? 0,
+      row.kpiPenaltyReduction ?? 0,
     ]),
   ])
 }
@@ -70,7 +76,7 @@ export function exportPayrollPdf(rows, month = '', cycle = '') {
     `Bang-luong-${month}`,
     `<h1>Bảng lương ${month} · ${getPayCycleLabel(cycle)}</h1>
     <table>
-      <thead><tr><th>Nhân viên</th><th>Chi nhánh</th><th>Doanh số</th><th>Hoa hồng</th><th>Tips</th><th>Phạt KPI</th><th>Phạt</th><th>Thực nhận</th></tr></thead>
+      <thead><tr><th>Nhân viên</th><th>Chi nhánh</th><th>Doanh số</th><th>Hoa hồng</th><th>Tips</th><th>Phạt KPI thực tế</th><th>Phạt</th><th>Thực nhận</th></tr></thead>
       <tbody>${tableRows}</tbody>
     </table>`,
   )

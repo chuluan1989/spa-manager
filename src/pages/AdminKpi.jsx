@@ -69,6 +69,9 @@ function AdminKpiMetricCell({ card }) {
         <div className="admin-kpi-metric__target">{display.targetLine}</div>
       ) : null}
       <div className={`admin-kpi-metric__hint is-${display.tone}`}>{display.hintLine}</div>
+      {display.warningLine ? (
+        <div className="admin-kpi-metric__warn">{display.warningLine}</div>
+      ) : null}
     </div>
   )
 }
@@ -791,6 +794,7 @@ function EmployeeDrillPanel({ row, onClose, monthYm, fromDate, toDate, rangeLabe
                 <span>{display.ratioLine}</span>
                 {display.targetLine ? <span>{display.targetLine}</span> : null}
                 <span className={`admin-kpi-metric__hint is-${display.tone}`}>{display.hintLine}</span>
+                {display.warningLine ? <span className="admin-kpi-metric__warn">{display.warningLine}</span> : null}
               </div>
             )
           })}

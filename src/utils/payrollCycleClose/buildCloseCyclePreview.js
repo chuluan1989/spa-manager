@@ -151,6 +151,7 @@ export async function buildCloseCyclePreview({
     scopedAdjustments,
     {
       kpiPolicies: kpiPolicies ?? [],
+      kpiPenaltyReviews: [],
       fromDate: range.fromDate,
       toDate: range.toDate,
       month: billingMonth,

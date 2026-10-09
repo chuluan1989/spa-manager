@@ -59,13 +59,16 @@ export const PAYROLL_DETAIL_LABELS = {
   [PAYROLL_DETAIL_CATEGORIES.ADVANCE]: 'Ứng lương',
   [PAYROLL_DETAIL_CATEGORIES.ADJUSTMENT]: 'Điều chỉnh khác',
   [PAYROLL_DETAIL_CATEGORIES.KPI]: 'KPI',
-  [PAYROLL_DETAIL_CATEGORIES.KPI_PENALTY]: 'Phạt KPI',
+  [PAYROLL_DETAIL_CATEGORIES.KPI_PENALTY]: 'Phạt KPI thực tế',
+  originalKpiPenalty: 'Phạt KPI gốc',
+  kpiPenaltyReduction: 'Miễn/giảm phạt KPI',
   [PAYROLL_DETAIL_CATEGORIES.NET]: 'Lương thực nhận',
   paidAmount: 'Đã thanh toán',
   remainingAmount: 'Còn phải trả',
   provisionalNet: 'Tạm tính thực nhận',
   grossBeforeDeduction: 'Tổng lương trước khấu trừ',
   workDays: 'Ngày công',
+  leaveDays: 'Ngày nghỉ',
 }
 
 /** Khoản Admin được sửa trên popup “Sửa bảng lương” (không gồm Điều chỉnh khác — legacy). */

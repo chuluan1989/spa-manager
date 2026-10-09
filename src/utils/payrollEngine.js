@@ -5,7 +5,8 @@ import {
   PAYROLL_DETAIL_CATEGORIES,
   PAYROLL_WALLET_SOURCE,
 } from '../constants/payrollTypes'
-import { getAttendanceStatusLabel } from '../constants/attendanceTypes'
+import { getAttendanceStatusLabel, isVoidAttendanceStatus } from '../constants/attendanceTypes'
+import { getAttendanceLeaveDays } from './attendancePenalties'
 import { getPayrollBranchDisplayTitle, getPayrollBranchSortOrder } from '../constants/branchPayrollDisplay'
 import { getBranchName } from './branchStorage'
 import { isPayrollListEmployee, recordBelongsToBranch } from './branchEmployeeMatch'
@@ -86,6 +87,31 @@ export function computeNetSalary(parts) {
   )
 }
 
+function emptyKpiPenaltyResult() {
+  return {
+    kpiPenalty: 0,
+    originalKpiPenalty: 0,
+    kpiPenaltyReduction: 0,
+    totalMissing: 0,
+    applied: false,
+    breakdown: null,
+  }
+}
+
+/** Ngày nghỉ hiển thị — cộng leaveDays đã có trên từng trạng thái, lọc đúng kỳ lương. */
+export function sumPayrollPeriodLeaveDays(attendanceRecords, employeeId, fromDate = '', toDate = '') {
+  let days = 0
+  for (const record of attendanceRecords || []) {
+    if (!record || record.employeeId !== employeeId) continue
+    if (isVoidAttendanceStatus(record.status)) continue
+    const date = String(record.date || '').slice(0, 10)
+    if (fromDate && date < fromDate) continue
+    if (toDate && date > toDate) continue
+    days += getAttendanceLeaveDays(record.status)
+  }
+  return days
+}
+
 function computeRowKpiPenalty(employeeId, invoices, {
   kpiPolicies = [],
   fromDate = '',
@@ -94,13 +120,9 @@ function computeRowKpiPenalty(employeeId, invoices, {
   cycle = '',
   homeBranchId = '',
   employee = null,
+  reviews = [],
 } = {}) {
-  const empty = {
-    kpiPenalty: 0,
-    totalMissing: 0,
-    applied: false,
-    breakdown: null,
-  }
+  const empty = emptyKpiPenaltyResult()
   if (!employeeId) return empty
 
   const runPeriod = (periodFrom, periodTo) => {
@@ -112,8 +134,13 @@ function computeRowKpiPenalty(employeeId, invoices, {
       policies: kpiPolicies,
       homeBranchId,
       employee,
+      reviews,
     })
-    return computeKpiPenaltyFromModel(model, { fromDate: periodFrom, toDate: periodTo })
+    return computeKpiPenaltyFromModel(model, {
+      fromDate: periodFrom,
+      toDate: periodTo,
+      reviews,
+    })
   }
 
   if (cycle === PAY_CYCLES.FULL && month) {
@@ -123,6 +150,8 @@ function computeRowKpiPenalty(employeeId, invoices, {
     const b = runPeriod(p2.fromDate, p2.toDate)
     return {
       kpiPenalty: (a.kpiPenalty || 0) + (b.kpiPenalty || 0),
+      originalKpiPenalty: (a.originalKpiPenalty || 0) + (b.originalKpiPenalty || 0),
+      kpiPenaltyReduction: (a.kpiPenaltyReduction || 0) + (b.kpiPenaltyReduction || 0),
       totalMissing: (a.totalMissing || 0) + (b.totalMissing || 0),
       applied: Boolean(a.applied || b.applied),
       breakdown: { period1: a.breakdown, period2: b.breakdown },
@@ -273,8 +302,17 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     cycle: options.cycle ?? '',
     homeBranchId: employee.branchId ?? '',
     employee,
+    reviews: options.kpiPenaltyReviews ?? [],
   })
   const kpiPenalty = kpiResult.kpiPenalty || 0
+  const originalKpiPenalty = kpiResult.originalKpiPenalty || 0
+  const kpiPenaltyReduction = kpiResult.kpiPenaltyReduction || 0
+  const leaveDays = sumPayrollPeriodLeaveDays(
+    attendanceRecords,
+    employeeId,
+    options.fromDate ?? '',
+    options.toDate ?? '',
+  )
 
   const parts = {
     baseSalary,
@@ -315,10 +353,13 @@ export function computeEmployeePayrollRow(employee, invoices, attendanceRecords,
     avatar: employee.avatar ?? '',
     invoiceCount: invoiceTotals.invoiceCount,
     workDays,
+    leaveDays,
     branchSections,
     kpiMissing: kpiResult.totalMissing || 0,
     kpiPenaltyApplied: Boolean(kpiResult.applied),
     kpiPenaltyBreakdown: kpiResult.breakdown,
+    originalKpiPenalty,
+    kpiPenaltyReduction,
     ...parts,
     grossBeforeDeduction,
     netSalary,
@@ -336,6 +377,7 @@ export function computePayrollReport({
   attendanceRecords,
   adjustments,
   kpiPolicies = [],
+  kpiPenaltyReviews = [],
 }) {
   const { fromDate, toDate } = getPayPeriodRange(month, cycle)
   const scopedInvoices = filterSalaryInvoices(invoices, { fromDate, toDate, branchId, employeeId })
@@ -373,6 +415,7 @@ export function computePayrollReport({
 
   const payrollOptions = {
     kpiPolicies,
+    kpiPenaltyReviews,
     fromDate,
     toDate,
     month,

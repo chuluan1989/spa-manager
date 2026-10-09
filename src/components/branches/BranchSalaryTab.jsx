@@ -40,11 +40,15 @@ export default function BranchSalaryTab({ branchId }) {
                 <th>Nhân viên</th>
                 <th>Chức vụ</th>
                 <th>Ngày công</th>
+                <th>Ngày nghỉ</th>
                 <th>Doanh thu tiền vé</th>
                 <th>Hoa hồng</th>
                 <th>Tips</th>
                 <th>Thưởng</th>
                 <th>Phạt</th>
+                <th>Phạt KPI gốc</th>
+                <th>Miễn/giảm phạt KPI</th>
+                <th>Phạt KPI thực tế</th>
                 <th>{PAYROLL_DETAIL_LABELS.reduction}</th>
                 <th>Ứng lương</th>
                 <th>Đã thanh toán</th>
@@ -58,11 +62,15 @@ export default function BranchSalaryTab({ branchId }) {
                   <td>{row.employeeName}</td>
                   <td>{row.position || '—'}</td>
                   <td>{row.workDays ?? 0}</td>
+                  <td>{row.leaveDays ?? 0}</td>
                   <td>{formatCurrency(row.ticketRevenue ?? 0)}</td>
                   <td>{formatCurrency(row.commission ?? 0)}</td>
                   <td>{formatCurrency(row.tips ?? 0)}</td>
                   <td>{formatCurrency(row.bonus ?? 0)}</td>
                   <td>{formatCurrency(row.penalty ?? 0)}</td>
+                  <td>{formatCurrency(row.originalKpiPenalty ?? 0)}</td>
+                  <td>{formatCurrency(row.kpiPenaltyReduction ?? 0)}</td>
+                  <td>{formatCurrency(row.kpiPenalty ?? 0)}</td>
                   <td>{formatCurrency(row.reduction ?? 0)}</td>
                   <td>{formatCurrency(row.advance ?? 0)}</td>
                   <td>{formatCurrency(row.paidAmount ?? 0)}</td>

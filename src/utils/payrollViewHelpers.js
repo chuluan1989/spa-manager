@@ -119,11 +119,15 @@ export function mergeEmployeePayrollRows(employees, payrollRows, {
         phone: emp.phone ?? '',
         status: emp.status ?? EMPLOYEE_STATUS.ACTIVE,
         workDays: row?.workDays ?? 0,
+        leaveDays: row?.leaveDays ?? 0,
         ticketRevenue: row?.ticketRevenue ?? 0,
         commission: row?.commission ?? 0,
         tips: row?.tips ?? 0,
         bonus: row?.bonus ?? 0,
         penalty: row?.penalty ?? 0,
+        originalKpiPenalty: row?.originalKpiPenalty ?? 0,
+        kpiPenaltyReduction: row?.kpiPenaltyReduction ?? 0,
+        kpiPenalty: row?.kpiPenalty ?? 0,
         advance: row?.advance ?? 0,
         reduction: row?.reduction ?? 0,
         otherAdjustment: row?.otherAdjustment ?? 0,
@@ -143,22 +147,30 @@ export function sumEmployeePayrollTableTotals(rows) {
   return (rows ?? []).reduce(
     (acc, row) => {
       acc.workDays += Number(row.workDays ?? 0)
+      acc.leaveDays += Number(row.leaveDays ?? 0)
       acc.ticketRevenue += Number(row.ticketRevenue ?? 0)
       acc.tips += Number(row.tips ?? 0)
       acc.commission += Number(row.commission ?? 0)
       acc.bonus += Number(row.bonus ?? 0)
       acc.penalty += Number(row.penalty ?? 0)
+      acc.originalKpiPenalty += Number(row.originalKpiPenalty ?? 0)
+      acc.kpiPenaltyReduction += Number(row.kpiPenaltyReduction ?? 0)
+      acc.kpiPenalty += Number(row.kpiPenalty ?? 0)
       acc.advance += Number(row.advance ?? 0)
       acc.netSalary += Number(row.netSalary ?? 0)
       return acc
     },
     {
       workDays: 0,
+      leaveDays: 0,
       ticketRevenue: 0,
       tips: 0,
       commission: 0,
       bonus: 0,
       penalty: 0,
+      originalKpiPenalty: 0,
+      kpiPenaltyReduction: 0,
+      kpiPenalty: 0,
       advance: 0,
       netSalary: 0,
     },
