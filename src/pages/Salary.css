@@ -1816,3 +1816,230 @@
   flex-direction: column;
   gap: 4px;
 }
+
+.salary-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.salary-overview__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  min-height: 36px;
+  padding: 0 2px;
+  color: #374151;
+  font-size: 14px;
+}
+
+.salary-overview__meta strong {
+  color: #111827;
+  font-size: 16px;
+}
+
+.salary-overview__meta em {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.salary-overview__net {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #111827;
+  color: #f8fafc;
+}
+
+.salary-overview__net span {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #e5e7eb;
+}
+
+.salary-overview__net strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 28px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: #d4af37;
+}
+
+.salary-overview__net p {
+  margin: 0;
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #e5e7eb;
+  font-variant-numeric: tabular-nums;
+}
+
+.salary-overview__block h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #374151;
+}
+
+.salary-overview__row {
+  display: grid;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.salary-overview__row--income { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.salary-overview__row--deduction { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.salary-overview__row--attendance { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.salary-overview__row--branch { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.salary-overview__cell {
+  min-width: 0;
+  padding: 10px 12px;
+  border-left: 1px solid #eef0f3;
+}
+
+.salary-overview__cell:first-child { border-left: 0; }
+
+.salary-overview__cell span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  line-height: 1.3;
+  color: #6b7280;
+}
+
+.salary-overview__cell strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.salary-overview__row--deduction .salary-overview__cell strong { color: #9f1239; }
+.salary-overview__cell--total { background: #f8fafc; }
+.salary-overview__cell--total strong { color: #111827; }
+
+.salary-overview__fold {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.salary-overview__fold--sub {
+  margin-top: 8px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.salary-overview__fold-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.salary-overview__branch header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.salary-overview__branch header strong { color: #111827; }
+
+.salary-overview__note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #6b7280;
+}
+
+.salary-overview__detail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 0;
+}
+
+.salary-overview__detail div {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #eef0f3;
+}
+
+.salary-overview__detail dt {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.salary-overview__detail dd {
+  margin: 4px 0 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #111827;
+}
+
+@media (max-width: 1100px) {
+  .salary-overview__row--income,
+  .salary-overview__row--deduction,
+  .salary-overview__row--branch,
+  .salary-overview__detail {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .salary-overview__cell:nth-child(3n + 1) { border-left: 0; }
+}
+
+@media (max-width: 720px) {
+  .salary-overview__net {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .salary-overview__net p { text-align: left; }
+  .salary-overview__net strong { font-size: 24px; }
+
+  .salary-overview__row--income,
+  .salary-overview__row--deduction,
+  .salary-overview__row--attendance,
+  .salary-overview__row--branch,
+  .salary-overview__detail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .salary-overview__cell { border-left: 0; border-top: 1px solid #eef0f3; }
+  .salary-overview__cell:nth-child(-n + 2) { border-top: 0; }
+  .salary-overview__cell strong { white-space: normal; }
+}

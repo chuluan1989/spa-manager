@@ -1,21 +1,15 @@
 import { useMemo, useState } from 'react'
-import { PAYROLL_ADJUSTMENT_TYPES, PAYROLL_DETAIL_CATEGORIES, PAYROLL_ADJUSTMENT_LABELS, PAYROLL_WALLET_SOURCE } from '../../constants/payrollTypes'
 import {
-  buildAdjustmentHistory,
   buildInvoiceRevenueList,
   buildTipsBreakdown,
   computeAttendanceStats,
 } from '../../utils/payrollLiveHelpers'
-import { PAY_CYCLES } from '../../utils/salaryReport'
-import { filterWalletByCategory } from '../../utils/payrollEngine'
 import PayrollAuditHistory from './PayrollAuditHistory'
-import PayrollBranchBreakdown from './PayrollBranchBreakdown'
-import PayrollAttendanceStats, {
-  PayrollAdjustmentHistory,
+import {
   PayrollRevenuePanel,
   PayrollTipsPanel,
 } from './PayrollDetailPanels'
-import PayrollLiveDashboard from './PayrollLiveDashboard'
+import PayrollOverview from './PayrollOverview'
 import PayrollPayslipPanel from './PayrollPayslipPanel'
 import PayrollWallet from './PayrollWallet'
 import { computeAttendanceLeaveBreakdown } from '../../utils/attendancePenalties'
@@ -29,21 +23,6 @@ const PROFILE_VIEWS = [
   { id: 'audit', label: 'Nhật ký' },
   { id: 'payslip', label: 'Phiếu lương' },
 ]
-
-const HISTORY_TABS = [
-  { id: 'all', label: 'Tất cả', category: '' },
-  { id: 'commission', label: 'Hoa hồng', category: PAYROLL_DETAIL_CATEGORIES.COMMISSION },
-  { id: 'tips', label: 'Tips', category: PAYROLL_DETAIL_CATEGORIES.TIPS },
-  { id: 'bonus', label: 'Thưởng', category: PAYROLL_ADJUSTMENT_TYPES.BONUS },
-  { id: 'penalty', label: 'Phạt', category: PAYROLL_ADJUSTMENT_TYPES.PENALTY },
-  { id: 'advance', label: 'Ứng lương', category: PAYROLL_ADJUSTMENT_TYPES.ADVANCE },
-  { id: 'reduction', label: PAYROLL_ADJUSTMENT_LABELS.reduction, category: PAYROLL_ADJUSTMENT_TYPES.REDUCTION },
-  { id: 'attendance', label: 'Chấm công', category: 'attendance' },
-]
-
-function filterAttendanceEntries(entries) {
-  return entries.filter((entry) => entry.source === PAYROLL_WALLET_SOURCE.ATTENDANCE)
-}
 
 function EmployeeSwitcher({ peers, currentId, onSwitch }) {
   const [query, setQuery] = useState('')
@@ -109,7 +88,6 @@ export default function PayrollEmployeeProfile({
   onSwitchEmployee,
 }) {
   const [view, setView] = useState('overview')
-  const [historyTab, setHistoryTab] = useState('all')
   const [payslipOpen, setPayslipOpen] = useState(false)
 
   const employeeId = employee?.employeeId
@@ -121,10 +99,9 @@ export default function PayrollEmployeeProfile({
 
   const attendanceUnitBreakdown = useMemo(() => {
     if (!attendance || !employeeId) return null
-    if (cycle !== PAY_CYCLES.PERIOD_2) return null
     const rows = attendance.filter((row) => row && row.employeeId === employeeId)
     return computeAttendanceLeaveBreakdown(rows, { holidays: getAttendanceHolidayDates() })
-  }, [attendance, employeeId, cycle])
+  }, [attendance, employeeId])
 
   const revenueRows = useMemo(
     () => buildInvoiceRevenueList(invoices ?? [], employeeId, viewBranchId),
@@ -136,37 +113,6 @@ export default function PayrollEmployeeProfile({
     [invoices, employeeId, viewBranchId],
   )
 
-  const bonusRows = useMemo(
-    () => buildAdjustmentHistory(adjustments ?? [], employeeId, PAYROLL_ADJUSTMENT_TYPES.BONUS),
-    [adjustments, employeeId],
-  )
-
-  const penaltyRows = useMemo(
-    () => buildAdjustmentHistory(adjustments ?? [], employeeId, PAYROLL_ADJUSTMENT_TYPES.PENALTY),
-    [adjustments, employeeId],
-  )
-
-  const reductionRows = useMemo(
-    () => buildAdjustmentHistory(adjustments ?? [], employeeId, PAYROLL_ADJUSTMENT_TYPES.REDUCTION),
-    [adjustments, employeeId],
-  )
-
-  const advanceRows = useMemo(
-    () => buildAdjustmentHistory(adjustments ?? [], employeeId, PAYROLL_ADJUSTMENT_TYPES.ADVANCE),
-    [adjustments, employeeId],
-  )
-
-  const legacyOtherAdjustmentRows = useMemo(
-    () => buildAdjustmentHistory(adjustments ?? [], employeeId, PAYROLL_ADJUSTMENT_TYPES.ADJUSTMENT),
-    [adjustments, employeeId],
-  )
-
-  const filteredHistory = useMemo(() => {
-    if (historyTab === 'attendance') return filterAttendanceEntries(walletEntries)
-    const tab = HISTORY_TABS.find((item) => item.id === historyTab)
-    return filterWalletByCategory(walletEntries, tab?.category ?? '')
-  }, [walletEntries, historyTab])
-
   const payslip = stats ? { ...stats, month, fromDate, toDate } : null
 
   return (
@@ -177,7 +123,9 @@ export default function PayrollEmployeeProfile({
         onSwitch={onSwitchEmployee}
       />
       <section className="salary-profile">
-      <PayrollWallet entries={[]} employee={employee} stats={stats} mode="header" />
+      {view !== 'overview' && (
+        <PayrollWallet entries={[]} employee={employee} stats={stats} mode="header" />
+      )}
 
       <nav className="salary-profile__tabs">
         {PROFILE_VIEWS.map((tab) => (
@@ -197,40 +145,18 @@ export default function PayrollEmployeeProfile({
 
       {view === 'overview' && (
         <div className="salary-profile__overview">
-          <PayrollBranchBreakdown
-            sections={stats?.branchSections}
-            totalStats={stats}
+          <PayrollOverview
+            employee={employee}
+            stats={stats}
+            attendanceStats={attendanceStats}
+            breakdown={attendanceUnitBreakdown}
+            cycle={cycle}
+            month={month}
+            fromDate={fromDate}
+            toDate={toDate}
+            locks={locks}
             viewBranchId={viewBranchId}
-            listInvoiceCount={revenueRows.length}
           />
-          <PayrollLiveDashboard stats={stats} attendanceStats={attendanceStats} />
-          <PayrollAttendanceStats stats={attendanceStats} cycle={cycle} breakdown={attendanceUnitBreakdown} />
-          <div className="salary-profile__history">
-            <div className="salary-profile__history-tabs">
-              {HISTORY_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={historyTab === tab.id ? 'is-active' : ''}
-                  onClick={() => setHistoryTab(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-            <PayrollWallet entries={filteredHistory} employee={null} stats={null} mode="timeline" />
-          </div>
-          <PayrollAdjustmentHistory title="Thưởng" rows={bonusRows} />
-          <PayrollAdjustmentHistory title="Phạt (nhập tay)" rows={penaltyRows} />
-          <PayrollAdjustmentHistory title={PAYROLL_ADJUSTMENT_LABELS.reduction} rows={reductionRows} />
-          <PayrollAdjustmentHistory title="ỨNG LƯƠNG" rows={advanceRows} contentLabel="Nội dung" />
-          {legacyOtherAdjustmentRows.length > 0 && (
-            <PayrollAdjustmentHistory
-              title="Điều chỉnh khác (legacy — không còn tính vào lương)"
-              rows={legacyOtherAdjustmentRows}
-              showCreator={false}
-            />
-          )}
         </div>
       )}
 
