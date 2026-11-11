@@ -17,14 +17,22 @@ import {
 import { loadAdminProfile, saveAdminProfile } from '../../utils/adminProfileStorage'
 import { IMAGE_CATEGORIES, uploadImageFile } from '../../utils/imageStorage'
 
-function SettingToggle({ label, hint, checked, onChange }) {
+function SettingToggle({ label, hint, checked, onChange, disabled = false }) {
   return (
     <label className="settings__switch-row">
       <div>
         <span className="settings__switch-label">{label}</span>
         {hint && <span className="settings__switch-hint">{hint}</span>}
       </div>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => {
+          if (disabled) return
+          onChange(e.target.checked)
+        }}
+      />
     </label>
   )
 }
@@ -37,6 +45,7 @@ export default function SettingsSystemTab({ showToast }) {
   const dataSummary = collectAllData()
 
   const updateSetting = (key, value) => {
+    if (key === 'allowEmployeeEditOwnInvoice') return
     const next = toggleSystemSetting(key, value)
     setSettings(next)
     showToast('Đã cập nhật cấu hình')
@@ -96,7 +105,13 @@ export default function SettingsSystemTab({ showToast }) {
         <div className="settings__switch-list">
           <SettingToggle label="Cho phép giảm giá" checked={settings.allowDiscount} onChange={(v) => updateSetting('allowDiscount', v)} />
           <SettingToggle label="Cho phép nhập tips" checked={settings.allowTips} onChange={(v) => updateSetting('allowTips', v)} />
-          <SettingToggle label="Nhân viên sửa hóa đơn của mình" checked={settings.allowEmployeeEditOwnInvoice} onChange={(v) => updateSetting('allowEmployeeEditOwnInvoice', v)} />
+          <SettingToggle
+            label="Nhân viên sửa hóa đơn của mình"
+            hint="Đã khóa trên toàn hệ thống. Nhân viên không sửa hoặc xóa hóa đơn đã lưu."
+            checked={false}
+            disabled
+            onChange={() => updateSetting('allowEmployeeEditOwnInvoice', true)}
+          />
           <SettingToggle label="Quản lý sửa hóa đơn chi nhánh" checked={settings.allowManagerEditBranchInvoice} onChange={(v) => updateSetting('allowManagerEditBranchInvoice', v)} />
           <SettingToggle label="Chỉ Admin được xóa hóa đơn" checked={settings.onlyAdminDeleteInvoice} onChange={(v) => updateSetting('onlyAdminDeleteInvoice', v)} />
           <SettingToggle label="Bắt buộc hoàn thiện hồ sơ trước khi nhập tour" checked={settings.requireCompleteProfileBeforeTour} onChange={(v) => updateSetting('requireCompleteProfileBeforeTour', v)} />

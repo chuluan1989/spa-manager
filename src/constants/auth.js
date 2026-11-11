@@ -16,7 +16,6 @@ import { getInvoiceModifyBlockReason } from '../utils/invoiceEditPolicy'
 import {
   isEmployeeDateLockedByApprovedCloseSync,
 } from '../utils/payrollCycleClose/approvedCloseLock'
-import { canEmployeeServeAtBranch } from '../utils/crossBranchSupport'
 import {
   applyRecordFetchScope,
   buildRepositoryFilters,
@@ -351,7 +350,13 @@ export function canAddInvoice(role = getCurrentUserRole(), branchId = getCurrent
   return checkPermission(PERMISSION_KEYS.ADD_INVOICE, role, branchId)
 }
 
+/** Nhân viên không sửa/xóa hóa đơn đã lưu. Công tắc cài đặt không mở lại quyền này. */
+export const EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE =
+  'Dịch vụ đã ghi nhận. Vui lòng liên hệ Quản lý hoặc Admin nếu cần điều chỉnh.'
+
 export function canEditInvoice(invoice = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (role === ROLES.EMPLOYEE || isEmployee()) return false
+
   const settings = loadSystemSettings()
 
   // Admin toàn quyền sửa — bypass mọi lock.
@@ -364,21 +369,12 @@ export function canEditInvoice(invoice = null, role = getCurrentUserRole(), bran
     return !getInvoiceModifyBlockReason(invoice, { role })
   }
 
-  if (role === ROLES.EMPLOYEE) {
-    if (!settings.allowEmployeeEditOwnInvoice) return false
-    if (!invoice) return false
-    if (invoice.employeeId !== getCurrentUserEmployeeId()) return false
-    // HĐ tại CN phục vụ khác (hỗ trợ liên CN) vẫn sửa được nếu là HĐ của chính mình.
-    if (invoice.branchId !== getCurrentUserBranch()) {
-      if (!canEmployeeServeAtBranch(invoice.employeeId, invoice.branchId)) return false
-    }
-    return !getInvoiceModifyBlockReason(invoice, { role })
-  }
-
   return false
 }
 
 export function canDeleteInvoice(invoice = null, role = getCurrentUserRole(), branchId = getCurrentUserBranch()) {
+  if (role === ROLES.EMPLOYEE || isEmployee()) return false
+
   const settings = loadSystemSettings()
   // Admin toàn quyền xóa — bypass mọi lock.
   if (role === ROLES.ADMIN || isAdmin()) return true

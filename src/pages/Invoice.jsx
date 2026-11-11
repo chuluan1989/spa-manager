@@ -4,6 +4,7 @@ import { useInvoicesData } from '../hooks/useInvoicesData'
 import {
   canDeleteInvoice,
   canEditInvoice,
+  EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE,
   canSelectBranch,
   canAddInvoice,
   canAddInvoiceForDate,
@@ -618,7 +619,9 @@ export default function Invoice({ onNavigate }) {
 
   const handleEdit = (invoice) => {
     if (!canEditInvoice(invoice)) {
-      showToast('Bạn không có quyền sửa hóa đơn.')
+      showToast(isEmployee()
+        ? EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE
+        : 'Bạn không có quyền sửa hóa đơn.')
       return
     }
 
@@ -665,7 +668,9 @@ export default function Invoice({ onNavigate }) {
   const handleDelete = async (id) => {
     const invoice = invoices.find((inv) => inv.id === id)
     if (!canDeleteInvoice(invoice)) {
-      showToast('Bạn không có quyền xóa hóa đơn.')
+      showToast(isEmployee()
+        ? EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE
+        : 'Bạn không có quyền xóa hóa đơn.')
       return
     }
     const closed = invoice && isInvoiceInClosedPayCycle(invoice)

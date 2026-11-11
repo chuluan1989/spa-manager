@@ -1076,8 +1076,8 @@ test('permissions: role access matrix', () => {
   assert.equal(canDeleteInvoice(), false)
   assert.equal(
     canEditInvoice({ employeeId: 'vinh-long-linh', branchId: 'vinh-long' }),
-    true,
-    'employee sửa được hóa đơn do chính mình tạo',
+    false,
+    'employee không sửa hóa đơn đã lưu, kể cả hóa đơn của mình',
   )
   assert.equal(
     canEditInvoice({ employeeId: 'other-employee', branchId: 'vinh-long' }),
@@ -1273,17 +1273,16 @@ test('invoice storage: employee edit cannot reassign branch/employee via forged 
   })
   assert.equal(created.success, true)
 
+  const before = JSON.stringify(loadInvoices())
   const result = updateInvoice('inv-own', {
     customerName: 'Khách mới',
     branchId: 'tra-vinh',
     employeeId: 'someone-else',
     supportEmployeeId: 'support-x',
   })
-  assert.equal(result.success, true)
-  assert.equal(result.invoice.customerName, 'Khách mới')
-  assert.equal(result.invoice.branchId, 'vinh-long')
-  assert.equal(result.invoice.employeeId, 'vinh-long-linh')
-  assert.equal(result.invoice.supportEmployeeId, '')
+  assert.equal(result.success, false)
+  assert.equal(result.error, 'Dịch vụ đã ghi nhận. Vui lòng liên hệ Quản lý hoặc Admin nếu cần điều chỉnh.')
+  assert.equal(JSON.stringify(loadInvoices()), before)
   clearCurrentUser()
 })
 

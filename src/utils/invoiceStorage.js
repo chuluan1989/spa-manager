@@ -2,6 +2,7 @@ import {
   canAddInvoice,
   canDeleteInvoice,
   canEditInvoice,
+  EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE,
   filterByUserBranch,
   getCurrentUserBranch,
   getCurrentUserEmployeeId,
@@ -15,7 +16,12 @@ import { getEmployeeById } from './employeeStorage'
 import { getSelectedServiceDetails } from './invoice'
 import { normalizeCustomerPhone } from './validators'
 import { isSupabaseConfigured } from '../lib/supabaseClient'
-import { deleteInvoiceRow, upsertInvoice, fetchInvoicesFiltered } from '../repositories/invoicesRepository'
+import {
+  deleteInvoiceRow,
+  upsertInvoice,
+  fetchInvoicesByIds,
+  fetchInvoicesFiltered,
+} from '../repositories/invoicesRepository'
 import { notifyDataSynced } from './dataSyncEvents'
 import { normalizePaymentMethod } from '../constants/paymentMethods'
 import { ensureBranchAndEmployeeOnServer } from './syncForeignKeys'
@@ -268,6 +274,49 @@ const SAVE_IN_FLIGHT_MESSAGE = 'Đang lưu hóa đơn, vui lòng đợi...'
 let saveInvoiceInFlight = false
 let updateInvoiceInFlightId = null
 
+/**
+ * Id đang được nhân viên tạo trong tiến trình này.
+ * Chặn hai lệnh tạo cùng id trước khi upsert kết thúc.
+ * Không thay thế được ràng buộc trên database giữa hai trình duyệt.
+ */
+const employeeInvoiceCreateReservations = new Set()
+
+async function lookupInvoiceIdOnServer(id) {
+  if (!isSupabaseConfigured) return false
+  const rows = await fetchInvoicesByIds([id])
+  return (rows ?? []).some((row) => String(row?.id ?? '') === id)
+}
+
+/**
+ * Nhân viên chỉ được tạo hóa đơn có id chưa có trên cache cục bộ và trên máy chủ.
+ * Không xác nhận được (lỗi mạng, id rỗng, id đang tạo) thì từ chối — không upsert.
+ */
+export async function assertEmployeeInvoiceIdIsNew(id, { lookupById } = {}) {
+  const invoiceId = String(id ?? '').trim()
+  if (!invoiceId || getInvoiceById(invoiceId) || employeeInvoiceCreateReservations.has(invoiceId)) {
+    return { ok: false, error: EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE }
+  }
+
+  employeeInvoiceCreateReservations.add(invoiceId)
+  try {
+    const lookup = lookupById ?? lookupInvoiceIdOnServer
+    const exists = await lookup(invoiceId)
+    if (exists) {
+      employeeInvoiceCreateReservations.delete(invoiceId)
+      return { ok: false, error: EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE }
+    }
+    return { ok: true, id: invoiceId }
+  } catch {
+    employeeInvoiceCreateReservations.delete(invoiceId)
+    return { ok: false, error: EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE }
+  }
+}
+
+export function releaseEmployeeInvoiceCreateReservation(id) {
+  const invoiceId = String(id ?? '').trim()
+  if (invoiceId) employeeInvoiceCreateReservations.delete(invoiceId)
+}
+
 function warnInvoiceCacheFailure(error, context = {}) {
   console.warn('[Invoice] Cache spa-manager-invoices bỏ qua — không ảnh hưởng dữ liệu Supabase.', {
     error: error?.message ?? String(error),
@@ -362,6 +411,7 @@ export async function saveInvoice(invoice, options = {}) {
     return { success: false, error: SAVE_IN_FLIGHT_MESSAGE }
   }
   saveInvoiceInFlight = true
+  let reservedEmployeeInvoiceId = ''
 
   try {
     let payload = invoice
@@ -414,6 +464,12 @@ export async function saveInvoice(invoice, options = {}) {
       createdAt: payload.createdAt ?? new Date().toISOString(),
     }))
 
+    if (isEmployee()) {
+      const gate = await assertEmployeeInvoiceIdIsNew(snapshot.id)
+      if (!gate.ok) return { success: false, error: gate.error }
+      reservedEmployeeInvoiceId = gate.id
+    }
+
     try {
       await assertCanModifyInvoice(snapshot, { editReason: options.editReason })
     } catch (error) {
@@ -438,6 +494,9 @@ export async function saveInvoice(invoice, options = {}) {
     return await saveInvoiceRemote(snapshot, options)
   } finally {
     saveInvoiceInFlight = false
+    if (reservedEmployeeInvoiceId) {
+      releaseEmployeeInvoiceCreateReservation(reservedEmployeeInvoiceId)
+    }
   }
 }
 
@@ -480,6 +539,10 @@ async function saveInvoiceRemote(snapshot, options = {}) {
 }
 
 export function updateInvoice(id, data, currentFromCaller = null, options = {}) {
+  if (isEmployee()) {
+    return { success: false, error: EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE }
+  }
+
   const current = currentFromCaller ?? getInvoiceById(id)
   if (!current) {
     return { success: false, error: 'Không tìm thấy hóa đơn.' }
@@ -605,6 +668,10 @@ async function updateInvoiceRemote(updated, previous, options = {}) {
 }
 
 export function deleteInvoice(id, currentFromCaller = null, options = {}) {
+  if (isEmployee()) {
+    return { success: false, error: EMPLOYEE_SAVED_INVOICE_LOCK_MESSAGE }
+  }
+
   const current = currentFromCaller ?? getInvoiceById(id)
   if (!current) {
     return { success: false, error: 'Không tìm thấy hóa đơn.' }
